@@ -161,14 +161,6 @@ export default function ContentsPage() {
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <button
-                                                onClick={() => setExpandedUpload(isExpanded ? null : u.id)}
-                                                className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-[#6B7280] rounded-lg hover:bg-[#F3F4F6] transition-colors"
-                                            >
-                                                <Palette size={12} />
-                                                스타일
-                                                {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                                            </button>
-                                            <button
                                                 onClick={() => handleGenerate(u.id)}
                                                 disabled={generating}
                                                 className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-white bg-[#3563AE] rounded-lg hover:bg-[#2A4F8A] disabled:opacity-50 transition-colors"
@@ -179,104 +171,96 @@ export default function ContentsPage() {
                                         </div>
                                     </div>
 
-                                    {/* Expandable style options */}
-                                    <AnimatePresence>
-                                        {isExpanded && (
-                                            <motion.div
-                                                initial={{ height: 0, opacity: 0 }}
-                                                animate={{ height: "auto", opacity: 1 }}
-                                                exit={{ height: 0, opacity: 0 }}
-                                                transition={{ duration: 0.2 }}
-                                                className="overflow-hidden"
-                                            >
-                                                <div className="px-3 pb-3 border-t border-[#E8EBF0] pt-3 space-y-3">
-                                                    {/* Blog style */}
-                                                    <div>
-                                                        <p className="text-[11px] font-semibold text-[#6B7280] mb-2 flex items-center gap-1.5">
-                                                            <BookOpen size={11} /> 네이버 블로그 스타일
-                                                        </p>
-                                                        <div className="grid grid-cols-4 gap-2">
-                                                            {BLOG_STYLES.map((style) => (
+                                    {/* Style options - always visible */}
+                                    <div className="px-3 pb-3"
+                                    >
+                                        <div className="px-3 pb-3 border-t border-[#E8EBF0] pt-3 space-y-3">
+                                            {/* Blog style */}
+                                            <div>
+                                                <p className="text-[11px] font-semibold text-[#6B7280] mb-2 flex items-center gap-1.5">
+                                                    <BookOpen size={11} /> 네이버 블로그 스타일
+                                                </p>
+                                                <div className="grid grid-cols-4 gap-2">
+                                                    {BLOG_STYLES.map((style) => (
+                                                        <button
+                                                            key={style.key}
+                                                            onClick={() => setStyleForUpload(u.id, style.key)}
+                                                            className={`p-2.5 rounded-xl border text-left transition-all ${selectedStyle === style.key
+                                                                ? "border-[#3563AE] bg-[#3563AE]/[0.06]"
+                                                                : "border-[#E4E7ED] hover:border-[#3563AE]/30"
+                                                                }`}
+                                                        >
+                                                            <p className={`text-[12px] font-semibold ${selectedStyle === style.key ? "text-[#3563AE]" : "text-[#374151]"
+                                                                }`}>
+                                                                {style.label}
+                                                            </p>
+                                                            <p className="text-[10px] text-[#9CA3B0] mt-0.5 leading-tight">
+                                                                {style.desc}
+                                                            </p>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {/* Card news color */}
+                                            <div>
+                                                <p className="text-[11px] font-semibold text-[#6B7280] mb-2 flex items-center gap-1.5">
+                                                    <Palette size={11} /> 카드뉴스 색상
+                                                </p>
+                                                <div className="flex gap-1.5 flex-wrap">
+                                                    {CARD_COLORS.map((color) => {
+                                                        const selected = (uploadColors[u.id] || "default") === color.key;
+                                                        return (
+                                                            <button
+                                                                key={color.key}
+                                                                onClick={() => setUploadColors((prev) => ({ ...prev, [u.id]: color.key }))}
+                                                                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-left transition-all ${selected
+                                                                    ? "border-[#3563AE] bg-[#3563AE]/[0.06]"
+                                                                    : "border-[#E4E7ED] hover:border-[#3563AE]/30"
+                                                                    }`}
+                                                            >
+                                                                <div
+                                                                    className="w-4 h-4 rounded-full border border-white/20 flex-shrink-0"
+                                                                    style={{ background: `linear-gradient(135deg, ${color.colors[0]}, ${color.colors[1]})` }}
+                                                                />
+                                                                <span className={`text-[10px] font-medium ${selected ? "text-[#3563AE]" : "text-[#6B7280]"}`}>
+                                                                    {color.label}
+                                                                </span>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                                {(uploadColors[u.id]) === "custom" && (
+                                                    <div className="mt-2 flex items-center gap-2">
+                                                        <input
+                                                            type="color"
+                                                            value={customColorInput}
+                                                            onChange={(e) => setCustomColorInput(e.target.value)}
+                                                            className="w-8 h-8 rounded-lg border border-[#E4E7ED] cursor-pointer appearance-none [&::-webkit-color-swatch-wrapper]:p-0.5 [&::-webkit-color-swatch]:rounded"
+                                                        />
+                                                        <span className="text-[10px] text-[#9CA3B0] font-mono">{customColorInput.toUpperCase()}</span>
+                                                        <div className="flex gap-1 ml-2">
+                                                            {["#1a1a2e", "#2C1810", "#1A2E1A", "#1E293B", "#2E1A1A", "#0D1B2A", "#2D132C", "#1A1A1A"].map((c) => (
                                                                 <button
-                                                                    key={style.key}
-                                                                    onClick={() => setStyleForUpload(u.id, style.key)}
-                                                                    className={`p-2.5 rounded-xl border text-left transition-all ${selectedStyle === style.key
-                                                                        ? "border-[#3563AE] bg-[#3563AE]/[0.06]"
-                                                                        : "border-[#E4E7ED] hover:border-[#3563AE]/30"
-                                                                        }`}
-                                                                >
-                                                                    <p className={`text-[12px] font-semibold ${selectedStyle === style.key ? "text-[#3563AE]" : "text-[#374151]"
-                                                                        }`}>
-                                                                        {style.label}
-                                                                    </p>
-                                                                    <p className="text-[10px] text-[#9CA3B0] mt-0.5 leading-tight">
-                                                                        {style.desc}
-                                                                    </p>
-                                                                </button>
+                                                                    key={c}
+                                                                    onClick={() => setCustomColorInput(c)}
+                                                                    className={`w-5 h-5 rounded-full border transition-all ${customColorInput === c ? "border-[#3563AE] scale-110" : "border-transparent hover:border-[#D1D5DB]"}`}
+                                                                    style={{ background: c }}
+                                                                />
                                                             ))}
                                                         </div>
                                                     </div>
-
-                                                    {/* Card news color */}
-                                                    <div>
-                                                        <p className="text-[11px] font-semibold text-[#6B7280] mb-2 flex items-center gap-1.5">
-                                                            <Palette size={11} /> 카드뉴스 색상
-                                                        </p>
-                                                        <div className="flex gap-1.5 flex-wrap">
-                                                            {CARD_COLORS.map((color) => {
-                                                                const selected = (uploadColors[u.id] || "default") === color.key;
-                                                                return (
-                                                                    <button
-                                                                        key={color.key}
-                                                                        onClick={() => setUploadColors((prev) => ({ ...prev, [u.id]: color.key }))}
-                                                                        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-left transition-all ${selected
-                                                                            ? "border-[#3563AE] bg-[#3563AE]/[0.06]"
-                                                                            : "border-[#E4E7ED] hover:border-[#3563AE]/30"
-                                                                            }`}
-                                                                    >
-                                                                        <div
-                                                                            className="w-4 h-4 rounded-full border border-white/20 flex-shrink-0"
-                                                                            style={{ background: `linear-gradient(135deg, ${color.colors[0]}, ${color.colors[1]})` }}
-                                                                        />
-                                                                        <span className={`text-[10px] font-medium ${selected ? "text-[#3563AE]" : "text-[#6B7280]"}`}>
-                                                                            {color.label}
-                                                                        </span>
-                                                                    </button>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                        {(uploadColors[u.id]) === "custom" && (
-                                                            <div className="mt-2 flex items-center gap-2">
-                                                                <input
-                                                                    type="color"
-                                                                    value={customColorInput}
-                                                                    onChange={(e) => setCustomColorInput(e.target.value)}
-                                                                    className="w-8 h-8 rounded-lg border border-[#E4E7ED] cursor-pointer appearance-none [&::-webkit-color-swatch-wrapper]:p-0.5 [&::-webkit-color-swatch]:rounded"
-                                                                />
-                                                                <span className="text-[10px] text-[#9CA3B0] font-mono">{customColorInput.toUpperCase()}</span>
-                                                                <div className="flex gap-1 ml-2">
-                                                                    {["#1a1a2e", "#2C1810", "#1A2E1A", "#1E293B", "#2E1A1A", "#0D1B2A", "#2D132C", "#1A1A1A"].map((c) => (
-                                                                        <button
-                                                                            key={c}
-                                                                            onClick={() => setCustomColorInput(c)}
-                                                                            className={`w-5 h-5 rounded-full border transition-all ${customColorInput === c ? "border-[#3563AE] scale-110" : "border-transparent hover:border-[#D1D5DB]"}`}
-                                                                            style={{ background: c }}
-                                                                        />
-                                                                    ))}
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             );
                         })}
                     </div>
                 </div>
-            )}
+            )
+            }
 
             {/* Channel filter */}
             <div className="mt-6 flex gap-1.5 p-1 rounded-xl bg-[#E8EBF0]/50 overflow-x-auto">
@@ -364,6 +348,6 @@ export default function ContentsPage() {
                     </AnimatePresence>
                 )}
             </div>
-        </div>
+        </div >
     );
 }
