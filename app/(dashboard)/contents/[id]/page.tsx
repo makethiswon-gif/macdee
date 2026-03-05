@@ -94,8 +94,6 @@ function convertToRichHtml(text: string): string {
 // Render markdown preview for content detail page
 function MarkdownPreview({ body }: { body: string }) {
     const lines = body.split("\n");
-    // Detect if content has markdown (## or **)
-    const hasMarkdown = /^#{1,3}\s/m.test(body) || /\*\*/.test(body);
 
     return (
         <div className="space-y-0.5">
@@ -106,17 +104,19 @@ function MarkdownPreview({ body }: { body: string }) {
                 // Markdown headings
                 if (trimmed.startsWith("### ")) {
                     return (
-                        <p key={i} className="text-[16px] font-bold text-[#1F2937] mt-6 mb-2" dangerouslySetInnerHTML={{ __html: trimmed.replace(/^###\s+/, "").replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>") }} />
+                        <p key={i} className="text-[16px] font-bold text-[#1F2937] mt-8 mb-3 pb-1" dangerouslySetInnerHTML={{ __html: trimmed.replace(/^###\s+/, "").replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>") }} />
                     );
                 }
                 if (trimmed.startsWith("## ")) {
                     return (
-                        <p key={i} className="text-[18px] font-bold text-[#1F2937] mt-8 mb-3" dangerouslySetInnerHTML={{ __html: trimmed.replace(/^##\s+/, "").replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>") }} />
+                        <div key={i} className="mt-10 mb-4">
+                            <p className="text-[18px] font-extrabold text-[#111827] pb-2 border-b-2 border-[#3563AE]/20" dangerouslySetInnerHTML={{ __html: trimmed.replace(/^##\s+/, "").replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>") }} />
+                        </div>
                     );
                 }
                 if (trimmed.startsWith("# ")) {
                     return (
-                        <p key={i} className="text-[20px] font-extrabold text-[#1F2937] mt-8 mb-3" dangerouslySetInnerHTML={{ __html: trimmed.replace(/^#\s+/, "").replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>") }} />
+                        <p key={i} className="text-[22px] font-extrabold text-[#111827] mt-10 mb-4" dangerouslySetInnerHTML={{ __html: trimmed.replace(/^#\s+/, "").replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>") }} />
                     );
                 }
                 if (trimmed.startsWith("- ") || trimmed.startsWith("• ")) {
@@ -132,19 +132,21 @@ function MarkdownPreview({ body }: { body: string }) {
                     return <hr key={i} className="my-6 border-[#E8EBF0]" />;
                 }
                 if (trimmed === "") {
-                    return <div key={i} className="h-3" />;
+                    return <div key={i} className="h-5" />;
                 }
 
-                // For plain text (no markdown): detect subtitles
-                if (!hasMarkdown && isSubtitleLine(line, prevLine)) {
+                // For plain text (no markdown markers): detect subtitles
+                if (isSubtitleLine(line, prevLine)) {
                     return (
-                        <p key={i} className="text-[17px] font-bold text-[#1F2937] mt-7 mb-2">{trimmed}</p>
+                        <div key={i} className="mt-10 mb-4">
+                            <p className="text-[18px] font-extrabold text-[#111827] pb-2 border-b-2 border-[#3563AE]/20">{trimmed}</p>
+                        </div>
                     );
                 }
 
                 const html = trimmed.replace(/\*\*(.+?)\*\*/g, "<strong class='font-semibold text-[#1F2937]'>$1</strong>").replace(/\*(.+?)\*/g, "<em>$1</em>");
                 return (
-                    <p key={i} className="text-[15px] text-[#374151] leading-relaxed" dangerouslySetInnerHTML={{ __html: html }} />
+                    <p key={i} className="text-[15px] text-[#374151] leading-[1.85]" dangerouslySetInnerHTML={{ __html: html }} />
                 );
             })}
         </div>
