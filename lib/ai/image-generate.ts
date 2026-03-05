@@ -163,6 +163,7 @@ export async function generateCoverImage(
                     n: 1,
                     size: "1024x1024",
                     quality: "high",
+                    output_format: "b64_json",
                 }),
             });
 
