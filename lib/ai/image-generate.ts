@@ -123,9 +123,9 @@ function buildFallbackPrompt(caseType: string, hookText: string, style: "webtoon
 }
 
 /**
- * Gemini(나노바나나)로 카드뉴스 배경 이미지를 생성합니다.
+ * GPT-4o로 카드뉴스 배경 이미지를 생성합니다.
  * Claude가 사건 내용을 분석하여 구체적 장면 프롬프트를 생성한 후
- * Gemini가 해당 프롬프트로 이미지를 생성합니다.
+ * GPT-4o가 최고 품질 이미지를 생성합니다. 폴백: Gemini → DALL-E 3
  */
 export async function generateCoverImage(
     caseType: string,
@@ -136,87 +136,87 @@ export async function generateCoverImage(
         maskedText?: string;
     }
 ): Promise<{ imageBase64: string; revisedPrompt: string; style: string } | null> {
-    const geminiKey = process.env.GEMINI_API_KEY;
-    if (!geminiKey) {
-        console.warn("[CoverImage] GEMINI_API_KEY not set, trying DALL-E fallback");
-        return await generateCoverImageDallE(caseType, hookText);
-    }
-
     // 랜덤 스타일 (50/50)
     const style: "webtoon" | "realistic" = Math.random() > 0.5 ? "webtoon" : "realistic";
 
     // Step 1: Claude가 사건 내용 분석 → 구체적 장면 프롬프트 생성
     const sceneDescription = await generateScenePromptWithClaude(caseType, hookText, context, style);
 
-    // Step 2: Gemini에 전달할 최종 프롬프트
     const finalPrompt = style === "webtoon"
-        ? `Create a single-panel Korean webtoon (만화) illustration based on this scene:
+        ? `Create a single-panel Korean webtoon (만화) illustration based on this scene:\n\n${sceneDescription}\n\nStyle: Korean manhwa art style, clean bold lines, dramatic expressions, distinct Korean characters, square 1:1, ultra high quality, dark dramatic lighting. NO text/words/letters/numbers in the image.`
+        : `Create a photorealistic cinematic photograph based on this scene:\n\n${sceneDescription}\n\nStyle: Editorial K-drama photography, DSLR bokeh, square 1:1, ultra high quality, dramatic chiaroscuro lighting. Korean setting. NO text/words/letters/numbers in the image.`;
 
-${sceneDescription}
-
-Style requirements:
-- Korean manhwa art style with clean bold lines and dramatic expressions
-- Characters should have distinct appearances and visible emotions
-- Square aspect ratio (1:1), high quality
-- Dark dramatic lighting with selective warm highlights
-- NO text, NO words, NO letters, NO numbers anywhere in the image
-- Characters should look Korean`
-
-        : `Create a photorealistic cinematic photograph based on this scene:
-
-${sceneDescription}
-
-Style requirements:
-- Editorial photography quality, like a still from a Korean drama (K-drama)
-- High-end commercial photography, DSLR bokeh effect
-- Square aspect ratio (1:1), high quality
-- Dramatic lighting (chiaroscuro or golden hour)
-- NO text, NO words, NO letters, NO numbers anywhere in the image
-- Korean setting and atmosphere`;
-
-    try {
-        console.log(`[CoverImage] Generating Gemini ${style} image with Claude-designed scene`);
-
-        const res = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiKey}`,
-            {
+    // Step 2: GPT-4o 이미지 생성 (주 엔진)
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (apiKey) {
+        try {
+            console.log(`[CoverImage] Generating GPT-4o ${style} image`);
+            const res = await fetch("https://api.openai.com/v1/images/generations", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${apiKey}`,
+                },
                 body: JSON.stringify({
-                    contents: [{ parts: [{ text: finalPrompt }] }],
-                    generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
+                    model: "gpt-image-1",
+                    prompt: finalPrompt,
+                    n: 1,
+                    size: "1024x1024",
+                    quality: "high",
                 }),
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                if (data.data?.[0]?.b64_json) {
+                    console.log(`[CoverImage] GPT-4o ${style} image generated successfully`);
+                    return { imageBase64: data.data[0].b64_json, revisedPrompt: finalPrompt, style };
+                }
+            } else {
+                const err = await res.text();
+                console.error(`[CoverImage] GPT-4o error: ${res.status}`, err);
             }
-        );
-
-        if (!res.ok) {
-            const err = await res.text();
-            console.error(`[CoverImage] Gemini API error: ${res.status}`, err);
-            return await generateCoverImageDallE(caseType, hookText);
+        } catch (err) {
+            console.error("[CoverImage] GPT-4o failed:", err);
         }
-
-        const data = await res.json();
-        const parts = data.candidates?.[0]?.content?.parts || [];
-        const imagePart = parts.find(
-            (p: { inlineData?: { mimeType: string; data: string } }) =>
-                p.inlineData?.mimeType?.startsWith("image/")
-        );
-
-        if (!imagePart?.inlineData?.data) {
-            console.warn("[CoverImage] No image in Gemini response, falling back to DALL-E");
-            return await generateCoverImageDallE(caseType, hookText);
-        }
-
-        console.log(`[CoverImage] Gemini ${style} image generated with case-specific scene`);
-        return {
-            imageBase64: imagePart.inlineData.data,
-            revisedPrompt: finalPrompt,
-            style,
-        };
-    } catch (err) {
-        console.error("[CoverImage] Gemini image generation failed:", err);
-        return await generateCoverImageDallE(caseType, hookText);
     }
+
+    // Step 3: Gemini 폴백
+    const geminiKey = process.env.GEMINI_API_KEY;
+    if (geminiKey) {
+        try {
+            console.log(`[CoverImage] Trying Gemini ${style} fallback`);
+            const res = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiKey}`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: finalPrompt }] }],
+                        generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
+                    }),
+                }
+            );
+
+            if (res.ok) {
+                const data = await res.json();
+                const parts = data.candidates?.[0]?.content?.parts || [];
+                const imagePart = parts.find(
+                    (p: { inlineData?: { mimeType: string; data: string } }) =>
+                        p.inlineData?.mimeType?.startsWith("image/")
+                );
+                if (imagePart?.inlineData?.data) {
+                    console.log(`[CoverImage] Gemini ${style} fallback succeeded`);
+                    return { imageBase64: imagePart.inlineData.data, revisedPrompt: finalPrompt, style };
+                }
+            }
+        } catch (err) {
+            console.error("[CoverImage] Gemini fallback failed:", err);
+        }
+    }
+
+    // Step 4: DALL-E 3 최종 폴백
+    return await generateCoverImageDallE(caseType, hookText);
 }
 
 /**
@@ -247,7 +247,7 @@ async function generateCoverImageDallE(
                 prompt,
                 n: 1,
                 size: "1024x1024",
-                quality: "standard",
+                quality: "hd",
                 response_format: "b64_json",
             }),
         });

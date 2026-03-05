@@ -17,7 +17,7 @@ export interface AIProvider {
     generate(messages: AIMessage[], options?: { temperature?: number; maxTokens?: number }): Promise<AIResponse>;
 }
 
-// ─── OpenAI Provider (GPT-4o-mini for preprocessing) ───
+// ─── OpenAI Provider (GPT-4o for preprocessing) ───
 export class OpenAIProvider implements AIProvider {
     name = "openai";
     private apiKey: string;
@@ -109,7 +109,7 @@ export class ClaudeProvider implements AIProvider {
 
 // ─── Provider Factory ───
 export function getPreprocessor(): AIProvider {
-    return new OpenAIProvider("gpt-4o-mini");
+    return new OpenAIProvider("gpt-4o");
 }
 
 export function getContentGenerator(): AIProvider {
