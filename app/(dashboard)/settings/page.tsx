@@ -14,13 +14,37 @@ import {
     Moon,
     Sun,
     ChevronRight,
+    Film,
 } from "lucide-react";
+
+const WEBTOON_STYLES = [
+    { key: "dramatic", label: "극화 만화", desc: "진지한 법정 드라마풍" },
+    { key: "soft", label: "감성 일러스트", desc: "부드럽고 따뜻한 느낌" },
+    { key: "cinematic", label: "시네마틱", desc: "실사 영화 스틸컷풍" },
+    { key: "minimal", label: "미니멀", desc: "깔끔한 라인 아트" },
+];
 
 export default function SettingsPage() {
     const [deleting, setDeleting] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState(false);
+    const [webtoonStyle, setWebtoonStyle] = useState("dramatic");
+    const [savingStyle, setSavingStyle] = useState(false);
     const supabase = createClient();
     const router = useRouter();
+
+    // Load webtoon style from DB
+    useState(() => {
+        (async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+            const { data: lawyer } = await supabase
+                .from("lawyers")
+                .select("webtoon_style")
+                .eq("user_id", user.id)
+                .single();
+            if (lawyer?.webtoon_style) setWebtoonStyle(lawyer.webtoon_style);
+        })();
+    });
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
@@ -33,10 +57,25 @@ export default function SettingsPage() {
             return;
         }
         setDeleting(true);
-        // Account deletion would require admin API
-        // For now, just sign out
         await supabase.auth.signOut();
         router.push("/");
+    };
+
+    const handleStyleChange = async (styleKey: string) => {
+        setWebtoonStyle(styleKey);
+        setSavingStyle(true);
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                await supabase
+                    .from("lawyers")
+                    .update({ webtoon_style: styleKey })
+                    .eq("user_id", user.id);
+            }
+        } catch (err) {
+            console.error("Failed to save webtoon style:", err);
+        }
+        setSavingStyle(false);
     };
 
     return (
@@ -70,6 +109,32 @@ export default function SettingsPage() {
                         <button className="flex-1 flex items-center gap-2 p-3 rounded-xl border border-[#E4E7ED] text-sm font-medium text-[#6B7280] hover:border-[#3563AE]/30 transition-colors cursor-not-allowed opacity-50">
                             <Moon size={14} /> 다크 <span className="ml-auto text-[10px]">준비 중</span>
                         </button>
+                    </div>
+                </SettingSection>
+
+                {/* Webtoon Style */}
+                <SettingSection
+                    icon={<Film size={16} />}
+                    title="웹툰 그림체"
+                    desc="8컷 웹툰 생성 시 사용할 그림체를 선택합니다 (무제한 플랜 전용)"
+                >
+                    <div className="grid grid-cols-2 gap-2">
+                        {WEBTOON_STYLES.map((style) => (
+                            <button
+                                key={style.key}
+                                onClick={() => handleStyleChange(style.key)}
+                                disabled={savingStyle}
+                                className={`p-3 rounded-xl border text-left transition-all ${webtoonStyle === style.key
+                                    ? "border-[#F59E0B] bg-[#F59E0B]/[0.06]"
+                                    : "border-[#E4E7ED] hover:border-[#F59E0B]/30"
+                                    }`}
+                            >
+                                <p className={`text-[12px] font-semibold ${webtoonStyle === style.key ? "text-[#F59E0B]" : "text-[#374151]"}`}>
+                                    {style.label}
+                                </p>
+                                <p className="text-[10px] text-[#9CA3B0] mt-0.5">{style.desc}</p>
+                            </button>
+                        ))}
                     </div>
                 </SettingSection>
 

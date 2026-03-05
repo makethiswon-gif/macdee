@@ -17,6 +17,7 @@ import {
     ChevronDown,
     ChevronUp,
     Clock,
+    Film,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -26,6 +27,7 @@ const CHANNEL_META: Record<string, { label: string; icon: typeof BookOpen; color
     instagram: { label: "인스타그램", icon: Instagram, color: "#E1306C" },
     google: { label: "구글 SEO", icon: Globe, color: "#4285F4" },
     macdee: { label: "AI 검색", icon: Search, color: "#3563AE" },
+    webtoon: { label: "웹툰", icon: Film, color: "#F59E0B" },
 };
 
 const STATUS_META: Record<string, { label: string; color: string; bg: string }> = {
@@ -67,6 +69,7 @@ export default function ContentsPage() {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState("all");
     const [generating, setGenerating] = useState(false);
+    const [generatingWebtoon, setGeneratingWebtoon] = useState(false);
     const [uploads, setUploads] = useState<{ id: string; title: string; status: string }[]>([]);
     const [expandedUpload, setExpandedUpload] = useState<string | null>(null);
     const [uploadStyles, setUploadStyles] = useState<Record<string, string>>({});
@@ -133,6 +136,34 @@ export default function ContentsPage() {
         }
     };
 
+    const handleGenerateWebtoon = async (uploadId: string) => {
+        setGeneratingWebtoon(true);
+        try {
+            const res = await fetch("/api/contents/generate-webtoon", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ upload_id: uploadId }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                if (res.status === 403) {
+                    toast.error("웹툰 기능은 무제한 플랜에서만 사용할 수 있습니다.");
+                } else {
+                    toast.error(`웹툰 생성 실패: ${data.error || "알 수 없는 오류"}`);
+                }
+            } else {
+                toast.success(`8컷 웹툰이 생성되었습니다! (${data.panels}컷)`);
+            }
+            await fetchContents();
+            await fetchUploads();
+        } catch (err) {
+            toast.error("웹툰 생성 중 오류가 발생했습니다.");
+            console.error(err);
+        } finally {
+            setGeneratingWebtoon(false);
+        }
+    };
+
     return (
         <div className="max-w-5xl mx-auto">
             <div className="flex items-center justify-between flex-wrap gap-4">
@@ -162,11 +193,19 @@ export default function ContentsPage() {
                                         <div className="flex items-center gap-2">
                                             <button
                                                 onClick={() => handleGenerate(u.id)}
-                                                disabled={generating}
+                                                disabled={generating || generatingWebtoon}
                                                 className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-white bg-[#3563AE] rounded-lg hover:bg-[#2A4F8A] disabled:opacity-50 transition-colors"
                                             >
                                                 {generating ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />}
                                                 AI 생성
+                                            </button>
+                                            <button
+                                                onClick={() => handleGenerateWebtoon(u.id)}
+                                                disabled={generating || generatingWebtoon}
+                                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#F59E0B] bg-[#F59E0B]/10 border border-[#F59E0B]/20 rounded-lg hover:bg-[#F59E0B]/20 disabled:opacity-50 transition-colors"
+                                            >
+                                                {generatingWebtoon ? <Loader2 size={12} className="animate-spin" /> : <Film size={12} />}
+                                                웹툰
                                             </button>
                                         </div>
                                     </div>

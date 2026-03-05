@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import CardNewsRenderer from "@/components/CardNewsRenderer";
+import WebtoonRenderer from "@/components/WebtoonRenderer";
 import {
     ArrowLeft,
     BookOpen,
@@ -23,6 +24,7 @@ import {
     XCircle,
     Eye,
     Pencil,
+    Film,
 } from "lucide-react";
 
 // Strip markdown for plain text fallback
@@ -160,6 +162,7 @@ const CHANNEL_META: Record<string, { label: string; icon: typeof BookOpen; color
     instagram: { label: "인스타그램", icon: Instagram, color: "#E1306C" },
     google: { label: "구글 SEO", icon: Globe, color: "#4285F4" },
     macdee: { label: "AI 검색", icon: Search, color: "#3563AE" },
+    webtoon: { label: "웹툰", icon: Film, color: "#F59E0B" },
 };
 
 interface Content {
@@ -171,7 +174,8 @@ interface Content {
     meta_description: string;
     tags: string[];
     created_at: string;
-    card_news_data?: { coverImageUrl?: string; imagePrompt?: string } | null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    card_news_data?: { coverImageUrl?: string; imagePrompt?: string; webtoon?: boolean; panels?: any[]; style?: string; character_sheet?: any } | null;
 }
 
 // ─── SEO Scoring Logic ───
@@ -504,6 +508,18 @@ export default function ContentDetailPage() {
                     {content.channel === "instagram" && (
                         <div className="mt-6 p-6 rounded-2xl bg-white border border-[#E8EBF0]">
                             <CardNewsRenderer body={editBody} brandColor={brandColor} lawyerName={lawyerName} logoUrl={logoUrl} coverImageUrl={coverImageUrl} profileImageUrl={profileImageUrl} />
+                        </div>
+                    )}
+
+                    {/* Webtoon Preview */}
+                    {content.channel === "webtoon" && content.card_news_data?.panels && (
+                        <div className="mt-6 p-6 rounded-2xl bg-white border border-[#E8EBF0]">
+                            <WebtoonRenderer
+                                panels={content.card_news_data.panels}
+                                title={editTitle}
+                                lawyerName={lawyerName}
+                                style={content.card_news_data.style}
+                            />
                         </div>
                     )}
 
