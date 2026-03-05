@@ -194,24 +194,23 @@ Requirements:
                     n: 1,
                     size: "1024x1024",
                     quality: "high",
-                    output_format: "b64_json",
+                    output_format: "png",
                 }),
             });
 
             if (!res.ok) {
                 const err = await res.text();
-                console.error(`[Webtoon] Panel ${panel.panel} error:`, err);
+                console.error(`[Webtoon] Panel ${panel.panel} error (${res.status}):`, err);
                 return null;
             }
 
             const data = await res.json();
-            if (data.data?.[0]?.b64_json) {
-                console.log(`[Webtoon] Panel ${panel.panel} generated`);
-                return {
-                    panelIndex: panel.panel,
-                    imageBase64: data.data[0].b64_json,
-                };
+            const b64 = data.data?.[0]?.b64_json;
+            if (b64) {
+                console.log(`[Webtoon] Panel ${panel.panel} generated (b64_json)`);
+                return { panelIndex: panel.panel, imageBase64: b64 };
             }
+            console.error(`[Webtoon] Panel ${panel.panel}: no b64_json in response, keys:`, Object.keys(data.data?.[0] || {}));
             return null;
         } catch (err) {
             console.error(`[Webtoon] Panel ${panel.panel} failed:`, err);
