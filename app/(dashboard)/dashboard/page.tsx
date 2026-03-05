@@ -20,7 +20,15 @@ import {
     Sparkles,
     TrendingUp,
     Zap,
+    Crown,
 } from "lucide-react";
+
+const PLAN_META: Record<string, { label: string; color: string; bg: string }> = {
+    free: { label: "무료 체험", color: "text-white/40", bg: "bg-white/[0.06]" },
+    basic: { label: "스타터", color: "text-blue-400", bg: "bg-blue-500/10" },
+    pro: { label: "프로", color: "text-purple-400", bg: "bg-purple-500/10" },
+    unlimited: { label: "무제한", color: "text-amber-400", bg: "bg-amber-500/10" },
+};
 
 const CHANNEL_META: Record<string, { label: string; icon: typeof BookOpen; color: string }> = {
     blog: { label: "네이버 블로그", icon: BookOpen, color: "#03C75A" },
@@ -31,6 +39,7 @@ const CHANNEL_META: Record<string, { label: string; icon: typeof BookOpen; color
 
 export default function DashboardPage() {
     const [userName, setUserName] = useState("");
+    const [userPlan, setUserPlan] = useState("free");
     const [stats, setStats] = useState({ uploads: 0, contents: 0, published: 0, views: 0, clicks: 0, inquiries: 0 });
     const [recentContents, setRecentContents] = useState<{ id: string; title: string; channel: string; status: string; created_at: string }[]>([]);
     const [pendingUploads, setPendingUploads] = useState(0);
@@ -41,9 +50,10 @@ export default function DashboardPage() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        const { data: lawyer } = await supabase.from("lawyers").select("id, name").eq("user_id", user.id).single();
+        const { data: lawyer } = await supabase.from("lawyers").select("id, name, plan").eq("user_id", user.id).single();
         if (!lawyer) { setLoading(false); return; }
         setUserName(lawyer.name);
+        setUserPlan(lawyer.plan || "free");
 
         const [uploadsRes, contentsRes, pubsRes] = await Promise.all([
             supabase.from("uploads").select("id, status", { count: "exact" }).eq("lawyer_id", lawyer.id),
@@ -108,9 +118,17 @@ export default function DashboardPage() {
                             {userName} <span className="text-white/25 font-light">변호사님</span>
                         </h1>
                     </div>
-                    <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#3563AE]/10 border border-[#3563AE]/20">
-                        <Sparkles size={12} className="text-[#3563AE]" />
-                        <span className="text-[11px] text-[#6B94E0] font-medium">AI 마케팅 가동 중</span>
+                    <div className="hidden sm:flex items-center gap-2">
+                        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${PLAN_META[userPlan]?.bg || PLAN_META.free.bg} border border-white/[0.06]`}>
+                            <Crown size={11} className={PLAN_META[userPlan]?.color || PLAN_META.free.color} />
+                            <span className={`text-[11px] font-semibold ${PLAN_META[userPlan]?.color || PLAN_META.free.color}`}>
+                                {PLAN_META[userPlan]?.label || "무료"} 플랜
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#3563AE]/10 border border-[#3563AE]/20">
+                            <Sparkles size={12} className="text-[#3563AE]" />
+                            <span className="text-[11px] text-[#6B94E0] font-medium">AI 마케팅 가동 중</span>
+                        </div>
                     </div>
                 </div>
             </motion.div>
@@ -273,9 +291,9 @@ export default function DashboardPage() {
                                             <p className="text-[10px] font-medium mt-0.5" style={{ color: ch.color + "80" }}>{ch.label}</p>
                                         </div>
                                         <span className={`px-2 py-0.5 text-[10px] font-semibold rounded-md ${c.status === "published" ? "text-blue-400/80 bg-blue-500/10" :
-                                                c.status === "approved" ? "text-emerald-400/80 bg-emerald-500/10" :
-                                                    c.status === "review" ? "text-amber-400/80 bg-amber-500/10" :
-                                                        "text-white/30 bg-white/[0.04]"
+                                            c.status === "approved" ? "text-emerald-400/80 bg-emerald-500/10" :
+                                                c.status === "review" ? "text-amber-400/80 bg-amber-500/10" :
+                                                    "text-white/30 bg-white/[0.04]"
                                             }`}>
                                             {c.status === "published" ? "발행됨" : c.status === "approved" ? "승인됨" : c.status === "review" ? "검토 중" : "초안"}
                                         </span>
