@@ -124,9 +124,9 @@ function HeroSection() {
           >
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-[#8AB4F8]">하루 10분,</span>
             <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-white/90">어떤 형태든 올리면</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-white/90">AI 맥디로 24시간</span>
             <br />
-            <span className="text-white">마케팅이 됩니다.</span>
+            <span className="text-white">쉬지 않는 마케팅을 완성하세요.</span>
           </motion.h1>
 
           {/* AI credibility */}
