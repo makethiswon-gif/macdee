@@ -8,6 +8,7 @@ import {
     Users,
     FileText,
     CreditCard,
+    BookOpen,
     LogOut,
     ChevronRight,
     Shield,
@@ -18,6 +19,7 @@ const ADMIN_NAV = [
     { href: "/admin/lawyers", label: "변호사 관리", icon: Users },
     { href: "/admin/contents", label: "콘텐츠 관리", icon: FileText },
     { href: "/admin/subscriptions", label: "구독/매출", icon: CreditCard },
+    { href: "/admin/magazines", label: "매거진 관리", icon: BookOpen },
 ];
 
 export default function AdminLayout({
@@ -85,14 +87,14 @@ export default function AdminLayout({
 
                 <nav className="flex-1 px-3 py-2 space-y-0.5">
                     {ADMIN_NAV.map((item) => {
-                        const isActive = pathname === item.href;
+                        const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
                         return (
                             <Link
                                 key={item.href}
                                 href={item.href}
                                 className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[13px] transition-colors ${isActive
-                                        ? "bg-[#3563AE]/10 text-[#3563AE] font-medium"
-                                        : "text-[#9CA3B0] hover:bg-[#1A2035] hover:text-white"
+                                    ? "bg-[#3563AE]/10 text-[#3563AE] font-medium"
+                                    : "text-[#9CA3B0] hover:bg-[#1A2035] hover:text-white"
                                     }`}
                             >
                                 <item.icon size={16} />
