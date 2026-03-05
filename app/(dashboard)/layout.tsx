@@ -19,6 +19,7 @@ import {
     BookOpen,
     CreditCard,
     PenTool,
+    TrendingUp,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -28,6 +29,7 @@ const NAV_ITEMS = [
     { href: "/blog-write", label: "블로그 글쓰기", icon: PenTool },
     { href: "/publish", label: "발행", icon: Send },
     { href: "/analytics", label: "분석", icon: BarChart3 },
+    { href: "/consulting", label: "AI 컨설팅", icon: TrendingUp },
     { href: "/billing", label: "결제 관리", icon: CreditCard },
     { href: "/profile", label: "프로필", icon: User },
     { href: "/guide", label: "사용 가이드", icon: BookOpen },
