@@ -9,6 +9,7 @@ interface CardNewsProps {
     lawyerName?: string;
     logoUrl?: string;
     coverImageUrl?: string;
+    profileImageUrl?: string;
 }
 
 interface ParsedCard {
@@ -86,7 +87,7 @@ const CARD_GRADIENTS = [
     "linear-gradient(135deg, #0D1117 0%, #1A1D23 100%)",
 ];
 
-export default function CardNewsRenderer({ body, brandColor = "#3563AE", lawyerName = "", logoUrl, coverImageUrl }: CardNewsProps) {
+export default function CardNewsRenderer({ body, brandColor = "#3563AE", lawyerName = "", logoUrl, coverImageUrl, profileImageUrl }: CardNewsProps) {
     const cards = parseCardNews(body);
     const hashtags = extractHashtags(body);
     const [currentCard, setCurrentCard] = useState(0);
@@ -173,8 +174,8 @@ export default function CardNewsRenderer({ body, brandColor = "#3563AE", lawyerN
                         className="w-[360px] h-[360px] rounded-2xl overflow-hidden shadow-xl relative"
                         style={{ background: CARD_GRADIENTS[currentCard % CARD_GRADIENTS.length] }}
                     >
-                        {/* Cover image for first card */}
-                        {currentCard === 0 && coverImageUrl && (
+                        {/* Cover image as background for ALL cards */}
+                        {coverImageUrl && (
                             <>
                                 <img
                                     src={coverImageUrl}
@@ -182,22 +183,29 @@ export default function CardNewsRenderer({ body, brandColor = "#3563AE", lawyerN
                                     className="absolute inset-0 w-full h-full object-cover"
                                     crossOrigin="anonymous"
                                 />
-                                {/* Dark gradient overlay for text readability */}
                                 <div className="absolute inset-0" style={{
-                                    background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0.15) 70%, rgba(0,0,0,0.3) 100%)",
+                                    background: currentCard === 0
+                                        ? "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0.15) 70%, rgba(0,0,0,0.3) 100%)"
+                                        : "linear-gradient(135deg, rgba(0,0,0,0.82) 0%, rgba(10,10,30,0.88) 100%)",
                                 }} />
                             </>
                         )}
 
                         <div className="relative w-full h-full flex flex-col justify-end items-center px-10 py-8 text-center">
-                            {/* Brand line (hide on cover with image) */}
-                            {!(currentCard === 0 && coverImageUrl) && (
+                            {/* Brand line (hide on first card) */}
+                            {currentCard !== 0 && (
                                 <div className="w-6 h-px mb-auto mt-8" style={{ background: `${brandColor}60` }} />
                             )}
 
-                            {currentCard === 0 && coverImageUrl ? (
+                            {/* Profile photo on first and last card */}
+                            {profileImageUrl && (currentCard === 0 || currentCard === cards.length - 1) && (
+                                <div className="absolute top-5 right-5 w-12 h-12 rounded-full overflow-hidden border-2 border-white/30 shadow-lg">
+                                    <img src={profileImageUrl} alt="profile" className="w-full h-full object-cover" crossOrigin="anonymous" />
+                                </div>
+                            )}
+
+                            {currentCard === 0 ? (
                                 <>
-                                    {/* Cover slide: large title at bottom over image */}
                                     <div className="mt-auto">
                                         <p className="text-white text-lg font-bold leading-relaxed mb-3 drop-shadow-lg" style={{ fontFamily: "'Noto Serif KR', serif", letterSpacing: "-0.02em", textShadow: "0 2px 8px rgba(0,0,0,0.5)" }}>
                                             {cards[0].title}
@@ -207,7 +215,6 @@ export default function CardNewsRenderer({ body, brandColor = "#3563AE", lawyerN
                                                 <p key={i} style={{ fontFamily: "'Noto Serif KR', serif", textShadow: "0 1px 4px rgba(0,0,0,0.5)" }}>{line}</p>
                                             ))}
                                         </div>
-                                        {/* Lawyer name watermark */}
                                         {lawyerName && (
                                             <p className="mt-4 text-[9px] text-white/40 tracking-[0.15em]">{lawyerName}</p>
                                         )}
@@ -215,7 +222,6 @@ export default function CardNewsRenderer({ body, brandColor = "#3563AE", lawyerN
                                 </>
                             ) : (
                                 <>
-                                    {/* Regular text cards */}
                                     <div className="flex-1 flex flex-col justify-center">
                                         <p className="text-white text-base font-semibold leading-relaxed mb-4" style={{ fontFamily: "'Noto Serif KR', serif", letterSpacing: "-0.02em" }}>
                                             {cards[currentCard].title}
@@ -227,7 +233,6 @@ export default function CardNewsRenderer({ body, brandColor = "#3563AE", lawyerN
                                         </div>
                                     </div>
 
-                                    {/* Bottom brand / logo */}
                                     <div className="mt-auto pt-6 flex flex-col items-center gap-2">
                                         {logoUrl && (
                                             <img src={logoUrl} alt="logo" className="h-6 object-contain opacity-40" crossOrigin="anonymous" />
@@ -288,17 +293,17 @@ export default function CardNewsRenderer({ body, brandColor = "#3563AE", lawyerN
                             background: CARD_GRADIENTS[i % CARD_GRADIENTS.length],
                             display: "flex",
                             flexDirection: "column",
-                            justifyContent: i === 0 && coverImageUrl ? "flex-end" : "center",
+                            justifyContent: i === 0 ? "flex-end" : "center",
                             alignItems: "center",
-                            padding: i === 0 && coverImageUrl ? 0 : 140,
+                            padding: i === 0 ? 0 : 140,
                             textAlign: "center",
                             fontFamily: "'Noto Serif KR', 'Batang', serif",
                             position: "relative",
                             overflow: "hidden",
                         }}
                     >
-                        {/* Cover image for first card */}
-                        {i === 0 && coverImageUrl && (
+                        {/* Cover image for ALL cards */}
+                        {coverImageUrl && (
                             <>
                                 <img
                                     src={coverImageUrl}
@@ -315,12 +320,31 @@ export default function CardNewsRenderer({ body, brandColor = "#3563AE", lawyerN
                                 <div style={{
                                     position: "absolute",
                                     inset: 0,
-                                    background: "linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0.1) 70%, rgba(0,0,0,0.25) 100%)",
+                                    background: i === 0
+                                        ? "linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0.1) 70%, rgba(0,0,0,0.25) 100%)"
+                                        : "linear-gradient(135deg, rgba(0,0,0,0.82) 0%, rgba(10,10,30,0.88) 100%)",
                                 }} />
                             </>
                         )}
 
-                        {i === 0 && coverImageUrl ? (
+                        {/* Profile photo on first and last card */}
+                        {profileImageUrl && (i === 0 || i === cards.length - 1) && (
+                            <div style={{
+                                position: "absolute",
+                                top: 50,
+                                right: 50,
+                                width: 100,
+                                height: 100,
+                                borderRadius: "50%",
+                                overflow: "hidden",
+                                border: "3px solid rgba(255,255,255,0.3)",
+                                boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                            }}>
+                                <img src={profileImageUrl} alt="profile" crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                            </div>
+                        )}
+
+                        {i === 0 ? (
                             /* Cover card export layout */
                             <div style={{
                                 position: "relative",
@@ -366,7 +390,6 @@ export default function CardNewsRenderer({ body, brandColor = "#3563AE", lawyerN
                         ) : (
                             /* Regular text card export layout */
                             <>
-                                {/* Subtle brand line */}
                                 <div style={{ width: 40, height: 1, background: `${brandColor}50`, marginBottom: 60 }} />
 
                                 <p style={{
@@ -395,7 +418,6 @@ export default function CardNewsRenderer({ body, brandColor = "#3563AE", lawyerN
                                     ))}
                                 </div>
 
-                                {/* Footer / Logo */}
                                 <div style={{
                                     marginTop: "auto",
                                     paddingTop: 60,

@@ -298,6 +298,7 @@ export default function ContentDetailPage() {
     const [brandColor, setBrandColor] = useState("#3563AE");
     const [logoUrl, setLogoUrl] = useState("");
     const [coverImageUrl, setCoverImageUrl] = useState("");
+    const [profileImageUrl, setProfileImageUrl] = useState("");
     const supabase = createClient();
 
     const fetchContent = useCallback(async () => {
@@ -307,13 +308,14 @@ export default function ContentDetailPage() {
         // Fetch lawyer profile for logo/branding
         const { data: lawyer } = await supabase
             .from("lawyers")
-            .select("name, brand_color, logo_url")
+            .select("name, brand_color, logo_url, profile_image_url")
             .eq("user_id", user.id)
             .single();
         if (lawyer) {
             setLawyerName(lawyer.name || "");
             setBrandColor(lawyer.brand_color || "#3563AE");
             setLogoUrl(lawyer.logo_url || "");
+            setProfileImageUrl(lawyer.profile_image_url || "");
         }
 
         const { data } = await supabase
@@ -492,7 +494,7 @@ export default function ContentDetailPage() {
                     {/* Instagram Card News Visual Preview */}
                     {content.channel === "instagram" && (
                         <div className="mt-6 p-6 rounded-2xl bg-white border border-[#E8EBF0]">
-                            <CardNewsRenderer body={editBody} brandColor={brandColor} lawyerName={lawyerName} logoUrl={logoUrl} coverImageUrl={coverImageUrl} />
+                            <CardNewsRenderer body={editBody} brandColor={brandColor} lawyerName={lawyerName} logoUrl={logoUrl} coverImageUrl={coverImageUrl} profileImageUrl={profileImageUrl} />
                         </div>
                     )}
 
