@@ -83,6 +83,9 @@ export default function ContentsPage() {
     const [uploadColors, setUploadColors] = useState<Record<string, string>>({});
     const [webtoonStyles, setWebtoonStyles] = useState<Record<string, string>>({});
     const [customColorInput, setCustomColorInput] = useState("#1a1a2e");
+    // Track which generation types have been completed per upload
+    const [completedAI, setCompletedAI] = useState<Record<string, boolean>>({});
+    const [completedWebtoon, setCompletedWebtoon] = useState<Record<string, boolean>>({});
 
     const fetchContents = useCallback(async () => {
         const url = filter === "all" ? "/api/contents" : `/api/contents?channel=${filter}`;
@@ -133,6 +136,8 @@ export default function ContentsPage() {
                 } else {
                     toast.success(`${successCount}개 채널 콘텐츠가 생성되었습니다!`);
                 }
+                // Mark AI generation as completed for this upload
+                setCompletedAI(prev => ({ ...prev, [uploadId]: true }));
             }
             await fetchContents();
             await fetchUploads();
@@ -160,7 +165,9 @@ export default function ContentsPage() {
                     toast.error(`웹툰 생성 실패: ${data.error || "알 수 없는 오류"}`);
                 }
             } else {
-                toast.success(`8컷 웹툰이 생성되었습니다! (${data.panels}컷)`);
+                toast.success(`4컷 만화가 생성되었습니다! (${data.panels}컷)`);
+                // Mark webtoon generation as completed for this upload
+                setCompletedWebtoon(prev => ({ ...prev, [uploadId]: true }));
             }
             await fetchContents();
             await fetchUploads();
@@ -189,6 +196,11 @@ export default function ContentsPage() {
                         {uploads.map((u) => {
                             const isExpanded = expandedUpload === u.id;
                             const selectedStyle = getStyleForUpload(u.id);
+                            const aiDone = completedAI[u.id] || false;
+                            const webtoonDone = completedWebtoon[u.id] || false;
+
+                            // If both are done, hide the entire upload item
+                            if (aiDone && webtoonDone) return null;
 
                             return (
                                 <div key={u.id} className="rounded-xl bg-white border border-[#E8EBF0] overflow-hidden">
@@ -199,22 +211,36 @@ export default function ContentsPage() {
                                             <span className="text-sm text-[#374151]">{u.title || "제목 없음"}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <button
-                                                onClick={() => handleGenerate(u.id)}
-                                                disabled={generating || generatingWebtoon}
-                                                className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-white bg-[#3563AE] rounded-lg hover:bg-[#2A4F8A] disabled:opacity-50 transition-colors"
-                                            >
-                                                {generating ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />}
-                                                AI 생성
-                                            </button>
-                                            <button
-                                                onClick={() => handleGenerateWebtoon(u.id)}
-                                                disabled={generating || generatingWebtoon}
-                                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#F59E0B] bg-[#F59E0B]/10 border border-[#F59E0B]/20 rounded-lg hover:bg-[#F59E0B]/20 disabled:opacity-50 transition-colors"
-                                            >
-                                                {generatingWebtoon ? <Loader2 size={12} className="animate-spin" /> : <Film size={12} />}
-                                                웹툰
-                                            </button>
+                                            {!aiDone && (
+                                                <button
+                                                    onClick={() => handleGenerate(u.id)}
+                                                    disabled={generating || generatingWebtoon}
+                                                    className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-white bg-[#3563AE] rounded-lg hover:bg-[#2A4F8A] disabled:opacity-50 transition-colors"
+                                                >
+                                                    {generating ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />}
+                                                    AI 생성
+                                                </button>
+                                            )}
+                                            {aiDone && (
+                                                <span className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50 rounded-lg">
+                                                    ✅ AI 완료
+                                                </span>
+                                            )}
+                                            {!webtoonDone && (
+                                                <button
+                                                    onClick={() => handleGenerateWebtoon(u.id)}
+                                                    disabled={generating || generatingWebtoon}
+                                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#F59E0B] bg-[#F59E0B]/10 border border-[#F59E0B]/20 rounded-lg hover:bg-[#F59E0B]/20 disabled:opacity-50 transition-colors"
+                                                >
+                                                    {generatingWebtoon ? <Loader2 size={12} className="animate-spin" /> : <Film size={12} />}
+                                                    웹툰
+                                                </button>
+                                            )}
+                                            {webtoonDone && (
+                                                <span className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50 rounded-lg">
+                                                    ✅ 웹툰 완료
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
 
