@@ -117,8 +117,7 @@ export default function ContentsPage() {
         try {
             const res = await fetch("/api/uploads");
             const data = await res.json();
-            // Filter to only show uploads with "processing" status
-            setUploads((data.uploads || []).filter((u: { status: string }) => u.status === "processing"));
+            setUploads(data.uploads || []);
         } catch {
             console.error("Failed to fetch uploads");
         }
