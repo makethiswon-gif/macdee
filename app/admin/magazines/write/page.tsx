@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-    Save, Send, ArrowLeft, Sparkles, Loader2, CheckCircle, AlertTriangle, XCircle, BookOpen,
+    Save, Send, ArrowLeft, Sparkles, Loader2, CheckCircle, AlertTriangle, XCircle, BookOpen, ImagePlus,
 } from "lucide-react";
 
 const CATEGORIES = ["법률정보", "판례분석", "법개정", "변호사칼럼", "생활법률", "기업법무", "부동산", "가사", "형사", "노동"];
@@ -33,6 +33,7 @@ function MagazineWriteContent() {
     const [aiPrompt, setAiPrompt] = useState("");
     const [aiLoading, setAiLoading] = useState(false);
     const [saved, setSaved] = useState(false);
+    const [imageLoading, setImageLoading] = useState(false);
 
     // Load existing magazine for editing
     useEffect(() => {
@@ -302,10 +303,36 @@ function MagazineWriteContent() {
                                 className="w-full px-3 py-2 rounded-lg bg-[#0B0F1A] border border-[#2A3040] text-white text-xs focus:outline-none focus:border-[#3563AE]" />
                         </div>
                         <div>
-                            <label className="text-[10px] text-[#6B7280] mb-1 block">커버 이미지 URL</label>
-                            <input type="text" placeholder="https://..." value={form.cover_image_url}
-                                onChange={(e) => updateForm("cover_image_url", e.target.value)}
-                                className="w-full px-3 py-2 rounded-lg bg-[#0B0F1A] border border-[#2A3040] text-white text-xs focus:outline-none focus:border-[#3563AE]" />
+                            <label className="text-[10px] text-[#6B7280] mb-1 block">커버 이미지</label>
+                            <div className="flex gap-2">
+                                <input type="text" placeholder="https://..." value={form.cover_image_url}
+                                    onChange={(e) => updateForm("cover_image_url", e.target.value)}
+                                    className="flex-1 px-3 py-2 rounded-lg bg-[#0B0F1A] border border-[#2A3040] text-white text-xs focus:outline-none focus:border-[#3563AE]" />
+                                <button
+                                    onClick={async () => {
+                                        if (!form.title) { alert("제목을 먼저 입력하세요."); return; }
+                                        setImageLoading(true);
+                                        try {
+                                            const res = await fetch("/api/admin/magazines/image", {
+                                                method: "POST",
+                                                headers: { "Content-Type": "application/json" },
+                                                body: JSON.stringify({ title: form.title, body: form.body, category: form.category }),
+                                            });
+                                            const data = await res.json();
+                                            if (data.imageUrl) updateForm("cover_image_url", data.imageUrl);
+                                            else alert("이미지 생성에 실패했습니다.");
+                                        } catch { alert("오류가 발생했습니다."); }
+                                        finally { setImageLoading(false); }
+                                    }}
+                                    disabled={imageLoading}
+                                    className="px-3 py-2 bg-[#F59E0B] text-black text-[10px] font-bold rounded-lg hover:bg-[#D97706] disabled:opacity-50 flex items-center gap-1 shrink-0">
+                                    {imageLoading ? <Loader2 size={12} className="animate-spin" /> : <ImagePlus size={12} />}
+                                    {imageLoading ? "생성중" : "AI 생성"}
+                                </button>
+                            </div>
+                            {form.cover_image_url && (
+                                <img src={form.cover_image_url} alt="커버" className="w-full h-32 object-cover rounded-lg mt-2 border border-[#2A3040]" />
+                            )}
                         </div>
                     </div>
 

@@ -18,12 +18,14 @@ import {
     LayoutDashboard,
     BookOpen,
     CreditCard,
+    PenTool,
 } from "lucide-react";
 
 const NAV_ITEMS = [
     { href: "/dashboard", label: "대시보드", icon: LayoutDashboard },
     { href: "/upload", label: "업로드", icon: Upload },
     { href: "/contents", label: "콘텐츠", icon: FileText },
+    { href: "/blog-write", label: "블로그 글쓰기", icon: PenTool },
     { href: "/publish", label: "발행", icon: Send },
     { href: "/analytics", label: "분석", icon: BarChart3 },
     { href: "/billing", label: "결제 관리", icon: CreditCard },
