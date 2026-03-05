@@ -1,147 +1,131 @@
-// ─── Gemini 이미지 생성 (웹툰 + 사실적 사진 스타일) ───
-
-// 사건 유형별 장면 매핑 — 더 구체적인 상황 묘사
-const CASE_SCENES: Record<string, { webtoon: string; realistic: string }> = {
-    "이혼": {
-        webtoon: "A dramatic Korean webtoon panel of a couple sitting back to back in a dimly lit living room, scattered family photos on the floor, emotional manhwa style",
-        realistic: "A cinematic photograph of two wedding rings on a cracked wooden table, divorce papers in soft background blur, warm golden hour lighting"
-    },
-    "위자료": {
-        webtoon: "A manhwa scene of a person reading legal documents at a desk late at night, city lights through the window, dramatic shadows",
-        realistic: "A moody photograph of legal documents, a calculator, and a pen on a mahogany desk, dramatic side lighting"
-    },
-    "불륜": {
-        webtoon: "A dark webtoon panel showing a smartphone screen with message notifications, a person's shadowed silhouette in the background, noir style",
-        realistic: "A dramatic close-up photograph of a smartphone on a table with blurred text messages, low key lighting, shallow depth of field"
-    },
-    "사기": {
-        webtoon: "An intense manhwa scene of a person discovering forged documents, dramatic zoom-in on shocked expression, high contrast noir style",
-        realistic: "A photograph of scattered financial documents and a magnifying glass on a desk, detective thriller atmosphere, dramatic lighting"
-    },
-    "폭행": {
-        webtoon: "A powerful webtoon courtroom scene with a judge raising a gavel, dramatic angle from below, intense manhwa style",
-        realistic: "A striking photograph of a gavel in a courtroom with dramatic spotlight, justice and law atmosphere"
-    },
-    "상속": {
-        webtoon: "A Korean webtoon scene of a family gathering around a table with a will document, mixed emotions, warm-toned manhwa style",
-        realistic: "A photograph of an old family photo album next to legal documents, warm nostalgic lighting, shallow depth of field"
-    },
-    "부동산": {
-        webtoon: "A manhwa scene of a person looking at apartment blueprints with construction in the background, urban style",
-        realistic: "An architectural photograph of apartment buildings at golden hour, construction documents in foreground, professional tone"
-    },
-    "노동": {
-        webtoon: "A webtoon panel of an empty office desk with a resignation letter, fluorescent lighting, melancholic manhwa atmosphere",
-        realistic: "A photograph of an empty office chair and desk with personal items being packed, cold corporate lighting"
-    },
-    "교통사고": {
-        webtoon: "A dramatic manhwa scene of a rainy intersection at night with car headlights, motion blur effect, intense atmosphere",
-        realistic: "A dramatic photograph of a rainy city intersection at night, reflections on wet asphalt, car headlights creating lens flare"
-    },
-    "명예훼손": {
-        webtoon: "A webtoon scene showing a person in front of multiple screens displaying online comments, cyberpunk manhwa style with neon colors",
-        realistic: "A photograph of a person silhouetted against multiple glowing computer screens in a dark room, tech noir atmosphere"
-    },
-    "성범죄": {
-        webtoon: "An abstract manhwa panel of the scales of justice in deep shadow, minimal dark composition, solemn atmosphere",
-        realistic: "A dramatic photograph of the scales of justice in shadow, minimal composition with strong chiaroscuro lighting"
-    },
-    "채권": {
-        webtoon: "A webtoon scene of stacked financial documents with a calculator, numbers floating in the air, business manhwa style",
-        realistic: "A photograph of neatly stacked financial documents with a calculator casting long shadows, dramatic lighting"
-    },
-    "형사": {
-        webtoon: "A intense Korean webtoon courtroom scene with a defendant and lawyer, dramatic spotlight on the defense table",
-        realistic: "A cinematic photograph of a courtroom interior, soft light streaming through tall windows, empty defendant's chair"
-    },
-    "음주운전": {
-        webtoon: "A stark manhwa panel of car keys next to a glass on a bar counter, dramatic reflection, noir style",
-        realistic: "A moody photograph of car keys and a glass on a bar counter, with blurred city lights in the background"
-    },
-    "의료": {
-        webtoon: "A webtoon scene of medical documents and stethoscope on a desk, sterile blue hospital lighting, medical manhwa style",
-        realistic: "A photograph of medical records and a stethoscope on a white desk, clean hospital lighting, clinical atmosphere"
-    },
-};
-
-const DEFAULT_SCENE = {
-    webtoon: "A dramatic Korean webtoon courtroom scene with warm light streaming through windows, a lawyer standing with confidence, cinematic manhwa style",
-    realistic: "A cinematic photograph of a modern courtroom interior, warm golden light streaming through tall windows, law books and gavel on the desk"
-};
-
-function getScene(caseType: string, style: "webtoon" | "realistic"): string {
-    for (const [keyword, scenes] of Object.entries(CASE_SCENES)) {
-        if (caseType.includes(keyword)) return scenes[style];
-    }
-    return DEFAULT_SCENE[style];
-}
+// ─── 업로드 내용 기반 Gemini(나노바나나) 이미지 생성 ───
+// 1. Claude가 사건 요약을 분석하여 구체적 장면 프롬프트 생성
+// 2. Gemini가 해당 프롬프트로 웹툰/사진 이미지 생성
 
 /**
- * 업로드 내용을 분석하여 최적의 이미지 프롬프트를 생성합니다.
+ * Claude로 사건 내용에 맞는 구체적인 이미지 장면을 설계합니다.
+ * 예: 불륜 사건 → "결혼반지를 낀 남자와 젊은 여성이 카페에서 몰래 만나는 장면"
  */
-function buildImagePrompt(
+async function generateScenePromptWithClaude(
     caseType: string,
     hookText: string,
-    style: "webtoon" | "realistic",
     context?: {
         keyPoints?: string[];
         resultSummary?: string;
         maskedText?: string;
-    }
-): string {
-    const scene = getScene(caseType, style);
-
-    // 핵심 키워드를 추출하여 프롬프트에 반영
-    let contextClue = "";
-    if (context?.keyPoints?.length) {
-        contextClue = `\nKey themes from the case: ${context.keyPoints.slice(0, 3).join(", ")}`;
-    }
-    if (context?.resultSummary) {
-        contextClue += `\nCase outcome mood: ${context.resultSummary.includes("승소") ? "triumphant, hopeful" : context.resultSummary.includes("패소") ? "somber, reflective" : "neutral, contemplative"}`;
+    },
+    style: "webtoon" | "realistic" = "webtoon"
+): Promise<string> {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+        console.warn("[CoverImage] No ANTHROPIC_API_KEY, using basic prompt");
+        return buildFallbackPrompt(caseType, hookText, style);
     }
 
-    if (style === "webtoon") {
-        return `Create a high-quality Korean webtoon (만화) illustration.
+    const caseDetails = [
+        context?.maskedText ? `사건 내용 요약: ${context.maskedText}` : "",
+        context?.keyPoints?.length ? `핵심 쟁점: ${context.keyPoints.join(", ")}` : "",
+        context?.resultSummary ? `결과: ${context.resultSummary}` : "",
+        `사건 유형: ${caseType}`,
+        `카드뉴스 훅: ${hookText}`,
+    ].filter(Boolean).join("\n");
 
-Style: Korean manhwa art style with clean bold lines, vibrant colors, dramatic lighting
-Quality: Professional-grade webtoon panel, premium art quality
-Composition: Cinematic framing, dynamic angle
+    const systemPrompt = `당신은 법률 사건을 시각적 장면으로 변환하는 아트 디렉터입니다.
+주어진 법률 사건 내용을 분석하여, 그 사건의 핵심 장면을 한 컷 이미지로 표현할 구체적인 영어 프롬프트를 만들어주세요.
 
-Scene: ${scene}
-Hook: "${hookText}"${contextClue}
+[중요 규칙]
+- 등장인물의 구체적 외모/옷차림/표정/자세를 묘사하세요
+- 장소(카페, 법정, 사무실, 아파트 등)를 구체적으로 설정하세요
+- 감정과 분위기를 시각적으로 표현하세요 (표정, 조명, 날씨)
+- 사건의 핵심 상황을 한 장면으로 압축하세요
+- 실제 얼굴이나 실명은 절대 포함하지 마세요
+- 텍스트/글자/숫자는 이미지에 포함하지 마세요
+- 한국적 배경과 인물이어야 합니다 (한국 도시, 한국인 캐릭터)
 
-Rules:
-- NO text, NO words, NO letters, NO numbers, NO watermarks
-- Square ratio (1:1), 1024x1024
-- Dark moody atmosphere with selective warm/cool highlights
-- Must look like a panel from a top-tier Korean legal drama webtoon (법정 웹툰)`;
-    } else {
-        return `Create a photorealistic, cinematic photograph for a professional legal story.
+[스타일: ${style === "webtoon" ? "한국 웹툰(만화) - 깔끔한 선화, 극적 구도, 감정 표현이 풍부한 만화 스타일" : "시네마틱 사실적 사진 - K-드라마 스틸컷 같은 고퀄리티 포토"}]
 
-Style: Editorial photography, like a still from a Korean legal drama (K-drama)
-Quality: High-end commercial photography, DSLR quality
-Composition: Rule of thirds, shallow depth of field, cinematic color grading
+영어로 된 이미지 생성 프롬프트만 출력하세요. 다른 설명 없이 프롬프트만.`;
 
-Scene: ${scene}
-Mood inspired by: "${hookText}"${contextClue}
+    try {
+        const res = await fetch("https://api.anthropic.com/v1/messages", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "x-api-key": apiKey,
+                "anthropic-version": "2023-06-01",
+            },
+            body: JSON.stringify({
+                model: "claude-sonnet-4-20250514",
+                max_tokens: 500,
+                system: systemPrompt,
+                messages: [{ role: "user", content: caseDetails }],
+            }),
+        });
 
-Rules:
-- NO text, NO words, NO letters, NO numbers, NO watermarks
-- Square ratio (1:1), 1024x1024
-- Dramatic lighting (chiaroscuro or golden hour)
-- Color palette: muted, desaturated with selective warm tones
-- Must look like a premium stock photograph for a law firm website`;
+        if (!res.ok) {
+            console.error("[CoverImage] Claude scene prompt failed:", await res.text());
+            return buildFallbackPrompt(caseType, hookText, style);
+        }
+
+        const data = await res.json();
+        const scenePrompt = data.content?.[0]?.text?.trim() || "";
+
+        if (!scenePrompt) return buildFallbackPrompt(caseType, hookText, style);
+
+        console.log(`[CoverImage] Claude generated scene: ${scenePrompt.substring(0, 100)}...`);
+        return scenePrompt;
+    } catch (err) {
+        console.error("[CoverImage] Claude scene generation error:", err);
+        return buildFallbackPrompt(caseType, hookText, style);
     }
 }
 
 /**
- * Gemini로 카드뉴스 배경 이미지를 생성합니다.
- * 웹툰 스타일 또는 사실적 사진 스타일을 랜덤으로 선택합니다.
- *
- * @param caseType - 사건 유형
- * @param hookText - 카드1의 훅 텍스트
- * @param context - 사건 상세 데이터 (선택)
- * @returns base64 encoded image data 또는 null
+ * Claude 실패 시 사용하는 기본 프롬프트
+ */
+function buildFallbackPrompt(caseType: string, hookText: string, style: "webtoon" | "realistic"): string {
+    const SCENES: Record<string, { webtoon: string; realistic: string }> = {
+        "이혼": {
+            webtoon: "Korean webtoon panel: A married couple sitting at opposite ends of a dining table, the woman looking away with tears, the man staring at divorce papers, dim warm apartment lighting, emotional manhwa style",
+            realistic: "Cinematic photo: Two wedding rings placed apart on a cracked wooden table, divorce papers between them, golden hour lighting through apartment window"
+        },
+        "불륜": {
+            webtoon: "Korean webtoon panel: A married man nervously meeting a young woman at a hidden corner of a cafe, his wedding ring visible, a shadowy figure of his wife in the background, dramatic manhwa noir style",
+            realistic: "Cinematic photo: A smartphone on a cafe table showing chat messages, a coffee cup and wedding ring beside it, shallow depth of field, moody lighting"
+        },
+        "상간": {
+            webtoon: "Korean webtoon panel: A woman discovering her husband's affair, holding a phone with message evidence, shocked expression, split panel showing the husband with another woman, dramatic manhwa style",
+            realistic: "Cinematic photo: A woman's hand holding a phone showing messages, tears reflected in the screen, dim bedroom lighting"
+        },
+        "사기": {
+            webtoon: "Korean webtoon panel: A con artist in a suit handing fake investment documents to a trusting elderly person, dark shadows revealing the criminal nature, thriller manhwa style",
+            realistic: "Cinematic photo: Fake documents and a pen on a desk, a shadowy figure's hand reaching for money, noir thriller lighting"
+        },
+        "폭행": {
+            webtoon: "Korean webtoon panel: A courtroom scene with the defendant looking down and the victim's lawyer pointing accusingly, dramatic spotlight, justice manhwa style",
+            realistic: "Cinematic photo: A judge's gavel coming down in a courtroom, dramatic spotlight, scales of justice in background"
+        },
+        "교통사고": {
+            webtoon: "Korean webtoon panel: A rainy intersection at night, a car's headlights illuminating a pedestrian crosswalk, skid marks on the wet road, dramatic motion blur, manhwa style",
+            realistic: "Cinematic photo: Rain-slicked city intersection at night, car headlights reflecting on wet asphalt, traffic signals glowing through raindrops"
+        },
+    };
+
+    const defaultScene = {
+        webtoon: `Korean webtoon panel: A confident Korean lawyer in a suit standing in a modern courtroom, dramatic lighting, legal documents in hand, cinematic manhwa style. Case theme: "${hookText}"`,
+        realistic: `Cinematic photo: A modern Korean courtroom with warm golden light through tall windows, legal documents and gavel on desk. Case theme: "${hookText}"`
+    };
+
+    for (const [keyword, scenes] of Object.entries(SCENES)) {
+        if (caseType.includes(keyword)) return scenes[style];
+    }
+    return defaultScene[style];
+}
+
+/**
+ * Gemini(나노바나나)로 카드뉴스 배경 이미지를 생성합니다.
+ * Claude가 사건 내용을 분석하여 구체적 장면 프롬프트를 생성한 후
+ * Gemini가 해당 프롬프트로 이미지를 생성합니다.
  */
 export async function generateCoverImage(
     caseType: string,
@@ -152,26 +136,54 @@ export async function generateCoverImage(
         maskedText?: string;
     }
 ): Promise<{ imageBase64: string; revisedPrompt: string; style: string } | null> {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
+    const geminiKey = process.env.GEMINI_API_KEY;
+    if (!geminiKey) {
         console.warn("[CoverImage] GEMINI_API_KEY not set, trying DALL-E fallback");
         return await generateCoverImageDallE(caseType, hookText);
     }
 
-    // 랜덤으로 스타일 선택 (50/50)
+    // 랜덤 스타일 (50/50)
     const style: "webtoon" | "realistic" = Math.random() > 0.5 ? "webtoon" : "realistic";
-    const prompt = buildImagePrompt(caseType, hookText, style, context);
+
+    // Step 1: Claude가 사건 내용 분석 → 구체적 장면 프롬프트 생성
+    const sceneDescription = await generateScenePromptWithClaude(caseType, hookText, context, style);
+
+    // Step 2: Gemini에 전달할 최종 프롬프트
+    const finalPrompt = style === "webtoon"
+        ? `Create a single-panel Korean webtoon (만화) illustration based on this scene:
+
+${sceneDescription}
+
+Style requirements:
+- Korean manhwa art style with clean bold lines and dramatic expressions
+- Characters should have distinct appearances and visible emotions
+- Square aspect ratio (1:1), high quality
+- Dark dramatic lighting with selective warm highlights
+- NO text, NO words, NO letters, NO numbers anywhere in the image
+- Characters should look Korean`
+
+        : `Create a photorealistic cinematic photograph based on this scene:
+
+${sceneDescription}
+
+Style requirements:
+- Editorial photography quality, like a still from a Korean drama (K-drama)
+- High-end commercial photography, DSLR bokeh effect
+- Square aspect ratio (1:1), high quality
+- Dramatic lighting (chiaroscuro or golden hour)
+- NO text, NO words, NO letters, NO numbers anywhere in the image
+- Korean setting and atmosphere`;
 
     try {
-        console.log(`[CoverImage] Generating Gemini ${style} image for: ${caseType}`);
+        console.log(`[CoverImage] Generating Gemini ${style} image with Claude-designed scene`);
 
         const res = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiKey}`,
             {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }],
+                    contents: [{ parts: [{ text: finalPrompt }] }],
                     generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
                 }),
             }
@@ -195,10 +207,10 @@ export async function generateCoverImage(
             return await generateCoverImageDallE(caseType, hookText);
         }
 
-        console.log(`[CoverImage] Gemini ${style} image generated successfully`);
+        console.log(`[CoverImage] Gemini ${style} image generated with case-specific scene`);
         return {
             imageBase64: imagePart.inlineData.data,
-            revisedPrompt: prompt,
+            revisedPrompt: finalPrompt,
             style,
         };
     } catch (err) {
@@ -208,7 +220,7 @@ export async function generateCoverImage(
 }
 
 /**
- * DALL-E 3 폴백 — Gemini 실패 시
+ * DALL-E 3 폴백
  */
 async function generateCoverImageDallE(
     caseType: string,
@@ -220,16 +232,10 @@ async function generateCoverImageDallE(
         return null;
     }
 
-    const scene = getScene(caseType, "realistic");
-    const prompt = `Create a cinematic, editorial-quality illustration for a Korean legal story card news.
-Style: Atmospheric, modern editorial design. NO text, NO words, NO letters.
-Scene: ${scene}
-Mood: "${hookText}"
-Aspect ratio: square (1:1). Premium, sophisticated feel.
-IMPORTANT: ZERO text, ZERO letters, ZERO words in the image.`;
+    const scene = buildFallbackPrompt(caseType, hookText, "realistic");
+    const prompt = `${scene}\nIMPORTANT: ZERO text, ZERO letters, ZERO words in the image. Square 1:1 ratio.`;
 
     try {
-        console.log(`[CoverImage] DALL-E fallback for: ${caseType}`);
         const res = await fetch("https://api.openai.com/v1/images/generations", {
             method: "POST",
             headers: {
@@ -246,11 +252,7 @@ IMPORTANT: ZERO text, ZERO letters, ZERO words in the image.`;
             }),
         });
 
-        if (!res.ok) {
-            const err = await res.text();
-            console.error(`[CoverImage] DALL-E error: ${res.status}`, err);
-            return null;
-        }
+        if (!res.ok) return null;
 
         const data = await res.json();
         return {
