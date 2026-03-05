@@ -135,15 +135,9 @@ function HeroSection() {
             custom={3}
             className="mt-8 text-[15px] text-white/25 max-w-lg leading-relaxed"
           >
-            기존 AI가 쓴 듯한 어색한 글이 아닙니다.
-            <br />
             맥디 AI는 수천 건의 성공 사례로 학습된
             <br className="sm:hidden" />
             {" "}<span className="text-[#3563AE]/70">대기업 마케팅 과장급 에디터</span>입니다.
-            <br />
-            네이버 블로그 · 인스타그램 · 구글 SEO · AI 검색,
-            <br />
-            4개 채널을 동시에 책임집니다.
           </motion.p>
 
           {/* CTA */}
