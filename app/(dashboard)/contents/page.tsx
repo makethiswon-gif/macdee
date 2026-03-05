@@ -54,6 +54,13 @@ const CARD_COLORS = [
     { key: "custom", label: "커스텀", colors: ["#1a1a2e", "#16213e"] },
 ];
 
+const WEBTOON_STYLES = [
+    { key: "dramatic", label: "극화 만화", desc: "진지한 법정 드라마풍", icon: "🎭" },
+    { key: "soft", label: "감성 일러스트", desc: "부드럽고 따뜻한", icon: "🎨" },
+    { key: "cinematic", label: "시네마틱", desc: "실사 영화 스틸컷", icon: "🎬" },
+    { key: "minimal", label: "미니멀", desc: "깔끔한 라인 아트", icon: "✏️" },
+];
+
 interface Content {
     id: string;
     channel: string;
@@ -74,6 +81,7 @@ export default function ContentsPage() {
     const [expandedUpload, setExpandedUpload] = useState<string | null>(null);
     const [uploadStyles, setUploadStyles] = useState<Record<string, string>>({});
     const [uploadColors, setUploadColors] = useState<Record<string, string>>({});
+    const [webtoonStyles, setWebtoonStyles] = useState<Record<string, string>>({});
     const [customColorInput, setCustomColorInput] = useState("#1a1a2e");
 
     const fetchContents = useCallback(async () => {
@@ -142,7 +150,7 @@ export default function ContentsPage() {
             const res = await fetch("/api/contents/generate-webtoon", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ upload_id: uploadId }),
+                body: JSON.stringify({ upload_id: uploadId, webtoon_style: webtoonStyles[uploadId] || "dramatic" }),
             });
             const data = await res.json();
             if (!res.ok) {
@@ -290,6 +298,33 @@ export default function ContentsPage() {
                                                         </div>
                                                     </div>
                                                 )}
+                                            </div>
+
+                                            {/* Webtoon style */}
+                                            <div>
+                                                <p className="text-[11px] font-semibold text-[#6B7280] mb-2 flex items-center gap-1.5">
+                                                    <Film size={11} /> 웹툰 그림체
+                                                </p>
+                                                <div className="grid grid-cols-4 gap-2">
+                                                    {WEBTOON_STYLES.map((style) => {
+                                                        const sel = (webtoonStyles[u.id] || "dramatic") === style.key;
+                                                        return (
+                                                            <button
+                                                                key={style.key}
+                                                                onClick={() => setWebtoonStyles((prev) => ({ ...prev, [u.id]: style.key }))}
+                                                                className={`p-2.5 rounded-xl border text-left transition-all ${sel
+                                                                    ? "border-[#F59E0B] bg-[#F59E0B]/[0.06]"
+                                                                    : "border-[#E4E7ED] hover:border-[#F59E0B]/30"
+                                                                    }`}
+                                                            >
+                                                                <p className={`text-[12px] font-semibold ${sel ? "text-[#F59E0B]" : "text-[#374151]"}`}>
+                                                                    {style.icon} {style.label}
+                                                                </p>
+                                                                <p className="text-[10px] text-[#9CA3B0] mt-0.5">{style.desc}</p>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

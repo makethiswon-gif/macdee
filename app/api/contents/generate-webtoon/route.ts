@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const { upload_id } = await req.json();
+        const { upload_id, webtoon_style } = await req.json();
         if (!upload_id) return NextResponse.json({ error: "upload_id required" }, { status: 400 });
 
         // Get upload
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
         const structuredData = upload.structured_data as any;
         const maskedText = structuredData?.masked_text || upload.raw_text || "";
         const caseType = upload.title || "법률 사건";
-        const style = lawyer.webtoon_style || "dramatic";
+        const style = webtoon_style || lawyer.webtoon_style || "dramatic";
 
         // Generate webtoon
         const { generateWebtoon } = await import("@/lib/ai/webtoon-generate");
