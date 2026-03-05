@@ -205,60 +205,69 @@ function calculateSeoScore(title: string, body: string): { score: number; checks
     // Check for MACDEE certification
     const hasCertification = body.includes("macdee") || body.includes("맥디") || body.includes("MACDEE");
 
+    // Check for legal analysis section
+    const hasLegalAnalysis = /법률\s*해설|법적\s*의미|판례\s*경향|민법|형법|제\d+조/.test(body);
+
     const checks: SeoCheck[] = [
         {
-            label: "제목 길이 (15~40자)",
-            pass: titleLength >= 15 && titleLength <= 40,
-            tip: titleLength < 15 ? `제목이 너무 짧습니다 (${titleLength}자). 15자 이상을 권장합니다.` : titleLength > 40 ? `제목이 너무 깁니다 (${titleLength}자). 40자 이하를 권장합니다.` : "적절한 제목 길이입니다.",
+            label: "제목 길이 (20자 이내)",
+            pass: titleLength > 0 && titleLength <= 20,
+            tip: titleLength > 20 ? `제목이 너무 깁니다 (${titleLength}자). 20자 이내로 줄이세요.` : titleLength === 0 ? "제목을 입력하세요." : "적절한 제목 길이입니다.",
             weight: 10,
         },
         {
-            label: "본문 분량 (2,000~3,000자)",
-            pass: bodyLength >= 1800 && bodyLength <= 3500,
-            tip: bodyLength < 1800 ? `본문이 짧습니다 (${bodyLength}자). 2,000자 이상을 권장합니다.` : bodyLength > 3500 ? `본문이 깁니다 (${bodyLength}자). 3,000자 이하가 적당합니다.` : `적절한 분량입니다 (${bodyLength}자).`,
-            weight: 15,
+            label: "제목에 법률 키워드 포함",
+            pass: legalKeywords.some(kw => title.includes(kw)),
+            tip: legalKeywords.some(kw => title.includes(kw)) ? "제목에 법률 키워드가 포함되어 있습니다." : "제목에 법률 관련 키워드를 넣으면 검색 노출에 유리합니다.",
+            weight: 12,
+        },
+        {
+            label: "본문 분량 (2,500~3,500자)",
+            pass: bodyLength >= 2300 && bodyLength <= 4000,
+            tip: bodyLength < 2300 ? `본문이 짧습니다 (${bodyLength}자). 2,500자 이상을 권장합니다.` : bodyLength > 4000 ? `본문이 깁니다 (${bodyLength}자). 3,500자 이하가 적당합니다.` : `적절한 분량입니다 (${bodyLength}자).`,
+            weight: 12,
         },
         {
             label: "문단 구분 (5개 이상)",
             pass: paragraphs.length >= 5,
             tip: paragraphs.length < 5 ? `문단이 ${paragraphs.length}개입니다. 5개 이상으로 나눠주세요.` : `${paragraphs.length}개 문단으로 잘 나뉘어있습니다.`,
-            weight: 10,
+            weight: 8,
         },
         {
-            label: "소제목 활용 (3개 이상)",
-            pass: headingLikeLines.length >= 3,
-            tip: headingLikeLines.length < 3 ? "소제목을 3개 이상 추가하면 가독성이 올라갑니다." : `${headingLikeLines.length}개의 소제목이 있습니다.`,
-            weight: 15,
+            label: "소제목 활용 (5개 이상)",
+            pass: headingLikeLines.length >= 5,
+            tip: headingLikeLines.length < 5 ? `소제목이 ${headingLikeLines.length}개입니다. 5개 이상 사용하세요.` : `${headingLikeLines.length}개의 소제목이 있습니다.`,
+            weight: 12,
         },
         {
             label: "법률 키워드 (5개 이상)",
             pass: foundKeywords.length >= 5,
             tip: foundKeywords.length < 5 ? `법률 키워드가 ${foundKeywords.length}개입니다. 전문성을 높여보세요.` : `${foundKeywords.length}개의 법률 키워드가 포함되어 있습니다.`,
-            weight: 15,
+            weight: 12,
         },
         {
-            label: "문장 수 (20개 이상)",
-            pass: sentences.length >= 20,
-            tip: sentences.length < 20 ? `문장이 ${sentences.length}개입니다. 내용을 풍부하게 해보세요.` : `${sentences.length}개의 문장으로 풍부합니다.`,
-            weight: 10,
+            label: "법률 해설 섹션 포함",
+            pass: hasLegalAnalysis,
+            tip: hasLegalAnalysis ? "법률 해설이 포함되어 전문성이 높습니다." : "'법률 해설' 섹션을 추가하면 SEO와 전문성이 크게 향상됩니다.",
+            weight: 12,
+        },
+        {
+            label: "문장 수 (25개 이상)",
+            pass: sentences.length >= 25,
+            tip: sentences.length < 25 ? `문장이 ${sentences.length}개입니다. 내용을 풍부하게 해보세요.` : `${sentences.length}개의 문장으로 풍부합니다.`,
+            weight: 8,
         },
         {
             label: "상담 안내 포함",
             pass: hasCta,
             tip: hasCta ? "자연스러운 상담 안내가 포함되어 있습니다." : "글 끝에 자연스러운 상담 안내를 추가하세요.",
-            weight: 10,
+            weight: 8,
         },
         {
             label: "macdee 인증 문구",
             pass: hasCertification,
             tip: hasCertification ? "macdee 인증 문구가 포함되어 있습니다." : "맨 하단에 'macdee(맥디)' 인증 문구를 추가하세요.",
-            weight: 5,
-        },
-        {
-            label: "제목에 키워드 포함",
-            pass: legalKeywords.some(kw => title.includes(kw)),
-            tip: legalKeywords.some(kw => title.includes(kw)) ? "제목에 법률 키워드가 포함되어 있습니다." : "제목에 법률 관련 키워드를 넣으면 검색 노출에 유리합니다.",
-            weight: 10,
+            weight: 6,
         },
     ];
 
