@@ -75,16 +75,31 @@ export default async function BlogPage({ params }: Props) {
     console.log(`[Blog Page] All contents for lawyer: ${allContents?.length || 0}`);
     allContents?.forEach(c => console.log(`  - ${c.id}: channel=${c.channel}, status=${c.status}, title=${c.title?.substring(0, 30)}`));
 
-    // Helper: some existing content has raw JSON as body — parse it
+    // Helper: strip markdown syntax for plain text excerpts
+    function stripMarkdown(text: string): string {
+        return text
+            .replace(/^#{1,6}\s+/gm, "")     // ## headings
+            .replace(/\*\*(.*?)\*\*/g, "$1")   // **bold**
+            .replace(/\*(.*?)\*/g, "$1")       // *italic*
+            .replace(/\[(.*?)\]\(.*?\)/g, "$1") // [link](url)
+            .replace(/[`~>]/g, "")            // backticks, blockquotes
+            .replace(/^[-*]\s+/gm, "")        // list items
+            .replace(/\n{2,}/g, " ")          // multiple newlines
+            .replace(/\n/g, " ")              // single newlines
+            .trim();
+    }
+
+    // Helper: parse post body (handles raw JSON or markdown)
     function parsePost(p: { id: string; title: string; body: string; meta_description: string | null; tags: string[] | null; channel: string; created_at: string; status: string }) {
         let title = p.title;
         let body = p.body || "";
         let excerpt = p.meta_description || "";
 
         // Try to parse JSON body (stored raw from AI)
-        if (body.trim().startsWith("```") || body.trim().startsWith("{")) {
+        const trimmed = body.trim();
+        if (trimmed.startsWith("```") || trimmed.startsWith("{") || trimmed.startsWith("\"")) {
             try {
-                const cleanJson = body.replace(/^[\s]*```(?:json)?\s*\n?/, "").replace(/\n?\s*```[\s]*$/, "").trim();
+                const cleanJson = trimmed.replace(/^[\s]*```(?:json)?\s*\n?/, "").replace(/\n?\s*```[\s]*$/, "").trim();
                 const parsed = JSON.parse(cleanJson);
                 if (parsed.title) title = parsed.title;
                 if (parsed.body) body = parsed.body;
@@ -92,9 +107,16 @@ export default async function BlogPage({ params }: Props) {
             } catch { /* keep original */ }
         }
 
+        // Strip markdown for excerpt
+        const plainBody = stripMarkdown(body);
         if (!excerpt) {
-            excerpt = body.substring(0, 120) + "...";
+            excerpt = plainBody.substring(0, 150) + "...";
+        } else {
+            excerpt = stripMarkdown(excerpt);
         }
+
+        // Remove channel suffix from title (e.g. "제목 - google")
+        title = title.replace(/\s*-\s*(google|macdee|blog|instagram)\s*$/i, "").trim();
 
         return { id: p.id, title, slug: p.id, excerpt, tags: p.tags || [], channel: p.channel, created_at: p.created_at };
     }
