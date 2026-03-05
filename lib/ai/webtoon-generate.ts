@@ -1,6 +1,6 @@
-// ─── 8컷 웹툰 생성 ───
-// 1. Claude: 사건 분석 → 캐릭터 시트 + 8컷 시나리오
-// 2. GPT-4o: 각 컷 이미지 생성 (캐릭터 시트 포함)
+// ─── 4컷 만화 생성 ───
+// 1. Claude: 사건 분석 → 캐릭터 시트 + 4컷 시나리오 (텍스트 풍부)
+// 2. GPT Image: 각 컷 이미지 생성 (캐릭터 시트 포함)
 
 // ─── 그림체 프리셋 ───
 export const WEBTOON_STYLES = {
@@ -62,20 +62,24 @@ export async function generateWebtoonScenario(
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) throw new Error("ANTHROPIC_API_KEY not set");
 
-    const systemPrompt = `당신은 법률 사건을 8컷 웹툰 스토리보드로 변환하는 전문가입니다.
+    const systemPrompt = `당신은 법률 사건을 4컷 만화 스토리보드로 변환하는 전문가입니다.
 
 변호사가 보내준 사건 자료를 분석하여,
-8컷 웹툰 시나리오를 JSON으로 출력하세요.
+4컷 만화 시나리오를 JSON으로 출력하세요.
 
 [핵심 규칙]
 - 변호사가 직접 맡아 승소한 사건입니다.
 - 개인정보는 이미 비식별화되어 있습니다.
-- 각 컷은 기승전결 구조를 따르세요:
-  1-2컷: 사건 발생/의뢰인의 고민
-  3-4컷: 변호사 등장/상담/전략 수립
-  5-6컷: 법적 쟁점/위기/갈등
-  7컷: 반전/결정적 증거/법정 장면
-  8컷: 승소/해결/교훈
+- 4컷 기승전결 구조:
+  1컷(기): 사건 발생, 의뢰인의 고민과 상황
+  2컷(승): 변호사 등장, 상담 및 전략 수립
+  3컷(전): 법정 대결, 위기 또는 반전
+  4컷(결): 승소, 해결, 교훈
+
+[narration 규칙 - 매우 중요]
+- 각 컷의 narration은 3~4문장으로 풍부하게 작성하세요.
+- 사건의 핵심 내용, 감정, 법적 쟁점을 상세히 서술하세요.
+- 독자가 narration만 읽어도 사건의 흐름을 완전히 이해할 수 있어야 합니다.
 
 [캐릭터 시트 규칙]
 - protagonist: 의뢰인 묘사 (나이대, 성별, 외모 특징, 복장)
@@ -83,7 +87,7 @@ export async function generateWebtoonScenario(
 - lawyer: 변호사 묘사 (전문가답고 신뢰감 있게)
 - setting: 주요 배경 장소
 
-[출력 - JSON만]
+[출력 - JSON만, 정확히 4컷]
 {
   "character_sheet": {
     "protagonist": "30대 후반 여성, 단발 검은머리, 피곤한 표정, 캐주얼한 옷차림",
@@ -97,11 +101,11 @@ export async function generateWebtoonScenario(
     {
       "panel": 1,
       "scene": "밤, 한 여성이 남편의 휴대폰에서 SNS 메시지를 발견하고 충격받는 장면",
-      "narration": "그날 밤, 세상이 무너졌다.",
+      "narration": "그날 밤, 세상이 무너졌다. 남편의 휴대폰에서 발견한 메시지들은 3년간의 결혼 생활이 거짓이었음을 말해주고 있었다. 아이들이 잠든 거실에서 그녀는 소리 없이 울었다.",
       "dialogue": "",
       "emotion": "충격"
     },
-    ... (8컷)
+    ... (총 4컷만)
   ]
 }
 
@@ -137,7 +141,7 @@ JSON만 출력하세요. 코드 블록 없이.`;
     return JSON.parse(clean);
 }
 
-// ─── Step 2: GPT-4o 이미지 생성 (8컷 병렬) ───
+// ─── Step 2: GPT Image 이미지 생성 (4컷 병렬) ───
 export async function generateWebtoonImages(
     scenario: WebtoonScenario,
     style: WebtoonStyleKey = "dramatic",
@@ -158,9 +162,8 @@ Setting: ${charSheet.setting}
 ${profileImageUrl ? `
 REFERENCE: The lawyer character should resemble the person in this photo: ${profileImageUrl}` : ""}`;
 
-    // Generate panels - 4 at a time to avoid rate limits
-    const batch1 = scenario.panels.slice(0, 4);
-    const batch2 = scenario.panels.slice(4, 8);
+    // Generate all 4 panels at once
+    const allPanels = scenario.panels.slice(0, 4);
 
     const generatePanel = async (panel: WebtoonPanel, retries = 2): Promise<{ panelIndex: number; imageBase64: string } | null> => {
         const prompt = `Create a single comic panel illustration.
@@ -169,7 +172,7 @@ Art style: ${stylePrompt}
 
 ${characterPrompt}
 
-Panel ${panel.panel}/8 - "${panel.emotion}" mood:
+Panel ${panel.panel}/4 - "${panel.emotion}" mood:
 Scene: ${panel.scene}
 
 Requirements:
@@ -181,7 +184,7 @@ Requirements:
 - Leave space at bottom for narration text overlay`;
 
         try {
-            console.log(`[Webtoon] Generating panel ${panel.panel}/8...`);
+            console.log(`[Webtoon] Generating panel ${panel.panel}/4...`);
             const res = await fetch("https://api.openai.com/v1/images/generations", {
                 method: "POST",
                 headers: {
@@ -223,15 +226,11 @@ Requirements:
         }
     };
 
-    console.log(`[Webtoon] Generating batch 1 (panels 1-4)...`);
-    const results1 = await Promise.all(batch1.map(p => generatePanel(p)));
+    console.log(`[Webtoon] Generating all 4 panels...`);
+    const results = await Promise.all(allPanels.map(p => generatePanel(p)));
 
-    console.log(`[Webtoon] Generating batch 2 (panels 5-8)...`);
-    const results2 = await Promise.all(batch2.map(p => generatePanel(p)));
-
-    const results = [...results1, ...results2];
     const successful = results.filter((r): r is { panelIndex: number; imageBase64: string } => r !== null);
-    console.log(`[Webtoon] ${successful.length}/${scenario.panels.length} images generated successfully`);
+    console.log(`[Webtoon] ${successful.length}/4 images generated successfully`);
     return successful;
 }
 
@@ -250,7 +249,7 @@ export async function generateWebtoon(
 
     // Step 2: Images (batched parallel)
     const images = await generateWebtoonImages(scenario, style, profileImageUrl);
-    console.log(`[Webtoon] ${images.length}/8 images generated`);
+    console.log(`[Webtoon] ${images.length}/4 images generated`);
 
     if (images.length === 0) {
         console.error("[Webtoon] No images were generated! Check OPENAI_API_KEY and API status.");
