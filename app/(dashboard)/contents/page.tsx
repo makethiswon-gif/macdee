@@ -19,6 +19,8 @@ import {
     Clock,
     Film,
     Trash2,
+    CheckSquare,
+    Square,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -89,6 +91,8 @@ export default function ContentsPage() {
     // Track which generation types have been completed per upload
     const [completedAI, setCompletedAI] = useState<Record<string, boolean>>({});
     const [completedWebtoon, setCompletedWebtoon] = useState<Record<string, boolean>>({});
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [bulkDeleting, setBulkDeleting] = useState(false);
 
     const contentsRef = useRef(contents);
     contentsRef.current = contents;
@@ -161,12 +165,52 @@ export default function ContentsPage() {
             if (res.ok) {
                 toast.success("콘텐츠가 삭제되었습니다.");
                 setContents(prev => prev.filter(c => c.id !== contentId));
+                setSelectedIds(prev => { const n = new Set(prev); n.delete(contentId); return n; });
             } else {
                 const data = await res.json();
                 toast.error(data.error || "삭제에 실패했습니다.");
             }
         } catch {
             toast.error("삭제 중 오류가 발생했습니다.");
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedIds.size === 0) return;
+        if (!confirm(`선택한 ${selectedIds.size}개 콘텐츠를 삭제하시겠습니까?`)) return;
+        setBulkDeleting(true);
+        let deleted = 0;
+        for (const id of selectedIds) {
+            try {
+                const res = await fetch("/api/contents", {
+                    method: "DELETE",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ id }),
+                });
+                if (res.ok) deleted++;
+            } catch { /* skip */ }
+        }
+        toast.success(`${deleted}개 콘텐츠가 삭제되었습니다.`);
+        setSelectedIds(new Set());
+        setContents(prev => prev.filter(c => !selectedIds.has(c.id)));
+        setBulkDeleting(false);
+    };
+
+    const toggleSelect = (id: string, e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setSelectedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id); else next.add(id);
+            return next;
+        });
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedIds.size === contents.length) {
+            setSelectedIds(new Set());
+        } else {
+            setSelectedIds(new Set(contents.map(c => c.id)));
         }
     };
 
@@ -468,6 +512,30 @@ export default function ContentsPage() {
                     </div>
                 ) : (
                     <>
+                        {/* Bulk action bar */}
+                        <div className="flex items-center justify-between mb-3 px-1">
+                            <div className="flex items-center gap-3">
+                                <button onClick={toggleSelectAll} className="flex items-center gap-2 text-[12px] font-medium text-[#6B7280] hover:text-[#374151] transition-colors">
+                                    {selectedIds.size === contents.length && contents.length > 0
+                                        ? <CheckSquare size={16} className="text-[#3563AE]" />
+                                        : <Square size={16} />}
+                                    전체 선택
+                                </button>
+                                {selectedIds.size > 0 && (
+                                    <span className="text-[12px] text-[#3563AE] font-medium">{selectedIds.size}개 선택됨</span>
+                                )}
+                            </div>
+                            {selectedIds.size > 0 && (
+                                <button
+                                    onClick={handleBulkDelete}
+                                    disabled={bulkDeleting}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold text-white bg-[#EF4444] rounded-lg hover:bg-[#DC2626] disabled:opacity-50 transition-colors"
+                                >
+                                    {bulkDeleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                                    {selectedIds.size}개 삭제
+                                </button>
+                            )}
+                        </div>
                         <AnimatePresence>
                             <div className="bg-white rounded-2xl border border-[#E8EBF0] divide-y divide-[#E8EBF0] overflow-hidden">
                                 {contents.map((c, i) => {
@@ -482,8 +550,16 @@ export default function ContentsPage() {
                                         >
                                             <Link
                                                 href={`/contents/${c.id}`}
-                                                className="flex items-center gap-4 p-4 hover:bg-[#F9FAFB] transition-colors"
+                                                className={`flex items-center gap-4 p-4 hover:bg-[#F9FAFB] transition-colors ${selectedIds.has(c.id) ? 'bg-[#3563AE]/[0.04]' : ''}`}
                                             >
+                                                <button
+                                                    onClick={(e) => toggleSelect(c.id, e)}
+                                                    className="flex-shrink-0"
+                                                >
+                                                    {selectedIds.has(c.id)
+                                                        ? <CheckSquare size={18} className="text-[#3563AE]" />
+                                                        : <Square size={18} className="text-[#D1D5DB]" />}
+                                                </button>
                                                 <div
                                                     className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
                                                     style={{ background: `${ch.color}12` }}
