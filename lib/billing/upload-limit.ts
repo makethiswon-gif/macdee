@@ -29,14 +29,15 @@ export async function checkUploadLimit(
         .eq("lawyer_id", lawyerId)
         .single();
 
-    // 2. 구독이 없으면 → 무료체험 (가입일 기준)
+    // 2. 변호사 정보 가져오기 (plan fallback + created_at)
     const { data: lawyer } = await supabase
         .from("lawyers")
-        .select("created_at")
+        .select("created_at, plan")
         .eq("id", lawyerId)
         .single();
 
-    const plan: PlanKey = (subscription?.plan as PlanKey) || "free";
+    // Plan 우선순위: subscriptions.plan → lawyers.plan → "free"
+    const plan: PlanKey = (subscription?.plan as PlanKey) || (lawyer?.plan as PlanKey) || "free";
     const planInfo = PLANS[plan] || PLANS.free;
 
     // 무제한 플랜
