@@ -101,7 +101,7 @@ export async function POST(request: Request) {
                     const cleanJson = stripCodeBlock(r.data.content);
                     console.log(`[AI Generate] Parsing ${r.channel} JSON, first 100 chars: ${cleanJson.substring(0, 100)}`);
                     const parsed = JSON.parse(cleanJson);
-                    title = parsed.title || `${upload.title} - ${r.channel}`;
+                    title = (parsed.title || `${upload.title} - ${r.channel}`).replace(/\*\*/g, "");
                     body = parsed.body || cleanJson;
                     metaDescription = parsed.meta_description || "";
                     tags = parsed.keywords || [];
@@ -117,7 +117,7 @@ export async function POST(request: Request) {
                 const lines = body.split("\n").filter((l: string) => l.trim().length > 0);
                 if (lines.length > 0) {
                     // Remove any markdown heading prefix
-                    title = lines[0].replace(/^#+\s*/, "").trim();
+                    title = lines[0].replace(/^#+\s*/, "").replace(/\*\*/g, "").trim();
                     // Remove title line from body
                     body = lines.slice(1).join("\n").trim();
                 } else {
