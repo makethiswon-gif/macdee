@@ -139,15 +139,24 @@ export async function POST(request: Request) {
                     // Handle both new { slides, image_prompt } and old [...] formats
                     let slides;
                     let imagePrompt: string | undefined;
+                    let captionText: string | undefined;
+                    let hashtagList: string[] | undefined;
                     if (Array.isArray(parsed)) {
                         slides = parsed;
                     } else if (parsed.slides && Array.isArray(parsed.slides)) {
                         slides = parsed.slides;
                         imagePrompt = parsed.image_prompt;
+                        captionText = parsed.caption;
+                        hashtagList = parsed.hashtags;
                     } else {
                         slides = parsed;
                     }
-                    body = JSON.stringify(slides);
+                    // Save slides + caption + hashtags as JSON body
+                    body = JSON.stringify({
+                        slides,
+                        caption: captionText || "",
+                        hashtags: hashtagList || [],
+                    });
 
                     // Generate cover image in background (don't block content save)
                     if (imagePrompt || slides.length > 0) {

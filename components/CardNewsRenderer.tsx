@@ -27,20 +27,27 @@ function parseCardNews(body: string): ParsedCard[] {
         // Strip markdown code block wrappers: ```json ... ``` or ``` ... ```
         trimmed = trimmed.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/, "").trim();
 
-        // Check if it looks like JSON array
-        if (trimmed.startsWith("[")) {
-            const parsed = JSON.parse(trimmed);
-            if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].text) {
-                return parsed.map((item: { slide: number; text: string }) => {
-                    // Handle \n in text as actual newlines
-                    const text = item.text.replace(/\\n/g, "\n");
-                    const lines = text.split("\n").map((l: string) => l.trim()).filter(Boolean);
-                    return {
-                        title: lines[0] || "",
-                        lines: lines.slice(1),
-                    };
-                });
-            }
+        const parsed = JSON.parse(trimmed);
+
+        // New format: { slides: [...], caption: "...", hashtags: [...] }
+        let slidesArray = null;
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed) && parsed.slides && Array.isArray(parsed.slides)) {
+            slidesArray = parsed.slides;
+        }
+        // Old format: [{ slide: 1, text: "..." }, ...]
+        else if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].text) {
+            slidesArray = parsed;
+        }
+
+        if (slidesArray) {
+            return slidesArray.map((item: { slide: number; text: string }) => {
+                const text = item.text.replace(/\\n/g, "\n");
+                const lines = text.split("\n").map((l: string) => l.trim()).filter(Boolean);
+                return {
+                    title: lines[0] || "",
+                    lines: lines.slice(1),
+                };
+            });
         }
     } catch {
         // Not JSON, try text parsing

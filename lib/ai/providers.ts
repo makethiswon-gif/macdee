@@ -84,7 +84,7 @@ export class ClaudeProvider implements AIProvider {
             },
             body: JSON.stringify({
                 model: this.model,
-                max_tokens: options?.maxTokens ?? 4096,
+                max_tokens: options?.maxTokens ?? 8192,
                 temperature: options?.temperature ?? 0.7,
                 system: systemMsg?.content || "",
                 messages: userMessages.map((m) => ({ role: m.role, content: m.content })),
@@ -113,10 +113,10 @@ export function getPreprocessor(): AIProvider {
 }
 
 export function getContentGenerator(): AIProvider {
-    // Claude가 설정되어 있으면 Claude, 아니면 OpenAI fallback
-    if (process.env.ANTHROPIC_API_KEY) {
-        return new ClaudeProvider();
+    // 콘텐츠 생성은 반드시 Claude 사용 (최고 품질)
+    if (!process.env.ANTHROPIC_API_KEY) {
+        console.error("[AI] ANTHROPIC_API_KEY not set! Claude is required for content generation.");
+        throw new Error("ANTHROPIC_API_KEY is required for content generation. Claude produces the best quality content.");
     }
-    console.warn("[AI] ANTHROPIC_API_KEY not set, falling back to OpenAI for content generation");
-    return new OpenAIProvider("gpt-4o");
+    return new ClaudeProvider();
 }
