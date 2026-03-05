@@ -58,7 +58,7 @@ function convertToRichHtml(text: string): string {
         const trimmed = line.trim();
 
         if (trimmed === "") {
-            htmlParts.push("<br>");
+            htmlParts.push("<br><br>");
             continue;
         }
         if (trimmed === "---") {
@@ -66,10 +66,10 @@ function convertToRichHtml(text: string): string {
             continue;
         }
 
-        // Markdown headings
+        // Markdown headings → bold with spacing
         if (trimmed.startsWith("# ") || trimmed.startsWith("## ") || trimmed.startsWith("### ")) {
             const clean = trimmed.replace(/^#{1,3}\s+/, "").replace(/\*\*(.+?)\*\*/g, "$1");
-            htmlParts.push(`<b>${clean}</b><br>`);
+            htmlParts.push(`<br><b>${clean}</b><br><br>`);
             continue;
         }
 
@@ -80,9 +80,11 @@ function convertToRichHtml(text: string): string {
         if (trimmed.startsWith("- ") || trimmed.startsWith("• ")) {
             processed = "· " + processed.replace(/^[-•]\s+/, "");
         }
-        // Auto-detect subtitle for plain text content (no markdown)
+        // Auto-detect subtitle for plain text content
         else if (isSubtitleLine(line, prevLine)) {
-            processed = `<b>${processed}</b>`;
+            processed = `<br><b>${processed}</b><br>`;
+            htmlParts.push(processed);
+            continue;
         }
 
         htmlParts.push(processed + "<br>");
