@@ -158,7 +158,7 @@ export async function generateCoverImage(
                     Authorization: `Bearer ${apiKey}`,
                 },
                 body: JSON.stringify({
-                    model: "gpt-image-1",
+                    model: "gpt-image-1.5",
                     prompt: finalPrompt,
                     n: 1,
                     size: "1024x1024",

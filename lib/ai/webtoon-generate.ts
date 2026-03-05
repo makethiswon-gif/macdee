@@ -189,7 +189,7 @@ Requirements:
                     Authorization: `Bearer ${apiKey}`,
                 },
                 body: JSON.stringify({
-                    model: "gpt-image-1",
+                    model: "gpt-image-1.5",
                     prompt,
                     n: 1,
                     size: "1024x1024",
