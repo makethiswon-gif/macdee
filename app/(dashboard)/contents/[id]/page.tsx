@@ -523,60 +523,142 @@ export default function ContentDetailPage() {
                         </div>
                     )}
 
-                    {/* Body: Preview / Edit toggle */}
+                    {/* Body: different display for Instagram vs other channels */}
                     <div className="mt-6">
-                        {/* Toggle bar */}
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-1 p-0.5 rounded-lg bg-[#F3F4F6]">
-                                <button
-                                    onClick={() => setViewMode("preview")}
-                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium transition-all ${viewMode === "preview" ? "bg-white text-[#1F2937] shadow-sm" : "text-[#6B7280] hover:text-[#374151]"
-                                        }`}
-                                >
-                                    <Eye size={13} /> 미리보기
-                                </button>
-                                <button
-                                    onClick={() => setViewMode("edit")}
-                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium transition-all ${viewMode === "edit" ? "bg-white text-[#1F2937] shadow-sm" : "text-[#6B7280] hover:text-[#374151]"
-                                        }`}
-                                >
-                                    <Pencil size={13} /> 편집
-                                </button>
-                            </div>
-                            {content.channel === "instagram" && viewMode === "edit" && (
-                                <p className="text-[11px] text-[#9CA3B0]">📝 텍스트 원본</p>
-                            )}
-                        </div>
+                        {content.channel === "instagram" || content.channel === "webtoon" ? (
+                            /* ─── Instagram / Webtoon: Caption + Hashtags ─── */
+                            (() => {
+                                // Parse caption and hashtags from body JSON
+                                let caption = "";
+                                let hashtags: string[] = [];
+                                try {
+                                    const parsed = JSON.parse(editBody);
+                                    if (parsed.caption) caption = parsed.caption;
+                                    if (parsed.hashtags) hashtags = parsed.hashtags;
+                                    // Try to extract from slides if no caption
+                                    if (!caption && parsed.slides) {
+                                        caption = parsed.slides.map((s: { text: string }) => s.text).join(" ").substring(0, 150);
+                                    }
+                                } catch {
+                                    // If body isn't JSON, try raw text
+                                    if (editBody && editBody.length < 500 && !editBody.startsWith("[")) {
+                                        caption = editBody;
+                                    }
+                                }
+                                // If no caption from JSON, generate from title
+                                if (!caption) {
+                                    caption = `⚖️ ${content.title}\n\n자세한 사례가 궁금하다면 프로필 링크를 확인하세요.`;
+                                }
+                                const hashtagText = hashtags.length > 0
+                                    ? hashtags.map(h => `#${h}`).join(" ")
+                                    : "#법률상담 #변호사 #승소사례 #법률사무소";
+                                const fullText = `${caption}\n\n${hashtagText}`;
 
-                        {/* Preview mode */}
-                        {viewMode === "preview" ? (
-                            <div className="relative min-h-[500px] p-6 rounded-2xl border border-[#E8EBF0] bg-white">
-                                <MarkdownPreview body={editBody} />
-                                <button
-                                    onClick={handleCopy}
-                                    className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F3F4F6] hover:bg-[#E5E7EB] transition-colors text-[#6B7280] text-[11px] font-medium"
-                                >
-                                    {copied ? <><Check size={13} className="text-emerald-600" /> 복사됨</> : <><Copy size={13} /> 복사</>}
-                                </button>
-                                <p className="mt-6 text-[10px] text-[#9CA3B0] border-t border-[#F3F4F6] pt-3">
-                                    ✅ 블로그에 발행될 때 이 모습 그대로 반영됩니다. 복사 시 서식 기호 없이 깔끔하게 복사됩니다.
-                                </p>
-                            </div>
+                                return (
+                                    <div className="space-y-4">
+                                        {/* Caption section */}
+                                        <div className="relative p-6 rounded-2xl border border-[#E8EBF0] bg-white">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <h3 className="text-[13px] font-bold text-[#1F2937]">📋 인스타그램 게시글 캡션</h3>
+                                                <button
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(fullText);
+                                                        setCopied(true);
+                                                        toast.success("캡션 + 해시태그 복사 완료!");
+                                                        setTimeout(() => setCopied(false), 2000);
+                                                    }}
+                                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#3563AE] hover:bg-[#2a5090] transition-colors text-white text-[11px] font-medium"
+                                                >
+                                                    {copied ? <><Check size={13} /> 복사됨</> : <><Copy size={13} /> 전체 복사</>}
+                                                </button>
+                                            </div>
+                                            <p className="text-[10px] text-[#9CA3B0] mb-3">아래 내용을 복사해서 인스타그램 게시글에 붙여넣으세요.</p>
+                                            <div className="p-4 rounded-xl bg-[#F9FAFB] border border-[#F3F4F6]">
+                                                <p className="text-[14px] text-[#374151] leading-relaxed whitespace-pre-wrap">{caption}</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Hashtags section */}
+                                        <div className="relative p-6 rounded-2xl border border-[#E8EBF0] bg-white">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <h3 className="text-[13px] font-bold text-[#1F2937]"># 해시태그</h3>
+                                                <button
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(hashtagText);
+                                                        toast.success("해시태그 복사 완료!");
+                                                    }}
+                                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F3F4F6] hover:bg-[#E5E7EB] transition-colors text-[#6B7280] text-[11px] font-medium"
+                                                >
+                                                    <Copy size={13} /> 해시태그만 복사
+                                                </button>
+                                            </div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {hashtags.length > 0 ? hashtags.map((tag, i) => (
+                                                    <span key={i} className="px-3 py-1.5 text-[12px] font-medium text-[#3563AE] bg-[#EEF2FF] rounded-full">
+                                                        #{tag}
+                                                    </span>
+                                                )) : (
+                                                    <p className="text-[12px] text-[#9CA3B0]">해시태그가 자동 생성됩니다.</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })()
                         ) : (
-                            <div className="relative">
-                                <textarea
-                                    value={editBody}
-                                    onChange={(e) => setEditBody(e.target.value)}
-                                    className="w-full min-h-[500px] p-6 rounded-2xl border border-[#E8EBF0] bg-white text-[15px] text-[#374151] leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#3563AE]/20 focus:border-[#3563AE] transition-all resize-none font-mono"
-                                />
-                                <button
-                                    onClick={handleCopy}
-                                    className="absolute top-4 right-4 p-2 rounded-lg bg-[#F3F4F6] hover:bg-[#E5E7EB] transition-colors text-[#6B7280]"
-                                    title="복사"
-                                >
-                                    {copied ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
-                                </button>
-                            </div>
+                            /* ─── Blog / Google / Macdee: Normal Preview / Edit ─── */
+                            <>
+                                {/* Toggle bar */}
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="flex items-center gap-1 p-0.5 rounded-lg bg-[#F3F4F6]">
+                                        <button
+                                            onClick={() => setViewMode("preview")}
+                                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium transition-all ${viewMode === "preview" ? "bg-white text-[#1F2937] shadow-sm" : "text-[#6B7280] hover:text-[#374151]"
+                                                }`}
+                                        >
+                                            <Eye size={13} /> 미리보기
+                                        </button>
+                                        <button
+                                            onClick={() => setViewMode("edit")}
+                                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium transition-all ${viewMode === "edit" ? "bg-white text-[#1F2937] shadow-sm" : "text-[#6B7280] hover:text-[#374151]"
+                                                }`}
+                                        >
+                                            <Pencil size={13} /> 편집
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Preview mode */}
+                                {viewMode === "preview" ? (
+                                    <div className="relative min-h-[500px] p-6 rounded-2xl border border-[#E8EBF0] bg-white">
+                                        <MarkdownPreview body={editBody} />
+                                        <button
+                                            onClick={handleCopy}
+                                            className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F3F4F6] hover:bg-[#E5E7EB] transition-colors text-[#6B7280] text-[11px] font-medium"
+                                        >
+                                            {copied ? <><Check size={13} className="text-emerald-600" /> 복사됨</> : <><Copy size={13} /> 복사</>}
+                                        </button>
+                                        <p className="mt-6 text-[10px] text-[#9CA3B0] border-t border-[#F3F4F6] pt-3">
+                                            ✅ 블로그에 발행될 때 이 모습 그대로 반영됩니다. 복사 시 서식 기호 없이 깔끔하게 복사됩니다.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="relative">
+                                        <textarea
+                                            value={editBody}
+                                            onChange={(e) => setEditBody(e.target.value)}
+                                            className="w-full min-h-[500px] p-6 rounded-2xl border border-[#E8EBF0] bg-white text-[15px] text-[#374151] leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#3563AE]/20 focus:border-[#3563AE] transition-all resize-none font-mono"
+                                        />
+                                        <button
+                                            onClick={handleCopy}
+                                            className="absolute top-4 right-4 p-2 rounded-lg bg-[#F3F4F6] hover:bg-[#E5E7EB] transition-colors text-[#6B7280]"
+                                            title="복사"
+                                        >
+                                            {copied ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
+                                        </button>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
 
