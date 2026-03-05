@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
         // Get lawyer info
         const { data: lawyer } = await supabase
             .from("lawyers")
-            .select("id, name, plan, webtoon_style")
+            .select("id, name, plan, webtoon_style, profile_image_url")
             .eq("user_id", user.id)
             .single();
         if (!lawyer) return NextResponse.json({ error: "Lawyer not found" }, { status: 404 });
@@ -42,10 +42,18 @@ export async function POST(req: NextRequest) {
         const maskedText = structuredData?.masked_text || upload.raw_text || "";
         const caseType = upload.title || "법률 사건";
         const style = webtoon_style || lawyer.webtoon_style || "dramatic";
+        const profileImageUrl = lawyer.profile_image_url || undefined;
 
         // Generate webtoon
         const { generateWebtoon } = await import("@/lib/ai/webtoon-generate");
-        const result = await generateWebtoon(maskedText, caseType, style);
+        const result = await generateWebtoon(maskedText, caseType, style, profileImageUrl);
+
+        if (result.images.length === 0) {
+            return NextResponse.json(
+                { error: "이미지 생성에 실패했습니다. OPENAI_API_KEY를 확인하거나 잠시 후 다시 시도해주세요." },
+                { status: 500 }
+            );
+        }
 
         // Upload images to storage and build panel data
         const { uploadCoverImage } = await import("@/lib/supabase/storage");

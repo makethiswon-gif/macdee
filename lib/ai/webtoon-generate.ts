@@ -141,6 +141,7 @@ JSON만 출력하세요. 코드 블록 없이.`;
 export async function generateWebtoonImages(
     scenario: WebtoonScenario,
     style: WebtoonStyleKey = "dramatic",
+    profileImageUrl?: string,
 ): Promise<{ panelIndex: number; imageBase64: string }[]> {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) throw new Error("OPENAI_API_KEY not set");
@@ -153,10 +154,15 @@ export async function generateWebtoonImages(
 - Main character (의뢰인): ${charSheet.protagonist}
 - Lawyer (변호사): ${charSheet.lawyer}
 ${charSheet.antagonist ? `- Opponent (상대방): ${charSheet.antagonist}` : ""}
-Setting: ${charSheet.setting}`;
+Setting: ${charSheet.setting}
+${profileImageUrl ? `
+REFERENCE: The lawyer character should resemble the person in this photo: ${profileImageUrl}` : ""}`;
 
-    // Generate all 8 panels in parallel
-    const panelPromises = scenario.panels.map(async (panel) => {
+    // Generate panels - 4 at a time to avoid rate limits
+    const batch1 = scenario.panels.slice(0, 4);
+    const batch2 = scenario.panels.slice(4, 8);
+
+    const generatePanel = async (panel: WebtoonPanel, retries = 2): Promise<{ panelIndex: number; imageBase64: string } | null> => {
         const prompt = `Create a single comic panel illustration.
 
 Art style: ${stylePrompt}
@@ -209,12 +215,25 @@ Requirements:
             return null;
         } catch (err) {
             console.error(`[Webtoon] Panel ${panel.panel} failed:`, err);
+            if (retries > 0) {
+                console.log(`[Webtoon] Retrying panel ${panel.panel}... (${retries} left)`);
+                await new Promise(r => setTimeout(r, 2000));
+                return generatePanel(panel, retries - 1);
+            }
             return null;
         }
-    });
+    };
 
-    const results = await Promise.all(panelPromises);
-    return results.filter((r): r is { panelIndex: number; imageBase64: string } => r !== null);
+    console.log(`[Webtoon] Generating batch 1 (panels 1-4)...`);
+    const results1 = await Promise.all(batch1.map(p => generatePanel(p)));
+
+    console.log(`[Webtoon] Generating batch 2 (panels 5-8)...`);
+    const results2 = await Promise.all(batch2.map(p => generatePanel(p)));
+
+    const results = [...results1, ...results2];
+    const successful = results.filter((r): r is { panelIndex: number; imageBase64: string } => r !== null);
+    console.log(`[Webtoon] ${successful.length}/${scenario.panels.length} images generated successfully`);
+    return successful;
 }
 
 // ─── Full pipeline ───
@@ -222,16 +241,21 @@ export async function generateWebtoon(
     maskedText: string,
     caseType: string,
     style: WebtoonStyleKey = "dramatic",
+    profileImageUrl?: string,
 ): Promise<WebtoonResult> {
-    console.log(`[Webtoon] Starting generation: style=${style}, caseType=${caseType}`);
+    console.log(`[Webtoon] Starting generation: style=${style}, caseType=${caseType}, hasProfile=${!!profileImageUrl}`);
 
     // Step 1: Scenario
     const scenario = await generateWebtoonScenario(maskedText, caseType);
     console.log(`[Webtoon] Scenario generated: ${scenario.panels.length} panels, title="${scenario.title}"`);
 
-    // Step 2: Images (parallel)
-    const images = await generateWebtoonImages(scenario, style);
+    // Step 2: Images (batched parallel)
+    const images = await generateWebtoonImages(scenario, style, profileImageUrl);
     console.log(`[Webtoon] ${images.length}/8 images generated`);
+
+    if (images.length === 0) {
+        console.error("[Webtoon] No images were generated! Check OPENAI_API_KEY and API status.");
+    }
 
     return { scenario, images, style };
 }
