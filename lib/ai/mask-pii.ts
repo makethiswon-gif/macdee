@@ -95,5 +95,36 @@ export function maskPII(text: string): string {
         "$1: [이름]"
     );
 
+    // 11. 파일명/제목에서 이름 추출 패턴
+    // "판결문_김수연" → "판결문_[이름]"
+    masked = masked.replace(
+        /([_\-])\s*([가-힣]{2,4})(?=\s*$|\s*\.|\s*\)|\s*_|\s*\-)/gm,
+        "$1[이름]"
+    );
+
+    // 12. 한글 이름 + 조사 패턴 (판결문 본문에서 이름이 반복)
+    // 한국 성씨 패턴으로 시작하는 2-3자 이름 + 조사
+    const koreanSurnames = "김이박최정강조윤장임한오서신권황안송전홍유고문양손배백허노남심하주우민엄채원천방공강현변함탁";
+    const surnameChars = koreanSurnames.split("");
+    for (const surname of surnameChars) {
+        // "김수연은", "김수연의", "김수연이", "김수연을", "김수연에게" 등
+        const nameWithJosa = new RegExp(
+            `${surname}[가-힣]{1,3}(?=은|는|이|가|을|를|의|에게|에|와|과|로|도|만|까지|부터|께서|한테|라고|이라)`,
+            "g"
+        );
+        masked = masked.replace(nameWithJosa, "[이름]");
+
+        // "김수연," "김수연." 등 문장 부호 앞
+        const nameWithPunct = new RegExp(
+            `${surname}[가-힣]{1,3}(?=[,\\.\\)\\]\\s])`,
+            "g"
+        );
+        // Only apply this if the match looks like a person name (2-4 chars total)
+        masked = masked.replace(nameWithPunct, (match) => {
+            if (match.length >= 2 && match.length <= 4) return "[이름]";
+            return match;
+        });
+    }
+
     return masked;
 }

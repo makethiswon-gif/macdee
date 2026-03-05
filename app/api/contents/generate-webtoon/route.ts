@@ -96,7 +96,10 @@ export async function POST(req: NextRequest) {
                 lawyer_id: lawyer.id,
                 channel: "webtoon",
                 title: result.scenario.title || `${upload.title} - 웹툰`,
-                body: result.scenario.summary || "",
+                body: JSON.stringify({
+                    caption: result.scenario.caption || result.scenario.summary || "",
+                    hashtags: result.scenario.hashtags || ["#법률상담", "#변호사", "#승소사례"],
+                }),
                 status: "review",
                 card_news_data: {
                     webtoon: true,
