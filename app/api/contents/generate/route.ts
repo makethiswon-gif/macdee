@@ -153,9 +153,16 @@ export async function POST(request: Request) {
                                 const { uploadCoverImage } = await import("@/lib/supabase/storage");
 
                                 // Use AI-generated prompt or fallback to our own
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                const structuredData = upload.structured_data as any || {};
                                 const result = await generateCoverImage(
                                     upload.title || "법률 사건",
                                     hookText,
+                                    {
+                                        keyPoints: structuredData?.key_points,
+                                        resultSummary: structuredData?.result_summary,
+                                        maskedText: rawText?.substring(0, 300),
+                                    }
                                 );
 
                                 if (result?.imageBase64) {
