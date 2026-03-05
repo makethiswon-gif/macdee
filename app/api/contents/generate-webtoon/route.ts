@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { maskPII } from "@/lib/ai/mask-pii";
 
-export const maxDuration = 120; // 8컷 생성에 충분한 시간
+export const maxDuration = 120; // 4컷 생성에 충분한 시간
 
 export async function POST(req: NextRequest) {
     try {
@@ -39,7 +40,10 @@ export async function POST(req: NextRequest) {
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const structuredData = upload.structured_data as any;
-        const maskedText = structuredData?.masked_text || upload.raw_text || "";
+        const rawText = structuredData?.masked_text || upload.raw_text || "";
+        // ⚠️ 개인정보 비식별화: 반드시 마스킹 후 AI에 전달
+        const maskedText = maskPII(rawText);
+        console.log(`[Webtoon API] PII masking applied: ${rawText.length}chars → ${maskedText.length}chars`);
         const caseType = upload.title || "법률 사건";
         const style = webtoon_style || lawyer.webtoon_style || "dramatic";
         const profileImageUrl = lawyer.profile_image_url || undefined;

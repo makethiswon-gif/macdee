@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generateAllChannels } from "@/lib/ai/generate";
+import { maskPII } from "@/lib/ai/mask-pii";
 
 // POST: Generate AI content from an upload
 export async function POST(request: Request) {
@@ -61,10 +62,14 @@ export async function POST(request: Request) {
         }
 
         console.log(`[AI Generate] Starting generation for upload ${upload_id}`);
-        console.log(`[AI Generate] Raw text length: ${rawText.length}, first 200 chars: ${rawText.substring(0, 200)}`);
+        console.log(`[AI Generate] Raw text length: ${rawText.length}`);
+
+        // ⚠️ 개인정보 비식별화: 반드시 마스킹 후 AI에 전달
+        const maskedText = maskPII(rawText);
+        console.log(`[AI Generate] PII masking applied: ${rawText.length}chars → ${maskedText.length}chars`);
 
         // Generate 4-channel content
-        const results = await generateAllChannels(rawText, { blogStyle: blogStyle || "column", sourceType: upload.type });
+        const results = await generateAllChannels(maskedText, { blogStyle: blogStyle || "column", sourceType: upload.type });
 
         console.log(`[AI Generate] Generation results:`, results.map(r => ({
             channel: r.channel,
