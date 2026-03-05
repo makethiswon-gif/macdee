@@ -579,31 +579,43 @@ function Footer() {
           <div>
             <h4 className="text-[11px] text-white/30 uppercase tracking-[0.15em] mb-5">서비스</h4>
             <ul className="space-y-3">
-              {["주요 기능", "작동 방식", "가격"].map((t) => (
-                <li key={t}><a href="#" className="text-[13px] text-white/25 hover:text-white/60 transition-colors">{t}</a></li>
+              {[["주요 기능", "#features"], ["작동 방식", "#process"], ["가격", "#pricing"]].map(([t, h]) => (
+                <li key={t}><a href={h} className="text-[13px] text-white/25 hover:text-white/60 transition-colors">{t}</a></li>
               ))}
             </ul>
           </div>
           <div>
             <h4 className="text-[11px] text-white/30 uppercase tracking-[0.15em] mb-5">지원</h4>
             <ul className="space-y-3">
-              {["이용약관", "개인정보처리방침", "문의하기"].map((t) => (
-                <li key={t}><a href="#" className="text-[13px] text-white/25 hover:text-white/60 transition-colors">{t}</a></li>
-              ))}
+              <li><a href="/terms" className="text-[13px] text-white/25 hover:text-white/60 transition-colors">이용약관</a></li>
+              <li><a href="/refund" className="text-[13px] text-white/25 hover:text-white/60 transition-colors">환불정책</a></li>
+              <li><a href="mailto:support@macdee.com" className="text-[13px] text-white/25 hover:text-white/60 transition-colors">문의하기</a></li>
             </ul>
           </div>
           <div>
             <h4 className="text-[11px] text-white/30 uppercase tracking-[0.15em] mb-5">연락처</h4>
             <ul className="space-y-3 text-[13px] text-white/25">
+              <li>010-8935-3010</li>
               <li>support@macdee.com</li>
-              <li>서울특별시</li>
+              <li>경기도 용인시 한일로21번길 31</li>
             </ul>
           </div>
         </div>
 
-        <div className="mt-16 pt-8 border-t border-white/[0.04] flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="text-[11px] text-white/15">© 2026 macdee. Chasing Quality.</p>
-          <p className="text-[11px] text-white/15">Made with AI for Lawyers</p>
+        {/* Business info */}
+        <div className="mt-12 pt-6 border-t border-white/[0.04]">
+          <p className="text-[11px] text-white/15 leading-relaxed">
+            상호명: 메이크디스원 | 대표자: 김정환 | 사업자등록번호: 431-11-01233<br />
+            주소: 경기도 용인시 한일로21번길 31 | 대표번호: 010-8935-3010
+          </p>
+        </div>
+
+        <div className="mt-6 pt-6 border-t border-white/[0.04] flex flex-col sm:flex-row items-center justify-between gap-3">
+          <p className="text-[11px] text-white/15">© 2026 macdee. All Rights Reserved.</p>
+          <div className="flex gap-4">
+            <a href="/terms" className="text-[11px] text-white/15 hover:text-white/40 transition-colors">이용약관</a>
+            <a href="/refund" className="text-[11px] text-white/15 hover:text-white/40 transition-colors">환불정책</a>
+          </div>
         </div>
       </div>
     </footer>
