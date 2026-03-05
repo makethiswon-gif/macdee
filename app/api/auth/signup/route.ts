@@ -52,14 +52,11 @@ export async function POST(request: Request) {
             );
         }
 
-        // Generate slug from name (한글 → romanized-like hash, fallback to random)
-        const baseSlug = name
+        // Generate slug from email prefix (English-only, clean URL)
+        const emailPrefix = email.split("@")[0]
             .toLowerCase()
-            .replace(/\s+/g, "-")
-            .replace(/[^a-z0-9가-힣\-]/g, "");
-
-        // Use name + random suffix for uniqueness
-        const slug = `${baseSlug}-${Math.random().toString(36).substring(2, 6)}`;
+            .replace(/[^a-z0-9]/g, "");
+        const slug = `${emailPrefix}-${Math.random().toString(36).substring(2, 6)}`;
 
         // Create lawyer record
         const { error: lawyerError } = await supabase.from("lawyers").insert({
