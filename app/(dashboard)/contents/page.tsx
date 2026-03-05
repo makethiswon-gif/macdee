@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
@@ -75,6 +75,8 @@ interface Content {
 export default function ContentsPage() {
     const [contents, setContents] = useState<Content[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [hasMore, setHasMore] = useState(false);
     const [filter, setFilter] = useState("all");
     const [generating, setGenerating] = useState(false);
     const [generatingWebtoon, setGeneratingWebtoon] = useState(false);
@@ -88,12 +90,23 @@ export default function ContentsPage() {
     const [completedAI, setCompletedAI] = useState<Record<string, boolean>>({});
     const [completedWebtoon, setCompletedWebtoon] = useState<Record<string, boolean>>({});
 
-    const fetchContents = useCallback(async () => {
-        const url = filter === "all" ? "/api/contents" : `/api/contents?channel=${filter}`;
+    const contentsRef = useRef(contents);
+    contentsRef.current = contents;
+
+    const fetchContents = useCallback(async (loadMore = false) => {
+        const offset = loadMore ? contentsRef.current.length : 0;
+        const url = filter === "all" ? `/api/contents?limit=20&offset=${offset}` : `/api/contents?channel=${filter}&limit=20&offset=${offset}`;
+        if (loadMore) setLoadingMore(true); else setLoading(true);
         const res = await fetch(url);
         const data = await res.json();
-        setContents(data.contents || []);
+        if (loadMore) {
+            setContents(prev => [...prev, ...(data.contents || [])]);
+        } else {
+            setContents(data.contents || []);
+        }
+        setHasMore(data.hasMore || false);
         setLoading(false);
+        setLoadingMore(false);
     }, [filter]);
 
     const fetchUploads = useCallback(async () => {
@@ -126,6 +139,28 @@ export default function ContentsPage() {
             if (res.ok) {
                 toast.success("업로드가 삭제되었습니다.");
                 await fetchUploads();
+            } else {
+                const data = await res.json();
+                toast.error(data.error || "삭제에 실패했습니다.");
+            }
+        } catch {
+            toast.error("삭제 중 오류가 발생했습니다.");
+        }
+    };
+
+    const handleDeleteContent = async (contentId: string, e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!confirm("이 콘텐츠를 삭제하시겠습니까?")) return;
+        try {
+            const res = await fetch("/api/contents", {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: contentId }),
+            });
+            if (res.ok) {
+                toast.success("콘텐츠가 삭제되었습니다.");
+                setContents(prev => prev.filter(c => c.id !== contentId));
             } else {
                 const data = await res.json();
                 toast.error(data.error || "삭제에 실패했습니다.");
@@ -432,48 +467,67 @@ export default function ContentsPage() {
                         </Link>
                     </div>
                 ) : (
-                    <AnimatePresence>
-                        <div className="bg-white rounded-2xl border border-[#E8EBF0] divide-y divide-[#E8EBF0] overflow-hidden">
-                            {contents.map((c, i) => {
-                                const ch = CHANNEL_META[c.channel] || CHANNEL_META.blog;
-                                const st = STATUS_META[c.status] || STATUS_META.draft;
-                                return (
-                                    <motion.div
-                                        key={c.id}
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        transition={{ delay: i * 0.03 }}
-                                    >
-                                        <Link
-                                            href={`/contents/${c.id}`}
-                                            className="flex items-center gap-4 p-4 hover:bg-[#F9FAFB] transition-colors"
+                    <>
+                        <AnimatePresence>
+                            <div className="bg-white rounded-2xl border border-[#E8EBF0] divide-y divide-[#E8EBF0] overflow-hidden">
+                                {contents.map((c, i) => {
+                                    const ch = CHANNEL_META[c.channel] || CHANNEL_META.blog;
+                                    const st = STATUS_META[c.status] || STATUS_META.draft;
+                                    return (
+                                        <motion.div
+                                            key={c.id}
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            transition={{ delay: i * 0.03 }}
                                         >
-                                            <div
-                                                className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                                                style={{ background: `${ch.color}12` }}
+                                            <Link
+                                                href={`/contents/${c.id}`}
+                                                className="flex items-center gap-4 p-4 hover:bg-[#F9FAFB] transition-colors"
                                             >
-                                                <ch.icon size={16} style={{ color: ch.color }} />
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-medium text-[#1F2937] truncate">{c.title}</p>
-                                                <div className="flex items-center gap-2 mt-0.5">
-                                                    <span className="text-[11px] font-medium" style={{ color: ch.color }}>{ch.label}</span>
-                                                    <span className="text-[#D1D5DB]">·</span>
-                                                    <span className="text-[11px] text-[#9CA3B0] flex items-center gap-1">
-                                                        <Clock size={10} />
-                                                        {formatDistanceToNow(new Date(c.created_at), { addSuffix: true, locale: ko })}
-                                                    </span>
+                                                <div
+                                                    className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                                                    style={{ background: `${ch.color}12` }}
+                                                >
+                                                    <ch.icon size={16} style={{ color: ch.color }} />
                                                 </div>
-                                            </div>
-                                            <span className={`px-2 py-0.5 text-[11px] font-semibold rounded-md ${st.color} ${st.bg}`}>
-                                                {st.label}
-                                            </span>
-                                        </Link>
-                                    </motion.div>
-                                );
-                            })}
-                        </div>
-                    </AnimatePresence>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-medium text-[#1F2937] truncate">{c.title}</p>
+                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                        <span className="text-[11px] font-medium" style={{ color: ch.color }}>{ch.label}</span>
+                                                        <span className="text-[#D1D5DB]">·</span>
+                                                        <span className="text-[11px] text-[#9CA3B0] flex items-center gap-1">
+                                                            <Clock size={10} />
+                                                            {formatDistanceToNow(new Date(c.created_at), { addSuffix: true, locale: ko })}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <span className={`px-2 py-0.5 text-[11px] font-semibold rounded-md ${st.color} ${st.bg}`}>
+                                                    {st.label}
+                                                </span>
+                                                <button
+                                                    onClick={(e) => handleDeleteContent(c.id, e)}
+                                                    className="p-1.5 rounded-lg text-[#9CA3B0] hover:text-[#EF4444] hover:bg-red-50 transition-colors"
+                                                    title="삭제"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </Link>
+                                        </motion.div>
+                                    );
+                                })}
+                            </div>
+                        </AnimatePresence>
+                        {hasMore && (
+                            <button
+                                onClick={() => fetchContents(true)}
+                                disabled={loadingMore}
+                                className="w-full mt-3 py-3 rounded-xl border border-[#E8EBF0] bg-white text-[13px] font-medium text-[#6B7280] hover:bg-[#F9FAFB] transition-colors disabled:opacity-50"
+                            >
+                                {loadingMore ? <Loader2 size={14} className="animate-spin inline mr-1.5" /> : null}
+                                더 보기
+                            </button>
+                        )}
+                    </>
                 )}
             </div>
         </div >

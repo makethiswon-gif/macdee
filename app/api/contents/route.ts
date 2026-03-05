@@ -18,23 +18,25 @@ export async function GET(request: Request) {
 
         const { searchParams } = new URL(request.url);
         const channel = searchParams.get("channel");
+        const limit = parseInt(searchParams.get("limit") || "20");
+        const offset = parseInt(searchParams.get("offset") || "0");
 
         let query = supabase
             .from("contents")
-            .select("*, uploads(title, type)")
+            .select("*, uploads(title, type)", { count: "exact" })
             .eq("lawyer_id", lawyer.id)
-            .order("created_at", { ascending: false });
+            .order("created_at", { ascending: false })
+            .range(offset, offset + limit - 1);
 
         if (channel) query = query.eq("channel", channel);
 
-        const { data, error } = await query;
+        const { data, error, count } = await query;
         if (error) {
             console.error("[Contents API] Query error:", error);
             return NextResponse.json({ error: "조회 실패" }, { status: 500 });
         }
 
-        console.log(`[Contents API] Returning ${data?.length || 0} contents for lawyer ${lawyer.id}`);
-        return NextResponse.json({ contents: data });
+        return NextResponse.json({ contents: data, total: count || 0, hasMore: (offset + limit) < (count || 0) });
     } catch {
         return NextResponse.json({ error: "서버 오류" }, { status: 500 });
     }
