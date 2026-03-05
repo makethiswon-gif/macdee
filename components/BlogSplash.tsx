@@ -6,9 +6,10 @@ import { motion, AnimatePresence } from "framer-motion";
 interface BlogSplashProps {
     name: string;
     brandColor: string;
+    profileImageUrl?: string;
 }
 
-export default function BlogSplash({ name, brandColor }: BlogSplashProps) {
+export default function BlogSplash({ name, brandColor, profileImageUrl }: BlogSplashProps) {
     const [show, setShow] = useState(false);
 
     useEffect(() => {
@@ -46,6 +47,31 @@ export default function BlogSplash({ name, brandColor }: BlogSplashProps) {
                             background: `radial-gradient(circle at 50% 50%, ${brandColor}08 0%, transparent 50%)`,
                         }}
                     />
+
+                    {/* Profile photo */}
+                    {profileImageUrl && (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.5 }}
+                            animate={{
+                                opacity: 1,
+                                scale: 1,
+                                transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] },
+                            }}
+                            exit={{
+                                opacity: 0,
+                                scale: 0.3,
+                                filter: "blur(8px)",
+                                transition: { duration: 0.4 },
+                            }}
+                            className="mb-6 w-16 h-16 rounded-full overflow-hidden border-2 border-white/10"
+                        >
+                            <img
+                                src={profileImageUrl}
+                                alt={name}
+                                className="w-full h-full object-cover"
+                            />
+                        </motion.div>
+                    )}
 
                     {/* Name + 변호사 chars */}
                     <div className="relative flex items-baseline justify-center gap-[2px]">
@@ -86,8 +112,8 @@ export default function BlogSplash({ name, brandColor }: BlogSplashProps) {
                                         },
                                     }}
                                     className={`inline-block tracking-tighter ${isTitle
-                                        ? "text-[clamp(1.2rem,4vw,2.2rem)] font-light text-white/40"
-                                        : "text-[clamp(3rem,10vw,6rem)] font-black text-white"
+                                        ? "text-[clamp(0.7rem,2vw,1.1rem)] font-light text-white/40"
+                                        : "text-[clamp(1.5rem,5vw,3rem)] font-black text-white"
                                         }`}
                                     style={{
                                         textShadow: isTitle ? "none" : `0 0 80px ${brandColor}30`,

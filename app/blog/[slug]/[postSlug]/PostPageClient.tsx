@@ -114,7 +114,7 @@ export default function PostPageClient({ lawyer, post }: { lawyer: LawyerInfo; p
     return (
         <div className="min-h-screen bg-[#0A0A0A]" style={{ fontFamily: "'Noto Sans KR', -apple-system, sans-serif" }}>
             {/* Splash entrance */}
-            <BlogSplash name={lawyer.name} brandColor={lawyer.brand_color} />
+            <BlogSplash name={lawyer.name} brandColor={lawyer.brand_color} profileImageUrl={lawyer.profile_image_url} />
             {/* Ambient gradient */}
             <div
                 className="fixed inset-0 pointer-events-none"
