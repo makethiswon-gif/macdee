@@ -16,7 +16,7 @@ export async function POST(request: Request) {
         // Get lawyer
         const { data: lawyer } = await supabase
             .from("lawyers")
-            .select("id")
+            .select("id, name, profile_image_url")
             .eq("user_id", user.id)
             .single();
 
@@ -166,6 +166,22 @@ export async function POST(request: Request) {
                                 );
 
                                 if (result?.imageBase64) {
+                                    // 프로필 사진 합성
+                                    let finalImageBase64 = result.imageBase64;
+                                    if (lawyer.profile_image_url) {
+                                        try {
+                                            const { overlayProfileOnImage } = await import("@/lib/ai/image-composite");
+                                            finalImageBase64 = await overlayProfileOnImage(
+                                                result.imageBase64,
+                                                lawyer.profile_image_url,
+                                                lawyer.name,
+                                            );
+                                            console.log("[AI Generate] Profile photo overlaid on cover image");
+                                        } catch (overlayErr) {
+                                            console.error("[AI Generate] Profile overlay failed, using original:", overlayErr);
+                                        }
+                                    }
+
                                     // We need the content ID — it will be saved shortly
                                     // So we use a setTimeout to wait for the insert
                                     setTimeout(async () => {
@@ -185,7 +201,7 @@ export async function POST(request: Request) {
                                                 const coverUrl = await uploadCoverImage(
                                                     lawyer.id,
                                                     savedContent.id,
-                                                    result.imageBase64,
+                                                    finalImageBase64,
                                                 );
 
                                                 if (coverUrl) {
