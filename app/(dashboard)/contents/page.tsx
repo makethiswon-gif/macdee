@@ -18,6 +18,7 @@ import {
     ChevronUp,
     Clock,
     Film,
+    Trash2,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -112,6 +113,26 @@ export default function ContentsPage() {
 
     const setStyleForUpload = (uploadId: string, style: string) => {
         setUploadStyles((prev) => ({ ...prev, [uploadId]: style }));
+    };
+
+    const handleDeleteUpload = async (uploadId: string) => {
+        if (!confirm("이 업로드를 삭제하시겠습니까?")) return;
+        try {
+            const res = await fetch("/api/uploads", {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ upload_id: uploadId }),
+            });
+            if (res.ok) {
+                toast.success("업로드가 삭제되었습니다.");
+                await fetchUploads();
+            } else {
+                const data = await res.json();
+                toast.error(data.error || "삭제에 실패했습니다.");
+            }
+        } catch {
+            toast.error("삭제 중 오류가 발생했습니다.");
+        }
     };
 
     const handleGenerate = async (uploadId: string) => {
@@ -241,6 +262,13 @@ export default function ContentsPage() {
                                                     ✅ 웹툰 완료
                                                 </span>
                                             )}
+                                            <button
+                                                onClick={() => handleDeleteUpload(u.id)}
+                                                className="flex items-center gap-1 px-2 py-1.5 text-xs text-[#EF4444] hover:bg-red-50 rounded-lg transition-colors"
+                                                title="삭제"
+                                            >
+                                                <Trash2 size={12} />
+                                            </button>
                                         </div>
                                     </div>
 

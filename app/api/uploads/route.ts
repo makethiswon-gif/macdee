@@ -275,3 +275,49 @@ export async function GET() {
         return NextResponse.json({ error: "서버 오류가 발생했습니다." }, { status: 500 });
     }
 }
+
+// DELETE: Delete an upload
+export async function DELETE(request: Request) {
+    try {
+        const supabase = await createClient();
+
+        const {
+            data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!user) {
+            return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
+        }
+
+        const { data: lawyer } = await supabase
+            .from("lawyers")
+            .select("id")
+            .eq("user_id", user.id)
+            .single();
+
+        if (!lawyer) {
+            return NextResponse.json({ error: "프로필을 찾을 수 없습니다." }, { status: 404 });
+        }
+
+        const { upload_id } = await request.json();
+        if (!upload_id) {
+            return NextResponse.json({ error: "upload_id가 필요합니다." }, { status: 400 });
+        }
+
+        // Verify ownership and delete
+        const { error } = await supabase
+            .from("uploads")
+            .delete()
+            .eq("id", upload_id)
+            .eq("lawyer_id", lawyer.id);
+
+        if (error) {
+            console.error("[Upload Delete] Error:", error);
+            return NextResponse.json({ error: "삭제에 실패했습니다." }, { status: 500 });
+        }
+
+        return NextResponse.json({ success: true });
+    } catch {
+        return NextResponse.json({ error: "서버 오류가 발생했습니다." }, { status: 500 });
+    }
+}
