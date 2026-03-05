@@ -70,6 +70,28 @@ export async function POST(request: Request) {
             );
         }
 
+        // Create free trial subscription (7일 무료 체험)
+        const { data: lawyerRecord } = await supabase
+            .from("lawyers")
+            .select("id")
+            .eq("user_id", authData.user.id)
+            .single();
+
+        if (lawyerRecord) {
+            const trialEnd = new Date();
+            trialEnd.setDate(trialEnd.getDate() + 7);
+
+            await supabase.from("subscriptions").insert({
+                lawyer_id: lawyerRecord.id,
+                plan: "free",
+                status: "active",
+                current_period_start: new Date().toISOString(),
+                current_period_end: trialEnd.toISOString(),
+                uploads_limit: 10,
+                amount: 0,
+            });
+        }
+
         // Send confirmation email
         // Supabase automatically sends confirmation email when email_confirm is false
 

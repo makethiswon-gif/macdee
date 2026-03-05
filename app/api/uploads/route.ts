@@ -27,6 +27,20 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "변호사 프로필을 찾을 수 없습니다." }, { status: 404 });
         }
 
+        // Check upload limit
+        const { checkUploadLimit } = await import("@/lib/billing/upload-limit");
+        const limitCheck = await checkUploadLimit(supabase, lawyer.id);
+
+        if (!limitCheck.allowed) {
+            return NextResponse.json({
+                error: limitCheck.reason,
+                trialExpired: limitCheck.trialExpired,
+                remaining: limitCheck.remaining,
+                limit: limitCheck.limit,
+                plan: limitCheck.plan,
+            }, { status: 429 });
+        }
+
         const formData = await request.formData();
         const type = formData.get("type") as string;
 
