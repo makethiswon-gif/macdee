@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { createAdminClient } from "@/lib/supabase/server";
 
 interface Magazine {
     id: string;
@@ -19,12 +20,26 @@ interface Magazine {
 }
 
 async function getMagazine(slug: string): Promise<Magazine | null> {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     try {
-        const res = await fetch(`${baseUrl}/api/magazine/${slug}`, { cache: "no-store" });
-        if (!res.ok) return null;
-        const data = await res.json();
-        return data.magazine;
+        const decodedSlug = decodeURIComponent(slug);
+        const supabase = await createAdminClient();
+
+        const { data: magazine, error } = await supabase
+            .from("magazines")
+            .select("*")
+            .eq("slug", decodedSlug)
+            .single();
+
+        if (error || !magazine) return null;
+
+        // Increment view count (fire and forget)
+        supabase
+            .from("magazines")
+            .update({ view_count: (magazine.view_count || 0) + 1 })
+            .eq("id", magazine.id)
+            .then(() => { });
+
+        return magazine;
     } catch {
         return null;
     }
@@ -62,14 +77,14 @@ export default async function MagazineArticlePage({
 
     // Simple markdown to HTML (headings, bold, lists, links)
     const bodyHtml = magazine.body
-        .replace(/^### (.+)$/gm, '<h3 class="text-lg font-bold text-[#111] mt-8 mb-3">$1</h3>')
-        .replace(/^## (.+)$/gm, '<h2 class="text-xl font-bold text-[#111] mt-10 mb-4 pb-2 border-b border-[#E5E5E5]">$1</h2>')
-        .replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-[#111]">$1</strong>')
-        .replace(/^- (.+)$/gm, '<li class="ml-4 pl-2 text-[#444]">$1</li>')
-        .replace(/^(\d+)\. (.+)$/gm, '<li class="ml-4 pl-2 text-[#444]"><span class="font-medium text-[#3563AE] mr-1">$1.</span> $2</li>')
-        .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" class="text-[#3563AE] underline hover:text-[#2A4F8A]" target="_blank">$1</a>')
+        .replace(/^### (.+)$/gm, '<h3 class="text-lg font-bold text-white/80 mt-8 mb-3">$1</h3>')
+        .replace(/^## (.+)$/gm, '<h2 class="text-xl font-bold text-white mt-10 mb-4 pb-2 border-b border-white/[0.08]">$1</h2>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-white/80">$1</strong>')
+        .replace(/^- (.+)$/gm, '<li class="ml-4 pl-2 text-white/50">$1</li>')
+        .replace(/^(\d+)\. (.+)$/gm, '<li class="ml-4 pl-2 text-white/50"><span class="font-medium text-[#3563AE] mr-1">$1.</span> $2</li>')
+        .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" class="text-[#3563AE] underline hover:text-[#8AB4F8]" target="_blank">$1</a>')
         .replace(/!\[(.+?)\]\((.+?)\)/g, '<img src="$2" alt="$1" class="rounded-xl my-6 w-full" />')
-        .replace(/\n\n/g, '</p><p class="text-[#444] leading-relaxed mb-4">')
+        .replace(/\n\n/g, '</p><p class="text-white/60 leading-relaxed mb-4">')
         .replace(/\n/g, "<br/>");
 
     return (
