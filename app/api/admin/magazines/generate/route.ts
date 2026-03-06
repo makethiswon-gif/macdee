@@ -120,29 +120,53 @@ JSON만 출력하세요. 코드 블록 마크업 없이.`;
             return NextResponse.json({ error: `AI 생성 실패: ${err}` }, { status: 500 });
         }
 
+        // Parse JSON response - robust extraction
         const data = await res.json();
-        const content = data.content?.[0]?.text || "";
+        const rawContent = data.content?.[0]?.text || "";
 
-        // Parse JSON response
-        try {
-            // Strip potential code block wrappers
-            const clean = content.replace(/^```json?\s*\n?/i, "").replace(/\n?\s*```$/i, "").trim();
-            const article = JSON.parse(clean);
-            return NextResponse.json({ article });
-        } catch {
-            // If JSON parse fails, return raw content
-            return NextResponse.json({
-                article: {
-                    title: "AI 생성 기사",
-                    body: content,
-                    excerpt: content.substring(0, 150),
-                    meta_title: "AI 생성 기사",
-                    meta_description: content.substring(0, 155),
-                    tags: [],
-                    category: category || "법률정보",
-                },
-            });
+        let article = null;
+        // Strategy 1: Find first '{' to last '}' to extract JSON from any surrounding text
+        const jsonStart = rawContent.indexOf("{");
+        const jsonEnd = rawContent.lastIndexOf("}");
+        if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+            const jsonStr = rawContent.substring(jsonStart, jsonEnd + 1);
+            try {
+                article = JSON.parse(jsonStr);
+            } catch {
+                // Strategy 2: Try replacing literal \n inside string values then parsing
+                try {
+                    article = JSON.parse(jsonStr.replace(/\\n/g, "\n"));
+                } catch {
+                    // Strategy 3: Use a lenient JSON extraction
+                    try {
+                        // Remove any control characters that might break JSON
+                        const sanitized = jsonStr.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "");
+                        article = JSON.parse(sanitized);
+                    } catch (e) {
+                        console.error("[Magazine AI] JSON parse failed. Raw content snippet:", rawContent.substring(0, 300));
+                        console.error("[Magazine AI] Parse error:", e);
+                    }
+                }
+            }
         }
+
+        if (article) {
+            return NextResponse.json({ article });
+        }
+
+        // Fallback: return raw content as body so something is shown
+        console.warn("[Magazine AI] Could not parse JSON, returning raw content as body.");
+        return NextResponse.json({
+            article: {
+                title: "AI 생성 기사",
+                body: rawContent,
+                excerpt: rawContent.substring(0, 150),
+                meta_title: "AI 생성 기사",
+                meta_description: rawContent.substring(0, 155),
+                tags: [],
+                category: category || "법률정보",
+            },
+        });
     } catch (err) {
         console.error("[Magazine AI] Error:", err);
         return NextResponse.json({ error: "서버 오류" }, { status: 500 });
