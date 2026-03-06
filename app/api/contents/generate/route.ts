@@ -111,9 +111,34 @@ export async function POST(request: Request) {
             // Parse channel-specific output
             if (r.channel === "google" || r.channel === "macdee") {
                 try {
-                    const cleanJson = stripCodeBlock(r.data.content);
-                    console.log(`[AI Generate] Parsing ${r.channel} JSON, first 100 chars: ${cleanJson.substring(0, 100)}`);
-                    const parsed = JSON.parse(cleanJson);
+                    let cleanJson = stripCodeBlock(r.data.content);
+                    // Robust JSON sanitization: fix literal \n inside string values
+                    // First try direct parse
+                    let parsed;
+                    try {
+                        parsed = JSON.parse(cleanJson);
+                    } catch {
+                        // Try sanitizing: replace literal \n with actual newlines, remove control chars
+                        const sanitized = cleanJson
+                            .replace(/\\n/g, "\n")
+                            .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "");
+                        try {
+                            parsed = JSON.parse(sanitized);
+                        } catch {
+                            // Last resort: extract JSON object from { to }
+                            const start = cleanJson.indexOf("{");
+                            const end = cleanJson.lastIndexOf("}");
+                            if (start !== -1 && end > start) {
+                                const extracted = cleanJson.substring(start, end + 1)
+                                    .replace(/\\n/g, "\n")
+                                    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "");
+                                parsed = JSON.parse(extracted);
+                            } else {
+                                throw new Error("No JSON object found");
+                            }
+                        }
+                    }
+                    console.log(`[AI Generate] Parsed ${r.channel} JSON successfully`);
                     title = (parsed.title || `${upload.title} - ${r.channel}`).replace(/\*\*/g, "");
                     body = parsed.body || cleanJson;
                     metaDescription = parsed.meta_description || "";
@@ -121,9 +146,14 @@ export async function POST(request: Request) {
                     schemaMarkup = parsed.schema_markup || parsed.faq || null;
                 } catch (parseErr) {
                     console.error(`[AI Generate] JSON parse failed for ${r.channel}:`, parseErr);
-                    title = `${upload.title} - ${r.channel}`;
-                    // Still try to extract useful content from the raw text
-                    body = stripCodeBlock(r.data.content);
+                    // Extract title and body via regex as ultimate fallback
+                    const raw = r.data.content;
+                    const titleMatch = raw.match(/"title"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+                    const bodyMatch = raw.match(/"body"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+                    if (titleMatch) title = titleMatch[1].replace(/\\n/g, "\n").replace(/\\"/g, '"').replace(/\*\*/g, "");
+                    else title = `${upload.title} - ${r.channel}`;
+                    if (bodyMatch) body = bodyMatch[1].replace(/\\n/g, "\n").replace(/\\"/g, '"');
+                    else body = stripCodeBlock(raw);
                 }
             } else if (r.channel === "blog") {
                 // Blog is plain text, title is the first non-empty line
