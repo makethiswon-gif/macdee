@@ -14,9 +14,12 @@ import {
     Loader2,
     CheckCircle2,
     Globe,
-    ImageIcon,
     Camera,
     X,
+    Sparkles,
+    Plus,
+    Trash2,
+    ImageIcon,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -45,6 +48,7 @@ interface LawyerProfile {
     logo_url: string;
     profile_image_url: string;
     website_url: string;
+    schema_data?: { customPrompt?: string;[key: string]: any };
 }
 
 export default function ProfilePage() {
@@ -53,6 +57,8 @@ export default function ProfilePage() {
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
     const [uploadingImage, setUploadingImage] = useState(false);
+    const [toneUrls, setToneUrls] = useState<string[]>([""]);
+    const [analyzingTone, setAnalyzingTone] = useState(false);
     const imageInputRef = useRef<HTMLInputElement>(null);
 
     const fetchProfile = useCallback(async () => {
@@ -113,6 +119,58 @@ export default function ProfilePage() {
             toast.error("이미지 업로드 중 오류가 발생했습니다.");
         } finally {
             setUploadingImage(false);
+        }
+    };
+
+    const handleToneUrlChange = (index: number, value: string) => {
+        const newUrls = [...toneUrls];
+        newUrls[index] = value;
+        setToneUrls(newUrls);
+    };
+
+    const addToneUrl = () => {
+        if (toneUrls.length >= 5) {
+            toast.error("최대 5개의 URL만 추가할 수 있습니다.");
+            return;
+        }
+        setToneUrls([...toneUrls, ""]);
+    };
+
+    const removeToneUrl = (index: number) => {
+        const newUrls = toneUrls.filter((_, i) => i !== index);
+        setToneUrls(newUrls.length === 0 ? [""] : newUrls);
+    };
+
+    const handleAnalyzeTone = async () => {
+        const validUrls = toneUrls.filter((url) => url.trim().length > 0);
+        if (validUrls.length === 0) {
+            toast.error("분석할 블로그 URL을 최소 1개 이상 입력해주세요.");
+            return;
+        }
+
+        setAnalyzingTone(true);
+        try {
+            const res = await fetch("/api/profile/analyze-tone", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ urls: validUrls }),
+            });
+            const data = await res.json();
+
+            if (res.ok && data.toneRule) {
+                const updatedSchemaData = {
+                    ...(profile?.schema_data || {}),
+                    customPrompt: data.toneRule,
+                };
+                update("schema_data", updatedSchemaData);
+                toast.success(`총 ${data.analyzedUrlsCount}개의 글에서 문체 분석을 완료했습니다.`);
+            } else {
+                toast.error(data.error || "문체 분석에 실패했습니다.");
+            }
+        } catch (err) {
+            toast.error("문체 분석 중 오류가 발생했습니다.");
+        } finally {
+            setAnalyzingTone(false);
         }
     };
 
@@ -231,7 +289,7 @@ export default function ProfilePage() {
                     </Field>
                     {profile.slug && (
                         <Link
-                            href={`/blog/${profile.slug}`}
+                            href={`/ blog / ${profile.slug}`}
                             target="_blank"
                             className="inline-flex items-center gap-1.5 text-xs font-medium text-[#3563AE] hover:underline"
                         >
@@ -330,6 +388,71 @@ export default function ProfilePage() {
                         placeholder="변호사님을 소개해주세요..."
                         className="input-field resize-none"
                     />
+                </Section>
+
+                {/* Tone Training */}
+                <Section title="나만의 AI 문체 트레이닝" icon={<Sparkles size={16} className="text-purple-500" />}>
+                    <div className="bg-purple-50/50 -mx-6 -mt-3 p-6 pb-0 mb-4 border-b border-[#E8EBF0]">
+                        <p className="text-[13px] text-[#4B5563] leading-relaxed mb-4">
+                            가장 자신있게 쓴 <b>과거 블로그 글의 링크(URL)</b>들을 여러 개 입력해주세요.<br />
+                            AI가 여러 편의 글을 종합적으로 스크래핑하고 분석하여, 변호사님만의 고유한 <b>문체(어조, 자주 쓰는 단어, 문장 호흡 등) 규칙</b>을 추출합니다.<br />
+                            추출된 규칙은 앞으로 생성되는 모든 문서에 **가장 최우선 지시사항**으로 영구 적용됩니다.
+                        </p>
+
+                        <div className="space-y-3 mb-6">
+                            {toneUrls.map((url, index) => (
+                                <div key={index} className="flex gap-2">
+                                    <input
+                                        type="url"
+                                        value={url}
+                                        onChange={(e) => handleToneUrlChange(index, e.target.value)}
+                                        placeholder="https://blog.naver.com/... (글 링크 붙여넣기)"
+                                        className="flex-1 px-3.5 py-2.5 text-sm rounded-xl border border-[#E4E7ED] bg-white text-[#1F2937] focus:border-purple-400 focus:ring-2 focus:ring-purple-400/10 outline-none transition-all"
+                                        disabled={analyzingTone}
+                                    />
+                                    {toneUrls.length > 1 && (
+                                        <button
+                                            onClick={() => removeToneUrl(index)}
+                                            disabled={analyzingTone}
+                                            className="p-2.5 text-[#9CA3B0] hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors disabled:opacity-50"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+                            <div className="flex justify-between items-center">
+                                <button
+                                    onClick={addToneUrl}
+                                    disabled={analyzingTone || toneUrls.length >= 5}
+                                    className="flex items-center gap-1.5 text-xs font-semibold text-[#6B7280] hover:text-[#1F2937] transition-colors disabled:opacity-50"
+                                >
+                                    <Plus size={14} /> 링크 하나 더 추가하기
+                                </button>
+                                <button
+                                    onClick={handleAnalyzeTone}
+                                    disabled={analyzingTone}
+                                    className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl hover:opacity-90 disabled:opacity-70 transition-opacity shadow-sm shadow-purple-200"
+                                >
+                                    {analyzingTone ? (
+                                        <><Loader2 size={15} className="animate-spin" /> 분석 및 추출 중...</>
+                                    ) : (
+                                        <><Sparkles size={15} /> 종합 문체 분석하기</>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <Field label="추출된 나만의 문체 (Tone & Manner Rule)">
+                        <textarea
+                            value={profile.schema_data?.customPrompt || ""}
+                            onChange={(e) => update("schema_data", { ...profile.schema_data, customPrompt: e.target.value })}
+                            rows={8}
+                            placeholder="분석 버튼을 누르면 이 곳에 변호사님만의 문체 규칙이 요약되어 저장됩니다. 자유롭게 수정도 가능합니다."
+                            className="w-full p-4 rounded-xl border border-[#E4E7ED] bg-[#F8FAFC] text-[13px] text-[#374151] leading-relaxed transition-all focus:bg-white focus:border-purple-400 focus:ring-2 focus:ring-purple-400/10 outline-none resize-y"
+                        />
+                    </Field>
                 </Section>
             </div>
 

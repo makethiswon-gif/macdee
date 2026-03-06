@@ -184,59 +184,50 @@ ${PII_ENFORCEMENT}
 1분 소설을 읽는 느낌. 첫 장에서 눈길을 사로잡고, 마지막 장에서 "와" 하게.
 사건의 긴장감, 반전, 결말이 느껴지는 이야기.
 
-[문체 규칙]
+[문체 규칙 - 매우 중요]
+- 단조롭고 딱딱한 "~했다, ~했다"의 무한 반복을 절대 금지합니다.
+- 문장이 물 흐르듯 자연스럽게 이어져야 합니다. 한 문장의 끝이 다음 문장의 원인이나 배경이 되도록 연결성을 부여하세요.
+- 종결 어미를 다양하게 섞어 쓰세요. (예: "~했습니다", "~였죠", "~버린 겁니다", "~더라고요", "~기 마련입니다", 명사형 종결 등)
+- 첫 번째 줄은 시선을 끄는 '훅(Hook)' 목적으로 짧고 굵게 명사형이나 강렬한 어구로 끝내도 좋습니다.
+- 다음 줄들은 마치 옆 사람에게 이야기하듯 자연스럽게 상황을 묘사하세요.
 - 이모지 금지.
-- 불릿포인트(•, -, *) 금지. 완전한 문장으로.
-- "~할까요?", "~겠죠?" 같은 질문형 금지.
+- 불릿포인트(•, -, *) 금지.
 - AI 스러운 표현 금지: "~에 대해 알아보겠습니다", "~인 경우가 있습니다" 등.
-- 너무 과장된 감정 표현 금지 ("기적 같은" "충격적인" 등).
 
 [서술 톤]
-- 짧고 강렬한 문장. 한 문장 15~25자.
-- 줄바꿈으로 호흡. 한 카드에 4~6줄.
-- 건조하지만 흡입력 있는 톤. 뉴스가 아니라 소설.
-- 독자가 "그래서 어떻게 됐어?"라고 궁금해하게.
+- 한 카드에 3~5줄. 너무 길면 안 됩니다.
+- 줄바꿈으로 호흡을 조절하세요.
+- 독자가 "그래서 어떻게 됐어?"라고 궁금해하게 몰입감을 주세요.
 
 [카드 구조 — 6장]
 
 카드1 - 도입(Hook):
-"남편의 불륜 상대에게 위자료를 받을 수 있을까."
-이런 식으로 사건의 핵심 갈등을 한 줄로 던지세요.
+사건의 핵심 갈등을 한 줄로 던지세요.
 그 아래에 상황을 2~3문장으로 세팅.
 궁금증을 유발하되 결론은 절대 말하지 마세요.
+(예: "결혼 8년 차, 믿었던 남편의 배신." / "남편의 외도 사실을 알게 된 순간, 세상이 무너지는 것 같았죠.")
 
 카드2 - 사건(Story):
 무슨 일이 있었는지를 이야기체로 풀어쓰세요.
-"결혼 8년차. 남편의 휴대폰에서 수상한 메시지를 발견했다."
-구체적 장면이 그려지게. 인물의 행동 중심으로.
+상황이 자연스럽게 연결되도록 인과관계를 살려 묘사하세요.
+(예: "상대 여자는 남편이 기혼자임을 알고도 만남을 지속했습니다. 심지어 보란 듯이 SNS에 둘의 사진을 올리기까지 했으니까요.")
 
 카드3 - 위기(Conflict):
 법적으로 무엇이 문제였는지, 왜 어려웠는지.
-"상대방은 만남 사실 자체를 부인했다."
-긴장감이 느껴지는 서술.
+긴장감이 느껴지게.
+(예: "막상 소송을 걸자 상대방은 강력히 반발하고 나섰습니다. '기혼자인 줄 몰랐다', '이미 혼인 관계가 파탄 난 상태였다'며 발뺌하기 시작했죠.")
 
 카드4 - 전환(Turning Point):
 변호사가 어떤 전략으로, 어떤 증거로 상황을 뒤집었는지.
-"결정적 증거가 있었다." 같은 반전 요소.
-변호사의 실력이 느껴지는 대목.
+(예: "하지만 저희는 치밀하게 증거를 수집해 두었습니다. 상대방이 남편의 가족 행사 일정을 알고 있었다는 대화 내역이 결정적이었죠.")
 
 카드5 - 결과(Result):
 판결 결과를 임팩트 있게.
-금액이 있으면 "위자료 3,000만원 인용" 같이 명확하게.
-한 줄 결론 후 의미를 짧게 해석.
+(예: "결과적으로 재판부는 저희의 주장을 모두 받아들였습니다. 이례적으로 높은 금액인 위자료 3,000만 원 지급 판결을 끌어낼 수 있었죠.")
 
 카드6 - 교훈(Lesson):
 이 사건에서 배울 수 있는 실전 법률 지식.
-"비슷한 상황이라면, 이것만 기억하세요." 톤.
-변호사의 전문분야를 자연스럽게 어필.
-
-[예시 톤 참고 — 카드1]
-"남편이 바람을 폈다.
-상대 여자는 남편이 기혼인 걸 알고 있었다.
-SNS에 둘의 사진까지 올렸다.
-아내는 참지 않기로 했다."
-
-이런 느낌. 짧고, 강렬하고, 다음 장이 궁금해지는.
+(예: "상간 소송에서 가장 중요한 건 감정적 대응이 아니라 '명백한 증거'입니다. 비슷한 고통을 겪고 계신다면, 혼자 자책하기보단 전문가와 상의해 보세요.")
 
 JSON 형식으로 반환:
 {
@@ -398,8 +389,22 @@ export async function preprocessUpload(rawText: string) {
     const result = await preprocessor.generate(messages, { temperature: 0.1, maxTokens: 4096 });
 
     try {
-        return JSON.parse(result.content);
-    } catch {
+        // AI가 마크다운 코드 블록(```json ... ```)으로 감싸서 반환할 경우를 대비해 순수 JSON만 추출
+        let jsonStr = result.content;
+        const jsonMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+        if (jsonMatch) {
+            jsonStr = jsonMatch[1];
+        } else {
+            // "Here is the JSON:" 같은 불필요한 텍스트가 앞에 붙을 경우를 대비해 첫 '{' 와 마지막 '}' 사이만 추출
+            const startIdx = jsonStr.indexOf('{');
+            const endIdx = jsonStr.lastIndexOf('}');
+            if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+                jsonStr = jsonStr.substring(startIdx, endIdx + 1);
+            }
+        }
+        return JSON.parse(jsonStr);
+    } catch (err) {
+        console.error("[Preprocess] JSON parse failed:", err, "Raw response:", result.content.substring(0, 100));
         // JSON 파싱 실패 시 raw 텍스트 반환
         return {
             masked_text: result.content,
@@ -421,7 +426,7 @@ export async function generateContent(
         result_summary: string;
         strategic_points: string[];
     },
-    options?: { blogStyle?: string }
+    options?: { blogStyle?: string; customPrompt?: string }
 ) {
     const generator = getContentGenerator();
     const config = getChannelConfig(channel, options);
@@ -447,8 +452,14 @@ ${preprocessed.strategic_points.map((p: string, i: number) => `${i + 1}. ${p}`).
 
 ⚠️ 이 사건은 변호사 본인이 의뢰인을 대리하여 승소(또는 유리하게 해결)한 사례입니다.이 관점에서 작성하세요. `;
 
+    let systemPrompt = config.system;
+    if (options?.customPrompt) {
+        systemPrompt = `[나만의 AI 문체 트레이닝 규칙 - 최우선 적용]\n${options.customPrompt}\n\n${systemPrompt}`;
+        console.log(`[AI Generate] Applied custom tone prompt for ${channel}`);
+    }
+
     const messages: AIMessage[] = [
-        { role: "system", content: config.system },
+        { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
     ];
 
@@ -465,7 +476,7 @@ ${preprocessed.strategic_points.map((p: string, i: number) => `${i + 1}. ${p}`).
 }
 
 // ─── 4채널 동시 생성 ───
-export async function generateAllChannels(rawText: string, options?: { blogStyle?: string; sourceType?: string }) {
+export async function generateAllChannels(rawText: string, options?: { blogStyle?: string; sourceType?: string; customPrompt?: string }) {
     // Step 1: 전처리
     const preprocessed = await preprocessUpload(rawText);
 

@@ -34,7 +34,7 @@ export async function PATCH(request: Request) {
             "name", "slug", "phone", "specialty", "region", "bio",
             "office_name", "office_address", "experience_years",
             "bar_number", "brand_color", "logo_url", "profile_image_url",
-            "website_url",
+            "website_url", "schema_data"
         ];
 
         const updateData: Record<string, unknown> = {};

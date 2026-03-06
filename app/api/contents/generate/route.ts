@@ -17,7 +17,7 @@ export async function POST(request: Request) {
         // Get lawyer
         const { data: lawyer } = await supabase
             .from("lawyers")
-            .select("id, name, profile_image_url")
+            .select("id, name, profile_image_url, schema_data")
             .eq("user_id", user.id)
             .single();
 
@@ -69,7 +69,12 @@ export async function POST(request: Request) {
         console.log(`[AI Generate] PII masking applied: ${rawText.length}chars → ${maskedText.length}chars`);
 
         // Generate 4-channel content
-        const results = await generateAllChannels(maskedText, { blogStyle: blogStyle || "column", sourceType: upload.type });
+        const customPrompt = lawyer.schema_data?.customPrompt;
+        const results = await generateAllChannels(maskedText, {
+            blogStyle: blogStyle || "column",
+            sourceType: upload.type,
+            customPrompt
+        });
 
         console.log(`[AI Generate] Generation results:`, results.map(r => ({
             channel: r.channel,

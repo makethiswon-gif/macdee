@@ -65,7 +65,7 @@ export class ClaudeProvider implements AIProvider {
     private apiKey: string;
     private model: string;
 
-    constructor(model = "claude-sonnet-4-20250514") {
+    constructor(model = "claude-3-5-sonnet-20241022") {
         this.apiKey = process.env.ANTHROPIC_API_KEY || "";
         this.model = model;
     }
