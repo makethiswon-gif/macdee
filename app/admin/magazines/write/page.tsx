@@ -173,12 +173,18 @@ function MagazineWriteContent() {
                 body: JSON.stringify(payload),
             });
 
+            const data = await res.json();
+
             if (res.ok) {
                 setSaved(true);
                 if (publish) {
                     setTimeout(() => router.push("/admin/magazines"), 500);
                 }
+            } else {
+                alert(`저장 실패: ${data.error || res.status}`);
             }
+        } catch (err: unknown) {
+            alert(`오류: ${err instanceof Error ? err.message : "서버 통신 실패"}`);
         } finally {
             setSaving(false);
         }
