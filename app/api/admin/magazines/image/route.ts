@@ -11,19 +11,29 @@ export async function POST(request: Request) {
         const openaiKey = process.env.OPENAI_API_KEY;
         if (!openaiKey) return NextResponse.json({ error: "OPENAI_API_KEY 미설정" }, { status: 500 });
 
-        const prompt = `Photorealistic, editorial-quality magazine cover photograph for a Korean legal magazine.
+        // Extract key themes from the article content for relevance
+        const bodySnippet = (body || "").substring(0, 500);
+        const prompt = `Create a photorealistic editorial photograph that directly represents the following article's core topic.
 
-Article: "${title}"
+Article title: "${title}"
+Article content summary: ${bodySnippet}
 Category: ${category || "법률정보"}
-Context: ${(body || "").substring(0, 200)}
 
-Requirements:
-- High-end editorial photography style, premium magazine cover aesthetics
-- Professional, clean, modern with cinematic lighting and warm tones
-- Korean setting and atmosphere if applicable
-- Square 1:1 ratio, ultra-high quality
-- NO text, NO words, NO letters, NO numbers anywhere in the image
-- No stock photo feel, original editorial photography`;
+IMPORTANT - Content Relevance:
+- The image MUST visually represent the specific topic of this article
+- If the article discusses marketing costs → show a scene related to advertising, budgets, or marketing
+- If the article discusses legal trends → show legal settings, courtrooms, or professional environments  
+- If the article discusses technology/AI → show modern tech environments
+- If the article discusses lawyer competition → show competitive business scenes
+- Think about what specific visual metaphor best represents THIS article's message
+
+Style Requirements:
+- High-end editorial photography, not stock photo
+- Cinematic lighting, warm professional tones
+- Korean business/legal atmosphere
+- 1:1 square ratio, ultra high quality
+- Absolutely NO text, NO words, NO letters, NO numbers in the image
+- Clean, minimal composition with strong focal point`;
 
         // Try gpt-image-1.5 first
         try {
