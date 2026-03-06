@@ -73,15 +73,15 @@ export default async function MagazineArticlePage({
         .replace(/\n/g, "<br/>");
 
     return (
-        <div className="min-h-screen bg-[#FAFAF9]">
+        <div className="min-h-screen bg-[#0A0A0A]">
             {/* Header */}
-            <header className="bg-white border-b border-[#E5E5E5] sticky top-0 z-10">
+            <header className="bg-[#0A0A0A] border-b border-white/[0.06] sticky top-0 z-10">
                 <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
                     <Link href="/magazine" className="flex items-center gap-2">
-                        <span className="text-lg font-black tracking-tight text-[#111]">MACDEE</span>
-                        <span className="text-[10px] font-medium text-[#F59E0B] bg-[#F59E0B]/10 px-2 py-0.5 rounded-full">MAGAZINE</span>
+                        <span className="text-lg font-bold tracking-tight text-white">macdee.</span>
+                        <span className="text-[10px] font-medium text-white/30 tracking-[0.1em] uppercase">insights</span>
                     </Link>
-                    <Link href="/magazine" className="text-sm text-[#888] hover:text-[#111] transition-colors">
+                    <Link href="/magazine" className="text-sm text-white/40 hover:text-white transition-colors">
                         ← 목록으로
                     </Link>
                 </div>
@@ -89,10 +89,10 @@ export default async function MagazineArticlePage({
 
             {/* Cover */}
             {magazine.cover_image_url && (
-                <div className="w-full h-64 md:h-96 bg-[#0B0F1A] relative">
+                <div className="w-full h-64 md:h-96 bg-[#0A0A0A] relative">
                     <img src={magazine.cover_image_url} alt={magazine.title}
-                        className="w-full h-full object-cover opacity-80" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#0B0F1A] to-transparent" />
+                        className="w-full h-full object-cover opacity-70" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent" />
                 </div>
             )}
 
@@ -100,39 +100,39 @@ export default async function MagazineArticlePage({
             <article className="max-w-3xl mx-auto px-6 py-10">
                 {/* Category & Date */}
                 <div className="flex items-center gap-3 mb-6">
-                    <span className="px-3 py-1 rounded-full text-xs font-medium bg-[#F59E0B] text-black">
+                    <span className="px-3 py-1 rounded-full text-xs font-medium bg-[#3563AE] text-white">
                         {magazine.category}
                     </span>
-                    <span className="text-sm text-[#999]">
+                    <span className="text-sm text-white/30">
                         {magazine.published_at && new Date(magazine.published_at).toLocaleDateString("ko-KR", {
                             year: "numeric", month: "long", day: "numeric",
                         })}
                     </span>
-                    <span className="text-sm text-[#999]">· 👀 {magazine.view_count}</span>
+                    <span className="text-sm text-white/20">· 👀 {magazine.view_count}</span>
                 </div>
 
                 {/* Title */}
-                <h1 className="text-3xl md:text-4xl font-black text-[#111] tracking-tight leading-tight mb-6">
+                <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-[-0.02em] leading-tight mb-6">
                     {magazine.title}
                 </h1>
 
                 {/* Excerpt */}
-                <p className="text-lg text-[#666] leading-relaxed mb-10 pb-8 border-b border-[#E5E5E5] italic">
+                <p className="text-lg text-white/40 leading-relaxed mb-10 pb-8 border-b border-white/[0.08] italic">
                     {magazine.excerpt}
                 </p>
 
                 {/* Body */}
                 <div
-                    className="prose-macdee text-[#444] leading-relaxed text-base"
-                    dangerouslySetInnerHTML={{ __html: `<p class="text-[#444] leading-relaxed mb-4">${bodyHtml}</p>` }}
+                    className="prose-macdee text-white/60 leading-relaxed text-base [&_h2]:text-white [&_h2]:font-bold [&_h2]:text-xl [&_h2]:mt-10 [&_h2]:mb-4 [&_h2]:pb-2 [&_h2]:border-b [&_h2]:border-white/[0.08] [&_h3]:text-white/80 [&_h3]:font-bold [&_h3]:text-lg [&_h3]:mt-8 [&_h3]:mb-3 [&_strong]:text-white/80 [&_a]:text-[#3563AE] [&_a]:underline"
+                    dangerouslySetInnerHTML={{ __html: `<p class="text-white/60 leading-relaxed mb-4">${bodyHtml}</p>` }}
                 />
 
                 {/* Tags */}
                 {magazine.tags?.length > 0 && (
-                    <div className="mt-12 pt-6 border-t border-[#E5E5E5]">
+                    <div className="mt-12 pt-6 border-t border-white/[0.08]">
                         <div className="flex flex-wrap gap-2">
                             {magazine.tags.map((tag) => (
-                                <span key={tag} className="px-3 py-1 rounded-full text-xs bg-[#F0F0F0] text-[#666]">
+                                <span key={tag} className="px-3 py-1 rounded-full text-xs bg-white/[0.06] text-white/30">
                                     #{tag}
                                 </span>
                             ))}
@@ -141,26 +141,26 @@ export default async function MagazineArticlePage({
                 )}
 
                 {/* Author */}
-                <div className="mt-8 p-6 rounded-2xl bg-gradient-to-r from-[#0B0F1A] to-[#1A2744] text-white">
-                    <p className="text-xs text-[#9CA3B0] mb-1">작성자</p>
-                    <p className="font-bold">{magazine.author || "MACDEE 에디터"}</p>
-                    <p className="text-sm text-[#6B7280] mt-2">
-                        본 콘텐츠는 AI 법률 플랫폼 MACDEE(맥디)의 자체 편집팀이 작성한 법률 정보 기사입니다.
+                <div className="mt-8 p-6 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
+                    <p className="text-xs text-white/20 mb-1">작성자</p>
+                    <p className="font-bold text-white">{magazine.author || "macdee 에디터"}</p>
+                    <p className="text-sm text-white/25 mt-2">
+                        macdee 개발팀과 법률 마케팅 전문가가 작성한 인사이트 콘텐츠입니다.
                     </p>
                 </div>
 
                 {/* CTA */}
                 <div className="mt-8 text-center">
-                    <Link href="/magazine" className="inline-block px-6 py-3 bg-[#0B0F1A] text-white rounded-xl text-sm font-medium hover:bg-[#1A2744] transition-colors">
-                        다른 기사 보기 →
+                    <Link href="/magazine" className="inline-block px-6 py-3 bg-white text-[#0A0A0A] rounded-full text-sm font-medium hover:bg-white/90 transition-colors">
+                        다른 인사이트 보기 →
                     </Link>
                 </div>
             </article>
 
             {/* Footer */}
-            <footer className="bg-[#0B0F1A] text-[#6B7280] py-8">
+            <footer className="bg-[#0A0A0A] border-t border-white/[0.06] text-white/20 py-8">
                 <div className="max-w-4xl mx-auto px-6 text-center text-sm">
-                    © {new Date().getFullYear()} MACDEE. 법률 AI 플랫폼
+                    © {new Date().getFullYear()} macdee. All Rights Reserved.
                 </div>
             </footer>
         </div>
