@@ -7,7 +7,7 @@ export const WEBTOON_STYLES = {
     dramatic: {
         label: "극화 만화",
         description: "진지한 법정 드라마풍",
-        prompt: "Korean manhwa (만화) style, dramatic ink shading, detailed facial expressions, bold contrast, noir atmosphere",
+        prompt: "Korean modern webtoon style, professional legal drama, realistic character design, clean and sophisticated coloring, serious but not dark, detailed facial expressions, high quality manhwa",
     },
     soft: {
         label: "감성 일러스트",
@@ -114,7 +114,7 @@ export async function generateWebtoonScenario(
   },
   "title": "숨겨진 증거로 뒤집다",
   "summary": "위자료 3천만원 승소 사건",
-  "caption": "⚖️ 3천만원 위자료 승소, 어떻게 가능했을까요?\n\n의뢰인은 결혼 3년차에 배우자의 불정행위를 발견하셨습니다. SNS에서 상대방과의 사진이 버젯이 올라와 있었죠...\n\n저는 즈시 증거를 확보하고 법적 전략을 수립했습니다. SNS 사진, 메시지 기록, 목격자 진술 등을 체계적으로 정리하여 재판부에 제출했고, 결과적으로 법원은 상대방에게 3,000만원의 위자료를 지급하라는 판결을 내렸습니다.\n\n비슷한 상황으로 고민이시라면, 프로필 링크를 통해 상담을 신청해주세요.",
+  "caption": "⚖️ 3천만원 위자료 승소, 어떻게 가능했을까요?\\n\\n의뢰인은 결혼 3년차에 배우자의 불정행위를 발견하셨습니다. SNS에서 상대방과의 사진이 버젯이 올라와 있었죠...\\n\\n저는 즈시 증거를 확보하고 법적 전략을 수립했습니다. SNS 사진, 메시지 기록, 목격자 진술 등을 체계적으로 정리하여 재판부에 제출했고, 결과적으로 법원은 상대방에게 3,000만원의 위자료를 지급하라는 판결을 내렸습니다.\\n\\n비슷한 상황으로 고민이시라면, 프로필 링크를 통해 상담을 신청해주세요.",
   "hashtags": ["#위자료소송", "#불률소송", "#상간소송", "#이혼변호사", "#승소사례", "#손해배상", "#민사소송", "#법률상담", "#배우자불률", "#불정행위"],
   "panels": [
     {
@@ -157,7 +157,19 @@ JSON만 출력하세요. 코드 블록 없이.`;
     const data = await res.json();
     const text = data.content?.[0]?.text || "";
     const clean = text.replace(/^```json?\s*\n?/i, "").replace(/\n?\s*```$/i, "").trim();
-    return JSON.parse(clean);
+
+    // 이스케이프 되지 않은 개행문자가 들어올 경우를 대비한 최소한의 전처리
+    const sanitized = clean.replace(/(?<!\\)\n/g, '\\n').replace(/\\n/g, '\\n');
+    // 실제로는 정규식으로 완벽히 쌍따옴표 안의 줄바꿈만 치환하기 어려우므로, 
+    // Claude에게 완벽한 JSON을 기대하는 것이 최선입니다. (위의 프롬프트 수정으로 해결됨)
+
+    try {
+        return JSON.parse(clean);
+    } catch (e) {
+        console.error("[Webtoon Generate] JSON Parse Error. Raw text from Claude:", text);
+        console.error("[Webtoon Generate] Cleaned text:", clean);
+        throw e;
+    }
 }
 
 // ─── Step 2: GPT Image 이미지 생성 (4컷 병렬) ───

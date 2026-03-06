@@ -93,6 +93,8 @@ export default function ContentsPage() {
     const [completedWebtoon, setCompletedWebtoon] = useState<Record<string, boolean>>({});
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [bulkDeleting, setBulkDeleting] = useState(false);
+    const [selectedUploadIds, setSelectedUploadIds] = useState<Set<string>>(new Set());
+    const [bulkDeletingUploads, setBulkDeletingUploads] = useState(false);
 
     const contentsRef = useRef(contents);
     contentsRef.current = contents;
@@ -148,6 +150,44 @@ export default function ContentsPage() {
             }
         } catch {
             toast.error("삭제 중 오류가 발생했습니다.");
+        }
+    };
+
+    const handleBulkDeleteUploads = async () => {
+        if (selectedUploadIds.size === 0) return;
+        if (!confirm(`선택한 ${selectedUploadIds.size}개 업로드를 삭제하시겠습니까?`)) return;
+        setBulkDeletingUploads(true);
+        let deleted = 0;
+        for (const id of selectedUploadIds) {
+            try {
+                const res = await fetch("/api/uploads", {
+                    method: "DELETE",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ upload_id: id }),
+                });
+                if (res.ok) deleted++;
+            } catch { /* skip */ }
+        }
+        toast.success(`${deleted}개 업로드가 삭제되었습니다.`);
+        setSelectedUploadIds(new Set());
+        await fetchUploads();
+        setBulkDeletingUploads(false);
+    };
+
+    const toggleUploadSelect = (id: string) => {
+        setSelectedUploadIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id); else next.add(id);
+            return next;
+        });
+    };
+
+    const toggleUploadSelectAll = () => {
+        const visibleUploads = uploads.filter(u => !(completedAI[u.id] && completedWebtoon[u.id]));
+        if (selectedUploadIds.size === visibleUploads.length && visibleUploads.length > 0) {
+            setSelectedUploadIds(new Set());
+        } else {
+            setSelectedUploadIds(new Set(visibleUploads.map(u => u.id)));
         }
     };
 
@@ -290,7 +330,30 @@ export default function ContentsPage() {
             {/* Pending uploads to generate */}
             {uploads.length > 0 && (
                 <div className="mt-6 p-4 rounded-2xl bg-[#3563AE]/[0.04] border border-[#3563AE]/10">
-                    <p className="text-sm font-semibold text-[#1F2937] mb-3">📝 AI 콘텐츠 생성 대기 중</p>
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                            <button onClick={toggleUploadSelectAll} className="flex items-center gap-2 text-[12px] font-medium text-[#6B7280] hover:text-[#374151] transition-colors">
+                                {selectedUploadIds.size > 0 && selectedUploadIds.size === uploads.filter(u => !(completedAI[u.id] && completedWebtoon[u.id])).length
+                                    ? <CheckSquare size={16} className="text-[#3563AE]" />
+                                    : <Square size={16} />}
+                                전체 선택
+                            </button>
+                            <p className="text-sm font-semibold text-[#1F2937]">📝 AI 콘텐츠 생성 대기 중</p>
+                            {selectedUploadIds.size > 0 && (
+                                <span className="text-[12px] text-[#3563AE] font-medium">{selectedUploadIds.size}개 선택됨</span>
+                            )}
+                        </div>
+                        {selectedUploadIds.size > 0 && (
+                            <button
+                                onClick={handleBulkDeleteUploads}
+                                disabled={bulkDeletingUploads}
+                                className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold text-white bg-[#EF4444] rounded-lg hover:bg-[#DC2626] disabled:opacity-50 transition-colors"
+                            >
+                                {bulkDeletingUploads ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                                {selectedUploadIds.size}개 삭제
+                            </button>
+                        )}
+                    </div>
                     <div className="space-y-3">
                         {uploads.map((u) => {
                             const isExpanded = expandedUpload === u.id;
@@ -306,6 +369,14 @@ export default function ContentsPage() {
                                     {/* Upload header */}
                                     <div className="flex items-center justify-between p-3">
                                         <div className="flex items-center gap-3">
+                                            <button
+                                                onClick={() => toggleUploadSelect(u.id)}
+                                                className="flex-shrink-0"
+                                            >
+                                                {selectedUploadIds.has(u.id)
+                                                    ? <CheckSquare size={18} className="text-[#3563AE]" />
+                                                    : <Square size={18} className="text-[#D1D5DB]" />}
+                                            </button>
                                             <FileText size={16} className="text-[#3563AE]" />
                                             <span className="text-sm text-[#374151]">{u.title || "제목 없음"}</span>
                                         </div>

@@ -91,6 +91,9 @@ export async function POST(request: Request) {
 
         // Save to contents table
         const contents = [];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let instagramImageContext: { imagePrompt?: string; hookText: string; structuredData: any; uploadTitle: string; profileImageUrl?: string; lawyerName: string; lawyerId: string } | null = null;
+        let instagramContentId: string | null = null;
         for (const r of results) {
             if (!r.success || !r.data) continue;
 
@@ -131,16 +134,17 @@ export async function POST(request: Request) {
             } else if (r.channel === "instagram") {
                 // Instagram — new format: { slides: [...], image_prompt: "..." }
                 // Backward compat: old format was just an array [...]
+                let slides: Array<{ slide: number; text: string }> | null = null;
+                let imagePrompt: string | undefined;
+                let captionText: string | undefined;
+                let hashtagList: string[] | undefined;
+
                 try {
                     const cleanJson = stripCodeBlock(r.data.content);
                     const parsed = JSON.parse(cleanJson);
                     title = `${upload.title} - 인스타그램`;
 
                     // Handle both new { slides, image_prompt } and old [...] formats
-                    let slides;
-                    let imagePrompt: string | undefined;
-                    let captionText: string | undefined;
-                    let hashtagList: string[] | undefined;
                     if (Array.isArray(parsed)) {
                         slides = parsed;
                     } else if (parsed.slides && Array.isArray(parsed.slides)) {
@@ -151,99 +155,57 @@ export async function POST(request: Request) {
                     } else {
                         slides = parsed;
                     }
-                    // Save slides + caption + hashtags as JSON body
+                } catch {
+                    // JSON parse failed — try regex extraction from broken JSON
+                    title = `${upload.title} - 인스타그램`;
+                    console.warn("[AI Generate] Instagram JSON parse failed, trying regex extraction");
+                    try {
+                        const raw = stripCodeBlock(r.data.content);
+                        // Extract slide text entries via regex
+                        const textMatches = [...raw.matchAll(/"text"\s*:\s*"((?:[^"\\]|\\.)*)"/g)];
+                        if (textMatches.length >= 2) {
+                            slides = textMatches.map((m, i) => ({
+                                slide: i + 1,
+                                text: m[1].replace(/\\n/g, "\n").replace(/\\"/g, '"'),
+                            }));
+                        }
+                        // Extract caption
+                        const captionMatch = raw.match(/"caption"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+                        if (captionMatch) captionText = captionMatch[1].replace(/\\n/g, "\n").replace(/\\"/g, '"');
+                        // Extract hashtags
+                        const hashtagMatch = raw.match(/"hashtags"\s*:\s*\[(.*?)\]/);
+                        if (hashtagMatch) {
+                            hashtagList = [...hashtagMatch[1].matchAll(/"([^"]+)"/g)].map(m => m[1]);
+                        }
+                        // Extract image_prompt
+                        const promptMatch = raw.match(/"image_prompt"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+                        if (promptMatch) imagePrompt = promptMatch[1];
+                    } catch (regexErr) {
+                        console.error("[AI Generate] Instagram regex extraction also failed:", regexErr);
+                    }
+                }
+
+                // Save slides + caption + hashtags as JSON body
+                if (slides && slides.length > 0) {
                     body = JSON.stringify({
                         slides,
                         caption: captionText || "",
                         hashtags: hashtagList || [],
                     });
+                }
 
-                    // Generate cover image in background (don't block content save)
-                    if (imagePrompt || slides.length > 0) {
-                        const hookText = slides[0]?.text || "";
-                        (async () => {
-                            try {
-                                const { generateCoverImage } = await import("@/lib/ai/image-generate");
-                                const { uploadCoverImage } = await import("@/lib/supabase/storage");
-
-                                // Use AI-generated prompt or fallback to our own
-                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                const structuredData = upload.structured_data as any || {};
-                                const result = await generateCoverImage(
-                                    upload.title || "법률 사건",
-                                    hookText,
-                                    {
-                                        keyPoints: structuredData?.key_points,
-                                        resultSummary: structuredData?.result_summary,
-                                        maskedText: rawText?.substring(0, 300),
-                                    }
-                                );
-
-                                if (result?.imageBase64) {
-                                    // 프로필 사진 합성
-                                    let finalImageBase64 = result.imageBase64;
-                                    if (lawyer.profile_image_url) {
-                                        try {
-                                            const { overlayProfileOnImage } = await import("@/lib/ai/image-composite");
-                                            finalImageBase64 = await overlayProfileOnImage(
-                                                result.imageBase64,
-                                                lawyer.profile_image_url,
-                                                lawyer.name,
-                                            );
-                                            console.log("[AI Generate] Profile photo overlaid on cover image");
-                                        } catch (overlayErr) {
-                                            console.error("[AI Generate] Profile overlay failed, using original:", overlayErr);
-                                        }
-                                    }
-
-                                    // We need the content ID — it will be saved shortly
-                                    // So we use a setTimeout to wait for the insert
-                                    setTimeout(async () => {
-                                        try {
-                                            // Find the just-saved instagram content
-                                            const { data: savedContent } = await supabase
-                                                .from("contents")
-                                                .select("id")
-                                                .eq("upload_id", upload_id)
-                                                .eq("channel", "instagram")
-                                                .eq("lawyer_id", lawyer.id)
-                                                .order("created_at", { ascending: false })
-                                                .limit(1)
-                                                .single();
-
-                                            if (savedContent) {
-                                                const coverUrl = await uploadCoverImage(
-                                                    lawyer.id,
-                                                    savedContent.id,
-                                                    finalImageBase64,
-                                                );
-
-                                                if (coverUrl) {
-                                                    await supabase
-                                                        .from("contents")
-                                                        .update({
-                                                            card_news_data: {
-                                                                coverImageUrl: coverUrl,
-                                                                imagePrompt: imagePrompt || "",
-                                                            },
-                                                        })
-                                                        .eq("id", savedContent.id);
-
-                                                    console.log(`[AI Generate] Cover image saved for content ${savedContent.id}: ${coverUrl}`);
-                                                }
-                                            }
-                                        } catch (imgErr) {
-                                            console.error("[AI Generate] Cover image save failed:", imgErr);
-                                        }
-                                    }, 2000);
-                                }
-                            } catch (imgErr) {
-                                console.error("[AI Generate] Cover image generation failed:", imgErr);
-                            }
-                        })();
-                    }
-                } catch {
-                    title = `${upload.title} - 인스타그램`;
+                // Store image generation context for post-insert processing
+                if (imagePrompt || (slides && slides.length > 0)) {
+                    instagramImageContext = {
+                        imagePrompt,
+                        hookText: slides?.[0]?.text || "",
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        structuredData: upload.structured_data as any || {},
+                        uploadTitle: upload.title || "법률 사건",
+                        profileImageUrl: lawyer.profile_image_url,
+                        lawyerName: lawyer.name,
+                        lawyerId: lawyer.id,
+                    };
                 }
             }
 
@@ -288,7 +250,81 @@ export async function POST(request: Request) {
                 console.error(`[AI Generate] Insert failed for ${r.channel}:`, error);
                 console.error(`[AI Generate] Insert data: title="${title?.substring(0, 50)}", body length=${body?.length || 0}`);
             }
-            if (!error && content) contents.push(content);
+            if (!error && content) {
+                contents.push(content);
+
+                // Track instagram content ID for post-insert image generation
+                if (r.channel === "instagram" && instagramImageContext) {
+                    instagramContentId = content.id;
+                }
+            }
+        }
+
+        // ─── Post-insert: Generate Instagram cover image (using actual content ID) ───
+        if (instagramContentId && instagramImageContext) {
+            const ctx = instagramImageContext;
+            console.log(`[AI Generate] Starting cover image generation for content ${instagramContentId}`);
+            // Fire-and-forget but with proper error logging
+            (async () => {
+                try {
+                    const { generateCoverImage } = await import("@/lib/ai/image-generate");
+                    const { uploadCoverImage } = await import("@/lib/supabase/storage");
+
+                    const result = await generateCoverImage(
+                        ctx.uploadTitle,
+                        ctx.hookText,
+                        {
+                            keyPoints: ctx.structuredData?.key_points,
+                            resultSummary: ctx.structuredData?.result_summary,
+                            maskedText: rawText?.substring(0, 300),
+                        }
+                    );
+
+                    if (result?.imageBase64) {
+                        // 프로필 사진 합성
+                        let finalImageBase64 = result.imageBase64;
+                        if (ctx.profileImageUrl) {
+                            try {
+                                const { overlayProfileOnImage } = await import("@/lib/ai/image-composite");
+                                finalImageBase64 = await overlayProfileOnImage(
+                                    result.imageBase64,
+                                    ctx.profileImageUrl,
+                                    ctx.lawyerName,
+                                );
+                                console.log("[AI Generate] Profile photo overlaid on cover image");
+                            } catch (overlayErr) {
+                                console.error("[AI Generate] Profile overlay failed, using original:", overlayErr);
+                            }
+                        }
+
+                        const coverUrl = await uploadCoverImage(
+                            ctx.lawyerId,
+                            instagramContentId!,
+                            finalImageBase64,
+                        );
+
+                        if (coverUrl) {
+                            await supabase
+                                .from("contents")
+                                .update({
+                                    card_news_data: {
+                                        coverImageUrl: coverUrl,
+                                        imagePrompt: ctx.imagePrompt || "",
+                                    },
+                                })
+                                .eq("id", instagramContentId);
+
+                            console.log(`[AI Generate] ✅ Cover image saved for content ${instagramContentId}: ${coverUrl}`);
+                        } else {
+                            console.error(`[AI Generate] ❌ Cover image upload returned null for content ${instagramContentId}`);
+                        }
+                    } else {
+                        console.error(`[AI Generate] ❌ Cover image generation returned null — all providers (GPT-4o, Gemini, DALL-E) may have failed`);
+                    }
+                } catch (imgErr) {
+                    console.error("[AI Generate] ❌ Cover image generation failed:", imgErr);
+                }
+            })();
         }
 
         console.log(`[AI Generate] Results: ${results.length} channels, ${contents.length} saved, ${results.filter(r => !r.success).length} AI failures`);

@@ -22,18 +22,38 @@ import {
     TrendingUp,
 } from "lucide-react";
 
-const NAV_ITEMS = [
-    { href: "/dashboard", label: "대시보드", icon: LayoutDashboard },
-    { href: "/upload", label: "업로드", icon: Upload },
-    { href: "/contents", label: "콘텐츠", icon: FileText },
-    { href: "/blog-write", label: "블로그 글쓰기", icon: PenTool },
-    { href: "/publish", label: "발행", icon: Send },
-    { href: "/analytics", label: "분석", icon: BarChart3 },
-    { href: "/consulting", label: "AI 컨설팅", icon: TrendingUp },
-    { href: "/billing", label: "결제 관리", icon: CreditCard },
-    { href: "/profile", label: "프로필", icon: User },
-    { href: "/guide", label: "사용 가이드", icon: BookOpen },
-    { href: "/settings", label: "설정", icon: Settings },
+const NAV_GROUPS = [
+    {
+        title: "대시보드",
+        items: [
+            { href: "/dashboard", label: "대시보드", icon: LayoutDashboard },
+        ]
+    },
+    {
+        title: "핵심 워크플로우",
+        items: [
+            { href: "/upload", label: "업로드", icon: Upload },
+            { href: "/contents", label: "콘텐츠", icon: FileText },
+            { href: "/publish", label: "발행", icon: Send },
+            { href: "/analytics", label: "분석", icon: BarChart3 },
+        ]
+    },
+    {
+        title: "추가 도구",
+        items: [
+            { href: "/blog-write", label: "블로그 글쓰기", icon: PenTool },
+            { href: "/consulting", label: "AI 컨설팅", icon: TrendingUp },
+        ]
+    },
+    {
+        title: "설정 및 관리",
+        items: [
+            { href: "/billing", label: "결제 관리", icon: CreditCard },
+            { href: "/profile", label: "프로필", icon: User },
+            { href: "/guide", label: "사용 가이드", icon: BookOpen },
+            { href: "/settings", label: "설정", icon: Settings },
+        ]
+    }
 ];
 
 export default function DashboardLayout({
@@ -70,7 +90,7 @@ export default function DashboardLayout({
         router.refresh();
     };
 
-    const isActive = (item: typeof NAV_ITEMS[0]) => {
+    const isActive = (item: { href: string }) => {
         return pathname.startsWith(item.href);
     };
 
@@ -100,28 +120,34 @@ export default function DashboardLayout({
                 </div>
 
                 {/* Nav */}
-                <nav className="flex-1 py-5 px-3 space-y-0.5 overflow-y-auto">
-                    <p className="text-[10px] font-semibold text-white/20 uppercase tracking-[0.15em] px-3 mb-3">메뉴</p>
-                    {NAV_ITEMS.map((item) => {
-                        const active = isActive(item);
-                        return (
-                            <Link
-                                key={item.href}
-                                href={item.href}
-                                onClick={() => setSidebarOpen(false)}
-                                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 ${active
-                                    ? "bg-[#3563AE]/15 text-[#6B94E0]"
-                                    : "text-white/35 hover:bg-white/[0.04] hover:text-white/60"
-                                    }`}
-                            >
-                                <item.icon size={17} strokeWidth={active ? 2.2 : 1.6} />
-                                {item.label}
-                                {active && (
-                                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#3563AE]" />
-                                )}
-                            </Link>
-                        );
-                    })}
+                <nav className="flex-1 py-5 px-3 overflow-y-auto">
+                    {NAV_GROUPS.map((group, idx) => (
+                        <div key={group.title} className={idx !== 0 ? "mt-6" : ""}>
+                            <p className="text-[10px] font-semibold text-white/20 uppercase tracking-[0.15em] px-3 mb-2">{group.title}</p>
+                            <div className="space-y-0.5">
+                                {group.items.map((item) => {
+                                    const active = isActive(item);
+                                    return (
+                                        <Link
+                                            key={item.href}
+                                            href={item.href}
+                                            onClick={() => setSidebarOpen(false)}
+                                            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 ${active
+                                                ? "bg-[#3563AE]/15 text-[#6B94E0]"
+                                                : "text-white/35 hover:bg-white/[0.04] hover:text-white/60"
+                                                }`}
+                                        >
+                                            <item.icon size={17} strokeWidth={active ? 2.2 : 1.6} />
+                                            {item.label}
+                                            {active && (
+                                                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#3563AE]" />
+                                            )}
+                                        </Link>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    ))}
                 </nav>
 
                 {/* User info + logout */}

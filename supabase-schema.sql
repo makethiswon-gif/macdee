@@ -43,7 +43,7 @@ CREATE TABLE uploads (
 -- contents 테이블
 CREATE TABLE contents (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  upload_id UUID REFERENCES uploads(id) ON DELETE CASCADE NOT NULL,
+  upload_id UUID REFERENCES uploads(id) ON DELETE SET NULL,
   lawyer_id UUID REFERENCES lawyers(id) ON DELETE CASCADE NOT NULL,
   channel TEXT NOT NULL CHECK (channel IN ('blog', 'instagram', 'macdee', 'google')),
   title TEXT NOT NULL,

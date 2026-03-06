@@ -17,6 +17,20 @@ interface ParsedCard {
     lines: string[];
 }
 
+// Clean JSON fragments from slide text (e.g. trailing caption/hashtags data)
+function cleanSlideText(text: string): string {
+    // Remove JSON fragments that leaked into slide text
+    // e.g. `","hashtags":["위자료소송",...]}` or `","caption":"..."`
+    let cleaned = text;
+    // Remove trailing JSON-like fragments: ","key":value patterns at end
+    cleaned = cleaned.replace(/[",]\s*"(hashtags|caption|image_prompt|slides)"\s*:\s*[\["{][\s\S]*$/, "");
+    // Remove stray JSON brackets/braces at end
+    cleaned = cleaned.replace(/[\]}]+\s*$/, "");
+    // Remove leading JSON artifacts
+    cleaned = cleaned.replace(/^[\[{]\s*"(slide|text)"\s*:\s*\d+\s*,\s*"text"\s*:\s*"?/, "");
+    return cleaned.trim();
+}
+
 // Parse card news text into structured cards
 // Supports both new JSON format [{slide, text}] and old text format (--- separated)
 function parseCardNews(body: string): ParsedCard[] {
@@ -40,20 +54,45 @@ function parseCardNews(body: string): ParsedCard[] {
         }
 
         if (slidesArray) {
-            return slidesArray.map((item: { slide: number; text: string }) => {
-                const text = item.text.replace(/\\n/g, "\n");
-                const lines = text.split("\n").map((l: string) => l.trim()).filter(Boolean);
-                return {
-                    title: lines[0] || "",
-                    lines: lines.slice(1),
-                };
-            });
+            return slidesArray
+                .map((item: { slide: number; text: string }) => {
+                    const rawText = (item.text || "").replace(/\\n/g, "\n");
+                    const text = cleanSlideText(rawText);
+                    const lines = text.split("\n").map((l: string) => l.trim()).filter(Boolean);
+                    return {
+                        title: lines[0] || "",
+                        lines: lines.slice(1),
+                    };
+                })
+                .filter((card: ParsedCard) => card.title || card.lines.length > 0);
         }
     } catch {
-        // Not JSON, try text parsing
+        // JSON parse failed — try regex-based slide extraction
     }
 
-    // Fallback: text format parsing (old format with --- separators)
+    // Fallback 1: Try to extract slides from broken/partial JSON via regex
+    try {
+        const slideMatches = [...body.matchAll(/"text"\s*:\s*"((?:[^"\\]|\\.)*)"/g)];
+        if (slideMatches.length >= 2) {
+            const cards: ParsedCard[] = [];
+            for (const match of slideMatches) {
+                const rawText = match[1]
+                    .replace(/\\n/g, "\n")
+                    .replace(/\\"/g, '"')
+                    .replace(/\\\\/g, "\\");
+                const text = cleanSlideText(rawText);
+                const lines = text.split("\n").map((l: string) => l.trim()).filter(Boolean);
+                if (lines.length > 0) {
+                    cards.push({ title: lines[0], lines: lines.slice(1) });
+                }
+            }
+            if (cards.length > 0) return cards;
+        }
+    } catch {
+        // regex extraction failed too
+    }
+
+    // Fallback 2: text format parsing (old format with --- separators)
     const sections = body.split(/---/).map((s) => s.trim()).filter(Boolean);
     const cards: ParsedCard[] = [];
 
