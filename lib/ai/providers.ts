@@ -65,7 +65,7 @@ export class ClaudeProvider implements AIProvider {
     private apiKey: string;
     private model: string;
 
-    constructor(model = "claude-3-5-sonnet-20240620") {
+    constructor(model = "claude-sonnet-4-6") {
         this.apiKey = process.env.ANTHROPIC_API_KEY || "";
         this.model = model;
     }
@@ -108,15 +108,20 @@ export class ClaudeProvider implements AIProvider {
 }
 
 // ─── Provider Factory ───
+// 전처리: Claude Haiku 4.5 (저렴, 빠름 - 요약/분류/PII 마스킹)
 export function getPreprocessor(): AIProvider {
-    return new OpenAIProvider("gpt-4o-mini");
+    if (!process.env.ANTHROPIC_API_KEY) {
+        // Fallback to OpenAI if Claude key not set
+        return new OpenAIProvider("gpt-4o-mini");
+    }
+    return new ClaudeProvider("claude-haiku-4-5");
 }
 
+// 콘텐츠 생성: Claude Sonnet 4.6 (최고 글쓰기 품질)
 export function getContentGenerator(): AIProvider {
-    // 콘텐츠 생성은 반드시 Claude 사용 (최고 품질)
     if (!process.env.ANTHROPIC_API_KEY) {
         console.error("[AI] ANTHROPIC_API_KEY not set! Claude is required for content generation.");
         throw new Error("ANTHROPIC_API_KEY is required for content generation. Claude produces the best quality content.");
     }
-    return new ClaudeProvider();
+    return new ClaudeProvider("claude-sonnet-4-6");
 }
