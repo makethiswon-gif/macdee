@@ -109,7 +109,7 @@ export class ClaudeProvider implements AIProvider {
 
 // ─── Provider Factory ───
 export function getPreprocessor(): AIProvider {
-    return new OpenAIProvider("gpt-4o");
+    return new OpenAIProvider("gpt-4o-mini");
 }
 
 export function getContentGenerator(): AIProvider {
