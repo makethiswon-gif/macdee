@@ -14,7 +14,9 @@ export default function ToneTrainingPage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
+    const [inputType, setInputType] = useState<"url" | "text">("url");
     const [toneUrls, setToneUrls] = useState<string[]>([""]);
+    const [toneText, setToneText] = useState<string>("");
     const [analyzingTone, setAnalyzingTone] = useState(false);
 
     const fetchProfile = useCallback(async () => {
@@ -65,10 +67,23 @@ export default function ToneTrainingPage() {
     };
 
     const handleAnalyzeTone = async () => {
-        const validUrls = toneUrls.filter((url) => url.trim().length > 0);
-        if (validUrls.length === 0) {
-            toast.error("학습시킬 블로그 URL을 최소 1개 이상 입력해주세요.");
-            return;
+        let payload: any = { existingPrompt: profile?.schema_data?.customPrompt };
+
+        if (inputType === "url") {
+            const validUrls = toneUrls.filter((url) => url.trim().length > 0);
+            if (validUrls.length === 0) {
+                toast.error("학습시킬 블로그 URL을 최소 1개 이상 입력해주세요.");
+                return;
+            }
+            payload.urls = validUrls;
+        } else {
+            const validText = toneText.trim();
+            if (validText.length < 50) {
+                toast.error("원활한 문체 학습을 위해 최소 50자 이상(약 두세 문장 이상)의 텍스트를 입력해주세요.");
+                return;
+            }
+            // Backend expects an array of texts, so we send it as a single-item array
+            payload.texts = [validText];
         }
 
         setAnalyzingTone(true);
@@ -76,10 +91,7 @@ export default function ToneTrainingPage() {
             const res = await fetch("/api/profile/analyze-tone", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    urls: validUrls,
-                    existingPrompt: profile?.schema_data?.customPrompt
-                }),
+                body: JSON.stringify(payload),
             });
             const data = await res.json();
 
@@ -89,8 +101,9 @@ export default function ToneTrainingPage() {
                     customPrompt: data.toneRule,
                 };
                 update("schema_data", updatedSchemaData);
-                toast.success(`총 ${data.analyzedUrlsCount}개의 샘플 글을 바탕으로 문체 누적 학습을 완료했습니다.`);
-                setToneUrls([""]); // Reset URLs after success
+                toast.success(`성공적으로 문체 누적 학습을 완료했습니다.`);
+                if (inputType === "url") setToneUrls([""]); // Reset URLs after success
+                else setToneText(""); // Reset text
             } else {
                 toast.error(data.error || "문체 학습에 실패했습니다.");
             }
@@ -145,40 +158,90 @@ export default function ToneTrainingPage() {
                             <h2 className="text-base font-bold">새로운 글 학습시키기 (누적)</h2>
                         </div>
                         <p className="text-[13px] text-[#4B5563] leading-relaxed mb-5">
-                            변호사님이 직접 작성한 <b>단어가 많은 포스팅이나 칼럼의 링크(URL)</b>를 입력해주세요.<br />
+                            변호사님이 직접 작성한 <b>단어가 많은 포스팅이나 칼럼</b>을 입력해주세요.<br />
                             한 번에 최대 20개까지 학습 가능하며 수백 번 계속해서 꾸준히 학습시킬 수록 더 정교해집니다.
                         </p>
 
+                        {/* Input Mode Tabs */}
+                        <div className="flex gap-2 mb-6">
+                            <button
+                                onClick={() => setInputType("url")}
+                                className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all ${inputType === "url"
+                                    ? "bg-purple-600 text-white shadow-md shadow-purple-200"
+                                    : "bg-white text-[#6B7280] border border-[#E4E7ED] hover:bg-gray-50"}`}
+                            >
+                                URL로 입력
+                            </button>
+                            <button
+                                onClick={() => setInputType("text")}
+                                className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all ${inputType === "text"
+                                    ? "bg-purple-600 text-white shadow-md shadow-purple-200"
+                                    : "bg-white text-[#6B7280] border border-[#E4E7ED] hover:bg-gray-50"}`}
+                            >
+                                직접 텍스트 입력
+                            </button>
+                        </div>
+
                         <div className="space-y-3 mb-6">
-                            {toneUrls.map((url, index) => (
-                                <div key={index} className="flex gap-2">
-                                    <input
-                                        type="url"
-                                        value={url}
-                                        onChange={(e) => handleToneUrlChange(index, e.target.value)}
-                                        placeholder="https://blog.naver.com/... (글 링크 붙여넣기)"
-                                        className="flex-1 px-4 py-3 text-sm rounded-xl border border-[#E4E7ED] bg-white text-[#1F2937] focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 outline-none transition-all"
+                            {inputType === "url" ? (
+                                <>
+                                    {toneUrls.map((url, index) => (
+                                        <div key={index} className="flex gap-2">
+                                            <input
+                                                type="url"
+                                                value={url}
+                                                onChange={(e) => handleToneUrlChange(index, e.target.value)}
+                                                placeholder="https://blog.naver.com/... (글 링크 붙여넣기)"
+                                                className="flex-1 px-4 py-3 text-sm rounded-xl border border-[#E4E7ED] bg-white text-[#1F2937] focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 outline-none transition-all"
+                                                disabled={analyzingTone}
+                                            />
+                                            {toneUrls.length > 1 && (
+                                                <button
+                                                    onClick={() => removeToneUrl(index)}
+                                                    disabled={analyzingTone}
+                                                    className="p-3 text-[#9CA3B0] hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors disabled:opacity-50"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                    <div className="flex justify-start items-center mt-2">
+                                        <button
+                                            onClick={addToneUrl}
+                                            disabled={analyzingTone || toneUrls.length >= 20}
+                                            className="flex items-center gap-1.5 text-xs font-semibold text-[#6B7280] hover:text-[#1F2937] transition-colors disabled:opacity-50 px-2"
+                                        >
+                                            <Plus size={16} /> URL 하나 더 추가하기
+                                        </button>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="flex flex-col gap-2">
+                                    <textarea
+                                        value={toneText}
+                                        onChange={(e) => setToneText(e.target.value)}
+                                        placeholder="직접 쓰신 블로그, 판결문, 기고문 등의 본문을 여기에 그대로 복사-붙여넣기 하세요.\n(예: 안녕하세요, 형사전문 변호사 OOO입니다...)\n\n AI가 이 글의 뉘앙스와 어투를 딥하게 분석하여 기존 문체 규칙에 누적 추가합니다."
+                                        rows={8}
+                                        className="w-full px-5 py-4 text-sm rounded-xl border border-[#E4E7ED] bg-[#F8FAFC] text-[#1F2937] focus:bg-white focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 outline-none transition-all resize-y min-h-[200px] leading-relaxed"
                                         disabled={analyzingTone}
                                     />
-                                    {toneUrls.length > 1 && (
-                                        <button
-                                            onClick={() => removeToneUrl(index)}
-                                            disabled={analyzingTone}
-                                            className="p-3 text-[#9CA3B0] hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors disabled:opacity-50"
-                                        >
-                                            <Trash2 size={18} />
-                                        </button>
-                                    )}
+                                    <div className="flex justify-between items-center px-1">
+                                        <p className="text-[12px] text-[#9CA3B0]">권장 분량: 1,000자 ~ 3,000자 (현재 <span className={toneText.length < 50 ? "text-red-400" : "text-purple-600 font-semibold"}>{toneText.length.toLocaleString()}</span>자)</p>
+                                        {toneText.length > 0 && (
+                                            <button
+                                                onClick={() => setToneText("")}
+                                                disabled={analyzingTone}
+                                                className="text-[12px] text-[#9CA3B0] hover:text-red-500 transition-colors"
+                                            >
+                                                내용 지우기
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
-                            ))}
-                            <div className="flex justify-between items-center mt-4">
-                                <button
-                                    onClick={addToneUrl}
-                                    disabled={analyzingTone || toneUrls.length >= 20}
-                                    className="flex items-center gap-1.5 text-xs font-semibold text-[#6B7280] hover:text-[#1F2937] transition-colors disabled:opacity-50 px-2"
-                                >
-                                    <Plus size={16} /> 링크 하나 더 추가하기
-                                </button>
+                            )}
+
+                            <div className="flex justify-end items-center mt-4 border-t border-purple-100 pt-5">
                                 <button
                                     onClick={handleAnalyzeTone}
                                     disabled={analyzingTone}

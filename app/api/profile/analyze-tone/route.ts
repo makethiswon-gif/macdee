@@ -20,43 +20,64 @@ export async function POST(request: Request) {
 
         // 2. Parse body
         const body = await request.json();
-        const { urls, existingPrompt } = body;
+        const { urls, texts, existingPrompt } = body;
 
-        if (!urls || !Array.isArray(urls) || urls.length === 0) {
-            return NextResponse.json({ error: "분석할 URL을 하나 이상 입력해주세요." }, { status: 400 });
+        if ((!urls || urls.length === 0) && (!texts || texts.length === 0)) {
+            return NextResponse.json({ error: "분석할 URL 또는 텍스트를 하나 이상 입력해주세요." }, { status: 400 });
         }
 
-        if (urls.length > 20) {
+        if (urls && urls.length > 20) {
             return NextResponse.json({ error: "URL은 한 번에 최대 20개까지만 분석 가능합니다." }, { status: 400 });
         }
 
-        // 3. Scrape URLs in parallel
-        console.log(`[Tone Analysis] Scraping ${urls.length} URLs for user ${user.id}...`);
-
-        const scrapePromises = urls.map(url => scrapeUrl(url).catch(err => {
-            console.error(`[Tone Analysis] Failed to scrape ${url}:`, err.message);
-            return null;
-        }));
-
-        const scrapedResults = await Promise.all(scrapePromises);
-
-        // Filter out failed scrapes and combine texts
-        const validResults = scrapedResults.filter(res => res !== null && res.text.trim().length > 100);
-
-        if (validResults.length === 0) {
-            return NextResponse.json({ error: "입력하신 URL에서 충분한 텍스트를 추출하지 못했습니다. 단어가 많은 블로그 형태의 게시글 링크를 입력해주세요." }, { status: 400 });
+        if (texts && texts.length > 20) {
+            return NextResponse.json({ error: "텍스트는 한 번에 최대 20개까지만 분석 가능합니다." }, { status: 400 });
         }
 
-        console.log(`[Tone Analysis] Successfully scraped ${validResults.length}/${urls.length} URLs.`);
+        let combinedTextParts: string[] = [];
+        let analyzedCount = 0;
+
+        // 3a. Process direct texts
+        if (texts && Array.isArray(texts)) {
+            const validTexts = texts.filter((t: string) => t.trim().length > 50);
+            validTexts.forEach((text: string, i: number) => {
+                combinedTextParts.push(`[새로운 샘플 텍스트 직접입력 ${i + 1}]\n${text}\n\n`);
+                analyzedCount++;
+            });
+        }
+
+        // 3b. Scrape URLs in parallel
+        if (urls && Array.isArray(urls) && urls.length > 0) {
+            console.log(`[Tone Analysis] Scraping ${urls.length} URLs for user ${user.id}...`);
+
+            const scrapePromises = urls.map((url: string) => scrapeUrl(url).catch(err => {
+                console.error(`[Tone Analysis] Failed to scrape ${url}:`, err.message);
+                return null;
+            }));
+
+            const scrapedResults = await Promise.all(scrapePromises);
+
+            const validResults = scrapedResults.filter(res => res !== null && res.text.trim().length > 100);
+
+            validResults.forEach((res, i) => {
+                combinedTextParts.push(`[새로운 샘플 웹페이지 ${i + 1} - ${res?.title}]\n${res?.text}\n\n`);
+                analyzedCount++;
+            });
+            console.log(`[Tone Analysis] Successfully scraped ${validResults.length}/${urls.length} URLs.`);
+        }
+
+        if (analyzedCount === 0) {
+            return NextResponse.json({ error: "입력하신 데이터에서 충분한 텍스트를 추출하지 못했습니다. 단어가 많은 긴 글을 입력해주세요." }, { status: 400 });
+        }
 
         // Combine text with clear separation
-        const combinedText = validResults.map((res, i) => `[새로운 샘플 글 ${i + 1} - ${res?.title}]\n${res?.text}\n\n`).join("---\n\n");
+        const combinedText = combinedTextParts.join("---\n\n");
         const totalLength = combinedText.length;
 
         console.log(`[Tone Analysis] Combined text length: ${totalLength} chars.`);
 
         if (totalLength < 300) {
-            return NextResponse.json({ error: "의미 있는 문체를 추출하기에는 추출된 텍스트량이 너무 적습니다. 더 긴 글을 추가해주세요." }, { status: 400 });
+            return NextResponse.json({ error: "의미 있는 문체를 추출하기에는 텍스트량이 너무 적습니다. 더 긴 글을 추가해주세요." }, { status: 400 });
         }
 
         // 4. Extract Tone using AI (Claude)
@@ -118,7 +139,7 @@ ${existingPrompt}
 
         return NextResponse.json({
             toneRule: extractedTone,
-            analyzedUrlsCount: validResults.length,
+            analyzedCount: analyzedCount,
             totalChars: totalLength
         });
 
