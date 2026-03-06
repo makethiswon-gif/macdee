@@ -128,7 +128,7 @@ function MagazineWriteContent() {
                 body: JSON.stringify({ prompt: aiPrompt, category: form.category }),
             });
             const data = await res.json();
-            if (data.article) {
+            if (res.ok && data.article) {
                 setForm(prev => ({
                     ...prev,
                     title: data.article.title || prev.title,
@@ -139,9 +139,11 @@ function MagazineWriteContent() {
                     tags: (data.article.tags || []).join(", "),
                     category: data.article.category || prev.category,
                 }));
+            } else {
+                alert(data.error || "AI 생성 중 오류가 발생했습니다.");
             }
-        } catch {
-            alert("AI 생성 중 오류가 발생했습니다.");
+        } catch (err: any) {
+            alert(err.message || "서버 통신 중 오류가 발생했습니다.");
         } finally {
             setAiLoading(false);
         }

@@ -112,7 +112,12 @@ JSON만 출력하세요. 코드 블록 마크업 없이.`;
         if (!res.ok) {
             const err = await res.text();
             console.error("[Magazine AI] Claude error:", err);
-            return NextResponse.json({ error: "AI 생성 실패" }, { status: 500 });
+
+            if (err.includes("credit balance is too low")) {
+                return NextResponse.json({ error: "Anthropic API 크레딧(잔액)이 모두 소진되었습니다. 결제 설정을 확인해주세요." }, { status: 402 });
+            }
+
+            return NextResponse.json({ error: `AI 생성 실패: ${err}` }, { status: 500 });
         }
 
         const data = await res.json();
