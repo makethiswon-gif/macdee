@@ -48,10 +48,10 @@ function Header() {
           </a>
 
           <nav className="hidden md:flex items-center gap-10">
-            {["서비스", "프로세스", "가격"].map((t) => (
+            {["서비스", "프로세스", "가격", "매거진"].map((t) => (
               <a
                 key={t}
-                href={`#${t === "서비스" ? "features" : t === "프로세스" ? "process" : "pricing"}`}
+                href={t === "매거진" ? "/magazine" : `#${t === "서비스" ? "features" : t === "프로세스" ? "process" : "pricing"}`}
                 className="text-[13px] text-white/70 hover:text-white transition-colors tracking-wide"
               >
                 {t}
@@ -76,7 +76,7 @@ function Header() {
             animate={{ opacity: 1 }}
             className="md:hidden pb-8 flex flex-col gap-6"
           >
-            {[["서비스", "#features"], ["프로세스", "#process"], ["가격", "#pricing"], ["시작하기", "/signup"]].map(([l, h]) => (
+            {[["서비스", "#features"], ["프로세스", "#process"], ["가격", "#pricing"], ["매거진", "/magazine"], ["시작하기", "/signup"]].map(([l, h]) => (
               <a key={l} href={h} className="text-sm text-white/70 hover:text-white" onClick={() => setOpen(false)}>
                 {l}
               </a>
@@ -579,7 +579,7 @@ function Footer() {
           <div>
             <h4 className="text-[11px] text-white/30 uppercase tracking-[0.15em] mb-5">서비스</h4>
             <ul className="space-y-3">
-              {[["주요 기능", "#features"], ["작동 방식", "#process"], ["가격", "#pricing"]].map(([t, h]) => (
+              {[["주요 기능", "#features"], ["작동 방식", "#process"], ["가격", "#pricing"], ["매거진", "/magazine"]].map(([t, h]) => (
                 <li key={t}><a href={h} className="text-[13px] text-white/25 hover:text-white/60 transition-colors">{t}</a></li>
               ))}
             </ul>
