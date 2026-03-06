@@ -75,15 +75,29 @@ export default async function MagazineArticlePage({
     const magazine = await getMagazine(slug);
     if (!magazine) notFound();
 
-    // Simple markdown to HTML (headings, bold, lists, links)
+    // Markdown to HTML rendering
     const bodyHtml = magazine.body
+        // Remove --- horizontal rules
+        .replace(/^-{3,}\s*$/gm, '')
+        // Blockquotes: multi-line > blocks → styled callout box
+        .replace(/(?:^> ?(.+)$\n?)+/gm, (match) => {
+            const lines = match.split('\n')
+                .map(l => l.replace(/^>\s?/, '').trim())
+                .filter(Boolean);
+            return `<div class="my-6 p-5 rounded-xl bg-white/[0.04] border border-white/[0.08]"><p class="text-white/70 leading-relaxed text-[15px]">${lines.join('<br/>')}</p></div>`;
+        })
+        // Headings
         .replace(/^### (.+)$/gm, '<h3 class="text-lg font-bold text-white/80 mt-8 mb-3">$1</h3>')
         .replace(/^## (.+)$/gm, '<h2 class="text-xl font-bold text-white mt-10 mb-4 pb-2 border-b border-white/[0.08]">$1</h2>')
+        // Bold
         .replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-white/80">$1</strong>')
+        // Lists
         .replace(/^- (.+)$/gm, '<li class="ml-4 pl-2 text-white/50">$1</li>')
         .replace(/^(\d+)\. (.+)$/gm, '<li class="ml-4 pl-2 text-white/50"><span class="font-medium text-[#3563AE] mr-1">$1.</span> $2</li>')
+        // Links & Images
         .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" class="text-[#3563AE] underline hover:text-[#8AB4F8]" target="_blank">$1</a>')
         .replace(/!\[(.+?)\]\((.+?)\)/g, '<img src="$2" alt="$1" class="rounded-xl my-6 w-full" />')
+        // Paragraphs
         .replace(/\n\n/g, '</p><p class="text-white/60 leading-relaxed mb-4">')
         .replace(/\n/g, "<br/>");
 
