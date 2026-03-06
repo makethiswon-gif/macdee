@@ -20,79 +20,48 @@ export async function POST(request: Request) {
         const apiKey = process.env.ANTHROPIC_API_KEY;
         if (!apiKey) return NextResponse.json({ error: "ANTHROPIC_API_KEY가 설정되지 않았습니다." }, { status: 500 });
 
-        const systemPrompt = `당신은 법률 매거진 전문 에디터이자, MACDEE(맥디) 플랫폼의 모든 것을 알고 있는 전문가입니다.
+        const systemPrompt = `당신은 'macdee insights'의 전문 에디터입니다. macdee(맥디)는 변호사를 위한 AI 법률 마케팅 플랫폼입니다.
 
-[MACDEE(맥디) 소개 — 이 정보를 항상 기억하세요]
+[macdee 핵심 정보]
+- 판결문/녹취/메모 업로드 → 개인정보 자동 비식별화 → 네이버 블로그, 인스타 카드뉴스, 구글 SEO 기사, AI검색 프로필 4채널 동시 생성
+- 가격: 월 49,000원(30건)~179,000원(무제한). 기존 대행사 월 100~300만원 대비 90% 절감
+- 웹사이트: makethis1.com
 
-MACDEE(맥디)는 변호사를 위한 AI 법률 마케팅 플랫폼입니다.
-
-● 핵심 기능:
-1. 자료 업로드: 변호사가 판결문 PDF, 상담 녹취록, 메모, 네이버 블로그 URL 등을 업로드
-2. AI 자동 전처리: 개인정보(실명, 사건번호, 주소, 법원명 등)를 자동으로 비식별화
-3. 4채널 콘텐츠 동시 생성:
-   - 네이버 블로그: C-Rank 최적화, 소설형/에세이/칼럼/후기 스타일 선택 가능
-   - 인스타그램 카드뉴스: 6장 카드뉴스 자동 생성 + AI 배경 이미지(Gemini)
-   - 구글 SEO 기사: Schema Markup, FAQ, 메타 태그 자동 최적화
-   - AI 검색 최적화: ChatGPT, Perplexity 등 AI 검색 엔진에 변호사 정보 노출
-4. 프로필 사진 합성: 카드뉴스 이미지에 변호사 프로필 사진 자동 합성
-5. 변호사 블로그: 변호사가 직접 글을 쓸 수도 있고, AI가 자동 생성할 수도 있음
-6. 매거진: MACDEE 자체 법률 매거진 운영 (지금 당신이 기사를 쓰는 곳)
-
-● 가격:
-- 무료 체험: 가입 후 7일, 하루 10건
-- 월 30건: 49,000원/월
-- 월 50건: 69,000원/월
-- 월 100건: 119,000원/월
-- 무제한: 179,000원/월
-
-● 경쟁사 대비 장점:
-- 기존 변호사 마케팅 대행사: 월 100~300만원, 수동 작업, 느린 콘텐츠 생산
-- 맥디: 월 5~18만원, AI 자동화로 수 분 만에 4채널 콘텐츠 동시 생성
-- 변호사의 실제 승소 사례 기반 → E-E-A-T(경험, 전문성, 권위, 신뢰) 자연 강화
-- 개인정보 자동 비식별화 → 변호사법 위반 걱정 없음
-
-● 왜 변호사가 맥디를 써야 하는가:
-1. 시간 절약: 블로그 글 하나에 2~3시간 → 맥디로 5분
-2. 비용 절감: 대행사 월 100만원+ → 맥디 월 5만원~
-3. 전문성 유지: AI가 변호사 본인의 승소 사례를 기반으로 작성 → 전문성 자연 부각
-4. 법적 안전: 개인정보 자동 처리로 윤리 리스크 제거
-5. SEO 최적화: 네이버 C-Rank, 구글 E-E-A-T, AI 검색 모두 자동 최적화
-6. 멀티채널: 하나의 자료로 블로그, SNS, 구글, AI 검색 모두 커버
-
-● 비전:
-- 대한민국 모든 변호사의 마케팅 파트너
-- 법률 AI 콘텐츠의 새로운 기준
-- 변호사와 의뢰인을 이어주는 콘텐츠 플랫폼
-
-● 웹사이트: makethis1.com
+[⚠️ SEO 필수 규칙 — 반드시 지키세요]
+1. title: 반드시 20~55자. 핵심 키워드 포함, 호기심 유발
+2. meta_title: 반드시 25~55자. title과 다른 표현 사용
+3. meta_description: 반드시 90~150자. 핵심 내용 요약, 행동 유도 문구 포함
+4. excerpt: 반드시 60~180자. 검색 결과 미리보기용 요약
+5. body: 반드시 2500자 이상. ## 소제목 최소 3개 이상 포함. 마크다운 형식
+6. tags: 관련 키워드 3~5개
 
 [기사 작성 규칙]
 - 한국 독자 대상, 자연스러운 한국어 사용
-- SEO 최적화: 핵심 키워드 자연스럽게 3~5회 반복
-- 제목은 호기심을 자극하되 정확한 정보 전달
-- 본문은 마크다운 형식 (## 소제목, **볼드**, 목록 등)
-- ⚠️ 분량 및 내용 확장 (가장 중요):
-  - 반드시 2500자 이상의 아주 깊고 전문적인 수준으로 완성하세요. 짧게 대답하지 말고 최대한 풍부하게 서술하세요.
-  - 사용자가 짧은 한두 문장만 주더라도, 해당 주제를 스스로 논리적으로 전개하고 심도 있게 분석하여 2500자 이상의 전문 칼럼을 만들어내세요.
-  - 사용자가 500자 정도의 짧은 원고를 주더라도, 핵심 쟁점, 관련 법령, 최근 판례 경향, 실무적 팁 등을 대폭 추가하여 딥하고 전문적인 글로 확장하세요.
-- 법률 정보는 너무 어렵지 않게, 하지만 전문성이 돋보이도록 설명
-- 마지막에 핵심 요약 박스 포함
+- 본문에 핵심 키워드 자연스럽게 3~5회 반복
+- ## 소제목으로 구조화 (최소 3개)
+- 마지막에 **핵심 정리** 박스 포함
+- AI 티 나는 문체 절대 금지. 실제 마케팅 전문가가 쓴 칼럼처럼
 - 카테고리: ${category || "법률정보"}
-- 맥디 소개나 마케팅 관련 주제가 들어오면 위의 맥디 정보를 활용하여 작성
-- AI 티나는 문체 절대 사용 금지. 실제 사람이 쓴 전문 칼럼처럼 작성할 것.
+- macdee 소개나 마케팅 관련 주제 → 위의 macdee 정보 활용
 
-[출력 형식 — JSON]
-{
-  "title": "매력적인 기사 제목",
-  "excerpt": "검색 결과에 표시될 150자 이내 요약",
-  "body": "마크다운 본문 (## 소제목 포함, 2500자 이상)",
-  "meta_title": "SEO 제목 (60자 이내)",
-  "meta_description": "SEO 메타 설명 (155자 이내)",
-  "tags": ["태그1", "태그2", "태그3"],
-  "category": "${category || "법률정보"}"
-}
+[출력 형식] 아래 구분자 형식으로 정확히 출력하세요. JSON이 아닙니다:
 
-JSON만 출력하세요. 코드 블록 마크업 없이.`;
+===TITLE===
+(여기에 제목, 20~55자)
+===META_TITLE===
+(여기에 메타 제목, 25~55자)
+===META_DESCRIPTION===
+(여기에 메타 설명, 90~150자)
+===EXCERPT===
+(여기에 요약문, 60~180자)
+===TAGS===
+(여기에 태그, 콤마 구분)
+===CATEGORY===
+${category || "법률정보"}
+===BODY===
+(여기에 마크다운 본문, 2500자 이상, ## 소제목 3개 이상)
+
+구분자 형식을 정확히 지키세요. 다른 텍스트는 추가하지 마세요.`;
 
         const res = await fetch("https://api.anthropic.com/v1/messages", {
             method: "POST",
@@ -103,7 +72,7 @@ JSON만 출력하세요. 코드 블록 마크업 없이.`;
             },
             body: JSON.stringify({
                 model: "claude-sonnet-4-6",
-                max_tokens: 4096,
+                max_tokens: 8192,
                 system: systemPrompt,
                 messages: [{ role: "user", content: prompt }],
             }),
@@ -114,48 +83,30 @@ JSON만 출력하세요. 코드 블록 마크업 없이.`;
             console.error("[Magazine AI] Claude error:", err);
 
             if (err.includes("credit balance is too low")) {
-                return NextResponse.json({ error: "Anthropic API 크레딧(잔액)이 모두 소진되었습니다. 결제 설정을 확인해주세요." }, { status: 402 });
+                return NextResponse.json({ error: "Anthropic API 크레딧이 소진되었습니다." }, { status: 402 });
             }
 
             return NextResponse.json({ error: `AI 생성 실패: ${err}` }, { status: 500 });
         }
 
-        // Parse JSON response - robust extraction
         const data = await res.json();
         const rawContent = data.content?.[0]?.text || "";
 
-        let article = null;
-        // Strategy 1: Find first '{' to last '}' to extract JSON from any surrounding text
-        const jsonStart = rawContent.indexOf("{");
-        const jsonEnd = rawContent.lastIndexOf("}");
-        if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
-            const jsonStr = rawContent.substring(jsonStart, jsonEnd + 1);
-            try {
-                article = JSON.parse(jsonStr);
-            } catch {
-                // Strategy 2: Try replacing literal \n inside string values then parsing
-                try {
-                    article = JSON.parse(jsonStr.replace(/\\n/g, "\n"));
-                } catch {
-                    // Strategy 3: Use a lenient JSON extraction
-                    try {
-                        // Remove any control characters that might break JSON
-                        const sanitized = jsonStr.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "");
-                        article = JSON.parse(sanitized);
-                    } catch (e) {
-                        console.error("[Magazine AI] JSON parse failed. Raw content snippet:", rawContent.substring(0, 300));
-                        console.error("[Magazine AI] Parse error:", e);
-                    }
-                }
-            }
-        }
+        // Parse delimiter-based format
+        const article = parseDelimiterFormat(rawContent, category || "법률정보");
 
         if (article) {
             return NextResponse.json({ article });
         }
 
-        // Fallback: return raw content as body so something is shown
-        console.warn("[Magazine AI] Could not parse JSON, returning raw content as body.");
+        // Fallback: try JSON parsing (in case model outputs JSON anyway)
+        const jsonArticle = tryParseJSON(rawContent);
+        if (jsonArticle) {
+            return NextResponse.json({ article: jsonArticle });
+        }
+
+        // Last resort: return raw content split into the body
+        console.warn("[Magazine AI] Could not parse response, returning raw as body.");
         return NextResponse.json({
             article: {
                 title: "AI 생성 기사",
@@ -170,5 +121,72 @@ JSON만 출력하세요. 코드 블록 마크업 없이.`;
     } catch (err) {
         console.error("[Magazine AI] Error:", err);
         return NextResponse.json({ error: "서버 오류" }, { status: 500 });
+    }
+}
+
+// ─── Parse delimiter-based format ───
+function parseDelimiterFormat(text: string, defaultCategory: string) {
+    const sections: Record<string, string> = {};
+    const delimiters = ["TITLE", "META_TITLE", "META_DESCRIPTION", "EXCERPT", "TAGS", "CATEGORY", "BODY"];
+
+    for (let i = 0; i < delimiters.length; i++) {
+        const startMarker = `===${delimiters[i]}===`;
+        const startIdx = text.indexOf(startMarker);
+        if (startIdx === -1) continue;
+
+        const contentStart = startIdx + startMarker.length;
+
+        // Find the next delimiter
+        let contentEnd = text.length;
+        for (let j = i + 1; j < delimiters.length; j++) {
+            const nextMarker = `===${delimiters[j]}===`;
+            const nextIdx = text.indexOf(nextMarker, contentStart);
+            if (nextIdx !== -1) {
+                contentEnd = nextIdx;
+                break;
+            }
+        }
+
+        sections[delimiters[i]] = text.substring(contentStart, contentEnd).trim();
+    }
+
+    // Must have at least title and body
+    if (!sections["TITLE"] && !sections["BODY"]) return null;
+
+    const tags = sections["TAGS"]
+        ? sections["TAGS"].split(",").map(t => t.trim()).filter(Boolean)
+        : [];
+
+    return {
+        title: sections["TITLE"] || "AI 생성 기사",
+        meta_title: sections["META_TITLE"] || sections["TITLE"] || "AI 생성 기사",
+        meta_description: sections["META_DESCRIPTION"] || (sections["EXCERPT"] || "").substring(0, 155),
+        excerpt: sections["EXCERPT"] || (sections["BODY"] || "").substring(0, 150),
+        tags,
+        category: sections["CATEGORY"] || defaultCategory,
+        body: sections["BODY"] || "",
+    };
+}
+
+// ─── Try parsing JSON (fallback) ───
+function tryParseJSON(text: string) {
+    const jsonStart = text.indexOf("{");
+    const jsonEnd = text.lastIndexOf("}");
+    if (jsonStart === -1 || jsonEnd === -1 || jsonEnd <= jsonStart) return null;
+
+    const jsonStr = text.substring(jsonStart, jsonEnd + 1);
+    try {
+        return JSON.parse(jsonStr);
+    } catch {
+        try {
+            return JSON.parse(jsonStr.replace(/\\n/g, "\n"));
+        } catch {
+            try {
+                const sanitized = jsonStr.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "");
+                return JSON.parse(sanitized);
+            } catch {
+                return null;
+            }
+        }
     }
 }
