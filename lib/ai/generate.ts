@@ -367,9 +367,9 @@ const AI_SEARCH_SYSTEM = `당신은 AI 검색 최적화(GEO) 전문가입니다.
 // ─── 채널별 설정 ───
 function getChannelConfig(channel: string, options?: { blogStyle?: string }) {
     const configs: Record<string, { system: string; temperature: number; maxTokens: number }> = {
-        blog: { system: getBlogSystem(options?.blogStyle || "column"), temperature: 0.7, maxTokens: 4096 },
+        blog: { system: getBlogSystem(options?.blogStyle || "column"), temperature: 0.7, maxTokens: 8192 },
         instagram: { system: INSTAGRAM_SYSTEM, temperature: 0.8, maxTokens: 2048 },
-        google: { system: GOOGLE_SEO_SYSTEM, temperature: 0.4, maxTokens: 4096 },
+        google: { system: GOOGLE_SEO_SYSTEM, temperature: 0.4, maxTokens: 8192 },
         macdee: { system: AI_SEARCH_SYSTEM, temperature: 0.3, maxTokens: 2048 },
     };
     return configs[channel] || configs.blog;
