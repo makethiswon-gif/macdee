@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Mail, Lock, Eye, EyeOff, Loader2, User, MapPin, Briefcase } from "lucide-react";
+
+const RECAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || "";
 
 // Specialty options
 const SPECIALTIES = [
@@ -48,6 +50,33 @@ export default function SignupPage() {
 
     const router = useRouter();
 
+    // Load reCAPTCHA v3 script
+    useEffect(() => {
+        if (!RECAPTCHA_SITE_KEY) return;
+        if (document.getElementById("recaptcha-v3")) return;
+        const script = document.createElement("script");
+        script.id = "recaptcha-v3";
+        script.src = `https://www.google.com/recaptcha/api.js?render=${RECAPTCHA_SITE_KEY}`;
+        script.async = true;
+        document.head.appendChild(script);
+    }, []);
+
+    // Get reCAPTCHA token
+    const getRecaptchaToken = useCallback(async (): Promise<string> => {
+        if (!RECAPTCHA_SITE_KEY) return "";
+        return new Promise((resolve) => {
+            const w = window as unknown as { grecaptcha?: { ready: (cb: () => void) => void; execute: (key: string, opts: { action: string }) => Promise<string> } };
+            if (w.grecaptcha) {
+                w.grecaptcha.ready(async () => {
+                    const token = await w.grecaptcha!.execute(RECAPTCHA_SITE_KEY, { action: "signup" });
+                    resolve(token);
+                });
+            } else {
+                resolve("");
+            }
+        });
+    }, []);
+
     const updateForm = (key: string, value: string) => {
         setForm((prev) => ({ ...prev, [key]: value }));
     };
@@ -81,6 +110,9 @@ export default function SignupPage() {
         setLoading(true);
 
         try {
+            // Get reCAPTCHA token
+            const recaptchaToken = await getRecaptchaToken();
+
             const res = await fetch("/api/auth/signup", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -92,6 +124,7 @@ export default function SignupPage() {
                     region: form.region,
                     company: form.company, // Honeypot
                     _t: formLoadTime, // Anti-bot timestamp
+                    recaptchaToken, // reCAPTCHA v3
                 }),
             });
 

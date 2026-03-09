@@ -33,7 +33,7 @@ function isSpamName(name: string): boolean {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { email, password, name, specialty, region, company, _t } = body;
+        const { email, password, name, specialty, region, company, _t, recaptchaToken } = body;
 
         // --- Bot Prevention Checks ---
 
@@ -63,6 +63,37 @@ export async function POST(request: Request) {
                 { error: "올바른 이름을 입력해주세요." },
                 { status: 400 }
             );
+        }
+
+        // 4. reCAPTCHA v3 verification
+        const recaptchaSecret = process.env.RECAPTCHA_SECRET_KEY;
+        if (recaptchaSecret) {
+            if (!recaptchaToken) {
+                return NextResponse.json(
+                    { error: "보안 검증에 실패했습니다. 페이지를 새로고침 후 다시 시도해주세요." },
+                    { status: 400 }
+                );
+            }
+
+            try {
+                const verifyRes = await fetch("https://www.google.com/recaptcha/api/siteverify", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    body: `secret=${recaptchaSecret}&response=${recaptchaToken}`,
+                });
+                const verifyData = await verifyRes.json();
+
+                if (!verifyData.success || verifyData.score < 0.5) {
+                    return NextResponse.json(
+                        { error: "보안 검증에 실패했습니다. 다시 시도해주세요." },
+                        { status: 400 }
+                    );
+                }
+            } catch {
+                // reCAPTCHA verification failed — allow signup to proceed
+                // to avoid blocking legitimate users due to network issues
+                console.error("[Signup] reCAPTCHA verification request failed");
+            }
         }
 
         // --- Standard Validation ---
