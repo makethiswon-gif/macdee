@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     ArrowRightLeft,
@@ -13,10 +13,8 @@ import {
     XCircle,
     AlertCircle,
     ChevronRight,
-    Globe,
-    Sparkles,
+    BookOpen,
     ArrowLeft,
-    Users,
 } from "lucide-react";
 
 type InputMode = "rss" | "url" | "file";
@@ -29,27 +27,15 @@ interface BlogPost {
     selected: boolean;
     status: PostStatus;
     error?: string;
-    results?: { channel: string; title: string; success: boolean }[];
-}
-
-interface Lawyer {
-    id: string;
-    name: string;
-    slug: string;
-    specialty: string[];
 }
 
 const INPUT_MODES = [
-    { key: "rss" as InputMode, label: "RSS 자동 불러오기", icon: Rss, desc: "블로그 ID 입력으로 최근 글 자동 조회" },
-    { key: "url" as InputMode, label: "URL 붙여넣기", icon: Link2, desc: "한 줄에 하나씩 URL을 붙여넣기" },
-    { key: "file" as InputMode, label: "파일 업로드", icon: FileUp, desc: "URL 목록이 담긴 TXT/CSV 파일" },
+    { key: "rss" as InputMode, label: "RSS 자동 불러오기", icon: Rss },
+    { key: "url" as InputMode, label: "URL 붙여넣기", icon: Link2 },
+    { key: "file" as InputMode, label: "파일 업로드", icon: FileUp },
 ];
 
-export default function AdminMigratePage() {
-    const [lawyers, setLawyers] = useState<Lawyer[]>([]);
-    const [selectedLawyerId, setSelectedLawyerId] = useState("");
-    const [loadingLawyers, setLoadingLawyers] = useState(true);
-
+export default function AdminMagazineMigratePage() {
     const [step, setStep] = useState(1);
     const [inputMode, setInputMode] = useState<InputMode>("rss");
     const [blogId, setBlogId] = useState("");
@@ -61,32 +47,15 @@ export default function AdminMigratePage() {
     const [rssNotice, setRssNotice] = useState("");
     const fileRef = useRef<HTMLInputElement>(null);
 
-    // ─── Load lawyers ───
-    useEffect(() => {
-        fetch("/api/admin/lawyers")
-            .then((r) => r.json())
-            .then((data) => {
-                setLawyers(data.lawyers || []);
-                setLoadingLawyers(false);
-            })
-            .catch(() => setLoadingLawyers(false));
-    }, []);
-
-    const selectedLawyer = lawyers.find((l) => l.id === selectedLawyerId);
-
     // ─── Step 1: Load posts ───
     const loadFromRss = async () => {
         if (!blogId.trim()) return;
-        setLoading(true);
-        setError("");
-        setRssNotice("");
+        setLoading(true); setError(""); setRssNotice("");
         try {
             const res = await fetch(`/api/migrate/list?blogId=${encodeURIComponent(blogId.trim())}`);
             const data = await res.json();
             if (!res.ok) { setError(data.error || "글 목록을 불러올 수 없습니다."); return; }
-            setPosts(data.posts.map((p: { title: string; url: string; date: string }) => ({
-                ...p, selected: true, status: "pending" as PostStatus,
-            })));
+            setPosts(data.posts.map((p: { title: string; url: string; date: string }) => ({ ...p, selected: true, status: "pending" as PostStatus })));
             if (data.notice) setRssNotice(data.notice);
             setStep(2);
         } catch { setError("네트워크 오류가 발생했습니다."); }
@@ -114,7 +83,7 @@ export default function AdminMigratePage() {
         reader.readAsText(file);
     };
 
-    // ─── Step 2: Selection ───
+    // ─── Step 2 ───
     const toggleAll = () => {
         const allSelected = posts.every((p) => p.selected);
         setPosts((prev) => prev.map((p) => ({ ...p, selected: !allSelected })));
@@ -124,18 +93,16 @@ export default function AdminMigratePage() {
     };
     const selectedCount = posts.filter((p) => p.selected).length;
 
-    // ─── Step 3: Process ───
+    // ─── Step 3: Process → Magazine ───
     const startMigration = useCallback(async () => {
-        if (!selectedLawyerId) { setError("변호사를 선택해주세요."); return; }
         const selectedUrls = posts.filter((p) => p.selected).map((p) => p.url);
         if (selectedUrls.length === 0) return;
-        setStep(3);
-        setProcessing(true);
+        setStep(3); setProcessing(true);
         try {
-            const res = await fetch("/api/migrate/process", {
+            const res = await fetch("/api/admin/magazines/migrate", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ urls: selectedUrls, lawyerId: selectedLawyerId }),
+                body: JSON.stringify({ urls: selectedUrls }),
             });
             if (!res.ok || !res.body) { setError("마이그레이션을 시작할 수 없습니다."); setProcessing(false); return; }
             const reader = res.body.getReader();
@@ -153,21 +120,16 @@ export default function AdminMigratePage() {
                         const data = JSON.parse(line.slice(6));
                         if (data.type === "progress") {
                             setPosts((prev) => {
-                                const selected = prev.filter((p) => p.selected);
-                                const idx = data.index;
-                                if (idx >= 0 && idx < selected.length) {
-                                    let selectedIdx = 0;
-                                    return prev.map((p) => {
-                                        if (!p.selected) return p;
-                                        if (selectedIdx === idx) {
-                                            selectedIdx++;
-                                            return { ...p, title: data.title || p.title, status: data.status as PostStatus, error: data.error, results: data.results };
-                                        }
+                                let selectedIdx = 0;
+                                return prev.map((p) => {
+                                    if (!p.selected) return p;
+                                    if (selectedIdx === data.index) {
                                         selectedIdx++;
-                                        return p;
-                                    });
-                                }
-                                return prev;
+                                        return { ...p, title: data.title || p.title, status: data.status as PostStatus, error: data.error };
+                                    }
+                                    selectedIdx++;
+                                    return p;
+                                });
                             });
                         }
                     } catch { /* ignore */ }
@@ -176,9 +138,9 @@ export default function AdminMigratePage() {
         } catch (err) {
             setError(err instanceof Error ? err.message : "마이그레이션 중 오류 발생");
         } finally { setProcessing(false); }
-    }, [posts, selectedLawyerId]);
+    }, [posts]);
 
-    // ─── Progress Stats ───
+    // ─── Stats ───
     const selectedPosts = posts.filter((p) => p.selected);
     const doneCount = selectedPosts.filter((p) => p.status === "done").length;
     const errorCount = selectedPosts.filter((p) => p.status === "error").length;
@@ -197,8 +159,8 @@ export default function AdminMigratePage() {
         switch (status) {
             case "pending": return "대기 중";
             case "scraping": return "스크래핑 중...";
-            case "generating": return "AI 윤문 중...";
-            case "done": return "완료";
+            case "generating": return "매거진 변환 중...";
+            case "done": return "완료 (draft 저장)";
             case "error": return "실패";
         }
     };
@@ -206,53 +168,23 @@ export default function AdminMigratePage() {
     return (
         <div className="max-w-4xl mx-auto">
             {/* Header */}
-            <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-                    <ArrowRightLeft size={20} className="text-white" />
+            <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
+                    <BookOpen size={20} className="text-white" />
                 </div>
                 <div>
-                    <h1 className="text-xl font-bold text-white">네이버 블로그 옮기기 (관리자)</h1>
-                    <p className="text-sm text-white/40">변호사를 선택하고 기존 블로그 글을 옮겨올 수 있습니다</p>
+                    <h1 className="text-xl font-bold text-white">네이버 블로그 → 매거진</h1>
+                    <p className="text-sm text-white/40">macdee 네이버 블로그 글을 매거진 기사(draft)로 변환</p>
                 </div>
-            </div>
-
-            {/* ─── Lawyer Selector ─── */}
-            <div className="my-5 p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
-                <div className="flex items-center gap-2 mb-3">
-                    <Users size={16} className="text-[#3563AE]" />
-                    <span className="text-sm font-medium text-white/60">변호사 선택</span>
-                </div>
-                {loadingLawyers ? (
-                    <div className="flex items-center gap-2 text-sm text-white/30">
-                        <Loader2 size={14} className="animate-spin" /> 변호사 목록 불러오는 중...
-                    </div>
-                ) : (
-                    <select
-                        value={selectedLawyerId}
-                        onChange={(e) => setSelectedLawyerId(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl bg-white/[0.05] border border-white/[0.08] text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#3563AE]/30 focus:border-[#3563AE]/40 transition-all appearance-none"
-                        style={{ colorScheme: "dark" }}
-                    >
-                        <option value="">변호사를 선택하세요 ({lawyers.length}명)</option>
-                        {lawyers.map((l) => (
-                            <option key={l.id} value={l.id}>
-                                {l.name} {l.specialty?.length > 0 ? `(${l.specialty.join(", ")})` : ""} — {l.slug}
-                            </option>
-                        ))}
-                    </select>
-                )}
-                {selectedLawyer && (
-                    <p className="mt-2 text-xs text-emerald-400">✓ {selectedLawyer.name} 변호사 선택됨</p>
-                )}
             </div>
 
             {/* Step indicator */}
-            <div className="flex items-center gap-2 my-6">
+            <div className="flex items-center gap-2 mb-6">
                 {[1, 2, 3].map((s) => (
                     <div key={s} className="flex items-center gap-2">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold transition-colors ${step >= s ? "bg-[#3563AE] text-white" : "bg-white/5 text-white/30"}`}>{s}</div>
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold transition-colors ${step >= s ? "bg-purple-500 text-white" : "bg-white/5 text-white/30"}`}>{s}</div>
                         <span className={`text-xs font-medium hidden sm:block ${step >= s ? "text-white/70" : "text-white/20"}`}>
-                            {s === 1 ? "글 목록" : s === 2 ? "선택" : "실행"}
+                            {s === 1 ? "글 목록" : s === 2 ? "선택" : "변환"}
                         </span>
                         {s < 3 && <ChevronRight size={14} className="text-white/15 ml-1" />}
                     </div>
@@ -270,20 +202,13 @@ export default function AdminMigratePage() {
                 )}
             </AnimatePresence>
 
-            {/* Require lawyer selection */}
-            {!selectedLawyerId && step === 1 && (
-                <div className="text-center py-12 text-white/30 text-sm">
-                    ↑ 먼저 변호사를 선택해주세요
-                </div>
-            )}
-
-            {/* ═══ STEP 1: Input ═══ */}
-            {step === 1 && selectedLawyerId && (
+            {/* ═══ STEP 1 ═══ */}
+            {step === 1 && (
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
                     <div className="flex gap-2 p-1 rounded-xl bg-white/[0.03]">
                         {INPUT_MODES.map((m) => (
                             <button key={m.key} onClick={() => { setInputMode(m.key); setError(""); }}
-                                className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-xs font-medium transition-all ${inputMode === m.key ? "bg-[#3563AE]/15 text-[#6B94E0]" : "text-white/35 hover:text-white/50 hover:bg-white/[0.03]"}`}>
+                                className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-xs font-medium transition-all ${inputMode === m.key ? "bg-purple-500/15 text-purple-300" : "text-white/35 hover:text-white/50 hover:bg-white/[0.03]"}`}>
                                 <m.icon size={15} /><span className="hidden sm:inline">{m.label}</span>
                             </button>
                         ))}
@@ -292,41 +217,38 @@ export default function AdminMigratePage() {
                     {inputMode === "rss" && (
                         <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/[0.06] space-y-4">
                             <div>
-                                <label className="text-sm font-medium text-white/60 mb-2 block">네이버 블로그 ID 또는 URL</label>
+                                <label className="text-sm font-medium text-white/60 mb-2 block">macdee 네이버 블로그 ID 또는 URL</label>
                                 <input type="text" value={blogId} onChange={(e) => setBlogId(e.target.value)} onKeyDown={(e) => e.key === "Enter" && loadFromRss()}
-                                    placeholder="lawyer_blog 또는 https://blog.naver.com/lawyer_blog"
-                                    className="w-full px-4 py-3 rounded-xl bg-white/[0.05] border border-white/[0.08] text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-[#3563AE]/30 focus:border-[#3563AE]/40 transition-all" />
+                                    placeholder="macdee_blog 또는 https://blog.naver.com/macdee_blog"
+                                    className="w-full px-4 py-3 rounded-xl bg-white/[0.05] border border-white/[0.08] text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/40 transition-all" />
                             </div>
                             <button onClick={loadFromRss} disabled={loading || !blogId.trim()}
-                                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white bg-[#3563AE] hover:bg-[#2A4F8A] disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white bg-purple-500 hover:bg-purple-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
                                 {loading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
                                 {loading ? "불러오는 중..." : "글 목록 불러오기"}
                             </button>
                         </div>
                     )}
-
                     {inputMode === "url" && (
                         <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/[0.06] space-y-4">
                             <div>
                                 <label className="text-sm font-medium text-white/60 mb-2 block">블로그 글 URL 목록 (한 줄에 하나씩)</label>
                                 <textarea value={urlText} onChange={(e) => setUrlText(e.target.value)}
-                                    placeholder={"https://blog.naver.com/lawyer_blog/223456789001\nhttps://blog.naver.com/lawyer_blog/223456789002"}
-                                    rows={10} className="w-full px-4 py-3 rounded-xl bg-white/[0.05] border border-white/[0.08] text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-[#3563AE]/30 focus:border-[#3563AE]/40 transition-all resize-none font-mono text-xs" />
+                                    placeholder={"https://blog.naver.com/macdee_blog/223456789001\nhttps://blog.naver.com/macdee_blog/223456789002"}
+                                    rows={10} className="w-full px-4 py-3 rounded-xl bg-white/[0.05] border border-white/[0.08] text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-purple-500/30 transition-all resize-none font-mono text-xs" />
                             </div>
                             <div className="flex items-center justify-between">
                                 <p className="text-xs text-white/25">{urlText.split("\n").filter((u) => u.trim().startsWith("http")).length}개 URL 감지</p>
                                 <button onClick={loadFromUrls} disabled={!urlText.trim()}
-                                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#3563AE] hover:bg-[#2A4F8A] disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-purple-500 hover:bg-purple-600 disabled:opacity-40 transition-all">
                                     다음 <ChevronRight size={14} />
                                 </button>
                             </div>
                         </div>
                     )}
-
                     {inputMode === "file" && (
-                        <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/[0.06] space-y-4">
-                            <div onClick={() => fileRef.current?.click()}
-                                className="p-8 rounded-xl border-2 border-dashed border-white/[0.08] text-center cursor-pointer hover:border-[#3563AE]/30 hover:bg-white/[0.02] transition-all">
+                        <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
+                            <div onClick={() => fileRef.current?.click()} className="p-8 rounded-xl border-2 border-dashed border-white/[0.08] text-center cursor-pointer hover:border-purple-500/30 hover:bg-white/[0.02] transition-all">
                                 <FileUp size={28} className="mx-auto mb-3 text-white/20" />
                                 <p className="text-sm font-medium text-white/50">TXT 또는 CSV 파일을 클릭하여 선택</p>
                             </div>
@@ -336,25 +258,23 @@ export default function AdminMigratePage() {
                 </motion.div>
             )}
 
-            {/* ═══ STEP 2: Selection ═══ */}
+            {/* ═══ STEP 2 ═══ */}
             {step === 2 && (
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-                    {rssNotice && (
-                        <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-400">💡 {rssNotice}</div>
-                    )}
+                    {rssNotice && <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-400">💡 {rssNotice}</div>}
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <button onClick={() => setStep(1)} className="text-white/30 hover:text-white/60 transition-colors"><ArrowLeft size={18} /></button>
                             <span className="text-sm text-white/50">{posts.length}개 글 중 <strong className="text-white/80">{selectedCount}개</strong> 선택</span>
                         </div>
-                        <button onClick={toggleAll} className="px-3 py-1.5 rounded-lg text-xs font-medium text-white/40 hover:text-white/60 border border-white/[0.06] hover:border-white/10 transition-all">
+                        <button onClick={toggleAll} className="px-3 py-1.5 rounded-lg text-xs font-medium text-white/40 hover:text-white/60 border border-white/[0.06] transition-all">
                             {posts.every((p) => p.selected) ? "전체 해제" : "전체 선택"}
                         </button>
                     </div>
                     <div className="space-y-1.5 max-h-[50vh] overflow-y-auto pr-1">
                         {posts.map((post, i) => (
-                            <label key={i} className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${post.selected ? "bg-white/[0.04] border border-[#3563AE]/20" : "bg-white/[0.02] border border-transparent hover:bg-white/[0.03]"}`}>
-                                <input type="checkbox" checked={post.selected} onChange={() => togglePost(i)} className="w-4 h-4 rounded accent-[#3563AE]" />
+                            <label key={i} className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${post.selected ? "bg-white/[0.04] border border-purple-500/20" : "bg-white/[0.02] border border-transparent hover:bg-white/[0.03]"}`}>
+                                <input type="checkbox" checked={post.selected} onChange={() => togglePost(i)} className="w-4 h-4 rounded accent-purple-500" />
                                 <div className="flex-1 min-w-0">
                                     <p className="text-sm text-white/70 truncate">{post.title}</p>
                                     {post.date && <p className="text-[11px] text-white/25 mt-0.5">{post.date}</p>}
@@ -364,31 +284,27 @@ export default function AdminMigratePage() {
                     </div>
                     <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
                         <div className="flex items-center justify-between mb-3">
-                            <div className="text-xs text-white/40">
-                                대상: <strong className="text-emerald-400">{selectedLawyer?.name}</strong> | 예상 소요: <strong className="text-white/60">약 {Math.ceil(selectedCount * 0.5)}분</strong>
-                            </div>
-                            <div className="flex items-center gap-2 text-xs text-white/30">
-                                <Globe size={12} /> 구글 SEO <Sparkles size={12} /> AI 검색
-                            </div>
+                            <div className="text-xs text-white/40">예상 소요: <strong className="text-white/60">약 {Math.ceil(selectedCount * 0.5)}분</strong></div>
+                            <div className="flex items-center gap-2 text-xs text-white/30"><BookOpen size={12} /> 매거진 draft로 저장</div>
                         </div>
                         <button onClick={startMigration} disabled={selectedCount === 0}
-                            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-lg shadow-emerald-500/10">
-                            <ArrowRightLeft size={16} />{selectedCount}개 글 옮겨오기 시작
+                            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 disabled:opacity-40 transition-all shadow-lg shadow-purple-500/10">
+                            <ArrowRightLeft size={16} />{selectedCount}개 글 매거진으로 변환
                         </button>
                     </div>
                 </motion.div>
             )}
 
-            {/* ═══ STEP 3: Processing ═══ */}
+            {/* ═══ STEP 3 ═══ */}
             {step === 3 && (
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
                     <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
                         <div className="flex items-center justify-between mb-3">
-                            <span className="text-sm font-medium text-white/60">{processing ? `${selectedLawyer?.name} — 마이그레이션 진행 중...` : "마이그레이션 완료"}</span>
+                            <span className="text-sm font-medium text-white/60">{processing ? "매거진 변환 진행 중..." : "변환 완료"}</span>
                             <span className="text-sm font-bold text-white/80">{progressPercent}%</span>
                         </div>
                         <div className="w-full h-2 rounded-full bg-white/[0.05] overflow-hidden">
-                            <motion.div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400" initial={{ width: 0 }} animate={{ width: `${progressPercent}%` }} transition={{ duration: 0.3 }} />
+                            <motion.div className="h-full rounded-full bg-gradient-to-r from-purple-500 to-indigo-400" initial={{ width: 0 }} animate={{ width: `${progressPercent}%` }} transition={{ duration: 0.3 }} />
                         </div>
                         <div className="flex items-center gap-4 mt-3 text-xs text-white/40">
                             <span className="flex items-center gap-1"><CheckCircle2 size={12} className="text-emerald-400" /> {doneCount} 완료</span>
@@ -398,15 +314,12 @@ export default function AdminMigratePage() {
                     </div>
                     <div className="space-y-1.5 max-h-[50vh] overflow-y-auto pr-1">
                         {selectedPosts.map((post, i) => (
-                            <div key={i} className={`flex items-center gap-3 p-3 rounded-xl transition-all ${post.status === "done" ? "bg-emerald-500/5 border border-emerald-500/10" : post.status === "error" ? "bg-red-500/5 border border-red-500/10" : post.status === "scraping" || post.status === "generating" ? "bg-[#3563AE]/5 border border-[#3563AE]/10" : "bg-white/[0.02] border border-transparent"}`}>
+                            <div key={i} className={`flex items-center gap-3 p-3 rounded-xl transition-all ${post.status === "done" ? "bg-emerald-500/5 border border-emerald-500/10" : post.status === "error" ? "bg-red-500/5 border border-red-500/10" : post.status === "scraping" || post.status === "generating" ? "bg-purple-500/5 border border-purple-500/10" : "bg-white/[0.02] border border-transparent"}`}>
                                 {statusIcon(post.status)}
                                 <div className="flex-1 min-w-0">
                                     <p className="text-sm text-white/70 truncate">{post.title}</p>
                                     <p className={`text-[11px] mt-0.5 ${post.status === "error" ? "text-red-400" : "text-white/25"}`}>
                                         {post.error || statusLabel(post.status)}
-                                        {post.results && post.results.length > 0 && (
-                                            <span className="ml-2">{post.results.map((r) => (<span key={r.channel} className="mr-2">{r.success ? "✅" : "❌"} {r.channel === "google" ? "SEO" : "AI"}</span>))}</span>
-                                        )}
                                     </p>
                                 </div>
                             </div>
@@ -414,9 +327,12 @@ export default function AdminMigratePage() {
                     </div>
                     {!processing && (
                         <div className="flex gap-3">
+                            <a href="/admin/magazines" className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white bg-purple-500 hover:bg-purple-600 transition-all">
+                                매거진 관리로 이동
+                            </a>
                             <button onClick={() => { setStep(1); setPosts([]); setError(""); }}
-                                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white bg-[#3563AE] hover:bg-[#2A4F8A] transition-all">
-                                추가 옮기기
+                                className="px-4 py-3 rounded-xl text-sm font-medium text-white/40 border border-white/[0.06] hover:text-white/60 transition-all">
+                                추가 변환
                             </button>
                         </div>
                     )}
