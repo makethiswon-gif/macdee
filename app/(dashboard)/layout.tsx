@@ -21,6 +21,7 @@ import {
     PenTool,
     TrendingUp,
     Sparkles,
+    ArrowRightLeft,
 } from "lucide-react";
 
 const NAV_GROUPS = [
@@ -43,6 +44,7 @@ const NAV_GROUPS = [
         title: "추가 도구",
         items: [
             { href: "/blog-write", label: "블로그 글쓰기", icon: PenTool },
+            { href: "/migrate", label: "블로그 옮기기", icon: ArrowRightLeft },
             { href: "/consulting", label: "AI 컨설팅", icon: TrendingUp },
             { href: "/tone", label: "AI 문체 트레이닝", icon: Sparkles },
         ]
