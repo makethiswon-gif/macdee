@@ -13,27 +13,65 @@ export async function POST(request: Request) {
 
         // Extract key themes from the article content for relevance
         const bodySnippet = (body || "").substring(0, 500);
-        const prompt = `Create a photorealistic editorial photograph that directly represents the following article's core topic.
 
-Article title: "${title}"
-Article content summary: ${bodySnippet}
+        // Diverse visual styles inspired by PlusX / premium design agencies
+        const VISUAL_STYLES = [
+            {
+                name: "3D Abstract",
+                desc: "Sleek 3D rendered abstract composition. Glossy floating geometric shapes (spheres, torus, cubes) with frosted glass textures. Bold gradient lighting in deep blue and warm amber. Soft shadows on a clean midtone background. Think Apple product launch aesthetic.",
+            },
+            {
+                name: "Flat Editorial",
+                desc: "Bold flat-color editorial illustration with confident shapes and silhouettes. Limited palette of 3-4 high-contrast colors. Inspired by Bloomberg Businessweek or The Economist covers. Large abstract shapes representing concepts, NO photorealism.",
+            },
+            {
+                name: "Neon Gradient",
+                desc: "Dark moody background with vibrant neon gradient mesh or aurora-like glow. Cyberpunk-inspired with electric purple, hot pink, and electric blue. Clean silhouette of a key subject in the foreground. Think Verge or Wired magazine aesthetic.",
+            },
+            {
+                name: "Isometric Scene",
+                desc: "Detailed isometric 3D scene depicting the article's topic as a miniature world. Soft pastel colors with clean edges. Like a tiny diorama or city block seen from above. Playful yet professional, inspired by Dropbox or Notion illustrations.",
+            },
+            {
+                name: "Cinematic Moody",
+                desc: "Dramatic cinematic photograph with heavy atmosphere. Deep shadows, a single dramatic light source, teal-orange color grading. Subject partially obscured for mystery. Think Netflix promotional poster quality.",
+            },
+            {
+                name: "Minimal Geometric",
+                desc: "Ultra-minimalist composition with one or two bold geometric shapes on a solid color background. Strong negative space. Bauhaus-inspired. One accent color against muted background. Think PlusX or Google Material Design.",
+            },
+            {
+                name: "Paper Texture Collage",
+                desc: "Mixed-media digital collage with paper textures, torn edges, newspaper clippings aesthetic. Layered composition with subtle grain. Muted earth tones with one pop of color. Think Pentagram or independent zine cover design.",
+            },
+            {
+                name: "Futuristic Data",
+                desc: "Abstract data visualization or flowing particle system. Glowing nodes and connections on dark background. Represents information flow, technology, or AI. Inspired by Refik Anadol's data sculptures. Deep space blue with white/golden particles.",
+            },
+        ];
+
+        // Pick a style based on hash of title for consistency but variety
+        const styleIndex = title.split("").reduce((acc: number, c: string) => acc + c.charCodeAt(0), 0) % VISUAL_STYLES.length;
+        const style = VISUAL_STYLES[styleIndex];
+
+        const prompt = `Create a premium magazine cover image for a legal technology publication called "macdee insights".
+
+ARTICLE CONTEXT:
+Title: "${title}"
+Summary: ${bodySnippet}
 Category: ${category || "법률정보"}
 
-IMPORTANT - Content Relevance:
-- The image MUST visually represent the specific topic of this article
-- If the article discusses marketing costs → show a scene related to advertising, budgets, or marketing
-- If the article discusses legal trends → show legal settings, courtrooms, or professional environments  
-- If the article discusses technology/AI → show modern tech environments
-- If the article discusses lawyer competition → show competitive business scenes
-- Think about what specific visual metaphor best represents THIS article's message
+VISUAL STYLE: ${style.name}
+${style.desc}
 
-Style Requirements:
-- High-end editorial photography, not stock photo
-- Cinematic lighting, warm professional tones
-- Korean business/legal atmosphere
-- 1:1 square ratio, ultra high quality
-- Absolutely NO text, NO words, NO letters, NO numbers in the image
-- Clean, minimal composition with strong focal point`;
+CRITICAL REQUIREMENTS:
+1. The image must visually represent the SPECIFIC topic of this article — find the perfect visual metaphor
+2. ${style.name} style — do NOT default to generic "person at desk" or "gavel" imagery
+3. Absolutely NO text, NO words, NO letters, NO numbers, NO watermarks
+4. 1:1 square ratio, ultra high quality, 4K detail
+5. The image should feel like it belongs on the cover of a premium design magazine
+6. Make it visually striking — someone should stop scrolling when they see this`;
+
 
         // Try gpt-image-1.5 first
         try {
