@@ -124,8 +124,18 @@ export default function UploadPage() {
             });
 
             if (!res.ok) {
-                const data = await res.json();
-                throw new Error(data.error || "업로드에 실패했습니다.");
+                let errMsg = "업로드에 실패했습니다.";
+                try {
+                    const data = await res.json();
+                    errMsg = data.error || errMsg;
+                } catch {
+                    // Server returned non-JSON (e.g., 500 error page)
+                    const text = await res.text().catch(() => "");
+                    if (text.includes("exceeded") || text.includes("limit")) errMsg = "파일 크기가 제한을 초과했습니다.";
+                    else if (res.status === 504) errMsg = "서버 응답 시간 초과 — 파일이 너무 크거나 서버가 바쁩니다.";
+                    else if (res.status >= 500) errMsg = "서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
+                }
+                throw new Error(errMsg);
             }
 
             setStatus("success");
