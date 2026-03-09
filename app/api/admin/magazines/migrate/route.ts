@@ -121,16 +121,33 @@ export async function POST(request: Request) {
                     const slug = slugify(title);
 
                     // Insert into magazines as draft
+                    const bodyText = parsed.body || content;
+                    const excerptText = parsed.excerpt || bodyText.substring(0, 160);
+                    const metaDesc = parsed.meta_description || "";
+
+                    // Calculate SEO score
+                    let seoScore = 0;
+                    if (title.length > 5) seoScore += 10;
+                    if (title.length >= 20 && title.length <= 60) seoScore += 15;
+                    if (bodyText.length > 300) seoScore += 10;
+                    if (bodyText.length > 1000) seoScore += 10;
+                    if ((bodyText.match(/##/g) || []).length >= 2) seoScore += 5;
+                    if (title.length >= 20 && title.length <= 60) seoScore += 10;
+                    if (metaDesc.length >= 80 && metaDesc.length <= 160) seoScore += 15;
+                    if (excerptText.length >= 50 && excerptText.length <= 200) seoScore += 15;
+                    if (bodyText.includes("![")) seoScore += 10;
+                    seoScore = Math.min(100, seoScore);
+
                     const { error: insertError } = await supabase.from("magazines").insert({
                         title,
                         slug,
-                        excerpt: parsed.excerpt || (parsed.body || "").substring(0, 160),
-                        body: parsed.body || content,
+                        excerpt: excerptText,
+                        body: bodyText,
                         category: parsed.category || "법률정보",
                         tags: parsed.tags || [],
                         meta_title: title,
-                        meta_description: parsed.meta_description || "",
-                        seo_score: 0,
+                        meta_description: metaDesc,
+                        seo_score: seoScore,
                         status: "draft",
                         author: "MACDEE 에디터",
                     });
