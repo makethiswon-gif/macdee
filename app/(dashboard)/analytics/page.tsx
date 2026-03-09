@@ -4,25 +4,19 @@ import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
     Eye,
-    MousePointerClick,
-    MessageSquare,
     TrendingUp,
     Upload,
     FileText,
     Rocket,
-    BookOpen,
-    Instagram,
     Globe,
     Search,
     Loader2,
     BarChart3,
 } from "lucide-react";
 
-const CHANNEL_META: Record<string, { label: string; icon: typeof BookOpen; color: string }> = {
-    blog: { label: "네이버 블로그", icon: BookOpen, color: "#03C75A" },
-    instagram: { label: "인스타그램", icon: Instagram, color: "#E1306C" },
-    google: { label: "구글 SEO", icon: Globe, color: "#4285F4" },
-    macdee: { label: "AI 검색", icon: Search, color: "#3563AE" },
+const CHANNEL_META: Record<string, { label: string; icon: typeof Globe; color: string }> = {
+    google: { label: "구글 SEO 블로그", icon: Globe, color: "#4285F4" },
+    macdee: { label: "AI 검색 콘텐츠", icon: Search, color: "#3563AE" },
 };
 
 const PERIOD_OPTIONS = [
@@ -46,10 +40,8 @@ interface AnalyticsData {
         contents: number;
         published: number;
         views: number;
-        clicks: number;
-        inquiries: number;
     }>;
-    dailyData: Record<string, { views: number; clicks: number; inquiries: number }>;
+    dailyData: Record<string, { views: number }>;
 }
 
 export default function AnalyticsPage() {
@@ -77,9 +69,6 @@ export default function AnalyticsPage() {
 
     const overviewCards = [
         { label: "총 조회수", value: overview.totalViews.toLocaleString(), icon: Eye, color: "#3563AE" },
-        { label: "총 클릭수", value: overview.totalClicks.toLocaleString(), icon: MousePointerClick, color: "#10B981" },
-        { label: "상담 문의", value: overview.totalInquiries.toLocaleString(), icon: MessageSquare, color: "#F59E0B" },
-        { label: "CTR", value: `${overview.ctr}%`, icon: TrendingUp, color: "#8B5CF6" },
         { label: "업로드", value: overview.totalUploads.toString(), icon: Upload, color: "#6B7280" },
         { label: "콘텐츠", value: overview.totalContents.toString(), icon: FileText, color: "#EC4899" },
         { label: "발행됨", value: overview.totalPublished.toString(), icon: Rocket, color: "#14B8A6" },
@@ -107,7 +96,7 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Overview cards */}
-            <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+            <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {overviewCards.map((card, i) => (
                     <motion.div
                         key={i}
@@ -174,12 +163,11 @@ export default function AnalyticsPage() {
                                     <span className="text-sm font-semibold" style={{ color: ch.color }}>{ch.label}</span>
                                 </div>
 
-                                <div className="grid grid-cols-4 gap-3">
+                                <div className="grid grid-cols-3 gap-3">
                                     {[
                                         { label: "콘텐츠", value: stats.contents },
                                         { label: "발행", value: stats.published },
                                         { label: "조회", value: stats.views },
-                                        { label: "문의", value: stats.inquiries },
                                     ].map((s, i) => (
                                         <div key={i}>
                                             <p className="text-lg font-bold text-[#1F2937] tabular-nums">{s.value}</p>
