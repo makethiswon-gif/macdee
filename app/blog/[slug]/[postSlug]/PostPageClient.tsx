@@ -38,7 +38,27 @@ function formatInline(text: string): string {
         .replace(/\*(.+?)\*/g, '<em>$1</em>');
 }
 
-function renderBody(body: string, brandColor: string) {
+function renderBody(rawBody: string, brandColor: string) {
+    // Detect raw JSON in body and extract the "body" field
+    let body = rawBody;
+    if (body.trimStart().startsWith("{")) {
+        try {
+            let jsonStr = body.trim();
+            const codeBlockMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+            if (codeBlockMatch) jsonStr = codeBlockMatch[1];
+            const parsed = JSON.parse(jsonStr);
+            if (parsed.body) body = parsed.body;
+        } catch {
+            // Try regex extraction as fallback
+            const bodyMatch = body.match(/"body"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+            if (bodyMatch) {
+                body = bodyMatch[1].replace(/\\n/g, "\n").replace(/\\"/g, '"');
+            }
+        }
+    }
+    // Fix literal \n that wasn't converted
+    body = body.replace(/\\n/g, "\n");
+
     const lines = body.split("\n");
     const elements: React.ReactNode[] = [];
 

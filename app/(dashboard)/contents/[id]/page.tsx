@@ -95,8 +95,29 @@ function convertToRichHtml(text: string): string {
     return htmlParts.join("");
 }
 
+// Extract body text from JSON if needed
+function extractBodyFromJson(rawBody: string): string {
+    let body = rawBody;
+    if (body.trimStart().startsWith("{")) {
+        try {
+            let jsonStr = body.trim();
+            const codeBlockMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+            if (codeBlockMatch) jsonStr = codeBlockMatch[1];
+            const parsed = JSON.parse(jsonStr);
+            if (parsed.body) body = parsed.body;
+        } catch {
+            const bodyMatch = body.match(/"body"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+            if (bodyMatch) {
+                body = bodyMatch[1].replace(/\\n/g, "\n").replace(/\\"/g, '"');
+            }
+        }
+    }
+    return body.replace(/\\n/g, "\n");
+}
+
 // Render markdown preview for content detail page
-function MarkdownPreview({ body }: { body: string }) {
+function MarkdownPreview({ body: rawBody }: { body: string }) {
+    const body = extractBodyFromJson(rawBody);
     const lines = body.split("\n");
 
     return (
@@ -339,7 +360,7 @@ export default function ContentDetailPage() {
         if (data) {
             setContent(data);
             setEditTitle(data.title);
-            setEditBody(data.body);
+            setEditBody(extractBodyFromJson(data.body));
             if (data.card_news_data?.coverImageUrl) {
                 setCoverImageUrl(data.card_news_data.coverImageUrl);
             }
