@@ -108,19 +108,31 @@ export async function POST(request: Request) {
         return new Response(JSON.stringify({ error: "인증이 필요합니다." }), { status: 401 });
     }
 
-    const { data: lawyer } = await supabase
-        .from("lawyers")
-        .select("id, name, profile_image_url, schema_data")
-        .eq("user_id", user.id)
-        .single();
-
-    if (!lawyer) {
-        return new Response(JSON.stringify({ error: "프로필을 찾을 수 없습니다." }), { status: 404 });
-    }
-
-    const { urls } = await request.json();
+    const { urls, lawyerId: overrideLawyerId } = await request.json();
     if (!urls || !Array.isArray(urls) || urls.length === 0) {
         return new Response(JSON.stringify({ error: "URL 목록이 필요합니다." }), { status: 400 });
+    }
+
+    // If admin provides a lawyerId, use that; otherwise use logged-in user's lawyer
+    let lawyer;
+    if (overrideLawyerId) {
+        const { data } = await supabase
+            .from("lawyers")
+            .select("id, name, profile_image_url, schema_data")
+            .eq("id", overrideLawyerId)
+            .single();
+        lawyer = data;
+    } else {
+        const { data } = await supabase
+            .from("lawyers")
+            .select("id, name, profile_image_url, schema_data")
+            .eq("user_id", user.id)
+            .single();
+        lawyer = data;
+    }
+
+    if (!lawyer) {
+        return new Response(JSON.stringify({ error: "변호사 프로필을 찾을 수 없습니다." }), { status: 404 });
     }
 
     // SSE stream

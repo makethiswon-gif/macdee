@@ -9,6 +9,7 @@ import {
     FileText,
     CreditCard,
     BookOpen,
+    ArrowRightLeft,
     LogOut,
     ChevronRight,
     Shield,
@@ -18,6 +19,7 @@ const ADMIN_NAV = [
     { href: "/admin/dashboard", label: "대시보드", icon: LayoutDashboard },
     { href: "/admin/lawyers", label: "변호사 관리", icon: Users },
     { href: "/admin/contents", label: "콘텐츠 관리", icon: FileText },
+    { href: "/admin/migrate", label: "블로그 옮기기", icon: ArrowRightLeft },
     { href: "/admin/subscriptions", label: "구독/매출", icon: CreditCard },
     { href: "/admin/magazines", label: "매거진 관리", icon: BookOpen },
 ];
