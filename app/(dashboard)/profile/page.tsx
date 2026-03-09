@@ -235,7 +235,7 @@ export default function ProfilePage() {
                     </Field>
                     {profile.slug && (
                         <Link
-                            href={`/ blog / ${profile.slug}`}
+                            href={`/blog/${profile.slug}`}
                             target="_blank"
                             className="inline-flex items-center gap-1.5 text-xs font-medium text-[#3563AE] hover:underline"
                         >
