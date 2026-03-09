@@ -17,6 +17,91 @@ export interface AIProvider {
     generate(messages: AIMessage[], options?: { temperature?: number; maxTokens?: number }): Promise<AIResponse>;
 }
 
+// ─── Retry with Exponential Backoff ───
+interface RetryOptions {
+    maxRetries: number;
+    baseDelayMs: number;
+    maxDelayMs: number;
+}
+
+const DEFAULT_RETRY: RetryOptions = {
+    maxRetries: 3,
+    baseDelayMs: 1000,
+    maxDelayMs: 30000,
+};
+
+function isRetryableStatus(status: number): boolean {
+    // 429 = Rate limit, 500/502/503/504 = Server errors
+    return status === 429 || status === 500 || status === 502 || status === 503 || status === 504;
+}
+
+async function fetchWithRetry(
+    url: string,
+    init: RequestInit,
+    providerName: string,
+    retryOpts: RetryOptions = DEFAULT_RETRY
+): Promise<Response> {
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt <= retryOpts.maxRetries; attempt++) {
+        try {
+            const res = await fetch(url, init);
+
+            if (res.ok) return res;
+
+            // Non-retryable error (e.g., 400 Bad Request, 401 Unauthorized)
+            if (!isRetryableStatus(res.status)) {
+                const err = await res.text();
+                throw new Error(`${providerName} API error: ${res.status} ${err}`);
+            }
+
+            // Retryable error
+            const errBody = await res.text();
+            lastError = new Error(`${providerName} API error: ${res.status} ${errBody}`);
+
+            if (attempt < retryOpts.maxRetries) {
+                // Calculate delay with exponential backoff + jitter
+                const exponentialDelay = retryOpts.baseDelayMs * Math.pow(2, attempt);
+                const jitter = Math.random() * retryOpts.baseDelayMs;
+                const delay = Math.min(exponentialDelay + jitter, retryOpts.maxDelayMs);
+
+                // Check Retry-After header (common for 429 responses)
+                const retryAfter = res.headers.get("retry-after");
+                const retryAfterMs = retryAfter
+                    ? (Number(retryAfter) > 0 ? Number(retryAfter) * 1000 : delay)
+                    : delay;
+                const finalDelay = Math.min(retryAfterMs, retryOpts.maxDelayMs);
+
+                console.warn(
+                    `[${providerName}] Request failed (${res.status}), retrying in ${Math.round(finalDelay)}ms (attempt ${attempt + 1}/${retryOpts.maxRetries})...`
+                );
+                await new Promise((resolve) => setTimeout(resolve, finalDelay));
+            }
+        } catch (err) {
+            // Network-level errors (timeout, DNS failure, etc.)
+            if (err instanceof Error && err.message.includes("API error:")) {
+                // Already a formatted API error from above
+                lastError = err;
+            } else {
+                lastError = err instanceof Error ? err : new Error(String(err));
+                console.warn(
+                    `[${providerName}] Network error: ${lastError.message}, attempt ${attempt + 1}/${retryOpts.maxRetries + 1}`
+                );
+            }
+
+            if (attempt < retryOpts.maxRetries) {
+                const delay = Math.min(
+                    retryOpts.baseDelayMs * Math.pow(2, attempt) + Math.random() * retryOpts.baseDelayMs,
+                    retryOpts.maxDelayMs
+                );
+                await new Promise((resolve) => setTimeout(resolve, delay));
+            }
+        }
+    }
+
+    throw lastError || new Error(`${providerName}: All ${retryOpts.maxRetries + 1} attempts failed`);
+}
+
 // ─── OpenAI Provider (GPT-4o for preprocessing) ───
 export class OpenAIProvider implements AIProvider {
     name = "openai";
@@ -29,24 +114,23 @@ export class OpenAIProvider implements AIProvider {
     }
 
     async generate(messages: AIMessage[], options?: { temperature?: number; maxTokens?: number }): Promise<AIResponse> {
-        const res = await fetch("https://api.openai.com/v1/chat/completions", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${this.apiKey}`,
+        const res = await fetchWithRetry(
+            "https://api.openai.com/v1/chat/completions",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${this.apiKey}`,
+                },
+                body: JSON.stringify({
+                    model: this.model,
+                    messages,
+                    temperature: options?.temperature ?? 0.3,
+                    max_tokens: options?.maxTokens ?? 4096,
+                }),
             },
-            body: JSON.stringify({
-                model: this.model,
-                messages,
-                temperature: options?.temperature ?? 0.3,
-                max_tokens: options?.maxTokens ?? 4096,
-            }),
-        });
-
-        if (!res.ok) {
-            const err = await res.text();
-            throw new Error(`OpenAI API error: ${res.status} ${err}`);
-        }
+            "OpenAI"
+        );
 
         const data = await res.json();
         return {
@@ -75,26 +159,25 @@ export class ClaudeProvider implements AIProvider {
         const systemMsg = messages.find((m) => m.role === "system");
         const userMessages = messages.filter((m) => m.role !== "system");
 
-        const res = await fetch("https://api.anthropic.com/v1/messages", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "x-api-key": this.apiKey,
-                "anthropic-version": "2023-06-01",
+        const res = await fetchWithRetry(
+            "https://api.anthropic.com/v1/messages",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "x-api-key": this.apiKey,
+                    "anthropic-version": "2023-06-01",
+                },
+                body: JSON.stringify({
+                    model: this.model,
+                    max_tokens: options?.maxTokens ?? 8192,
+                    temperature: options?.temperature ?? 0.7,
+                    system: systemMsg?.content || "",
+                    messages: userMessages.map((m) => ({ role: m.role, content: m.content })),
+                }),
             },
-            body: JSON.stringify({
-                model: this.model,
-                max_tokens: options?.maxTokens ?? 8192,
-                temperature: options?.temperature ?? 0.7,
-                system: systemMsg?.content || "",
-                messages: userMessages.map((m) => ({ role: m.role, content: m.content })),
-            }),
-        });
-
-        if (!res.ok) {
-            const err = await res.text();
-            throw new Error(`Claude API error: ${res.status} ${err}`);
-        }
+            "Claude"
+        );
 
         const data = await res.json();
         return {

@@ -1,12 +1,71 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 
+// --- Bot Prevention Helpers ---
+
+/** Normalize Gmail addresses by removing dots (Gmail ignores dots) */
+function normalizeEmail(email: string): string {
+    const [local, domain] = email.toLowerCase().split("@");
+    if (!domain) return email.toLowerCase();
+    // Gmail and Googlemail ignore dots in local part
+    if (domain === "gmail.com" || domain === "googlemail.com") {
+        // Also strip anything after '+' (plus-addressing)
+        const cleaned = local.replace(/\./g, "").split("+")[0];
+        return `${cleaned}@${domain}`;
+    }
+    return `${local}@${domain}`;
+}
+
+/** Check if a name looks like a bot-generated random string */
+function isSpamName(name: string): boolean {
+    // Name is too long (like "apSizaEDHVTrocXAQCVXM")
+    if (name.length > 15) return true;
+    // Contains mix of upper+lower with no spaces (random string pattern)
+    if (name.length >= 8 && /^[a-zA-Z]+$/.test(name) && /[A-Z]/.test(name) && /[a-z]/.test(name)) {
+        // Count uppercase ratio — random strings have ~50% uppercase
+        const upperCount = (name.match(/[A-Z]/g) || []).length;
+        const ratio = upperCount / name.length;
+        if (ratio > 0.2 && ratio < 0.8) return true;
+    }
+    return false;
+}
+
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { email, password, name, specialty, region } = body;
+        const { email, password, name, specialty, region, company, _t } = body;
 
-        // Validation
+        // --- Bot Prevention Checks ---
+
+        // 1. Honeypot: hidden "company" field should be empty
+        if (company) {
+            // Bot filled the hidden field — reject silently
+            return NextResponse.json(
+                { error: "회원가입 중 오류가 발생했습니다." },
+                { status: 400 }
+            );
+        }
+
+        // 2. Time-based: form must take at least 3 seconds to fill
+        if (_t) {
+            const elapsed = Date.now() - Number(_t);
+            if (elapsed < 3000) {
+                return NextResponse.json(
+                    { error: "잠시 후 다시 시도해주세요." },
+                    { status: 400 }
+                );
+            }
+        }
+
+        // 3. Name pattern: reject bot-generated random strings
+        if (isSpamName(name || "")) {
+            return NextResponse.json(
+                { error: "올바른 이름을 입력해주세요." },
+                { status: 400 }
+            );
+        }
+
+        // --- Standard Validation ---
         if (!email || !password || !name || !specialty || !region) {
             return NextResponse.json(
                 { error: "모든 필수 항목을 입력해주세요." },
@@ -21,7 +80,28 @@ export async function POST(request: Request) {
             );
         }
 
+        // 4. Normalize email to prevent Gmail dot trick
+        const normalizedEmail = normalizeEmail(email);
+
         const supabase = await createAdminClient();
+
+        // Check if normalized email already exists (dot-trick prevention)
+        const { data: existingUsers } = await supabase
+            .from("lawyers")
+            .select("email")
+            .limit(100);
+
+        if (existingUsers) {
+            const normalizedExisting = existingUsers.map((u) =>
+                normalizeEmail(u.email)
+            );
+            if (normalizedExisting.includes(normalizedEmail)) {
+                return NextResponse.json(
+                    { error: "이미 등록된 이메일입니다." },
+                    { status: 409 }
+                );
+            }
+        }
 
         // Create auth user
         const { data: authData, error: authError } =

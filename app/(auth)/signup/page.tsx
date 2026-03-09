@@ -38,11 +38,13 @@ export default function SignupPage() {
         name: "",
         specialty: "",
         region: "",
+        company: "", // Honeypot field — bots fill this, humans won't see it
     });
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
+    const [formLoadTime] = useState(() => Date.now()); // Anti-bot timestamp
 
     const router = useRouter();
 
@@ -88,6 +90,8 @@ export default function SignupPage() {
                     name: form.name,
                     specialty: form.specialty,
                     region: form.region,
+                    company: form.company, // Honeypot
+                    _t: formLoadTime, // Anti-bot timestamp
                 }),
             });
 
@@ -147,6 +151,19 @@ export default function SignupPage() {
             </div>
 
             <form onSubmit={handleSignup} className="space-y-4">
+                {/* Honeypot — invisible to humans, bots auto-fill it */}
+                <div style={{ position: "absolute", left: "-9999px", opacity: 0, height: 0, overflow: "hidden" }} aria-hidden="true" tabIndex={-1}>
+                    <label htmlFor="company">회사명</label>
+                    <input
+                        id="company"
+                        type="text"
+                        autoComplete="off"
+                        value={form.company}
+                        onChange={(e) => updateForm("company", e.target.value)}
+                        tabIndex={-1}
+                    />
+                </div>
+
                 {error && (
                     <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600">
                         {error}
