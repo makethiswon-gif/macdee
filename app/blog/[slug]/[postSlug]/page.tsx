@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { createAdminClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 import PostPageClient from "./PostPageClient";
 
 export const dynamic = "force-dynamic";
@@ -83,6 +83,23 @@ export default async function PostPage({ params }: Props) {
         }
     }
 
+    // Check ownership — is the current logged-in user the author?
+    let isOwner = false;
+    try {
+        const authSupabase = await createClient();
+        const { data: { user } } = await authSupabase.auth.getUser();
+        if (user) {
+            const { data: currentLawyer } = await supabase
+                .from("lawyers")
+                .select("id")
+                .eq("user_id", user.id)
+                .single();
+            if (currentLawyer && currentLawyer.id === lawyer.id) {
+                isOwner = true;
+            }
+        }
+    } catch { /* not logged in */ }
+
     // Parse JSON body if stored raw from AI
     let parsedTitle = post.title;
     let parsedBody = post.body || "";
@@ -101,6 +118,7 @@ export default async function PostPage({ params }: Props) {
         <PostPageClient
             lawyer={{ name: lawyer.name, slug: lawyer.slug, specialty: lawyer.specialty || [], region: lawyer.region || "", bio: lawyer.bio || "", brand_color: lawyer.brand_color || "#3563AE", office_name: lawyer.office_name || "", experience_years: lawyer.experience_years || 0, profile_image_url: lawyer.profile_image_url || "", phone: lawyer.phone || null, website_url: (lawyer as Record<string, unknown>).website_url as string || null }}
             post={{ id: post.id, title: parsedTitle, slug: post.id, body: parsedBody, meta_description: parsedMeta, tags: post.tags || [], schema_markup: post.schema_markup, created_at: post.created_at, card_news_slides: cardNewsSlides.length > 0 ? cardNewsSlides : undefined, card_news_cover_image: cardNewsCoverImage }}
+            isOwner={isOwner}
         />
     );
 }

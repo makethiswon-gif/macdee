@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import BlogSplash from "@/components/BlogSplash";
 
@@ -105,13 +106,35 @@ function renderBody(rawBody: string, brandColor: string) {
     return elements;
 }
 
-export default function PostPageClient({ lawyer, post }: { lawyer: LawyerInfo; post: PostData }) {
+export default function PostPageClient({ lawyer, post, isOwner = false }: { lawyer: LawyerInfo; post: PostData; isOwner?: boolean }) {
+    const router = useRouter();
     const [shared, setShared] = useState(false);
     const [cardSlide, setCardSlide] = useState(0);
     const [showPhone, setShowPhone] = useState(false);
+    const [deleting, setDeleting] = useState(false);
     const hasCardNews = post.card_news_slides && post.card_news_slides.length > 0;
     const hasPhone = !!lawyer.phone;
     const hasWebsite = !!lawyer.website_url;
+
+    const handleDelete = async () => {
+        if (!confirm("이 글을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) return;
+        setDeleting(true);
+        try {
+            const res = await fetch("/api/contents", {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: post.id }),
+            });
+            if (res.ok) {
+                router.push(`/blog/${lawyer.slug}`);
+            } else {
+                alert("삭제에 실패했습니다.");
+            }
+        } catch {
+            alert("삭제 중 오류가 발생했습니다.");
+        }
+        setDeleting(false);
+    };
 
     const formatDate = (d: string) => {
         const date = new Date(d);
@@ -175,6 +198,30 @@ export default function PostPageClient({ lawyer, post }: { lawyer: LawyerInfo; p
                     </button>
                 </div>
             </nav>
+
+            {/* Owner toolbar */}
+            {isOwner && (
+                <div className="relative z-10 bg-[#1a1a2e] border-b border-white/[0.06]">
+                    <div className="max-w-[720px] mx-auto px-6 h-11 flex items-center justify-between">
+                        <span className="text-[11px] text-white/30 font-medium">✏️ 내 글 관리</span>
+                        <div className="flex items-center gap-2">
+                            <Link
+                                href={`/contents/${post.id}`}
+                                className="px-3 py-1.5 rounded-lg text-[11px] font-medium text-[#6B94E0] bg-[#3563AE]/10 hover:bg-[#3563AE]/20 transition-colors"
+                            >
+                                수정
+                            </Link>
+                            <button
+                                onClick={handleDelete}
+                                disabled={deleting}
+                                className="px-3 py-1.5 rounded-lg text-[11px] font-medium text-red-400 bg-red-500/10 hover:bg-red-500/20 disabled:opacity-50 transition-colors"
+                            >
+                                {deleting ? "삭제 중..." : "삭제"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Article */}
             <main className="relative z-10">
