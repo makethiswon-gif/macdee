@@ -40,49 +40,60 @@ function Header() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="fixed top-0 inset-x-0 z-50 mix-blend-difference">
-      <div className="max-w-[1400px] mx-auto px-6 sm:px-10 lg:px-16">
-        <div className="flex items-center justify-between h-20">
-          <a href="/" className="text-white text-lg font-bold tracking-tight">
-            macdee.
-          </a>
+    <header className={`fixed top-0 inset-x-0 z-50 ${open ? "" : "mix-blend-difference"}`}>
+      {/* Full-screen overlay when menu is open */}
+      {open && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+          onClick={() => setOpen(false)}
+        />
+      )}
 
-          <nav className="hidden md:flex items-center gap-10">
-            {["서비스", "프로세스", "가격", "매거진"].map((t) => (
-              <a
-                key={t}
-                href={t === "매거진" ? "/magazine" : `#${t === "서비스" ? "features" : t === "프로세스" ? "process" : "pricing"}`}
-                className="text-[13px] text-white/70 hover:text-white transition-colors tracking-wide"
-              >
-                {t}
-              </a>
-            ))}
-            <a
-              href="/signup"
-              className="text-[13px] text-white tracking-wide hover:text-white/70 transition-colors"
-            >
-              시작하기 →
+      <div className={`relative z-50 ${open ? "bg-[#0A0A0A]" : ""}`}>
+        <div className="max-w-[1400px] mx-auto px-6 sm:px-10 lg:px-16">
+          <div className="flex items-center justify-between h-20">
+            <a href="/" className="text-white text-lg font-bold tracking-tight">
+              macdee.
             </a>
-          </nav>
 
-          <button className="md:hidden text-white" onClick={() => setOpen(!open)}>
-            {open ? <X size={20} /> : <Menu size={20} />}
-          </button>
-        </div>
-
-        {open && (
-          <motion.nav
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="md:hidden pb-8 flex flex-col gap-6"
-          >
-            {[["서비스", "#features"], ["프로세스", "#process"], ["가격", "#pricing"], ["매거진", "/magazine"], ["시작하기", "/signup"]].map(([l, h]) => (
-              <a key={l} href={h} className="text-sm text-white/70 hover:text-white" onClick={() => setOpen(false)}>
-                {l}
+            <nav className="hidden md:flex items-center gap-10">
+              {["서비스", "프로세스", "가격", "매거진"].map((t) => (
+                <a
+                  key={t}
+                  href={t === "매거진" ? "/magazine" : `#${t === "서비스" ? "features" : t === "프로세스" ? "process" : "pricing"}`}
+                  className="text-[13px] text-white/70 hover:text-white transition-colors tracking-wide"
+                >
+                  {t}
+                </a>
+              ))}
+              <a
+                href="/signup"
+                className="text-[13px] text-white tracking-wide hover:text-white/70 transition-colors"
+              >
+                시작하기 →
               </a>
-            ))}
-          </motion.nav>
-        )}
+            </nav>
+
+            <button className="md:hidden text-white" onClick={() => setOpen(!open)}>
+              {open ? <X size={20} /> : <Menu size={20} />}
+            </button>
+          </div>
+
+          {open && (
+            <motion.nav
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
+              className="md:hidden pb-8 flex flex-col gap-5 border-t border-white/[0.08] pt-6"
+            >
+              {[["서비스", "#features"], ["프로세스", "#process"], ["가격", "#pricing"], ["매거진", "/magazine"], ["시작하기", "/signup"]].map(([l, h]) => (
+                <a key={l} href={h} className="text-base text-white/70 hover:text-white transition-colors" onClick={() => setOpen(false)}>
+                  {l}
+                </a>
+              ))}
+            </motion.nav>
+          )}
+        </div>
       </div>
     </header>
   );
