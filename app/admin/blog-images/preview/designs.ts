@@ -24,11 +24,15 @@ export const ML_ALL: ML[] = [
     { txtPos: "tl", photo: "full", deco: "box", titleScale: 1 }, // 11: Newspaper
     { txtPos: "center", photo: "full", deco: "bar-t", titleScale: 1.4 }, // 12: Strikethrough
     { txtPos: "bl", photo: "full", deco: "none", titleScale: 1.15 }, // 13: Cafe/Food
+    { txtPos: "center", photo: "full", deco: "box", titleScale: 1.5 }, // 14: Highlighter (Ref 1/3)
+    { txtPos: "bl", photo: "full", deco: "pill", titleScale: 1.2 }, // 15: Serif Serif Badge (Ref 5)
 ];
 
 export const SL_ALL: SL[] = [
     { style: "num-list" }, { style: "cards" }, { style: "cols" }, { style: "timeline" }, { style: "light-card" },
     { style: "h-bars" }, { style: "big-num" }, { style: "profile-list" }, { style: "overlay" }, { style: "minimal" },
+    { style: "timeline" }, // 10: Horizontal Process Timeline (Ref 4)
+    { style: "cards" },    // 11: Giant Colored Numbers Cards (Ref 2)
 ];
 
 export const CL_ALL: CL[] = [

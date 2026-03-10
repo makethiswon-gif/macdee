@@ -208,13 +208,51 @@ export default function MainImage({ config, profile }: P) {
             </div>{logoEl}
         </div>;
     }
-    // v===13: Cafe / bottom text typography
-    return <div id="blog-main-image" style={base}>
+    if (v === 13) {
+        // v===13: Cafe / bottom text typography
+        return <div id="blog-main-image" style={base}>
+            {bgPhoto}
+            <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", padding: "60px 70px 50px", textAlign: "center" }}>
+                <h1 style={{ color: "#FCFBEA", fontSize: ts, fontWeight: 900, lineHeight: 1.25, letterSpacing: "-0.02em", wordBreak: "keep-all", textShadow: TS }}>{t}</h1>
+                <p style={{ color: "rgba(252,251,234,0.7)", fontSize: Math.round(ts * 0.4), fontWeight: 600, marginTop: 18, textShadow: TS }}>{tags.join(" · ") || nm + " 변호사"}</p>
+                {of && <p style={{ color: accent, fontSize: 18, fontWeight: 900, marginTop: 44, letterSpacing: "0.15em", textShadow: TS }}>{of.toUpperCase()}</p>}
+            </div>{logoEl}
+        </div>;
+    }
+    if (v === 14) { // Highlighter Block (Ref 1/3)
+        // Wraps specific words in a solid accent background box
+        const words = t.split(" ");
+        const firstHalf = words.slice(0, Math.ceil(words.length / 2)).join(" ");
+        const secondHalf = words.slice(Math.ceil(words.length / 2)).join(" ");
+        return <div id="blog-main-image" style={base}>
+            {bgPhoto}
+            <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", padding: "60px 70px", textAlign: "center" }}>
+                <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 18, fontWeight: 600, marginBottom: 20 }}>{nm} 변호사 {of && `· ${of}`}</p>
+                <h1 style={{ color: "#fff", fontSize: ts, fontWeight: 900, lineHeight: 1.45, letterSpacing: "-0.02em", wordBreak: "keep-all" }}>
+                    <span style={{ background: accent, padding: "0 10px", display: "inline-block", lineHeight: 1.2, marginBottom: "8px" }}>{firstHalf}</span><br />
+                    <span style={{ background: a2, padding: "0 10px", display: "inline-block", lineHeight: 1.2 }}>{secondHalf}</span>
+                </h1>
+                {tags.length > 0 && <p style={{ color: accent, fontSize: 16, fontWeight: 800, marginTop: 40, letterSpacing: "0.1em" }}>{tags.join(" / ")}</p>}
+            </div>{logoEl}
+        </div>;
+    }
+    // v===15: Serif + Badge (Ref 5)
+    return <div id="blog-main-image" style={{ ...base, fontFamily: "'Nanum Myeongjo', 'Gowun Batang', serif" }}>
         {bgPhoto}
-        <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", padding: "60px 70px 50px", textAlign: "center" }}>
-            <h1 style={{ color: "#FCFBEA", fontSize: ts, fontWeight: 900, lineHeight: 1.25, letterSpacing: "-0.02em", wordBreak: "keep-all", textShadow: TS }}>{t}</h1>
-            <p style={{ color: "rgba(252,251,234,0.7)", fontSize: Math.round(ts * 0.4), fontWeight: 600, marginTop: 18, textShadow: TS }}>{tags.join(" · ") || nm + " 변호사"}</p>
-            {of && <p style={{ color: accent, fontSize: 18, fontWeight: 900, marginTop: 44, letterSpacing: "0.15em", textShadow: TS }}>{of.toUpperCase()}</p>}
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.6)" }} />
+        <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 70px", alignItems: "flex-start" }}>
+            <div style={{ background: accent, color: "#fff", padding: "4px 10px", fontSize: 14, fontWeight: 800, fontFamily: FONT, letterSpacing: "0.05em", marginBottom: 20 }}>{of || nm + " 변호사"}</div>
+            <h1 style={{ color: "#fff", fontSize: ts + 10, fontWeight: 800, lineHeight: 1.4, letterSpacing: "-0.05em", wordBreak: "keep-all", textShadow: TS }}>
+                {t.split(" ").map((word, i) => (
+                    <span key={i} style={{ display: "inline-block", marginRight: "0.3em", position: "relative" }}>
+                        {word}
+                        {i % 2 === 1 && <span style={{ position: "absolute", bottom: "15%", left: "-10%", right: "-10%", height: "2px", background: accent, transform: "rotate(-2deg)" }} />}
+                    </span>
+                ))}
+            </h1>
+            <div style={{ marginTop: 50, display: "flex", gap: 16 }}>
+                {tags.map((t, i) => <span key={i} style={{ color: "rgba(255,255,255,0.7)", fontFamily: FONT, fontSize: 13, border: "1px solid rgba(255,255,255,0.3)", padding: "4px 12px", borderRadius: 20 }}>{t}</span>)}
+            </div>
         </div>{logoEl}
     </div>;
 }

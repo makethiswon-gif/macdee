@@ -152,6 +152,45 @@ export default function SummaryImage({ config, profile }: P) {
             </div>
         </div>{logoEl}</div>;
     }
+
+    if (v === 10) { // Horizontal Process Timeline (Ref 4)
+        return <div id="blog-summary-image" style={{ ...base, background: "#0F1115", display: "flex", flexDirection: "column" }}>
+            <div style={{ flex: 1, padding: "70px 60px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                <span style={{ color: a1, fontSize: 13, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 8 }}>{of || "핵심 매뉴얼"}</span>
+                <h2 style={{ color: "#fff", fontSize: 26, fontWeight: 800, marginBottom: 50, wordBreak: "keep-all" }}>{title}</h2>
+                <div style={{ position: "relative", display: "flex", justifyContent: "space-between", flex: 1, marginTop: 10 }}>
+                    <div style={{ position: "absolute", top: 12, left: 20, right: 20, height: 2, background: "rgba(255,255,255,0.15)" }} />
+                    <div style={{ position: "absolute", top: 12, left: 20, width: "40%", height: 2, background: a1 }} />
+                    {lines.map((l, i) => (
+                        <div key={i} style={{ position: "relative", width: "30%", zIndex: 1 }}>
+                            <div style={{ width: 26, height: 26, borderRadius: "50%", background: i === 0 ? a1 : "#222", border: `4px solid ${i === 0 ? "#0F1115" : "rgba(255,255,255,0.15)"}`, margin: "0 auto", boxShadow: i === 0 ? `0 0 0 2px ${a1}` : "none" }} />
+                            <div style={{ marginTop: 24, textAlign: "center" }}>
+                                <span style={{ color: i === 0 ? a1 : "rgba(255,255,255,0.4)", fontSize: 13, fontWeight: 800, letterSpacing: "0.05em" }}>STEP 0{i + 1}</span>
+                                <p style={{ color: i === 0 ? "#fff" : "rgba(255,255,255,0.6)", fontSize: 15, lineHeight: 1.6, wordBreak: "keep-all", marginTop: 8 }}>{l}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+            <div style={{ padding: "0 60px 40px", color: "rgba(255,255,255,0.4)" }}>{nameEl}</div>
+            {logoEl}
+        </div>;
+    }
+
+    if (v === 11) { // Giant Colored Numbers Cards (Ref 2)
+        return <div id="blog-summary-image" style={{ ...base, background: "#111" }}><div style={{ height: "100%", display: "flex", flexDirection: "column", padding: "60px 70px" }}>
+            <div style={{ alignSelf: "center", background: a1, color: "#fff", padding: "6px 20px", borderRadius: 20, fontSize: 13, fontWeight: 800, letterSpacing: "0.1em", marginBottom: 30 }}>PROJECT GOAL</div>
+            <h2 style={{ color: "#fff", fontSize: 26, fontWeight: 800, marginBottom: 40, textAlign: "center", wordBreak: "keep-all" }}>{title}</h2>
+            <div style={{ display: "flex", gap: 24, flex: 1 }}>
+                {lines.map((l, i) => <div key={i} style={{ flex: 1, background: "rgba(255,255,255,0.04)", borderRadius: 16, padding: "30px 24px", border: "1px solid rgba(255,255,255,0.06)" }}>
+                    <span style={{ color: i === 0 ? a1 : i === 1 ? a2 : `${a1}AA`, fontSize: 48, fontWeight: 900, lineHeight: 1, display: "block", marginBottom: 16 }}>0{i + 1}</span>
+                    <p style={{ color: "rgba(255,255,255,0.8)", fontSize: 15, lineHeight: 1.7, wordBreak: "keep-all" }}>{l}</p>
+                </div>)}
+            </div>
+            <div style={{ marginTop: 24, color: "rgba(255,255,255,0.5)", textAlign: "center" }}>{nameEl}</div>
+        </div>{logoEl}</div>;
+    }
+
     // v===9: Light warm background
     return <div id="blog-summary-image" style={{ ...base, background: `linear-gradient(150deg,${a1}40,${a2}60,#F5F0EB)` }}><div style={{ height: "100%", display: "flex", flexDirection: "column", padding: "60px 70px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
