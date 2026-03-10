@@ -1,21 +1,18 @@
-async function run() {
-    try {
-        const res = await fetch("http://localhost:3000/api/admin/magazines/generate", {
-            method: "POST",
-            headers: {
-                "Cookie": "admin_token=bWFjZGVlX2FkbWluX3NlY3JldA==",
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                prompt: "ai 미래와 결부한 변호사 광고시장 분석",
-                category: "법률정보"
-            })
-        });
-        const text = await res.text();
-        console.log("Status:", res.status);
-        console.log("Response:", text);
-    } catch (e) {
-        console.error(e);
-    }
-}
-run();
+fetch("http://localhost:3000/api/admin/blog-profiles", {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json",
+        "Cookie": "admin_token=bWFjZGVlOm1hY2RlZV9hZG1pbl9zZWNyZXQ="
+    },
+    body: JSON.stringify({
+        action: "create",
+        lawyerName: "Test 2",
+        officeName: "Test Law 2",
+        phone: "010-1234-5678",
+        address: "Seoul",
+        website: "https://test.com",
+        specialty: ["Test"]
+    })
+}).then(r => r.json().then(data => ({ status: r.status, data })))
+    .then(console.log)
+    .catch(console.error);

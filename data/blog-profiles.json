@@ -32,5 +32,22 @@
     "brandColor": "",
     "createdAt": 1773125023954,
     "updatedAt": 1773125023954
+  },
+  {
+    "id": "mmkaiqyk7tanr",
+    "lawyerName": "Test 2",
+    "officeName": "Test Law 2",
+    "phone": "010-1234-5678",
+    "address": "Seoul",
+    "website": "https://test.com",
+    "specialty": [
+      "Test"
+    ],
+    "profileImages": [],
+    "officeImages": [],
+    "logoImage": "",
+    "brandColor": "",
+    "createdAt": 1773127815932,
+    "updatedAt": 1773127815932
   }
 ]

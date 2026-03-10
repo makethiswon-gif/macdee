@@ -252,19 +252,26 @@ function ProfilesTab({ profiles, onRefresh }: { profiles: BlogProfile[]; onRefre
     };
 
     const startEdit = async (id: string) => {
-        const res = await fetch(`/api/admin/blog-profiles?id=${id}`);
-        const { profile } = await res.json();
-        setFullProfile(profile);
-        setForm({
-            lawyerName: profile.lawyerName,
-            officeName: profile.officeName,
-            phone: profile.phone,
-            address: profile.address,
-            website: profile.website,
-            specialty: profile.specialty?.join(", ") || "",
-        });
-        setEditId(id);
-        setShowForm(true);
+        try {
+            const res = await fetch(`/api/admin/blog-profiles?id=${id}`, { cache: "no-store" });
+            if (!res.ok) throw new Error("Fetch failed");
+            const { profile } = await res.json();
+            setFullProfile(profile);
+            setForm({
+                lawyerName: profile.lawyerName,
+                officeName: profile.officeName,
+                phone: profile.phone,
+                address: profile.address,
+                website: profile.website,
+                specialty: profile.specialty?.join(", ") || "",
+            });
+            setEditId(id);
+            setShowForm(true);
+        } catch (err) {
+            console.error(err);
+            alert("프로필을 불러오지 못했습니다.");
+            resetForm();
+        }
     };
 
     const handleSave = async () => {
