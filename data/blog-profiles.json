@@ -15,5 +15,20 @@
     "officeImages": [],
     "createdAt": 1773123290150,
     "updatedAt": 1773123290150
+  },
+  {
+    "id": "mmk8uwnmdanb8",
+    "lawyerName": "Test User",
+    "officeName": "Test Law",
+    "phone": "",
+    "address": "",
+    "website": "",
+    "specialty": [],
+    "profileImages": [],
+    "officeImages": [],
+    "logoImage": "",
+    "brandColor": "",
+    "createdAt": 1773125023954,
+    "updatedAt": 1773125023954
   }
 ]

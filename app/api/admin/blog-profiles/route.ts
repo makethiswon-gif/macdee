@@ -39,7 +39,15 @@ function ensureDataFile() {
 
 function readProfiles(): BlogProfile[] {
     ensureDataFile();
-    return JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
+    const profiles: BlogProfile[] = JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
+    // Migrate old profiles missing new fields
+    let dirty = false;
+    for (const p of profiles) {
+        if (p.logoImage === undefined) { p.logoImage = ""; dirty = true; }
+        if (p.brandColor === undefined) { p.brandColor = ""; dirty = true; }
+    }
+    if (dirty) writeProfiles(profiles);
+    return profiles;
 }
 
 function writeProfiles(profiles: BlogProfile[]) {
@@ -98,11 +106,11 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ profile: p });
     }
 
-    const list = profiles.map(({ profileImages, officeImages, ...rest }) => ({
+    const list = profiles.map(({ profileImages, officeImages, logoImage, ...rest }) => ({
         ...rest,
         profileImageCount: profileImages.length,
         officeImageCount: officeImages.length,
-        hasLogo: !!rest.logoImage,
+        hasLogo: !!logoImage,
     }));
     return NextResponse.json({ profiles: list });
 }
