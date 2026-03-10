@@ -47,9 +47,9 @@ export const ACCENT_COLORS = [
     "#34D399", // Emerald
 ];
 
-export const MAIN_VARIANT_COUNT = 5;
-export const SUMMARY_VARIANT_COUNT = 5;
-export const CONTACT_VARIANT_COUNT = 5;
+export const MAIN_VARIANT_COUNT = 10;
+export const SUMMARY_VARIANT_COUNT = 10;
+export const CONTACT_VARIANT_COUNT = 10;
 
 export function generateConfig(
     profileId: string,

@@ -94,8 +94,24 @@ function GenerateTab({ profiles, router }: { profiles: BlogProfile[]; router: Re
         const res = await fetch(`/api/admin/blog-profiles?id=${selectedId}`);
         const { profile } = await res.json();
 
+        // AI auto-summarize if content provided
+        let summary = postSummary;
+        if (postSummary.trim()) {
+            try {
+                const aiRes = await fetch("/api/admin/blog-summary", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ content: postSummary, title: postTitle }),
+                });
+                if (aiRes.ok) {
+                    const aiData = await aiRes.json();
+                    if (aiData.summary) summary = aiData.summary;
+                }
+            } catch { /* fallback to raw content */ }
+        }
+
         const config = generateConfig(
-            selectedId, postTitle, postSummary,
+            selectedId, postTitle, summary,
             profile.profileImages?.length || 0,
             profile.officeImages?.length || 0,
         );
@@ -160,10 +176,10 @@ function GenerateTab({ profiles, router }: { profiles: BlogProfile[]; router: Re
                                     placeholder="음주운전 초범, 어떻게 대처해야 할까?" className={inputClass} />
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-[#9CA3B0] mb-1.5">핵심 내용 요약 (줄바꿈으로 구분)</label>
+                                <label className="block text-xs font-medium text-[#9CA3B0] mb-1.5">블로그 글 내용 (AI가 자동 요약)</label>
                                 <textarea value={postSummary} onChange={(e) => setPostSummary(e.target.value)}
-                                    placeholder={"혈중알코올농도에 따라 처벌 수위가 다릅니다.\n전문 변호사의 조력으로 감경 사유를 확보하세요.\n초기 대응이 결과에 큰 영향을 미칩니다."}
-                                    rows={4} className={`${inputClass} resize-none`} />
+                                    placeholder={"블로그 본문 내용을 붙여넣으세요. AI가 핵심 내용을 3줄로 자동 요약합니다."}
+                                    rows={6} className={`${inputClass} resize-none`} />
                             </div>
                         </div>
                     </div>
