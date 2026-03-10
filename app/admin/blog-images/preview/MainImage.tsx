@@ -130,16 +130,78 @@ export default function MainImage({ config, profile }: P) {
             </div>{logoEl}
         </div>;
     }
-    // v===9: Grid pattern + left aligned
+    if (v === 9) { // Grid pattern + left aligned
+        return <div id="blog-main-image" style={base}>
+            <div style={{ ...abs0, backgroundImage: `radial-gradient(circle,${accent}08 1px,transparent 1px)`, backgroundSize: "30px 30px" }} />
+            <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 70px" }}>
+                {tagEls}
+                <h1 style={{ color: "#fff", fontSize: ts, fontWeight: 900, lineHeight: 1.2, letterSpacing: "-0.03em", wordBreak: "keep-all", maxWidth: 800 }}>{t}</h1>
+                <div style={{ marginTop: 24, display: "flex", alignItems: "center", gap: 12 }}>
+                    <div style={{ width: 4, height: 24, background: accent, borderRadius: 2 }} />
+                    {nameTag}
+                </div>
+            </div>{logoEl}
+        </div>;
+    }
+    if (v === 10) { // Center poster
+        const topTxt = tags[0] || (of ? `${of} 칼럼` : "법률 칼럼");
+        return <div id="blog-main-image" style={base}>
+            {(oImg || pImg) && <div style={{ ...abs0, backgroundImage: `url(${oImg || pImg})`, backgroundSize: "cover", backgroundPosition: "center" }} />}
+            <div style={{ ...abs0, background: grad("180deg", 0.1, 0.95) }} />
+            <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 80px", textAlign: "center" }}>
+                <p style={{ color: "rgba(255,255,255,0.9)", fontSize: Math.round(ts * 0.45), fontWeight: 700, marginBottom: 20, textShadow: TS }}>{topTxt}</p>
+                <h1 style={{ color: "#fff", fontSize: ts, fontWeight: 900, lineHeight: 1.2, wordBreak: "keep-all", textShadow: TS }}>{t}</h1>
+                <p style={{ color: "rgba(255,255,255,0.7)", fontSize: Math.round(ts * 0.5), fontWeight: 800, marginTop: 30, textShadow: TS }}>{nm} 변호사</p>
+            </div>{logoEl}
+        </div>;
+    }
+    if (v === 11) { // Newspaper
+        const topTxt = nm || "LAW NEWS";
+        return <div id="blog-main-image" style={{ ...base, background: "#F4F4F4", border: "10px solid #F4F4F4" }}>
+            <div style={{ height: "100%", border: "1px solid #222", display: "flex", flexDirection: "column" }}>
+                <div style={{ padding: "16px 0", borderBottom: "1px solid #222", textAlign: "center" }}>
+                    <span style={{ color: "#111", fontSize: 28, fontWeight: 900, fontFamily: "serif", fontStyle: "italic" }}>{topTxt}</span>
+                </div>
+                <div style={{ flex: 1, position: "relative", padding: "20px 20px 0 20px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+                    <div style={{ width: "100%", height: "80%", background: "#ccc", position: "relative", border: "1px solid #222" }}>
+                        {(pImg || oImg) && <img src={pImg || oImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "grayscale(30%)" }} />}
+                    </div>
+                    <div style={{ position: "absolute", bottom: 50, width: "88%", background: "rgba(255,255,255,0.95)", border: "2px solid #111", padding: "34px 40px" }}>
+                        <h1 style={{ color: "#111", fontSize: Math.round(ts * 0.8), fontWeight: 800, lineHeight: 1.4, wordBreak: "keep-all", textAlign: "center" }}>
+                            {t.split(" ").map((word, i) => (
+                                i === 0 || i === 1 ? <span key={i} style={{ background: `linear-gradient(180deg,transparent 55%,${accent}40 55%)`, marginRight: "0.25em" }}>{word}</span> : <span key={i}>{word} </span>
+                            ))}
+                        </h1>
+                    </div>
+                </div>
+            </div>{logoEl && <div style={{ position: "absolute", bottom: 36, right: 40, filter: "invert(1)" }}><img src={logo} alt="" style={{ height: 30, opacity: 0.8 }} /></div>}
+        </div>;
+    }
+    if (v === 12) { // Strikethrough marker
+        return <div id="blog-main-image" style={base}>
+            {(oImg || pImg) && <div style={{ ...abs0, backgroundImage: `url(${oImg || pImg})`, backgroundSize: "cover", backgroundPosition: "center" }} />}
+            <div style={{ ...abs0, background: "rgba(0,0,0,0.55)" }} />
+            <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 70px" }}>
+                <div style={{ background: accent, color: "#fff", padding: "6px 14px", borderRadius: 4, alignSelf: "flex-start", fontSize: 13, fontWeight: 700, marginBottom: 24, boxShadow: "0 4px 12px rgba(0,0,0,0.5)" }}>
+                    {tags[0] || of || "법률정보"}
+                </div>
+                <h1 style={{ color: "#fff", fontSize: ts, fontWeight: 900, lineHeight: 1.45, wordBreak: "keep-all", textShadow: "0 2px 10px rgba(0,0,0,0.5)" }}>
+                    {t.split(" ").map((word, i) => (
+                        i < 2 ? <span key={i} style={{ background: `linear-gradient(transparent 50%, ${accent} 50%, ${accent} 75%, transparent 75%)`, marginRight: "0.25em" }}>{word}</span> : <span key={i}>{word} </span>
+                    ))}
+                </h1>
+                <div style={{ marginTop: 40 }}>{nameTag}</div>
+            </div>{logoEl}
+        </div>;
+    }
+    // v===13: Cafe / bottom text typography
     return <div id="blog-main-image" style={base}>
-        <div style={{ ...abs0, backgroundImage: `radial-gradient(circle,${accent}08 1px,transparent 1px)`, backgroundSize: "30px 30px" }} />
-        <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 70px" }}>
-            {tagEls}
-            <h1 style={{ color: "#fff", fontSize: ts, fontWeight: 900, lineHeight: 1.2, letterSpacing: "-0.03em", wordBreak: "keep-all", maxWidth: 800 }}>{t}</h1>
-            <div style={{ marginTop: 24, display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ width: 4, height: 24, background: accent, borderRadius: 2 }} />
-                {nameTag}
-            </div>
+        {(pImg || oImg) && <div style={{ ...abs0, backgroundImage: `url(${pImg || oImg})`, backgroundSize: "cover", backgroundPosition: "center", filter: "brightness(0.9)" }} />}
+        <div style={{ ...abs0, background: grad("0deg", 0.95, 0.1) }} />
+        <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", padding: "60px 70px 50px", textAlign: "center" }}>
+            <h1 style={{ color: "#FCFBEA", fontSize: ts, fontWeight: 900, lineHeight: 1.25, letterSpacing: "-0.02em", wordBreak: "keep-all", textShadow: TS }}>{t}</h1>
+            <p style={{ color: "rgba(252,251,234,0.7)", fontSize: Math.round(ts * 0.4), fontWeight: 600, marginTop: 18, textShadow: TS }}>{tags.join(" · ") || nm + " 변호사"}</p>
+            {of && <p style={{ color: accent, fontSize: 18, fontWeight: 900, marginTop: 44, letterSpacing: "0.15em", textShadow: TS }}>{of.toUpperCase()}</p>}
         </div>{logoEl}
     </div>;
 }

@@ -47,7 +47,7 @@ export const ACCENT_COLORS = [
     "#34D399", // Emerald
 ];
 
-export const MAIN_VARIANT_COUNT = 10;
+export const MAIN_VARIANT_COUNT = 14;
 export const SUMMARY_VARIANT_COUNT = 10;
 export const CONTACT_VARIANT_COUNT = 10;
 

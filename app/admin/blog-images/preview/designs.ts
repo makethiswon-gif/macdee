@@ -20,6 +20,10 @@ export const ML_ALL: ML[] = [
     { txtPos: "center", photo: "none", deco: "stripe", titleScale: 1.4 },
     { txtPos: "bl", photo: "full", deco: "pill", titleScale: 1.2 },
     { txtPos: "tl", photo: "none", deco: "grid", titleScale: 1.1 },
+    { txtPos: "center", photo: "full", deco: "none", titleScale: 1.35 }, // 10: Center poster
+    { txtPos: "tl", photo: "full", deco: "box", titleScale: 1 }, // 11: Newspaper
+    { txtPos: "center", photo: "full", deco: "bar-t", titleScale: 1.4 }, // 12: Strikethrough
+    { txtPos: "bl", photo: "full", deco: "none", titleScale: 1.15 }, // 13: Cafe/Food
 ];
 
 export const SL_ALL: SL[] = [
