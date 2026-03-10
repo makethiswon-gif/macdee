@@ -36,8 +36,8 @@ export default function BrandImage({ config, profile }: P) {
             {linesEl && <div style={{ color: "rgba(0,0,0,0.75)" }}>{linesEl}</div>}
         </div>;
     }
-    if (v === 2) { // Minimal dark + accent accent line
-        return <div id="blog-brand-image" style={{ ...base, background: "#111", display: "flex", alignItems: "center", justifyContent: "center" }}>
+    if (v === 2) { // Minimal accent gradient + accent line
+        return <div id="blog-brand-image" style={{ ...base, background: `linear-gradient(180deg, ${a1}40 0%, #111 100%)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <div style={{ textAlign: "center" }}>
                 {logoEl(100)}
                 <div style={{ width: 2, height: 50, background: a1, margin: "20px auto" }} />
@@ -57,10 +57,10 @@ export default function BrandImage({ config, profile }: P) {
             {linesEl && <div style={{ color: "rgba(0,0,0,0.8)" }}>{linesEl}</div>}
         </div>;
     }
-    if (v === 4) { // Accent stripe left on dark
-        return <div id="blog-brand-image" style={{ ...base, background: "#111" }}>
-            <div style={{ position: "absolute", top: 0, left: 0, width: 8, height: "100%", background: a1 }} />
-            <div style={{ position: "absolute", top: "48%", left: 0, right: 0, height: 100, background: `${a1}25` }} />
+    if (v === 4) { // Accent stripe left on accent-tinted bg
+        return <div id="blog-brand-image" style={{ ...base, background: `linear-gradient(135deg, #111 0%, ${a1}30 100%)` }}>
+            <div style={{ position: "absolute", top: 0, left: 0, width: 10, height: "100%", background: a1 }} />
+            <div style={{ position: "absolute", top: "46%", left: 0, right: 0, height: 120, background: `${a1}35` }} />
             <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
                 {logoEl(100)}
                 <h2 style={{ color: "#fff", fontSize: 34, fontWeight: 900 }}>{nm} 변호사</h2>
@@ -68,10 +68,10 @@ export default function BrandImage({ config, profile }: P) {
             </div>
         </div>;
     }
-    if (v === 5) { // Accent circle bg
-        return <div id="blog-brand-image" style={{ ...base, background: "#111", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 500, height: 500, borderRadius: "50%", background: `${a1}30` }} />
-            <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 350, height: 350, borderRadius: "50%", background: `${a1}20` }} />
+    if (v === 5) { // Accent circles on accent-tinted bg
+        return <div id="blog-brand-image" style={{ ...base, background: `linear-gradient(180deg, #111 0%, ${a1}30 100%)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 500, height: 500, borderRadius: "50%", background: `${a1}40` }} />
+            <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 350, height: 350, borderRadius: "50%", background: `${a1}30` }} />
             <div style={{ textAlign: "center", position: "relative", zIndex: 1 }}>
                 {logoEl(100)}
                 <h2 style={{ color: "#fff", fontSize: 36, fontWeight: 900, marginTop: 16 }}>{nm}</h2>
@@ -117,7 +117,7 @@ export default function BrandImage({ config, profile }: P) {
         </div>;
     }
     // v===9: Accent corner gradients
-    return <div id="blog-brand-image" style={{ ...base, background: "#111" }}>
+    return <div id="blog-brand-image" style={{ ...base, background: `linear-gradient(180deg, #111 0%, ${a1}20 50%, #111 100%)` }}>
         <div style={{ position: "absolute", top: 0, right: 0, width: 400, height: 400, background: `linear-gradient(225deg,${a1}80,transparent)` }} />
         <div style={{ position: "absolute", bottom: 0, left: 0, width: 300, height: 300, background: `linear-gradient(45deg,${a2}60,transparent)` }} />
         <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 20 }}>
