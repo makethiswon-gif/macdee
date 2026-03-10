@@ -215,10 +215,22 @@ export async function POST(request: Request) {
 
                         let seoParsed;
                         try {
-                            seoParsed = JSON.parse(seoContent);
-                        } catch {
-                            const sanitized = seoContent.replace(/\\n/g, "\n").replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "");
+                            const sanitized = seoContent
+                                .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
+                                .replace(/\r\n/g, "\\n")
+                                .replace(/\r/g, "\\n")
+                                .replace(/\n/g, "\\n")
+                                .replace(/\t/g, "\\t");
                             seoParsed = JSON.parse(sanitized);
+                        } catch {
+                            const titleMatch = seoContent.match(/"title"\s*:\s*"([^"]+)"/);
+                            const bodyMatch = seoContent.match(/"body"\s*:\s*"([\s\S]*?)(?:"\s*,\s*"|"\s*})/);
+                            seoParsed = {
+                                title: titleMatch?.[1] || scraped.title,
+                                body: bodyMatch?.[1]?.replace(/\\n/g, "\n") || seoContent,
+                                meta_description: "",
+                                keywords: [],
+                            };
                         }
 
                         await supabase.from("contents").insert({
@@ -259,10 +271,21 @@ export async function POST(request: Request) {
 
                         let aiParsed;
                         try {
-                            aiParsed = JSON.parse(aiContent);
-                        } catch {
-                            const sanitized = aiContent.replace(/\\n/g, "\n").replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "");
+                            const sanitized = aiContent
+                                .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
+                                .replace(/\r\n/g, "\\n")
+                                .replace(/\r/g, "\\n")
+                                .replace(/\n/g, "\\n")
+                                .replace(/\t/g, "\\t");
                             aiParsed = JSON.parse(sanitized);
+                        } catch {
+                            const titleMatch = aiContent.match(/"title"\s*:\s*"([^"]+)"/);
+                            const bodyMatch = aiContent.match(/"body"\s*:\s*"([\s\S]*?)(?:"\s*,\s*"|"\s*})/);
+                            aiParsed = {
+                                title: titleMatch?.[1] || `${scraped.title} - AI`,
+                                body: bodyMatch?.[1]?.replace(/\\n/g, "\n") || aiContent,
+                                schema_markup: null,
+                            };
                         }
 
                         await supabase.from("contents").insert({

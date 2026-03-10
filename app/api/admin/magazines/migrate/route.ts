@@ -111,10 +111,26 @@ export async function POST(request: Request) {
 
                     let parsed;
                     try {
-                        parsed = JSON.parse(content);
-                    } catch {
-                        const sanitized = content.replace(/\\n/g, "\n").replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "");
+                        // Sanitize control characters that break JSON.parse
+                        const sanitized = content
+                            .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
+                            .replace(/\r\n/g, "\\n")
+                            .replace(/\r/g, "\\n")
+                            .replace(/\n/g, "\\n")
+                            .replace(/\t/g, "\\t");
                         parsed = JSON.parse(sanitized);
+                    } catch {
+                        // Last resort: extract key fields manually
+                        const titleMatch = content.match(/"title"\s*:\s*"([^"]+)"/);
+                        const bodyMatch = content.match(/"body"\s*:\s*"([\s\S]*?)(?:"\s*,\s*"|"\s*})/);
+                        parsed = {
+                            title: titleMatch?.[1] || scraped.title,
+                            body: bodyMatch?.[1]?.replace(/\\n/g, "\n") || content,
+                            excerpt: "",
+                            meta_description: "",
+                            category: "법률정보",
+                            tags: [],
+                        };
                     }
 
                     const title = parsed.title || scraped.title;
