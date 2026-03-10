@@ -4,12 +4,13 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { ArrowLeft, Palette, Shuffle } from "lucide-react";
 import {
     getGenerationById, generateConfig, saveGeneration,
-    ACCENT_COLORS, MAIN_VARIANT_COUNT, SUMMARY_VARIANT_COUNT, CONTACT_VARIANT_COUNT,
+    ACCENT_COLORS, MAIN_VARIANT_COUNT, SUMMARY_VARIANT_COUNT, CONTACT_VARIANT_COUNT, BRAND_VARIANT_COUNT,
     type GenerationConfig, type BlogProfile,
 } from "../themes";
 import MainImage from "./MainImage";
 import SummaryImage from "./SummaryImage";
 import ContactImage from "./ContactImage";
+import BrandImage from "./BrandImage";
 
 function PreviewContent() {
     const searchParams = useSearchParams();
@@ -38,6 +39,7 @@ function PreviewContent() {
             mainVariant: Math.floor(Math.random() * MAIN_VARIANT_COUNT),
             summaryVariant: Math.floor(Math.random() * SUMMARY_VARIANT_COUNT),
             contactVariant: Math.floor(Math.random() * CONTACT_VARIANT_COUNT),
+            brandVariant: Math.floor(Math.random() * BRAND_VARIANT_COUNT),
             profileImageIndex: Math.floor(Math.random() * Math.max(1, profile.profileImages?.length || 0)),
             officeImageIndex: Math.floor(Math.random() * Math.max(1, profile.officeImages?.length || 0)),
             overlayOpacity: 0.55 + Math.random() * 0.3,
@@ -124,6 +126,15 @@ function PreviewContent() {
                         <span className="text-[10px] text-[#4B5563]">1000 × 1000px · 변형 {config.contactVariant + 1}/10</span>
                     </div>
                     <div className="rounded-xl overflow-hidden border border-[#1F2937] shadow-lg shadow-black/20 inline-block"><ContactImage config={config} profile={profile} /></div>
+                </div>
+                <div>
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                            <span className="w-5 h-5 rounded-full bg-[#F59E0B]/20 text-[#F59E0B] text-[10px] font-bold flex items-center justify-center">4</span>브랜드 이미지
+                        </h3>
+                        <span className="text-[10px] text-[#4B5563]">1000 × 1000px · 변형 {(config.brandVariant || 0) + 1}/10</span>
+                    </div>
+                    <div className="rounded-xl overflow-hidden border border-[#1F2937] shadow-lg shadow-black/20 inline-block"><BrandImage config={config} profile={profile} /></div>
                 </div>
             </div>
         </div>

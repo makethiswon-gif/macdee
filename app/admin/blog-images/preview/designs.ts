@@ -35,3 +35,9 @@ export const CL_ALL: CL[] = [
     { style: "center" }, { style: "split" }, { style: "overlay" }, { style: "grid" }, { style: "h-layout" },
     { style: "light" }, { style: "formal" }, { style: "accent" }, { style: "photo-bg" }, { style: "big-name" },
 ];
+
+export interface BL { style: "logo-center" | "name-bold" | "minimal" | "gradient" | "stripe" | "circle" | "split-tone" | "pattern" | "light-clean" | "dark-accent"; }
+export const BL_ALL: BL[] = [
+    { style: "logo-center" }, { style: "name-bold" }, { style: "minimal" }, { style: "gradient" }, { style: "stripe" },
+    { style: "circle" }, { style: "split-tone" }, { style: "pattern" }, { style: "light-clean" }, { style: "dark-accent" },
+];

@@ -29,6 +29,7 @@ export interface GenerationConfig {
     mainVariant: number;
     summaryVariant: number;
     contactVariant: number;
+    brandVariant: number;
     profileImageIndex: number;
     officeImageIndex: number;
     overlayOpacity: number;
@@ -50,6 +51,7 @@ export const ACCENT_COLORS = [
 export const MAIN_VARIANT_COUNT = 14;
 export const SUMMARY_VARIANT_COUNT = 10;
 export const CONTACT_VARIANT_COUNT = 10;
+export const BRAND_VARIANT_COUNT = 10;
 
 export function generateConfig(
     profileId: string,
@@ -67,6 +69,7 @@ export function generateConfig(
         mainVariant: Math.floor(Math.random() * MAIN_VARIANT_COUNT),
         summaryVariant: Math.floor(Math.random() * SUMMARY_VARIANT_COUNT),
         contactVariant: Math.floor(Math.random() * CONTACT_VARIANT_COUNT),
+        brandVariant: Math.floor(Math.random() * BRAND_VARIANT_COUNT),
         profileImageIndex: Math.floor(Math.random() * Math.max(1, profileImageCount)),
         officeImageIndex: Math.floor(Math.random() * Math.max(1, officeImageCount)),
         overlayOpacity: 0.55 + Math.random() * 0.3,

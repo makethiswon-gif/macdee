@@ -29,17 +29,34 @@ export async function POST(request: NextRequest) {
                 "content-type": "application/json",
             },
             body: JSON.stringify({
-                model: "claude-3-5-haiku-latest",
-                max_tokens: 300,
+                model: "claude-sonnet-4-20250514",
+                max_tokens: 400,
                 messages: [{
                     role: "user",
-                    content: `다음 블로그 글의 핵심 내용을 정확히 3줄로 요약해주세요. 각 줄은 한국어로 작성하고 줄바꿈(\\n)으로 구분해주세요. 문장은 간결하고 전문적인 톤으로 작성해주세요. 번호나 기호 없이 문장만 작성해주세요.
+                    content: `당신은 법률 블로그 콘텐츠 요약 전문가입니다.
+
+아래 블로그 글을 읽고, 독자가 꼭 알아야 할 **핵심 내용 3가지**를 요약해주세요.
+
+규칙:
+- 정확히 3개의 문장을 작성하세요
+- 각 문장은 줄바꿈으로 구분하세요
+- 각 문장은 15~30자 이내로 간결하게 작성하세요
+- "~입니다", "~됩니다" 등 경어체를 사용하세요
+- 번호, 기호, 따옴표 없이 문장만 작성하세요
+- 법률 용어는 쉽게 풀어서 설명하세요
 
 제목: ${title || ""}
-내용: ${content}`,
+내용:
+${content.slice(0, 3000)}`,
                 }],
             }),
         });
+
+        if (!res.ok) {
+            const errText = await res.text();
+            console.error("AI API error:", res.status, errText);
+            return NextResponse.json({ error: "AI API failed" }, { status: 500 });
+        }
 
         const data = await res.json();
         const summary = data.content?.[0]?.text || "";
