@@ -44,7 +44,7 @@ export default function SummaryImage({ config, profile }: P) {
     }
     if (v === 2) { // Accent left panel + right content
         return <div id="blog-summary-image" style={{ ...base, display: "flex", background: "#111" }}><div style={{ flex: "0 0 320px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 40, background: a1 }}>
-            {pImg ? <img src={pImg} alt="" style={{ width: 200, height: 240, objectFit: "cover", borderRadius: 14, border: "3px solid rgba(255,255,255,0.3)" }} /> : <div style={{ width: 200, height: 240, borderRadius: 14, background: "rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 56 }}>⚖</div>}
+            {pImg ? <img src={pImg} alt="" style={{ width: 200, height: 240, objectFit: "cover", borderRadius: 14, border: "3px solid rgba(255,255,255,0.3)" }} /> : <div style={{ width: 200, height: 240, borderRadius: 14, background: "rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 56, fontWeight: 800 }}>{nm[0]}</div>}
             <p style={{ color: "#fff", fontSize: 20, fontWeight: 700, marginTop: 16, textShadow: "0 1px 3px rgba(0,0,0,0.2)" }}>{nm} 변호사</p>
             {of && <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 12, marginTop: 4 }}>{of}</p>}
         </div><div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "50px 60px" }}>

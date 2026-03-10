@@ -13,7 +13,10 @@ export default function ContactImage({ config, profile }: P) {
     const base: React.CSSProperties = { width: S, height: S, position: "relative", overflow: "hidden", fontFamily: FONT };
     const logoEl = logo && <img src={logo} alt="" style={{ position: "absolute", bottom: 24, right: 28, height: 60, objectFit: "contain", opacity: 0.7 }} />;
     const phones = Array.isArray(phone) ? phone.filter(Boolean).slice(0, 3) : (phone ? [phone] : []);
-    const ci = [...phones.map((p, i) => ({ icon: "📞", label: phones.length > 1 ? `전화 ${i + 1}` : "전화", value: p })), address && { icon: "📍", label: "주소", value: address }, website && { icon: "🌐", label: "웹사이트", value: website }].filter(Boolean) as { icon: string; label: string; value: string }[];
+    const IconTel = <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>;
+    const IconPin = <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>;
+    const IconWeb = <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>;
+    const ci = [...phones.map((p, i) => ({ icon: IconTel, label: phones.length > 1 ? `전화 ${i + 1}` : "전화", value: p })), address && { icon: IconPin, label: "주소", value: address }, website && { icon: IconWeb, label: "웹사이트", value: website }].filter(Boolean) as { icon: React.ReactNode; label: string; value: string }[];
     // Face-focused profile photo
     const profImg = (w: number, h: number, r = 16) => pImg ? <img src={pImg} alt="" style={{ width: w, height: h, objectFit: "cover", objectPosition: "top", borderRadius: r }} /> : null;
 
@@ -57,7 +60,7 @@ export default function ContactImage({ config, profile }: P) {
     if (v === 2) { // Accent left split
         return <div id="blog-contact-image" style={{ ...base, display: "flex" }}>
             <div style={{ flex: "0 0 42%", background: accent, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
-                {profImg(180, 220, 16) || <div style={{ width: 180, height: 220, borderRadius: 16, background: "rgba(0,0,0,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 56 }}>⚖</div>}
+                {profImg(180, 220, 16) || <div style={{ width: 180, height: 220, borderRadius: 16, background: "rgba(0,0,0,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 56, fontWeight: 700, color: "rgba(0,0,0,0.4)" }}>{nm[0]}</div>}
                 <p style={{ color: "#111", fontSize: 22, fontWeight: 900 }}>{nm} 변호사</p>
                 {of && <p style={{ color: "rgba(0,0,0,0.6)", fontSize: 13, fontWeight: 700 }}>{of}</p>}
             </div>
@@ -76,7 +79,7 @@ export default function ContactImage({ config, profile }: P) {
         return <div id="blog-contact-image" style={{ ...base, background: accent }}><div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: 50 }}>
             <div style={{ width: "100%", maxWidth: 750, background: "#fff", borderRadius: 20, padding: "48px 56px", display: "flex", gap: 40, alignItems: "center", boxShadow: "0 10px 40px rgba(0,0,0,0.15)" }}>
                 <div style={{ flex: "0 0 auto", textAlign: "center" }}>
-                    {profImg(140, 170, 16) || <div style={{ width: 140, height: 170, borderRadius: 16, background: "#E5E7EB", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48, color: "#9CA3AF" }}>⚖</div>}
+                    {profImg(140, 170, 16) || <div style={{ width: 140, height: 170, borderRadius: 16, background: "#E5E7EB", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48, color: "#9CA3AF", fontWeight: 700 }}>{nm[0]}</div>}
                 </div>
                 <div style={{ flex: 1 }}>
                     <h2 style={{ color: "#111", fontSize: 28, fontWeight: 900, marginBottom: 4 }}>{nm} 변호사</h2>

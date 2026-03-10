@@ -69,6 +69,11 @@ function PreviewContent() {
         setDownloading(true);
         try {
             const html2canvas = (await import("html2canvas")).default;
+            const JSZip = (await import("jszip")).default;
+            const { saveAs } = await import("file-saver");
+
+            const zip = new JSZip();
+
             // Extract 2-3 keywords from title for filename
             const keywords = config.postTitle
                 .replace(/[^가-힣a-zA-Z0-9\s]/g, "")
@@ -95,6 +100,7 @@ function PreviewContent() {
                     width: 1000,
                     height: 1000,
                 });
+
                 // Try quality 0.92 first, adjust if needed
                 let quality = 0.92;
                 let blob = await new Promise<Blob | null>(r => canvas.toBlob(r, "image/jpeg", quality));
@@ -108,16 +114,14 @@ function PreviewContent() {
                     quality = 0.65;
                     blob = await new Promise<Blob | null>(r => canvas.toBlob(r, "image/jpeg", quality));
                 }
-                if (!blob) continue;
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `${prefix}_${suffix}.jpg`;
-                a.click();
-                URL.revokeObjectURL(url);
-                // Small delay between downloads
-                await new Promise(r => setTimeout(r, 300));
+                if (blob) {
+                    zip.file(`${prefix}_${suffix}.jpg`, blob);
+                }
             }
+
+            const zipBlob = await zip.generateAsync({ type: "blob" });
+            saveAs(zipBlob, `${prefix}_블로그이미지.zip`);
+
         } catch (err) {
             console.error("Download error:", err);
             alert("다운로드 중 오류가 발생했습니다.");
