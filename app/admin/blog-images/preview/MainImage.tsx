@@ -1,5 +1,5 @@
 "use client";
-import { S, FONT, TS, ML_ALL } from "./designs";
+import { S, FONT, TS, ML_ALL, getContrastColor, isLightColor } from "./designs";
 import type { GenerationConfig, BlogProfile } from "../themes";
 
 interface P { config: GenerationConfig; profile: BlogProfile; }
@@ -24,7 +24,7 @@ export default function MainImage({ config, profile }: P) {
     const bgPhoto = <>{oImg && <div style={{ ...abs0, backgroundImage: `url(${oImg})`, backgroundSize: "cover", backgroundPosition: "center" }} />}<div style={{ ...abs0, background: `linear-gradient(180deg,${accent}55 0%,rgba(0,0,0,0.6) 50%,${accent}30 100%)` }} /></>;
     const nameTag = <span style={{ color: "rgba(255,255,255,0.75)", fontSize: 15, textShadow: TS }}>{nm} 변호사{of ? ` · ${of}` : ""}</span>;
     const logoEl = logo && <img src={logo} alt="" style={{ position: "absolute", bottom: 24, right: 28, height: 60, objectFit: "contain", opacity: 0.7 }} />;
-    const tagEls = tags.length > 0 && <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>{tags.map((t, i) => <span key={i} style={{ padding: "5px 14px", borderRadius: 4, background: accent, color: "#fff", fontSize: 13, fontWeight: 600, textShadow: TS }}>{t}</span>)}</div>;
+    const tagEls = tags.length > 0 && <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>{tags.map((t, i) => <span key={i} style={{ padding: "5px 14px", borderRadius: 4, background: accent, color: getContrastColor(accent), fontSize: 13, fontWeight: 700, textShadow: isLightColor(accent) ? "none" : TS }}>{t}</span>)}</div>;
     // Circular profile photo helper - face-focused
     const circleProfile = (size: number) => pImg ? <img src={pImg} alt="" style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", objectPosition: "top", border: `4px solid ${accent}`, boxShadow: `0 4px 20px rgba(0,0,0,0.5)` }} /> : null;
 
@@ -234,7 +234,7 @@ export default function MainImage({ config, profile }: P) {
                     <span style={{ background: accent, padding: "0 10px", display: "inline-block", lineHeight: 1.2, marginBottom: "8px" }}>{firstHalf}</span><br />
                     <span style={{ background: a2, padding: "0 10px", display: "inline-block", lineHeight: 1.2 }}>{secondHalf}</span>
                 </h1>
-                {tags.length > 0 && <p style={{ color: accent, fontSize: 16, fontWeight: 800, marginTop: 40, letterSpacing: "0.1em", textShadow: TS }}>{tags.join(" / ")}</p>}
+                {tags.length > 0 && <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", marginTop: 40 }}>{tags.map((t, i) => <span key={i} style={{ padding: "6px 18px", borderRadius: 20, background: "rgba(0,0,0,0.7)", color: "#fff", fontSize: 14, fontWeight: 700, letterSpacing: "0.05em" }}>{t}</span>)}</div>}
             </div>{logoEl}
         </div>;
     }
@@ -243,7 +243,7 @@ export default function MainImage({ config, profile }: P) {
         {bgPhoto}
         <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.6)" }} />
         <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 70px", alignItems: "flex-start" }}>
-            <div style={{ background: accent, color: "#fff", padding: "4px 10px", fontSize: 14, fontWeight: 800, fontFamily: FONT, letterSpacing: "0.05em", marginBottom: 20 }}>{of || nm + " 변호사"}</div>
+            <div style={{ background: accent, color: getContrastColor(accent), padding: "4px 10px", fontSize: 14, fontWeight: 800, fontFamily: FONT, letterSpacing: "0.05em", marginBottom: 20 }}>{of || nm + " 변호사"}</div>
             <h1 style={{ color: "#fff", fontSize: ts + 10, fontWeight: 800, lineHeight: 1.4, letterSpacing: "-0.05em", wordBreak: "keep-all", textShadow: TS }}>
                 {t.split(" ").map((word, i) => (
                     <span key={i} style={{ display: "inline-block", marginRight: "0.3em", position: "relative" }}>
