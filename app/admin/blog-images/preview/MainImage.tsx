@@ -7,6 +7,7 @@ interface P { config: GenerationConfig; profile: BlogProfile; }
 export default function MainImage({ config, profile }: P) {
     const v = config.mainVariant % ML_ALL.length;
     const accent = profile.brandColor || config.accentColor;
+    const a2 = config.secondaryAccent || accent;
     const oImg = profile.officeImages?.[config.officeImageIndex] || profile.officeImages?.[0];
     const pImg = profile.profileImages?.[config.profileImageIndex] || profile.profileImages?.[0];
     const op = config.overlayOpacity;
@@ -19,14 +20,14 @@ export default function MainImage({ config, profile }: P) {
 
     const base: React.CSSProperties = { width: S, height: S, position: "relative", overflow: "hidden", fontFamily: FONT, background: "#0C0C0C" };
     const abs0: React.CSSProperties = { position: "absolute", inset: 0 };
-    const grad = (d: string, o1: number, o2: number) => `linear-gradient(${d},rgba(0,0,0,${o1}),rgba(0,0,0,${o2}))`;
-    // Always show office photo as background
-    const bgPhoto = <>{oImg && <div style={{ ...abs0, backgroundImage: `url(${oImg})`, backgroundSize: "cover", backgroundPosition: "center" }} />}<div style={{ ...abs0, background: grad("180deg", 0.15, 0.85) }} /></>;
-    const nameTag = <span style={{ color: "rgba(255,255,255,0.65)", fontSize: 15, textShadow: TS }}>{nm} 변호사{of ? ` · ${of}` : ""}</span>;
+    // Accent-tinted gradient overlay instead of pure black
+    const bgPhoto = <>{oImg && <div style={{ ...abs0, backgroundImage: `url(${oImg})`, backgroundSize: "cover", backgroundPosition: "center" }} />}<div style={{ ...abs0, background: `linear-gradient(180deg,${accent}40 0%,rgba(0,0,0,0.75) 60%,rgba(0,0,0,0.9) 100%)` }} /></>;
+    const nameTag = <span style={{ color: "rgba(255,255,255,0.75)", fontSize: 15, textShadow: TS }}>{nm} 변호사{of ? ` · ${of}` : ""}</span>;
     const logoEl = logo && <img src={logo} alt="" style={{ position: "absolute", bottom: 24, right: 28, height: 60, objectFit: "contain", opacity: 0.7 }} />;
-    const tagEls = tags.length > 0 && <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>{tags.map((t, i) => <span key={i} style={{ padding: "5px 14px", borderRadius: 4, background: `${accent}33`, color: "#fff", fontSize: 13, fontWeight: 600, textShadow: TS }}>{t}</span>)}</div>;
-    // Circular profile photo helper
-    const circleProfile = (size: number) => pImg ? <img src={pImg} alt="" style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", border: `4px solid ${accent}`, boxShadow: `0 4px 20px rgba(0,0,0,0.5)` }} /> : null;
+    const tagEls = tags.length > 0 && <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>{tags.map((t, i) => <span key={i} style={{ padding: "5px 14px", borderRadius: 4, background: accent, color: "#fff", fontSize: 13, fontWeight: 600, textShadow: TS }}>{t}</span>)}</div>;
+    // Circular profile photo helper - face-focused
+    const circleProfile = (size: number) => pImg ? <img src={pImg} alt="" style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", objectPosition: "top", border: `4px solid ${accent}`, boxShadow: `0 4px 20px rgba(0,0,0,0.5)` }} /> : null;
+
 
     if (v === 0) { // Full photo bg + bottom text
         return <div id="blog-main-image" style={base}>
@@ -61,7 +62,7 @@ export default function MainImage({ config, profile }: P) {
                 </div>
             </div>
             <div style={{ flex: "0 0 45%", position: "relative" }}>
-                {(pImg || oImg) ? <img src={pImg || oImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ width: "100%", height: "100%", background: "#161616" }} />}
+                {(pImg || oImg) ? <img src={pImg || oImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} /> : <div style={{ width: "100%", height: "100%", background: "#161616" }} />}
                 <div style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg,#0C0C0C 0%,transparent 25%)" }} />
             </div>{logoEl}
         </div>;

@@ -38,23 +38,23 @@ export interface GenerationConfig {
     createdAt: number;
 }
 
-// 2025 Trend Color Palettes — soft, professional
+// 2025 Trend Color Palettes — 밝고 확실히 보이는 색상만 사용
 export const COLOR_PALETTES = [
-    // Soft Neutral
-    ["#D6C6AF", "#C9B79C", "#B8A48A"],
+    // Soft Neutral (밝은 베이지~크림)
     ["#F5E9DA", "#E8DCC8", "#D6C6AF"],
-    // Warm Brown (2025 핵심 트렌드)
-    ["#C49A6C", "#B37A4C", "#9C5F3A"],
-    ["#B37A4C", "#7A4B2E", "#5C3822"],
-    // Modern Green
-    ["#A8C3A0", "#7FAE8C", "#5E8F73"],
-    ["#7FAE8C", "#3F6F5A", "#2F5446"],
-    // Soft Pastel
+    ["#E8DCC8", "#D6C6AF", "#C9B79C"],
+    // Warm Brown (밝은 카라멜~골드)
+    ["#C49A6C", "#D4A574", "#B37A4C"],
+    ["#D4A574", "#C49A6C", "#E8C9A0"],
+    // Modern Green (밝은 세이지~민트)
+    ["#A8C3A0", "#B5D4AE", "#7FAE8C"],
+    ["#B5D4AE", "#A8C3A0", "#CDE7D8"],
+    // Soft Pastel (핑크~라벤더~스카이)
     ["#F4B7C3", "#E9A8D4", "#E6E2F3"],
     ["#BFD8F3", "#CDE7D8", "#E6E2F3"],
-    // Mixed Warm
+    // Mixed Warm (따뜻한 조합)
     ["#C49A6C", "#A8C3A0", "#F4B7C3"],
-    ["#D6C6AF", "#7FAE8C", "#BFD8F3"],
+    ["#F5E9DA", "#BFD8F3", "#F4B7C3"],
 ];
 // Flat list for backward compat
 export const ACCENT_COLORS = COLOR_PALETTES.map(p => p[0]);
