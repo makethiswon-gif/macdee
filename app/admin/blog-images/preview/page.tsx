@@ -2,8 +2,12 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { ArrowLeft, RefreshCw } from "lucide-react";
-import { getGenerationById, type GenerationConfig, type BlogProfile } from "../themes";
+import { ArrowLeft, RefreshCw, Shuffle, Palette } from "lucide-react";
+import {
+    getGenerationById, generateConfig, saveGeneration,
+    ACCENT_COLORS, MAIN_VARIANT_COUNT, SUMMARY_VARIANT_COUNT, CONTACT_VARIANT_COUNT,
+    type GenerationConfig, type BlogProfile,
+} from "../themes";
 
 /* ─── Shared Styles ──────────────────────────────────── */
 const textShadow = "0 2px 8px rgba(0,0,0,0.8), 0 1px 3px rgba(0,0,0,0.9)";
@@ -506,6 +510,38 @@ function PreviewContent() {
         );
     }
 
+    // Re-randomize design only (keep same content)
+    const handleRedesign = () => {
+        if (!config || !profile) return;
+        const newConfig: GenerationConfig = {
+            ...config,
+            accentColor: ACCENT_COLORS[Math.floor(Math.random() * ACCENT_COLORS.length)],
+            mainVariant: Math.floor(Math.random() * MAIN_VARIANT_COUNT),
+            summaryVariant: Math.floor(Math.random() * SUMMARY_VARIANT_COUNT),
+            contactVariant: Math.floor(Math.random() * CONTACT_VARIANT_COUNT),
+            profileImageIndex: Math.floor(Math.random() * Math.max(1, profile.profileImages?.length || 0)),
+            officeImageIndex: Math.floor(Math.random() * Math.max(1, profile.officeImages?.length || 0)),
+            overlayOpacity: 0.55 + Math.random() * 0.3,
+        };
+        setConfig(newConfig);
+        // Update in localStorage
+        const items = JSON.parse(localStorage.getItem("macdee_blog_generations") || "[]");
+        const idx = items.findIndex((i: GenerationConfig) => i.id === config.id);
+        if (idx >= 0) { items[idx] = newConfig; localStorage.setItem("macdee_blog_generations", JSON.stringify(items)); }
+    };
+
+    // Create entirely new generation with same content
+    const handleRegenerate = () => {
+        if (!config || !profile) return;
+        const newGen = generateConfig(
+            config.profileId, config.postTitle, config.postSummary,
+            profile.profileImages?.length || 0, profile.officeImages?.length || 0,
+        );
+        saveGeneration(newGen);
+        setConfig(newGen);
+        window.history.replaceState(null, "", `/admin/blog-images/preview?id=${newGen.id}`);
+    };
+
     const props: Props = { data: config, profile, config };
 
     return (
@@ -518,9 +554,20 @@ function PreviewContent() {
                         <p className="text-xs text-[#6B7280] mt-0.5">{profile.lawyerName} · 스크린샷(Win+Shift+S)으로 캡쳐하세요</p>
                     </div>
                 </div>
-                <button onClick={() => router.push("/admin/blog-images")} className="flex items-center gap-2 px-4 py-2 text-sm text-[#3563AE] bg-[#3563AE]/10 rounded-lg hover:bg-[#3563AE]/20 transition-colors">
-                    <RefreshCw size={14} /> 새로 만들기
-                </button>
+                <div className="flex items-center gap-2">
+                    <button onClick={handleRedesign}
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-[#8B5CF6] bg-[#8B5CF6]/10 rounded-lg hover:bg-[#8B5CF6]/20 transition-colors">
+                        <Palette size={14} /> 디자인 변경
+                    </button>
+                    <button onClick={handleRegenerate}
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-[#10B981] bg-[#10B981]/10 rounded-lg hover:bg-[#10B981]/20 transition-colors">
+                        <Shuffle size={14} /> 새로 생성
+                    </button>
+                    <button onClick={() => router.push("/admin/blog-images")}
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-[#3563AE] bg-[#3563AE]/10 rounded-lg hover:bg-[#3563AE]/20 transition-colors">
+                        <ArrowLeft size={14} /> 돌아가기
+                    </button>
+                </div>
             </div>
 
             <div className="mb-6 p-4 rounded-xl bg-[#111827] border border-[#1F2937]">
