@@ -269,25 +269,31 @@ function ProfilesTab({ profiles, onRefresh }: { profiles: BlogProfile[]; onRefre
 
     const handleSave = async () => {
         setSaving(true);
-        const payload = {
-            action: editId ? "update" : "create",
-            ...(editId ? { id: editId } : {}),
-            lawyerName: form.lawyerName,
-            officeName: form.officeName,
-            phone: form.phone,
-            address: form.address,
-            website: form.website,
-            specialty: form.specialty.split(",").map((s) => s.trim()).filter(Boolean),
-        };
-        const res = await fetch("/api/admin/blog-profiles", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-        const result = await res.json();
-        setSaving(false);
-        onRefresh();
-        // After creating, auto-switch to edit mode so user can add images
-        if (!editId && result.profile?.id) {
-            startEdit(result.profile.id);
-        } else {
-            resetForm();
+        try {
+            const payload = {
+                action: editId ? "update" : "create",
+                ...(editId ? { id: editId } : {}),
+                lawyerName: form.lawyerName,
+                officeName: form.officeName,
+                phone: form.phone,
+                address: form.address,
+                website: form.website,
+                specialty: form.specialty.split(",").map((s) => s.trim()).filter(Boolean),
+            };
+            const res = await fetch("/api/admin/blog-profiles", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+            if (!res.ok) { alert(`저장 실패: ${res.status}`); setSaving(false); return; }
+            const result = await res.json();
+            setSaving(false);
+            onRefresh();
+            if (!editId && result.profile?.id) {
+                startEdit(result.profile.id);
+            } else {
+                resetForm();
+            }
+        } catch (err) {
+            console.error("Save error:", err);
+            alert("저장 중 오류가 발생했습니다.");
+            setSaving(false);
         }
     };
 
