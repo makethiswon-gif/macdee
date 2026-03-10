@@ -84,8 +84,13 @@ export const CL_ALL: CL[] = [
     { style: "light" }, { style: "formal" }, { style: "accent" }, { style: "photo-bg" }, { style: "big-name" },
 ];
 
-export interface BL { style: "logo-center" | "name-bold" | "minimal" | "gradient" | "stripe" | "circle" | "split-tone" | "pattern" | "light-clean" | "dark-accent"; }
+export interface BL { style: "logo-center" | "name-bold" | "minimal" | "gradient" | "stripe" | "circle" | "split-tone" | "pattern" | "light-clean" | "dark-accent" | "photo-editorial" | "serif-quote" | "photo-highlight" | "glass-card" | "speech-bubble"; }
 export const BL_ALL: BL[] = [
     { style: "logo-center" }, { style: "name-bold" }, { style: "minimal" }, { style: "gradient" }, { style: "stripe" },
     { style: "circle" }, { style: "split-tone" }, { style: "pattern" }, { style: "light-clean" }, { style: "dark-accent" },
+    { style: "photo-editorial" },  // 10: Office photo bg + centered name + taglines (Ref 1)
+    { style: "serif-quote" },      // 11: Dark warm bg + serif italic quote + brackets (Ref 2)
+    { style: "photo-highlight" },  // 12: Office photo + bold text + accent highlight (Ref 3)
+    { style: "glass-card" },       // 13: Blurred photo + frosted glass card (Ref 4)
+    { style: "speech-bubble" },    // 14: Full photo + speech bubble brand lines (Ref 5)
 ];

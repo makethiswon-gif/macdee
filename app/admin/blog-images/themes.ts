@@ -62,7 +62,7 @@ export const ACCENT_COLORS = COLOR_PALETTES.map(p => p[0]);
 export const MAIN_VARIANT_COUNT = 21;
 export const SUMMARY_VARIANT_COUNT = 12;
 export const CONTACT_VARIANT_COUNT = 10;
-export const BRAND_VARIANT_COUNT = 10;
+export const BRAND_VARIANT_COUNT = 15;
 
 export function generateConfig(
     profileId: string,
