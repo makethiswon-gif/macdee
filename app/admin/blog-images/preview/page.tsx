@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { ArrowLeft, Palette, Shuffle } from "lucide-react";
+import { ArrowLeft, Palette, Shuffle, Download } from "lucide-react";
 import {
     getGenerationById, generateConfig, saveGeneration,
     ACCENT_COLORS, MAIN_VARIANT_COUNT, SUMMARY_VARIANT_COUNT, CONTACT_VARIANT_COUNT, BRAND_VARIANT_COUNT,
@@ -19,6 +19,7 @@ function PreviewContent() {
     const [config, setConfig] = useState<GenerationConfig | null>(null);
     const [profile, setProfile] = useState<BlogProfile | null>(null);
     const [loading, setLoading] = useState(true);
+    const [downloading, setDownloading] = useState(false);
 
     useEffect(() => {
         if (!id) { setLoading(false); return; }
@@ -61,6 +62,68 @@ function PreviewContent() {
         window.history.replaceState(null, "", `/admin/blog-images/preview?id=${newGen.id}`);
     };
 
+    const handleDownloadAll = async () => {
+        if (!config || !profile) return;
+        setDownloading(true);
+        try {
+            const html2canvas = (await import("html2canvas")).default;
+            // Extract 2-3 keywords from title for filename
+            const keywords = config.postTitle
+                .replace(/[^가-힣a-zA-Z0-9\s]/g, "")
+                .split(/\s+/)
+                .filter(w => w.length >= 2)
+                .slice(0, 3)
+                .join("_") || "blog";
+            const prefix = `${profile.lawyerName}_${keywords}`;
+
+            const imageIds = [
+                { id: "blog-main-image", suffix: "메인" },
+                { id: "blog-summary-image", suffix: "요약" },
+                { id: "blog-contact-image", suffix: "상담안내" },
+                { id: "blog-brand-image", suffix: "브랜드" },
+            ];
+
+            for (const { id, suffix } of imageIds) {
+                const el = document.getElementById(id);
+                if (!el) continue;
+                const canvas = await html2canvas(el, {
+                    scale: 1,
+                    useCORS: true,
+                    backgroundColor: "#0C0C0C",
+                    width: 1000,
+                    height: 1000,
+                });
+                // Try quality 0.92 first, adjust if needed
+                let quality = 0.92;
+                let blob = await new Promise<Blob | null>(r => canvas.toBlob(r, "image/jpeg", quality));
+                // If too large (>800KB), reduce quality
+                if (blob && blob.size > 800 * 1024) {
+                    quality = 0.8;
+                    blob = await new Promise<Blob | null>(r => canvas.toBlob(r, "image/jpeg", quality));
+                }
+                // If still too large, reduce more
+                if (blob && blob.size > 800 * 1024) {
+                    quality = 0.65;
+                    blob = await new Promise<Blob | null>(r => canvas.toBlob(r, "image/jpeg", quality));
+                }
+                if (!blob) continue;
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `${prefix}_${suffix}.jpg`;
+                a.click();
+                URL.revokeObjectURL(url);
+                // Small delay between downloads
+                await new Promise(r => setTimeout(r, 300));
+            }
+        } catch (err) {
+            console.error("Download error:", err);
+            alert("다운로드 중 오류가 발생했습니다.");
+        } finally {
+            setDownloading(false);
+        }
+    };
+
     if (loading) return <div className="flex items-center justify-center py-20"><div className="animate-spin w-6 h-6 border-2 border-[#3563AE] border-t-transparent rounded-full" /></div>;
 
     if (!config || !profile) {
@@ -89,6 +152,9 @@ function PreviewContent() {
                     <button onClick={handleRegenerate} className="flex items-center gap-2 px-4 py-2 text-sm text-[#10B981] bg-[#10B981]/10 rounded-lg hover:bg-[#10B981]/20 transition-colors">
                         <Shuffle size={14} /> 새로 생성
                     </button>
+                    <button onClick={handleDownloadAll} disabled={downloading} className="flex items-center gap-2 px-4 py-2 text-sm text-[#F59E0B] bg-[#F59E0B]/10 rounded-lg hover:bg-[#F59E0B]/20 transition-colors disabled:opacity-50">
+                        <Download size={14} /> {downloading ? "다운로드 중..." : "일괄 다운로드"}
+                    </button>
                     <button onClick={() => router.push("/admin/blog-images")} className="flex items-center gap-2 px-4 py-2 text-sm text-[#3563AE] bg-[#3563AE]/10 rounded-lg hover:bg-[#3563AE]/20 transition-colors">
                         <ArrowLeft size={14} /> 돌아가기
                     </button>
@@ -96,7 +162,7 @@ function PreviewContent() {
             </div>
 
             <div className="mb-6 p-4 rounded-xl bg-[#111827] border border-[#1F2937]">
-                <p className="text-xs text-[#9CA3B0]">💡 <strong className="text-white">캡쳐 방법:</strong> Win+Shift+S로 원하는 이미지 영역을 선택하여 캡쳐 후 네이버 블로그에 붙여넣으세요.</p>
+                <p className="text-xs text-[#9CA3B0]">💡 <strong className="text-white">다운로드:</strong> &apos;일괄 다운로드&apos; 버튼으로 4장을 JPG로 한번에 저장하세요. (1000×1000, 네이버 블로그 최적화)</p>
             </div>
 
             <div className="space-y-10">
