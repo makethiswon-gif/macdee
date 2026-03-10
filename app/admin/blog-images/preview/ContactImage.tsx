@@ -10,7 +10,9 @@ export default function ContactImage({ config, profile }: P) {
     const pImg = profile.profileImages?.[config.profileImageIndex] || profile.profileImages?.[0];
     const oImg = profile.officeImages?.[config.officeImageIndex] || profile.officeImages?.[0];
     const { lawyerName: nm, officeName: of, phone, address, website, logoImage: logo } = profile;
-    const base: React.CSSProperties = { width: S, height: S, position: "relative", overflow: "hidden", fontFamily: FONT };
+    const bg = config.backgroundColor || "#111";
+    const tc = config.textColor || "#fff";
+    const base: React.CSSProperties = { width: S, height: S, position: "relative", overflow: "hidden", fontFamily: FONT, background: bg };
     const logoEl = logo && <img src={logo} alt="" style={{ position: "absolute", bottom: 24, right: 28, height: 60, objectFit: "contain", opacity: 0.7 }} />;
     const phones = Array.isArray(phone) ? phone.filter(Boolean).slice(0, 3) : (phone ? [phone] : []);
     const IconTel = <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>;
@@ -36,7 +38,7 @@ export default function ContactImage({ config, profile }: P) {
         </div>;
     }
     if (v === 1) { // Office bg + accent overlay
-        return <div id="blog-contact-image" style={{ ...base, background: "#111" }}>
+        return <div id="blog-contact-image" style={{ ...base, background: bg }}>
             {oImg && <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${oImg})`, backgroundSize: "cover" }} />}
             <div style={{ position: "absolute", inset: 0, background: `linear-gradient(135deg,${accent}EE,${a2}CC)` }} />
             <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", alignItems: "center", padding: "0 80px", gap: 50 }}>
@@ -64,7 +66,7 @@ export default function ContactImage({ config, profile }: P) {
                 <p style={{ color: "#111", fontSize: 22, fontWeight: 900 }}>{nm} 변호사</p>
                 {of && <p style={{ color: "rgba(0,0,0,0.6)", fontSize: 13, fontWeight: 700 }}>{of}</p>}
             </div>
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "50px 60px", background: "#111" }}>
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "50px 60px", background: bg }}>
                 <p style={{ color: accent, fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 28 }}>상담 안내</p>
                 <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
                     {ci.map((c, i) => <div key={i} style={{ display: "flex", alignItems: "center", gap: 18 }}>
@@ -92,7 +94,7 @@ export default function ContactImage({ config, profile }: P) {
         </div><div style={{ filter: "brightness(0.1)" }}>{logoEl}</div></div>;
     }
     if (v === 4) { // Accent colored info cards
-        return <div id="blog-contact-image" style={{ ...base, background: "#111" }}>
+        return <div id="blog-contact-image" style={{ ...base, background: bg }}>
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 6, background: accent }} />
             <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: "50px 70px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 36 }}>
@@ -110,7 +112,7 @@ export default function ContactImage({ config, profile }: P) {
         </div>;
     }
     if (v === 5) { // Horizontal with accent divider
-        return <div id="blog-contact-image" style={{ ...base, background: "#111" }}><div style={{ height: "100%", display: "flex", alignItems: "center", padding: "0 70px", gap: 40 }}>
+        return <div id="blog-contact-image" style={{ ...base, background: bg }}><div style={{ height: "100%", display: "flex", alignItems: "center", padding: "0 70px", gap: 40 }}>
             <div style={{ flex: "0 0 auto", textAlign: "center" }}>
                 {profImg(160, 200, 16) && <div style={{ border: `3px solid ${accent}`, borderRadius: 16, overflow: "hidden" }}>{profImg(160, 200, 16)}</div>}
                 <p style={{ color: "#fff", fontSize: 20, fontWeight: 800, marginTop: 14 }}>{nm}</p>
@@ -129,7 +131,7 @@ export default function ContactImage({ config, profile }: P) {
         </div>{logoEl}</div>;
     }
     if (v === 6) { // Photo bg with accent overlay centered
-        return <div id="blog-contact-image" style={{ ...base, background: "#111" }}>
+        return <div id="blog-contact-image" style={{ ...base, background: bg }}>
             {(oImg || pImg) && <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${oImg || pImg})`, backgroundSize: "cover", backgroundPosition: "center" }} />}
             <div style={{ position: "absolute", inset: 0, background: `linear-gradient(135deg,${accent}EE,${a2}DD)` }} />
             <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -145,7 +147,7 @@ export default function ContactImage({ config, profile }: P) {
         </div>;
     }
     if (v === 7) { // Accent stripe left
-        return <div id="blog-contact-image" style={{ ...base, background: "#111" }}>
+        return <div id="blog-contact-image" style={{ ...base, background: bg }}>
             <div style={{ position: "absolute", top: 0, left: 0, width: 8, height: "100%", background: accent }} />
             <div style={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: "50px 70px 50px 90px" }}>
                 <p style={{ color: accent, fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 12 }}>상담 안내</p>

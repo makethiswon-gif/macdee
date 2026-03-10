@@ -13,7 +13,9 @@ export default function SummaryImage({ config, profile }: P) {
     const of = profile.officeName;
     const title = config.postTitle;
     const logo = profile.logoImage;
-    const base: React.CSSProperties = { width: S, height: S, position: "relative", overflow: "hidden", fontFamily: FONT };
+    const bg = config.backgroundColor || "#111";
+    const tc = config.textColor || "#fff";
+    const base: React.CSSProperties = { width: S, height: S, position: "relative", overflow: "hidden", fontFamily: FONT, background: bg };
     const logoEl = logo && <img src={logo} alt="" style={{ position: "absolute", bottom: 24, right: 28, height: 60, objectFit: "contain", opacity: 0.7 }} />;
     const nameEl = <span style={{ fontSize: 14, fontWeight: 600 }}>{nm} 변호사{of ? ` · ${of}` : ""}</span>;
 
@@ -44,7 +46,7 @@ export default function SummaryImage({ config, profile }: P) {
         </div>{logoEl}</div>;
     }
     if (v === 2) { // Accent left panel + right content
-        return <div id="blog-summary-image" style={{ ...base, display: "flex", background: "#111" }}><div style={{ flex: "0 0 320px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 40, background: a1 }}>
+        return <div id="blog-summary-image" style={{ ...base, display: "flex", background: bg }}><div style={{ flex: "0 0 320px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 40, background: a1 }}>
             {pImg ? <img src={pImg} alt="" style={{ width: 200, height: 240, objectFit: "cover", borderRadius: 14, border: "3px solid rgba(255,255,255,0.3)" }} /> : <div style={{ width: 200, height: 240, borderRadius: 14, background: "rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 56, fontWeight: 800 }}>{nm[0]}</div>}
             <p style={{ color: "#fff", fontSize: 20, fontWeight: 700, marginTop: 16, textShadow: "0 1px 3px rgba(0,0,0,0.2)" }}>{nm} 변호사</p>
             {of && <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 12, marginTop: 4 }}>{of}</p>}
@@ -112,7 +114,7 @@ export default function SummaryImage({ config, profile }: P) {
     }
     if (v === 6) { // Accent border left cards on photo bg
         const oImg = profile.officeImages?.[config.officeImageIndex] || profile.officeImages?.[0];
-        return <div id="blog-summary-image" style={{ ...base, background: "#111" }}>
+        return <div id="blog-summary-image" style={{ ...base, background: bg }}>
             {oImg && <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${oImg})`, backgroundSize: "cover", opacity: 0.15 }} />}
             <div style={{ position: "absolute", inset: 0, background: `linear-gradient(180deg,${a1}40 0%,rgba(0,0,0,0.8) 100%)` }} />
             <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", padding: "60px 70px" }}>
@@ -195,13 +197,13 @@ export default function SummaryImage({ config, profile }: P) {
     // v===9: Light warm background
     return <div id="blog-summary-image" style={{ ...base, background: `linear-gradient(150deg,${a1},${a2},#F5F0EB)` }}><div style={{ height: "100%", display: "flex", flexDirection: "column", padding: "60px 70px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-            <div style={{ width: 6, height: 24, background: "#111", borderRadius: 3 }} />
+            <div style={{ width: 6, height: 24, background: bg, borderRadius: 3 }} />
             <span style={{ color: "#111", fontSize: 13, fontWeight: 700, letterSpacing: "0.08em" }}>핵심 포인트</span>
         </div>
         <h2 style={{ color: "#111", fontSize: 26, fontWeight: 800, marginBottom: 36, wordBreak: "keep-all" }}>{title}</h2>
         <div style={{ display: "flex", flexDirection: "column", gap: 20, flex: 1 }}>
             {lines.map((l, i) => <div key={i} style={{ display: "flex", gap: 16, alignItems: "flex-start", padding: "16px 20px", borderRadius: 12, background: "rgba(255,255,255,0.75)", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
-                <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#111", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, flexShrink: 0, marginTop: 2 }}>{i + 1}</div>
+                <div style={{ width: 28, height: 28, borderRadius: "50%", background: bg, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, flexShrink: 0, marginTop: 2 }}>{i + 1}</div>
                 <p style={{ color: "#111", fontSize: 16, lineHeight: 1.8, wordBreak: "keep-all" }}>{l}</p>
             </div>)}
         </div>

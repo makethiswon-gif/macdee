@@ -17,12 +17,14 @@ export default function MainImage({ config, profile }: P) {
     const of = profile.officeName;
     const logo = profile.logoImage;
     const ts = Math.round(42 * ML_ALL[v].titleScale);
+    const bg = config.backgroundColor || "#111";
+    const tc = config.textColor || "#fff";
 
-    const base: React.CSSProperties = { width: S, height: S, position: "relative", overflow: "hidden", fontFamily: FONT, background: `linear-gradient(160deg, #0C0C0C 0%, ${accent}25 100%)` };
+    const base: React.CSSProperties = { width: S, height: S, position: "relative", overflow: "hidden", fontFamily: FONT, background: `linear-gradient(160deg, ${bg} 0%, ${accent}25 100%)` };
     const abs0: React.CSSProperties = { position: "absolute", inset: 0 };
     // Accent-tinted gradient overlay — always shows the palette color
-    const bgPhoto = <>{oImg && <div style={{ ...abs0, backgroundImage: `url(${oImg})`, backgroundSize: "cover", backgroundPosition: "center" }} />}<div style={{ ...abs0, background: `linear-gradient(180deg,${accent}55 0%,rgba(0,0,0,0.6) 50%,${accent}30 100%)` }} /></>;
-    const nameTag = <span style={{ color: "rgba(255,255,255,0.75)", fontSize: 15, textShadow: TS }}>{nm} 변호사{of ? ` · ${of}` : ""}</span>;
+    const bgPhoto = <>{oImg && <div style={{ ...abs0, backgroundImage: `url(${oImg})`, backgroundSize: "cover", backgroundPosition: "center" }} />}<div style={{ ...abs0, background: `linear-gradient(180deg,${accent}55 0%,${bg}CC 50%,${accent}30 100%)` }} /></>;
+    const nameTag = <span style={{ color: `${tc}CC`, fontSize: 15, textShadow: TS }}>{nm} 변호사{of ? ` · ${of}` : ""}</span>;
     const logoEl = logo && <img src={logo} alt="" style={{ position: "absolute", bottom: 24, right: 28, height: 60, objectFit: "contain", opacity: 0.7 }} />;
     const tagEls = tags.length > 0 && <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>{tags.map((t, i) => <span key={i} style={{ padding: "5px 14px", borderRadius: 4, background: accent, color: getContrastColor(accent), fontSize: 13, fontWeight: 700, textShadow: isLightColor(accent) ? "none" : TS }}>{t}</span>)}</div>;
     // Circular profile photo helper - face-focused
@@ -55,7 +57,7 @@ export default function MainImage({ config, profile }: P) {
         return <div id="blog-main-image" style={{ ...base, display: "flex" }}>
             <div style={{ flex: "0 0 55%", position: "relative", display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 50px 60px 70px", background: `linear-gradient(180deg, ${accent} 0%, ${a2} 100%)` }}>
                 <div style={{ position: "relative", zIndex: 1 }}>
-                    <div style={{ width: 4, height: 36, background: "#111", borderRadius: 2, marginBottom: 20 }} />
+                    <div style={{ width: 4, height: 36, background: bg, borderRadius: 2, marginBottom: 20 }} />
                     <span style={{ color: "#111", fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 12, display: "block", opacity: 0.7 }}>{tags[0] || "법률 전문"}</span>
                     <h1 style={{ color: "#111", fontSize: ts, fontWeight: 900, lineHeight: 1.25, letterSpacing: "-0.02em", wordBreak: "keep-all" }}>{t}</h1>
                     <div style={{ marginTop: 24 }}><span style={{ color: "rgba(0,0,0,0.6)", fontSize: 15 }}>{nm} 변호사{of ? ` · ${of}` : ""}</span></div>
@@ -113,7 +115,7 @@ export default function MainImage({ config, profile }: P) {
                 <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "50%", background: `linear-gradient(180deg,transparent,${accent})` }} />
             </div>
             <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "60px 70px" }}>
-                <div style={{ width: 4, height: 30, background: "#111", borderRadius: 2, marginBottom: 16 }} />
+                <div style={{ width: 4, height: 30, background: bg, borderRadius: 2, marginBottom: 16 }} />
                 <h1 style={{ color: "#111", fontSize: ts, fontWeight: 900, lineHeight: 1.25, wordBreak: "keep-all" }}>{t}</h1>
                 <div style={{ marginTop: 20 }}><span style={{ color: "rgba(0,0,0,0.6)", fontSize: 15 }}>{nm} 변호사{of ? ` · ${of}` : ""}</span></div>
             </div>{logoEl}
@@ -335,7 +337,7 @@ export default function MainImage({ config, profile }: P) {
     // v===19: Dark Editorial + Large Portrait Right + Curved Accent Lines (New Ref 4)
     // Dark charcoal background, large portrait on right side, bold white title on left, decorative curved accent lines
     if (v === 19) {
-        return <div id="blog-main-image" style={{ ...base, background: "#1a1a1a" }}>
+        return <div id="blog-main-image" style={{ ...base, background: bg }}>
             {/* Curved decorative accent line */}
             <svg style={{ position: "absolute", top: "25%", left: "30%", width: 500, height: 500, opacity: 0.2, zIndex: 1 }} viewBox="0 0 500 500" fill="none">
                 <ellipse cx="250" cy="250" rx="200" ry="220" stroke={accent} strokeWidth="1.5" />
@@ -366,7 +368,7 @@ export default function MainImage({ config, profile }: P) {
 
     // v===20 (fallback): Black/Accent Split + Portrait Overlap (New Ref 5)
     // Black upper-left with text, accent color block bottom-right, portrait overlapping both, decorative curves
-    return <div id="blog-main-image" style={{ ...base, background: "#111" }}>
+    return <div id="blog-main-image" style={{ ...base, background: bg }}>
         {/* Accent color block - bottom right */}
         <div style={{ position: "absolute", bottom: 0, right: 0, width: "55%", height: "40%", background: accent }} />
         {/* Decorative curved accent lines */}

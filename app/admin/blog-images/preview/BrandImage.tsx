@@ -8,7 +8,9 @@ export default function BrandImage({ config, profile }: P) {
     const a1 = profile.brandColor || config.accentColor;
     const a2 = config.secondaryAccent || a1;
     const { lawyerName: nm, officeName: of, logoImage: logo, specialty: tags, brandLines: bl, officeImages, profileImages } = profile;
-    const base: React.CSSProperties = { width: S, height: S, position: "relative", overflow: "hidden", fontFamily: FONT };
+    const bg = config.backgroundColor || "#111";
+    const tc = config.textColor || "#fff";
+    const base: React.CSSProperties = { width: S, height: S, position: "relative", overflow: "hidden", fontFamily: FONT, background: bg };
     const logoEl = (w = 120) => logo ? <img src={logo} alt="" style={{ height: w, objectFit: "contain" }} /> : null;
     const tagLine = tags?.join(" · ") || "법률 전문";
     const lines = (bl || []).slice(0, 3);
@@ -90,7 +92,7 @@ export default function BrandImage({ config, profile }: P) {
             <div style={{ flex: "0 0 50%", background: a1, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <h1 style={{ color: tc, fontSize: 56, fontWeight: 900 }}>{nm}</h1>
             </div>
-            <div style={{ flex: "0 0 50%", background: "#111", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
+            <div style={{ flex: "0 0 50%", background: bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
                 {logoEl(80)}
                 <p style={{ color: "#fff", fontSize: 18, fontWeight: 700 }}>변호사</p>
                 {of && <p style={{ color: "rgba(255,255,255,0.75)", fontSize: 13 }}>{of}</p>}
@@ -146,7 +148,7 @@ export default function BrandImage({ config, profile }: P) {
 
     // v===10: Office photo bg + centered firm name + taglines (SERAJ LAW style)
     if (v === 10) {
-        return <div id="blog-brand-image" style={{ ...base, background: "#1a1a1a" }}>
+        return <div id="blog-brand-image" style={{ ...base, background: bg }}>
             {/* Office photo background with dark warm overlay */}
             {oImg && <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${oImg})`, backgroundSize: "cover", backgroundPosition: "center" }} />}
             <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(30,20,10,0.4) 0%, rgba(30,20,10,0.7) 40%, rgba(30,20,10,0.5) 100%)" }} />
@@ -204,7 +206,7 @@ export default function BrandImage({ config, profile }: P) {
     // v===12: Office photo bg + bold text + accent highlight blocks (Borges & Pontes style)
     if (v === 12) {
         const tc = getContrastColor(a1);
-        return <div id="blog-brand-image" style={{ ...base, background: "#111" }}>
+        return <div id="blog-brand-image" style={{ ...base, background: bg }}>
             {oImg && <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${oImg})`, backgroundSize: "cover", backgroundPosition: "center" }} />}
             <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.35)" }} />
             <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 70px" }}>
@@ -248,7 +250,7 @@ export default function BrandImage({ config, profile }: P) {
     }
 
     // v===14 (fallback): Full photo bg + speech bubble brand lines (mindset style)
-    return <div id="blog-brand-image" style={{ ...base, background: "#1a1a1a" }}>
+    return <div id="blog-brand-image" style={{ ...base, background: bg }}>
         {(pImg || oImg) && <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${pImg || oImg})`, backgroundSize: "cover", backgroundPosition: "center top" }} />}
         <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.25)" }} />
         {/* Decorative curved accent lines */}
