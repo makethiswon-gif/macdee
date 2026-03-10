@@ -4,7 +4,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { ArrowLeft, Palette, Shuffle, Download } from "lucide-react";
 import {
     getGenerationById, generateConfig, saveGeneration,
-    ACCENT_COLORS, MAIN_VARIANT_COUNT, SUMMARY_VARIANT_COUNT, CONTACT_VARIANT_COUNT, BRAND_VARIANT_COUNT,
+    COLOR_PALETTES, MAIN_VARIANT_COUNT, SUMMARY_VARIANT_COUNT, CONTACT_VARIANT_COUNT, BRAND_VARIANT_COUNT,
     type GenerationConfig, type BlogProfile,
 } from "../themes";
 import MainImage from "./MainImage";
@@ -34,9 +34,11 @@ function PreviewContent() {
 
     const handleRedesign = () => {
         if (!config || !profile) return;
+        const palette = COLOR_PALETTES[Math.floor(Math.random() * COLOR_PALETTES.length)];
         const newConfig: GenerationConfig = {
             ...config,
-            accentColor: ACCENT_COLORS[Math.floor(Math.random() * ACCENT_COLORS.length)],
+            accentColor: palette[0],
+            secondaryAccent: palette[1] || palette[0],
             mainVariant: Math.floor(Math.random() * MAIN_VARIANT_COUNT),
             summaryVariant: Math.floor(Math.random() * SUMMARY_VARIANT_COUNT),
             contactVariant: Math.floor(Math.random() * CONTACT_VARIANT_COUNT),

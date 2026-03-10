@@ -5,7 +5,7 @@ export interface BlogProfile {
     id: string;
     lawyerName: string;
     officeName: string;
-    phone: string;
+    phone: string[];
     address: string;
     website: string;
     specialty: string[];
@@ -26,6 +26,7 @@ export interface GenerationConfig {
     postTitle: string;
     postSummary: string;
     accentColor: string;
+    secondaryAccent: string;
     mainVariant: number;
     summaryVariant: number;
     contactVariant: number;
@@ -36,17 +37,26 @@ export interface GenerationConfig {
     createdAt: number;
 }
 
-// 8 curated accent colors
-export const ACCENT_COLORS = [
-    "#FF3B30", // Red
-    "#00C9A7", // Teal
-    "#FF6B35", // Coral
-    "#7B61FF", // Purple
-    "#3B82F6", // Blue
-    "#FFB800", // Gold
-    "#E91E8C", // Magenta
-    "#34D399", // Emerald
+// 2025 Trend Color Palettes — soft, professional
+export const COLOR_PALETTES = [
+    // Soft Neutral
+    ["#D6C6AF", "#C9B79C", "#B8A48A"],
+    ["#F5E9DA", "#E8DCC8", "#D6C6AF"],
+    // Warm Brown (2025 핵심 트렌드)
+    ["#C49A6C", "#B37A4C", "#9C5F3A"],
+    ["#B37A4C", "#7A4B2E", "#5C3822"],
+    // Modern Green
+    ["#A8C3A0", "#7FAE8C", "#5E8F73"],
+    ["#7FAE8C", "#3F6F5A", "#2F5446"],
+    // Soft Pastel
+    ["#F4B7C3", "#E9A8D4", "#E6E2F3"],
+    ["#BFD8F3", "#CDE7D8", "#E6E2F3"],
+    // Mixed Warm
+    ["#C49A6C", "#A8C3A0", "#F4B7C3"],
+    ["#D6C6AF", "#7FAE8C", "#BFD8F3"],
 ];
+// Flat list for backward compat
+export const ACCENT_COLORS = COLOR_PALETTES.map(p => p[0]);
 
 export const MAIN_VARIANT_COUNT = 14;
 export const SUMMARY_VARIANT_COUNT = 10;
@@ -60,12 +70,14 @@ export function generateConfig(
     profileImageCount: number,
     officeImageCount: number
 ): GenerationConfig {
+    const palette = COLOR_PALETTES[Math.floor(Math.random() * COLOR_PALETTES.length)];
     return {
         id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
         profileId,
         postTitle,
         postSummary,
-        accentColor: ACCENT_COLORS[Math.floor(Math.random() * ACCENT_COLORS.length)],
+        accentColor: palette[0],
+        secondaryAccent: palette[1] || palette[0],
         mainVariant: Math.floor(Math.random() * MAIN_VARIANT_COUNT),
         summaryVariant: Math.floor(Math.random() * SUMMARY_VARIANT_COUNT),
         contactVariant: Math.floor(Math.random() * CONTACT_VARIANT_COUNT),
