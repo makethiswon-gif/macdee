@@ -1,5 +1,5 @@
 "use client";
-import { S, FONT, TS, BL_ALL } from "./designs";
+import { S, FONT, TS, BL_ALL, getContrastColor, getSubContrastColor, isLightColor } from "./designs";
 import type { GenerationConfig, BlogProfile } from "../themes";
 interface P { config: GenerationConfig; profile: BlogProfile; }
 
@@ -17,44 +17,47 @@ export default function BrandImage({ config, profile }: P) {
     </div> : null;
 
     if (v === 0) { // Logo on accent gradient
+        const tc = getContrastColor(a1); const sc = getSubContrastColor(a1);
         return <div id="blog-brand-image" style={{ ...base, background: `linear-gradient(160deg,${a1},${a2})`, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 24 }}>
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 6, background: "rgba(0,0,0,0.1)" }} />
-            {logoEl(120)}
-            <h2 style={{ color: "#111", fontSize: 40, fontWeight: 900, letterSpacing: "-0.03em" }}>{nm} 변호사</h2>
-            {of && <p style={{ color: "rgba(0,0,0,0.6)", fontSize: 16 }}>{of}</p>}
-            <p style={{ color: "rgba(0,0,0,0.7)", fontSize: 13, fontWeight: 700, letterSpacing: "0.12em" }}>{tagLine}</p>
-            {linesEl && <div style={{ color: "rgba(0,0,0,0.75)" }}>{linesEl}</div>}
+            {logo && <div style={{ filter: isLightColor(a1) ? "brightness(0.2)" : "brightness(1)" }}>{logoEl(120)}</div>}
+            <h2 style={{ color: tc, fontSize: 40, fontWeight: 900, letterSpacing: "-0.03em" }}>{nm} 변호사</h2>
+            {of && <p style={{ color: sc, fontSize: 16 }}>{of}</p>}
+            <p style={{ color: sc, fontSize: 13, fontWeight: 700, letterSpacing: "0.12em" }}>{tagLine}</p>
+            {linesEl && <div style={{ color: sc }}>{linesEl}</div>}
         </div>;
     }
     if (v === 1) { // Bold name on accent bg
+        const tc = getContrastColor(a1); const sc = getSubContrastColor(a1);
         return <div id="blog-brand-image" style={{ ...base, background: a1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column" }}>
-            <p style={{ color: "rgba(0,0,0,0.6)", fontSize: 14, fontWeight: 800, letterSpacing: "0.15em", marginBottom: 20 }}>{of || tagLine}</p>
-            <h1 style={{ color: "#111", fontSize: 80, fontWeight: 900, letterSpacing: "-0.05em" }}>{nm}</h1>
-            <p style={{ color: "rgba(0,0,0,0.6)", fontSize: 18, fontWeight: 700, marginTop: 8 }}>변호사</p>
-            <div style={{ width: 50, height: 3, background: "rgba(0,0,0,0.2)", borderRadius: 2, marginTop: 24 }} />
-            {logo && <div style={{ marginTop: 30, filter: "brightness(0.2)" }}>{logoEl(80)}</div>}
-            {linesEl && <div style={{ color: "rgba(0,0,0,0.75)" }}>{linesEl}</div>}
+            <p style={{ color: sc, fontSize: 14, fontWeight: 800, letterSpacing: "0.15em", marginBottom: 20 }}>{of || tagLine}</p>
+            <h1 style={{ color: tc, fontSize: 80, fontWeight: 900, letterSpacing: "-0.05em" }}>{nm}</h1>
+            <p style={{ color: sc, fontSize: 18, fontWeight: 700, marginTop: 8 }}>변호사</p>
+            <div style={{ width: 50, height: 3, background: `${tc}30`, borderRadius: 2, marginTop: 24 }} />
+            {logo && <div style={{ marginTop: 30, filter: isLightColor(a1) ? "brightness(0.2)" : "brightness(1)" }}>{logoEl(80)}</div>}
+            {linesEl && <div style={{ color: sc }}>{linesEl}</div>}
         </div>;
     }
-    if (v === 2) { // Minimal accent gradient + accent line
-        return <div id="blog-brand-image" style={{ ...base, background: `linear-gradient(180deg, ${a1}40 0%, #111 100%)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <div style={{ textAlign: "center" }}>
-                {logoEl(100)}
-                <div style={{ width: 2, height: 50, background: a1, margin: "20px auto" }} />
-                <h2 style={{ color: "#fff", fontSize: 28, fontWeight: 800, letterSpacing: "-0.02em" }}>{nm} 변호사</h2>
-                {of && <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14, marginTop: 8 }}>{of}</p>}
-                <p style={{ color: a1, fontSize: 13, fontWeight: 600, letterSpacing: "0.1em", marginTop: 16 }}>{tagLine}</p>
-                {linesEl && <div style={{ color: "rgba(255,255,255,0.6)" }}>{linesEl}</div>}
+    if (v === 2) { // Frosted glass card on accent gradient
+        return <div id="blog-brand-image" style={{ ...base, background: `linear-gradient(180deg, ${a1} 0%, ${a2} 100%)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ textAlign: "center", background: "rgba(255,255,255,0.85)", borderRadius: 24, padding: "50px 60px", maxWidth: 700, boxShadow: "0 10px 40px rgba(0,0,0,0.15)" }}>
+                {logo && <div style={{ filter: "brightness(0.2)", marginBottom: 16 }}>{logoEl(80)}</div>}
+                <div style={{ width: 2, height: 40, background: a1, margin: "0 auto 16px" }} />
+                <h2 style={{ color: "#111", fontSize: 32, fontWeight: 900, letterSpacing: "-0.02em" }}>{nm} 변호사</h2>
+                {of && <p style={{ color: "#666", fontSize: 14, marginTop: 8 }}>{of}</p>}
+                <p style={{ color: a1, fontSize: 13, fontWeight: 700, letterSpacing: "0.1em", marginTop: 16 }}>{tagLine}</p>
+                {linesEl && <div style={{ color: "#444" }}>{linesEl}</div>}
             </div>
         </div>;
     }
     if (v === 3) { // Full gradient bg with tags
+        const tc = getContrastColor(a1); const sc = getSubContrastColor(a1);
         return <div id="blog-brand-image" style={{ ...base, background: `linear-gradient(135deg,${a1},${a2})`, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16 }}>
-            <div style={{ filter: "brightness(0.1)" }}>{logoEl(100)}</div>
-            <h2 style={{ color: "#111", fontSize: 36, fontWeight: 900 }}>{nm} 변호사</h2>
-            {of && <p style={{ color: "rgba(0,0,0,0.6)", fontSize: 15 }}>{of}</p>}
-            <div style={{ display: "flex", gap: 10, marginTop: 12 }}>{(tags || []).map((t, i) => <span key={i} style={{ padding: "5px 16px", borderRadius: 20, border: "1px solid rgba(0,0,0,0.2)", color: "#111", fontSize: 12, fontWeight: 700 }}>{t}</span>)}</div>
-            {linesEl && <div style={{ color: "rgba(0,0,0,0.8)" }}>{linesEl}</div>}
+            {logo && <div style={{ filter: isLightColor(a1) ? "brightness(0.1)" : "brightness(1)" }}>{logoEl(100)}</div>}
+            <h2 style={{ color: tc, fontSize: 36, fontWeight: 900 }}>{nm} 변호사</h2>
+            {of && <p style={{ color: sc, fontSize: 15 }}>{of}</p>}
+            <div style={{ display: "flex", gap: 10, marginTop: 12 }}>{(tags || []).map((t, i) => <span key={i} style={{ padding: "5px 16px", borderRadius: 20, border: `1px solid ${tc}30`, color: tc, fontSize: 12, fontWeight: 700 }}>{t}</span>)}</div>
+            {linesEl && <div style={{ color: sc }}>{linesEl}</div>}
         </div>;
     }
     if (v === 4) { // Accent stripe left on accent-tinted bg
@@ -80,9 +83,10 @@ export default function BrandImage({ config, profile }: P) {
         </div>;
     }
     if (v === 6) { // Split: accent left, dark right
+        const tc = getContrastColor(a1);
         return <div id="blog-brand-image" style={{ ...base, display: "flex" }}>
             <div style={{ flex: "0 0 50%", background: a1, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <h1 style={{ color: "#111", fontSize: 56, fontWeight: 900 }}>{nm}</h1>
+                <h1 style={{ color: tc, fontSize: 56, fontWeight: 900 }}>{nm}</h1>
             </div>
             <div style={{ flex: "0 0 50%", background: "#111", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
                 {logoEl(80)}
@@ -92,27 +96,30 @@ export default function BrandImage({ config, profile }: P) {
             </div>
         </div>;
     }
-    if (v === 7) { // Accent dot pattern
-        return <div id="blog-brand-image" style={{ ...base, background: `linear-gradient(180deg,${a1}60,#111)` }}>
-            <div style={{ position: "absolute", inset: 0, backgroundImage: `radial-gradient(circle,rgba(255,255,255,0.08) 1px,transparent 1px)`, backgroundSize: "24px 24px" }} />
+    if (v === 7) { // Frosted card on accent dot pattern
+        return <div id="blog-brand-image" style={{ ...base, background: `linear-gradient(180deg,${a1}80,${a2})` }}>
+            <div style={{ position: "absolute", inset: 0, backgroundImage: `radial-gradient(circle,rgba(255,255,255,0.12) 1px,transparent 1px)`, backgroundSize: "24px 24px" }} />
             <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 20 }}>
-                {logoEl(100)}
-                <h2 style={{ color: "#fff", fontSize: 38, fontWeight: 900, textShadow: "0 2px 8px rgba(0,0,0,0.5)" }}>{nm} 변호사</h2>
-                {of && <p style={{ color: "rgba(255,255,255,0.9)", fontSize: 15, textShadow: "0 1px 4px rgba(0,0,0,0.5)" }}>{of}</p>}
-                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>{(tags || []).slice(0, 3).map((t, i) => <span key={i} style={{ padding: "4px 14px", borderRadius: 6, background: "rgba(0,0,0,0.3)", color: "#fff", fontSize: 12, fontWeight: 600 }}>{t}</span>)}</div>
-                {linesEl && <div style={{ color: "rgba(255,255,255,0.9)", textShadow: "0 1px 4px rgba(0,0,0,0.5)" }}>{linesEl}</div>}
+                <div style={{ background: "rgba(255,255,255,0.9)", borderRadius: 20, padding: "40px 56px", textAlign: "center", boxShadow: "0 8px 32px rgba(0,0,0,0.12)" }}>
+                    {logo && <div style={{ filter: "brightness(0.2)", marginBottom: 12 }}>{logoEl(80)}</div>}
+                    <h2 style={{ color: "#111", fontSize: 34, fontWeight: 900 }}>{nm} 변호사</h2>
+                    {of && <p style={{ color: "#666", fontSize: 14, marginTop: 6 }}>{of}</p>}
+                    <div style={{ display: "flex", gap: 8, marginTop: 16, justifyContent: "center" }}>{(tags || []).slice(0, 3).map((t, i) => <span key={i} style={{ padding: "4px 14px", borderRadius: 6, background: `${a1}30`, color: "#333", fontSize: 12, fontWeight: 600 }}>{t}</span>)}</div>
+                    {linesEl && <div style={{ color: "#444" }}>{linesEl}</div>}
+                </div>
             </div>
         </div>;
     }
     if (v === 8) { // Light warm bg
-        return <div id="blog-brand-image" style={{ ...base, background: `linear-gradient(135deg,${a1}60,${a2}80,#F5F0EB)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        const tc = getContrastColor(a1); const sc = getSubContrastColor(a1);
+        return <div id="blog-brand-image" style={{ ...base, background: `linear-gradient(135deg,${a1},${a2},#F5F0EB)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <div style={{ textAlign: "center" }}>
-                {logo && <div style={{ marginBottom: 20, filter: "brightness(0.2)" }}>{logoEl(100)}</div>}
-                <h2 style={{ color: "#111", fontSize: 36, fontWeight: 900 }}>{nm} 변호사</h2>
-                {of && <p style={{ color: "#555", fontSize: 15, marginTop: 8 }}>{of}</p>}
-                <div style={{ width: 40, height: 3, background: "#111", borderRadius: 2, margin: "20px auto 16px", opacity: 0.2 }} />
-                <p style={{ color: "#666", fontSize: 13, fontWeight: 700, letterSpacing: "0.08em" }}>{tagLine}</p>
-                {linesEl && <div style={{ color: "#444" }}>{linesEl}</div>}
+                {logo && <div style={{ marginBottom: 20, filter: isLightColor(a1) ? "brightness(0.2)" : "brightness(1)" }}>{logoEl(100)}</div>}
+                <h2 style={{ color: tc, fontSize: 36, fontWeight: 900 }}>{nm} 변호사</h2>
+                {of && <p style={{ color: sc, fontSize: 15, marginTop: 8 }}>{of}</p>}
+                <div style={{ width: 40, height: 3, background: `${tc}30`, borderRadius: 2, margin: "20px auto 16px" }} />
+                <p style={{ color: sc, fontSize: 13, fontWeight: 700, letterSpacing: "0.08em" }}>{tagLine}</p>
+                {linesEl && <div style={{ color: sc }}>{linesEl}</div>}
             </div>
         </div>;
     }

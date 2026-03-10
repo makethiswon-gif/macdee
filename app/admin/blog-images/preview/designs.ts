@@ -2,6 +2,45 @@ export const S = 1000;
 export const FONT = "'Pretendard','Noto Sans KR',sans-serif";
 export const TS = "0 2px 8px rgba(0,0,0,0.8),0 1px 3px rgba(0,0,0,0.9)";
 
+/**
+ * Parse hex color to RGB, handling #RGB, #RRGGBB, and #RRGGBBAA formats
+ */
+function hexToRgb(hex: string): [number, number, number] {
+    const h = hex.replace("#", "");
+    const c = h.length <= 4 ? h.slice(0, 3) : h.slice(0, 6);
+    const full = c.length === 3 ? c.split("").map(ch => ch + ch).join("") : c;
+    return [
+        parseInt(full.slice(0, 2), 16),
+        parseInt(full.slice(2, 4), 16),
+        parseInt(full.slice(4, 6), 16),
+    ];
+}
+
+/** Returns true if a hex color is considered "light" (luminance > 0.45) */
+export function isLightColor(hex: string): boolean {
+    const [r, g, b] = hexToRgb(hex);
+    // Relative luminance (sRGB)
+    const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return lum > 0.45;
+}
+
+/** Returns #111 for light backgrounds, #fff for dark backgrounds */
+export function getContrastColor(hex: string): string {
+    return isLightColor(hex) ? "#111" : "#fff";
+}
+
+/** Returns appropriate sub-text color (less prominent) */
+export function getSubContrastColor(hex: string): string {
+    return isLightColor(hex) ? "rgba(0,0,0,0.6)" : "rgba(255,255,255,0.6)";
+}
+
+/** Text shadow appropriate for the background */
+export function getContrastShadow(hex: string): string {
+    return isLightColor(hex)
+        ? "0 1px 3px rgba(255,255,255,0.3)"
+        : "0 2px 8px rgba(0,0,0,0.8),0 1px 3px rgba(0,0,0,0.9)";
+}
+
 export type TxtPos = "center" | "bl" | "tl" | "br";
 export type PhotoUse = "none" | "full" | "left" | "right" | "top";
 
