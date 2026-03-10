@@ -219,7 +219,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
 }
 
-// increase body size limit for image uploads
-export const config = {
-    api: { bodyParser: { sizeLimit: "10mb" } },
-};
+
