@@ -19,16 +19,16 @@ export default function SummaryImage({ config, profile }: P) {
 
     if (v === 0) { // Warm bg + accent number badges
         return <div id="blog-summary-image" style={{ ...base, background: `linear-gradient(160deg,${a1} 0%,${a2} 100%)` }}><div style={{ height: "100%", display: "flex", flexDirection: "column", padding: "60px 70px" }}>
-            <span style={{ color: "#fff", fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", marginBottom: 10, opacity: 0.8 }}>핵심 포인트</span>
-            <h2 style={{ color: "#fff", fontSize: 26, fontWeight: 800, marginBottom: 40, wordBreak: "keep-all", textShadow: "0 1px 4px rgba(0,0,0,0.2)" }}>{title}</h2>
+            <span style={{ color: "rgba(0,0,0,0.6)", fontSize: 13, fontWeight: 800, letterSpacing: "0.12em", marginBottom: 10 }}>핵심 포인트</span>
+            <h2 style={{ color: "#111", fontSize: 26, fontWeight: 800, marginBottom: 40, wordBreak: "keep-all" }}>{title}</h2>
             <div style={{ display: "flex", flexDirection: "column", gap: 24, flex: 1 }}>
                 {lines.map((l, i) => <div key={i} style={{ display: "flex", gap: 18, alignItems: "flex-start" }}>
-                    <div style={{ minWidth: 46, height: 46, borderRadius: 12, background: "rgba(255,255,255,0.25)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 18, fontWeight: 900, backdropFilter: "blur(4px)" }}>0{i + 1}</div>
-                    <p style={{ color: "#fff", fontSize: 17, lineHeight: 1.7, wordBreak: "keep-all", paddingTop: 8, textShadow: "0 1px 2px rgba(0,0,0,0.15)" }}>{l}</p>
+                    <div style={{ minWidth: 46, height: 46, borderRadius: 12, background: "rgba(0,0,0,0.1)", display: "flex", alignItems: "center", justifyContent: "center", color: "#111", fontSize: 18, fontWeight: 900 }}>0{i + 1}</div>
+                    <p style={{ color: "#111", fontSize: 17, lineHeight: 1.7, wordBreak: "keep-all", paddingTop: 8, fontWeight: 600 }}>{l}</p>
                 </div>)}
             </div>
-            <div style={{ marginTop: 24, color: "rgba(255,255,255,0.7)" }}>{nameEl}</div>
-        </div>{logoEl}</div>;
+            <div style={{ marginTop: 24, color: "rgba(0,0,0,0.6)" }}>{nameEl}</div>
+        </div><div style={{ filter: "brightness(0.1)" }}>{logoEl}</div></div>;
     }
     if (v === 1) { // Accent cards on dark
         return <div id="blog-summary-image" style={{ ...base, background: "#111" }}><div style={{ height: "100%", display: "flex", flexDirection: "column", padding: "60px 70px" }}>
@@ -59,7 +59,7 @@ export default function SummaryImage({ config, profile }: P) {
     }
     if (v === 3) { // White card on colored bg
         return <div id="blog-summary-image" style={{ ...base, background: a1 }}><div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: 50 }}>
-            <div style={{ width: "100%", maxWidth: 820, background: "#fff", borderRadius: 20, padding: "50px 56px", color: "#111" }}>
+            <div style={{ width: "100%", maxWidth: 820, background: "#fff", borderRadius: 20, padding: "50px 56px", color: "#111", boxShadow: "0 10px 40px rgba(0,0,0,0.1)" }}>
                 <span style={{ color: a1, fontSize: 13, fontWeight: 700, letterSpacing: "0.08em" }}>핵심 포인트</span>
                 <h2 style={{ fontSize: 24, fontWeight: 800, marginTop: 8, marginBottom: 30, wordBreak: "keep-all" }}>{title}</h2>
                 <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
@@ -73,7 +73,7 @@ export default function SummaryImage({ config, profile }: P) {
                     <div><p style={{ fontSize: 14, fontWeight: 700 }}>{nm} 변호사</p>{of && <p style={{ fontSize: 11, color: "#999" }}>{of}</p>}</div>
                 </div>
             </div>
-        </div>{logoEl}</div>;
+        </div><div style={{ filter: "brightness(0.1)" }}>{logoEl}</div></div>;
     }
     if (v === 4) { // Timeline on warm gradient
         return <div id="blog-summary-image" style={{ ...base, background: `linear-gradient(180deg,${a1} 0%,${a2} 100%)` }}>

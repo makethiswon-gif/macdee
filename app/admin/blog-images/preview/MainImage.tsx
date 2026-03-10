@@ -193,7 +193,7 @@ export default function MainImage({ config, profile }: P) {
         return <div id="blog-main-image" style={base}>
             {bgPhoto}
             <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 70px" }}>
-                <div style={{ background: accent, color: "#fff", padding: "6px 14px", borderRadius: 4, alignSelf: "flex-start", fontSize: 13, fontWeight: 700, marginBottom: 24, boxShadow: "0 4px 12px rgba(0,0,0,0.5)" }}>
+                <div style={{ background: accent, color: "#111", padding: "6px 14px", borderRadius: 4, alignSelf: "flex-start", fontSize: 13, fontWeight: 800, marginBottom: 24, boxShadow: "0 4px 12px rgba(0,0,0,0.2)" }}>
                     {tags[0] || of || "법률정보"}
                 </div>
                 <h1 style={{ color: "#fff", fontSize: ts, fontWeight: 900, lineHeight: 1.45, wordBreak: "keep-all", textShadow: "0 2px 10px rgba(0,0,0,0.5)" }}>
@@ -228,11 +228,11 @@ export default function MainImage({ config, profile }: P) {
             {bgPhoto}
             <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", padding: "60px 70px", textAlign: "center" }}>
                 <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 18, fontWeight: 600, marginBottom: 20 }}>{nm} 변호사 {of && `· ${of}`}</p>
-                <h1 style={{ color: "#fff", fontSize: ts, fontWeight: 900, lineHeight: 1.45, letterSpacing: "-0.02em", wordBreak: "keep-all" }}>
+                <h1 style={{ color: "#111", fontSize: ts, fontWeight: 900, lineHeight: 1.45, letterSpacing: "-0.02em", wordBreak: "keep-all" }}>
                     <span style={{ background: accent, padding: "0 10px", display: "inline-block", lineHeight: 1.2, marginBottom: "8px" }}>{firstHalf}</span><br />
                     <span style={{ background: a2, padding: "0 10px", display: "inline-block", lineHeight: 1.2 }}>{secondHalf}</span>
                 </h1>
-                {tags.length > 0 && <p style={{ color: accent, fontSize: 16, fontWeight: 800, marginTop: 40, letterSpacing: "0.1em" }}>{tags.join(" / ")}</p>}
+                {tags.length > 0 && <p style={{ color: accent, fontSize: 16, fontWeight: 800, marginTop: 40, letterSpacing: "0.1em", textShadow: TS }}>{tags.join(" / ")}</p>}
             </div>{logoEl}
         </div>;
     }

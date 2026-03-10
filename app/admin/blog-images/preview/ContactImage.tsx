@@ -22,44 +22,44 @@ export default function ContactImage({ config, profile }: P) {
             <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <div style={{ textAlign: "center" }}>
                     {profImg(130, 160, 16) && <div style={{ marginBottom: 20, display: "flex", justifyContent: "center" }}>{profImg(130, 160, 16)}</div>}
-                    <p style={{ color: "rgba(255,255,255,0.8)", fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 8 }}>상담 안내</p>
-                    <h2 style={{ color: "#fff", fontSize: 36, fontWeight: 900, marginBottom: 6, textShadow: "0 2px 8px rgba(0,0,0,0.15)" }}>{nm} 변호사</h2>
-                    {of && <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 15, marginBottom: 32 }}>{of}</p>}
+                    <p style={{ color: "rgba(0,0,0,0.6)", fontSize: 12, fontWeight: 800, letterSpacing: "0.1em", marginBottom: 8 }}>상담 안내</p>
+                    <h2 style={{ color: "#111", fontSize: 36, fontWeight: 900, marginBottom: 6 }}>{nm} 변호사</h2>
+                    {of && <p style={{ color: "rgba(0,0,0,0.6)", fontSize: 15, marginBottom: 32 }}>{of}</p>}
                     <div style={{ display: "flex", flexDirection: "column", gap: 14, alignItems: "center" }}>
-                        {ci.map((c, i) => <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, color: "#fff", fontSize: 15 }}><span>{c.icon}</span><span style={{ fontWeight: 500 }}>{c.value}</span></div>)}
+                        {ci.map((c, i) => <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, color: "#111", fontSize: 15 }}><span>{c.icon}</span><span style={{ fontWeight: 600 }}>{c.value}</span></div>)}
                     </div>
                 </div>
-            </div>{logoEl}
+            </div><div style={{ filter: "brightness(0.1)" }}>{logoEl}</div>
         </div>;
     }
     if (v === 1) { // Office bg + accent overlay
         return <div id="blog-contact-image" style={{ ...base, background: "#111" }}>
             {oImg && <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${oImg})`, backgroundSize: "cover" }} />}
-            <div style={{ position: "absolute", inset: 0, background: `linear-gradient(135deg,${accent}CC,${a2}AA)` }} />
+            <div style={{ position: "absolute", inset: 0, background: `linear-gradient(135deg,${accent}EE,${a2}CC)` }} />
             <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", alignItems: "center", padding: "0 80px", gap: 50 }}>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
-                    {profImg(150, 190, 16) && <div style={{ border: "3px solid rgba(255,255,255,0.3)", borderRadius: 16, overflow: "hidden" }}>{profImg(150, 190, 16)}</div>}
+                    {profImg(150, 190, 16) && <div style={{ border: "3px solid rgba(0,0,0,0.2)", borderRadius: 16, overflow: "hidden" }}>{profImg(150, 190, 16)}</div>}
                 </div>
                 <div>
-                    <p style={{ color: "rgba(255,255,255,0.8)", fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 10 }}>상담 안내</p>
-                    <h2 style={{ color: "#fff", fontSize: 32, fontWeight: 900, textShadow: TS, marginBottom: 6 }}>{nm} 변호사</h2>
-                    {of && <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 14, marginBottom: 28, textShadow: TS }}>{of}</p>}
+                    <p style={{ color: "rgba(0,0,0,0.6)", fontSize: 13, fontWeight: 800, letterSpacing: "0.1em", marginBottom: 10 }}>상담 안내</p>
+                    <h2 style={{ color: "#111", fontSize: 32, fontWeight: 900, marginBottom: 6 }}>{nm} 변호사</h2>
+                    {of && <p style={{ color: "rgba(0,0,0,0.6)", fontSize: 14, marginBottom: 28 }}>{of}</p>}
                     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                         {ci.map((c, i) => <div key={i} style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                            <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{c.icon}</div>
-                            <div><p style={{ color: "rgba(255,255,255,0.7)", fontSize: 11 }}>{c.label}</p><p style={{ color: "#fff", fontSize: 16, fontWeight: 600, textShadow: TS }}>{c.value}</p></div>
+                            <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(0,0,0,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{c.icon}</div>
+                            <div><p style={{ color: "rgba(0,0,0,0.6)", fontSize: 11, fontWeight: 700 }}>{c.label}</p><p style={{ color: "#111", fontSize: 16, fontWeight: 700 }}>{c.value}</p></div>
                         </div>)}
                     </div>
                 </div>
-            </div>{logoEl}
+            </div><div style={{ filter: "brightness(0.1)" }}>{logoEl}</div>
         </div>;
     }
     if (v === 2) { // Accent left split
         return <div id="blog-contact-image" style={{ ...base, display: "flex" }}>
             <div style={{ flex: "0 0 42%", background: accent, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
-                {profImg(180, 220, 16) || <div style={{ width: 180, height: 220, borderRadius: 16, background: "rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 56 }}>⚖</div>}
-                <p style={{ color: "#fff", fontSize: 22, fontWeight: 800, textShadow: "0 1px 4px rgba(0,0,0,0.15)" }}>{nm} 변호사</p>
-                {of && <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 13 }}>{of}</p>}
+                {profImg(180, 220, 16) || <div style={{ width: 180, height: 220, borderRadius: 16, background: "rgba(0,0,0,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 56 }}>⚖</div>}
+                <p style={{ color: "#111", fontSize: 22, fontWeight: 900 }}>{nm} 변호사</p>
+                {of && <p style={{ color: "rgba(0,0,0,0.6)", fontSize: 13, fontWeight: 700 }}>{of}</p>}
             </div>
             <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "50px 60px", background: "#111" }}>
                 <p style={{ color: accent, fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 28 }}>상담 안내</p>
@@ -74,19 +74,19 @@ export default function ContactImage({ config, profile }: P) {
     }
     if (v === 3) { // White card on accent bg
         return <div id="blog-contact-image" style={{ ...base, background: accent }}><div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: 50 }}>
-            <div style={{ width: "100%", maxWidth: 750, background: "#fff", borderRadius: 20, padding: "48px 56px", display: "flex", gap: 40, alignItems: "center" }}>
+            <div style={{ width: "100%", maxWidth: 750, background: "#fff", borderRadius: 20, padding: "48px 56px", display: "flex", gap: 40, alignItems: "center", boxShadow: "0 10px 40px rgba(0,0,0,0.15)" }}>
                 <div style={{ flex: "0 0 auto", textAlign: "center" }}>
                     {profImg(140, 170, 16) || <div style={{ width: 140, height: 170, borderRadius: 16, background: "#E5E7EB", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48, color: "#9CA3AF" }}>⚖</div>}
                 </div>
                 <div style={{ flex: 1 }}>
                     <h2 style={{ color: "#111", fontSize: 28, fontWeight: 900, marginBottom: 4 }}>{nm} 변호사</h2>
-                    {of && <p style={{ color: "#666", fontSize: 14, marginBottom: 24 }}>{of}</p>}
+                    {of && <p style={{ color: "#666", fontSize: 14, marginBottom: 24, fontWeight: 600 }}>{of}</p>}
                     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                        {ci.map((c, i) => <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 15, color: "#333" }}><span style={{ color: accent }}>{c.icon}</span><span style={{ fontWeight: 500 }}>{c.value}</span></div>)}
+                        {ci.map((c, i) => <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 15, color: "#222" }}><span style={{ color: accent }}>{c.icon}</span><span style={{ fontWeight: 600 }}>{c.value}</span></div>)}
                     </div>
                 </div>
             </div>
-        </div>{logoEl}</div>;
+        </div><div style={{ filter: "brightness(0.1)" }}>{logoEl}</div></div>;
     }
     if (v === 4) { // Accent colored info cards
         return <div id="blog-contact-image" style={{ ...base, background: "#111" }}>
@@ -97,10 +97,10 @@ export default function ContactImage({ config, profile }: P) {
                     <div><h2 style={{ color: "#fff", fontSize: 30, fontWeight: 900 }}>{nm} 변호사</h2>{of && <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 14 }}>{of}</p>}</div>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-                    {ci.map((c, i) => <div key={i} style={{ padding: "24px 28px", borderRadius: 16, background: i === 0 ? accent : `${accent}40`, color: "#fff" }}>
+                    {ci.map((c, i) => <div key={i} style={{ padding: "24px 28px", borderRadius: 16, background: i === 0 ? accent : `${accent}99`, color: "#111" }}>
                         <span style={{ fontSize: 22 }}>{c.icon}</span>
-                        <p style={{ fontSize: 11, marginTop: 10, opacity: 0.8 }}>{c.label}</p>
-                        <p style={{ fontSize: 16, fontWeight: 600, marginTop: 4 }}>{c.value}</p>
+                        <p style={{ fontSize: 12, marginTop: 10, opacity: 0.8, fontWeight: 700 }}>{c.label}</p>
+                        <p style={{ fontSize: 16, fontWeight: 800, marginTop: 4 }}>{c.value}</p>
                     </div>)}
                 </div>
             </div>{logoEl}
@@ -118,7 +118,7 @@ export default function ContactImage({ config, profile }: P) {
                 <p style={{ color: accent, fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 20 }}>상담 안내</p>
                 <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
                     {ci.map((c, i) => <div key={i} style={{ display: "flex", gap: 14, alignItems: "center" }}>
-                        <span style={{ fontSize: 20 }}>{c.icon}</span>
+                        <span style={{ fontSize: 20, width: 24, textAlign: "center" }}>{c.icon}</span>
                         <div><p style={{ color: "rgba(255,255,255,0.5)", fontSize: 11 }}>{c.label}</p><p style={{ color: "#fff", fontSize: 16, fontWeight: 600 }}>{c.value}</p></div>
                     </div>)}
                 </div>
@@ -128,17 +128,17 @@ export default function ContactImage({ config, profile }: P) {
     if (v === 6) { // Photo bg with accent overlay centered
         return <div id="blog-contact-image" style={{ ...base, background: "#111" }}>
             {(oImg || pImg) && <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${oImg || pImg})`, backgroundSize: "cover", backgroundPosition: "center" }} />}
-            <div style={{ position: "absolute", inset: 0, background: `linear-gradient(135deg,${accent}DD,${a2}BB)` }} />
+            <div style={{ position: "absolute", inset: 0, background: `linear-gradient(135deg,${accent}EE,${a2}DD)` }} />
             <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <div style={{ textAlign: "center" }}>
-                    <p style={{ color: "rgba(255,255,255,0.8)", fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 12 }}>상담 안내</p>
-                    <h2 style={{ color: "#fff", fontSize: 38, fontWeight: 900, textShadow: "0 2px 8px rgba(0,0,0,0.15)" }}>{nm} 변호사</h2>
-                    {of && <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 15, marginTop: 8, marginBottom: 28 }}>{of}</p>}
+                    <p style={{ color: "rgba(0,0,0,0.6)", fontSize: 13, fontWeight: 800, letterSpacing: "0.1em", marginBottom: 12 }}>상담 안내</p>
+                    <h2 style={{ color: "#111", fontSize: 38, fontWeight: 900 }}>{nm} 변호사</h2>
+                    {of && <p style={{ color: "rgba(0,0,0,0.6)", fontSize: 15, marginTop: 8, marginBottom: 28 }}>{of}</p>}
                     <div style={{ display: "flex", flexDirection: "column", gap: 14, alignItems: "center" }}>
-                        {ci.map((c, i) => <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, color: "#fff", fontSize: 16 }}><span>{c.icon}</span><span style={{ fontWeight: 500 }}>{c.value}</span></div>)}
+                        {ci.map((c, i) => <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, color: "#111", fontSize: 16 }}><span>{c.icon}</span><span style={{ fontWeight: 700 }}>{c.value}</span></div>)}
                     </div>
                 </div>
-            </div>{logoEl}
+            </div><div style={{ filter: "brightness(0.1)" }}>{logoEl}</div>
         </div>;
     }
     if (v === 7) { // Accent stripe left
