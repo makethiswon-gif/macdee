@@ -263,10 +263,16 @@ function ProfilesTab({ profiles, onRefresh }: { profiles: BlogProfile[]; onRefre
             website: form.website,
             specialty: form.specialty.split(",").map((s) => s.trim()).filter(Boolean),
         };
-        await fetch("/api/admin/blog-profiles", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+        const res = await fetch("/api/admin/blog-profiles", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+        const result = await res.json();
         setSaving(false);
-        resetForm();
         onRefresh();
+        // After creating, auto-switch to edit mode so user can add images
+        if (!editId && result.profile?.id) {
+            startEdit(result.profile.id);
+        } else {
+            resetForm();
+        }
     };
 
     const handleDelete = async (id: string) => {
