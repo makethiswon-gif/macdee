@@ -28,6 +28,8 @@ export interface GenerationConfig {
     postSummary: string;
     accentColor: string;
     secondaryAccent: string;
+    backgroundColor: string;
+    textColor: string;
     mainVariant: number;
     summaryVariant: number;
     contactVariant: number;
@@ -38,26 +40,48 @@ export interface GenerationConfig {
     createdAt: number;
 }
 
-// 2025 Trend Color Palettes — 밝고 확실히 보이는 색상만 사용
-export const COLOR_PALETTES = [
-    // Soft Neutral (밝은 베이지~크림)
-    ["#F5E9DA", "#E8DCC8", "#D6C6AF"],
-    ["#E8DCC8", "#D6C6AF", "#C9B79C"],
-    // Warm Brown (밝은 카라멜~골드)
-    ["#C49A6C", "#D4A574", "#B37A4C"],
-    ["#D4A574", "#C49A6C", "#E8C9A0"],
-    // Modern Green (밝은 세이지~민트)
-    ["#A8C3A0", "#B5D4AE", "#7FAE8C"],
-    ["#B5D4AE", "#A8C3A0", "#CDE7D8"],
-    // Soft Pastel (핑크~라벤더~스카이)
-    ["#F4B7C3", "#E9A8D4", "#E6E2F3"],
-    ["#BFD8F3", "#CDE7D8", "#E6E2F3"],
-    // Mixed Warm (따뜻한 조합)
-    ["#C49A6C", "#A8C3A0", "#F4B7C3"],
-    ["#F5E9DA", "#BFD8F3", "#F4B7C3"],
+// 30 Color Palettes — background / text / accent
+export interface ColorPalette { bg: string; text: string; accent: string; }
+export const COLOR_PALETTES: ColorPalette[] = [
+    // Soft Neutral (1-5)
+    { bg: "#F5E9DA", text: "#1A1A1A", accent: "#C49A6C" },
+    { bg: "#E8DCC8", text: "#222222", accent: "#9C5F3A" },
+    { bg: "#D6C6AF", text: "#1F1F1F", accent: "#7A4B2E" },
+    { bg: "#C9B79C", text: "#111111", accent: "#5C3822" },
+    { bg: "#F0EFEA", text: "#1B1B1B", accent: "#B37A4C" },
+    // Dark Navy (6-10)
+    { bg: "#0F172A", text: "#FFFFFF", accent: "#C49A6C" },
+    { bg: "#111827", text: "#F9FAFB", accent: "#E5B76E" },
+    { bg: "#1E293B", text: "#FFFFFF", accent: "#C8A96B" },
+    { bg: "#020617", text: "#F8FAFC", accent: "#D4AF37" },
+    { bg: "#0B132B", text: "#FFFFFF", accent: "#C49A6C" },
+    // Forest Green (11-15)
+    { bg: "#1B4332", text: "#FFFFFF", accent: "#D8C3A5" },
+    { bg: "#344E41", text: "#FFFFFF", accent: "#EAD7BB" },
+    { bg: "#2F3E46", text: "#FFFFFF", accent: "#DDB892" },
+    { bg: "#283618", text: "#FFFFFF", accent: "#E9C46A" },
+    { bg: "#3A5A40", text: "#FFFFFF", accent: "#F2CC8F" },
+    // Light Green (16-20)
+    { bg: "#F8F4EC", text: "#1A1A1A", accent: "#7FAE8C" },
+    { bg: "#EEE8DF", text: "#1A1A1A", accent: "#3F6F5A" },
+    { bg: "#EDEDE9", text: "#1A1A1A", accent: "#588157" },
+    { bg: "#F7F7F7", text: "#222222", accent: "#4A7C59" },
+    { bg: "#EFEAE4", text: "#1A1A1A", accent: "#6B705C" },
+    // Charcoal/Dark (21-25)
+    { bg: "#1C1C1C", text: "#FFFFFF", accent: "#B08968" },
+    { bg: "#2D2D2D", text: "#FFFFFF", accent: "#C49A6C" },
+    { bg: "#383838", text: "#FFFFFF", accent: "#E6B89C" },
+    { bg: "#262626", text: "#FFFFFF", accent: "#C8A96B" },
+    { bg: "#121212", text: "#FFFFFF", accent: "#D4AF37" },
+    // Warm Neutral (26-30)
+    { bg: "#FAF7F2", text: "#1A1A1A", accent: "#DDB892" },
+    { bg: "#F3EFE6", text: "#1A1A1A", accent: "#A98467" },
+    { bg: "#F1EDE5", text: "#1A1A1A", accent: "#6F4E37" },
+    { bg: "#EFE6DD", text: "#1A1A1A", accent: "#9C6644" },
+    { bg: "#EDE0D4", text: "#1A1A1A", accent: "#7F5539" },
 ];
 // Flat list for backward compat
-export const ACCENT_COLORS = COLOR_PALETTES.map(p => p[0]);
+export const ACCENT_COLORS = COLOR_PALETTES.map(p => p.accent);
 
 export const MAIN_VARIANT_COUNT = 21;
 export const SUMMARY_VARIANT_COUNT = 12;
@@ -77,8 +101,10 @@ export function generateConfig(
         profileId,
         postTitle,
         postSummary,
-        accentColor: palette[0],
-        secondaryAccent: palette[1] || palette[0],
+        accentColor: palette.accent,
+        secondaryAccent: palette.accent,
+        backgroundColor: palette.bg,
+        textColor: palette.text,
         mainVariant: Math.floor(Math.random() * MAIN_VARIANT_COUNT),
         summaryVariant: Math.floor(Math.random() * SUMMARY_VARIANT_COUNT),
         contactVariant: Math.floor(Math.random() * CONTACT_VARIANT_COUNT),

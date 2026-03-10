@@ -37,8 +37,10 @@ function PreviewContent() {
         const palette = COLOR_PALETTES[Math.floor(Math.random() * COLOR_PALETTES.length)];
         const newConfig: GenerationConfig = {
             ...config,
-            accentColor: palette[0],
-            secondaryAccent: palette[1] || palette[0],
+            accentColor: palette.accent,
+            secondaryAccent: palette.accent,
+            backgroundColor: palette.bg,
+            textColor: palette.text,
             mainVariant: Math.floor(Math.random() * MAIN_VARIANT_COUNT),
             summaryVariant: Math.floor(Math.random() * SUMMARY_VARIANT_COUNT),
             contactVariant: Math.floor(Math.random() * CONTACT_VARIANT_COUNT),
