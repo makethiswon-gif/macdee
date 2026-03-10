@@ -65,23 +65,23 @@ export default function BrandImage({ config, profile }: P) {
         </div>;
     }
     if (v === 4) { // Accent stripe left on accent-tinted bg
-        return <div id="blog-brand-image" style={{ ...base, background: `linear-gradient(135deg, #111 0%, ${a1}30 100%)` }}>
+        return <div id="blog-brand-image" style={{ ...base, background: `linear-gradient(135deg, ${bg} 0%, ${a1}30 100%)` }}>
             <div style={{ position: "absolute", top: 0, left: 0, width: 10, height: "100%", background: a1 }} />
             <div style={{ position: "absolute", top: "46%", left: 0, right: 0, height: 120, background: `${a1}35` }} />
             <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
                 {logoEl(100)}
-                <h2 style={{ color: "#fff", fontSize: 34, fontWeight: 900 }}>{nm} 변호사</h2>
-                {of && <p style={{ color: "rgba(255,255,255,0.75)", fontSize: 14 }}>{of}</p>}
+                <h2 style={{ color: tc, fontSize: 34, fontWeight: 900 }}>{nm} 변호사</h2>
+                {of && <p style={{ color: `${tc}CC`, fontSize: 14 }}>{of}</p>}
             </div>
         </div>;
     }
     if (v === 5) { // Accent circles on accent-tinted bg
-        return <div id="blog-brand-image" style={{ ...base, background: `linear-gradient(180deg, #111 0%, ${a1}30 100%)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        return <div id="blog-brand-image" style={{ ...base, background: `linear-gradient(180deg, ${bg} 0%, ${a1}30 100%)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 500, height: 500, borderRadius: "50%", background: `${a1}40` }} />
             <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 350, height: 350, borderRadius: "50%", background: `${a1}30` }} />
             <div style={{ textAlign: "center", position: "relative", zIndex: 1 }}>
                 {logoEl(100)}
-                <h2 style={{ color: "#fff", fontSize: 36, fontWeight: 900, marginTop: 16 }}>{nm}</h2>
+                <h2 style={{ color: tc, fontSize: 36, fontWeight: 900, marginTop: 16 }}>{nm}</h2>
                 <p style={{ color: a1, fontSize: 14, fontWeight: 600, marginTop: 8 }}>변호사{of ? ` · ${of}` : ""}</p>
             </div>
         </div>;
@@ -94,8 +94,8 @@ export default function BrandImage({ config, profile }: P) {
             </div>
             <div style={{ flex: "0 0 50%", background: bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
                 {logoEl(80)}
-                <p style={{ color: "#fff", fontSize: 18, fontWeight: 700 }}>변호사</p>
-                {of && <p style={{ color: "rgba(255,255,255,0.75)", fontSize: 13 }}>{of}</p>}
+                <p style={{ color: tc, fontSize: 18, fontWeight: 700 }}>변호사</p>
+                {of && <p style={{ color: `${tc}CC`, fontSize: 13 }}>{of}</p>}
                 <p style={{ color: a1, fontSize: 12, letterSpacing: "0.1em", marginTop: 8 }}>{tagLine}</p>
             </div>
         </div>;
@@ -129,13 +129,13 @@ export default function BrandImage({ config, profile }: P) {
     }
     // v===9: Accent corner gradients
     if (v === 9) {
-        return <div id="blog-brand-image" style={{ ...base, background: `linear-gradient(180deg, #111 0%, ${a1}20 50%, #111 100%)` }}>
+        return <div id="blog-brand-image" style={{ ...base, background: `linear-gradient(180deg, ${bg} 0%, ${a1}20 50%, ${bg} 100%)` }}>
             <div style={{ position: "absolute", top: 0, right: 0, width: 400, height: 400, background: `linear-gradient(225deg,${a1}80,transparent)` }} />
             <div style={{ position: "absolute", bottom: 0, left: 0, width: 300, height: 300, background: `linear-gradient(45deg,${a2}60,transparent)` }} />
             <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 20 }}>
                 {logoEl(100)}
-                <h2 style={{ color: "#fff", fontSize: 36, fontWeight: 900 }}>{nm} 변호사</h2>
-                {of && <p style={{ color: "rgba(255,255,255,0.75)", fontSize: 15 }}>{of}</p>}
+                <h2 style={{ color: tc, fontSize: 36, fontWeight: 900 }}>{nm} 변호사</h2>
+                {of && <p style={{ color: `${tc}CC`, fontSize: 15 }}>{of}</p>}
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
                     <div style={{ width: 24, height: 2, background: a1 }} />
                     <span style={{ color: a1, fontSize: 13, fontWeight: 600, letterSpacing: "0.1em" }}>{tagLine}</span>
@@ -173,7 +173,7 @@ export default function BrandImage({ config, profile }: P) {
     // v===11: Dark warm bg + serif italic quote + brackets (Alexandra Rocha style)
     if (v === 11) {
         const quote = lines[0] || `${nm} 변호사와 함께하는 법률 상담`;
-        return <div id="blog-brand-image" style={{ ...base, background: "#2a1f1a" }}>
+        return <div id="blog-brand-image" style={{ ...base, background: bg }}>
             {/* Partial portrait on right - subtle */}
             {pImg && <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "40%", overflow: "hidden" }}>
                 <img src={pImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "left top", opacity: 0.4 }} />
@@ -226,7 +226,7 @@ export default function BrandImage({ config, profile }: P) {
 
     // v===13: Blurred office photo + frosted glass card (Projetura style)
     if (v === 13) {
-        return <div id="blog-brand-image" style={{ ...base, background: "#1a1a2e" }}>
+        return <div id="blog-brand-image" style={{ ...base, background: bg }}>
             {oImg && <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${oImg})`, backgroundSize: "cover", backgroundPosition: "center", filter: "blur(6px) brightness(0.5)", transform: "scale(1.05)" }} />}
             <div style={{ position: "absolute", inset: 0, background: `linear-gradient(180deg, transparent 30%, ${a1}30 100%)` }} />
             {/* Main frosted glass card */}

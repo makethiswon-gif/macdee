@@ -3,7 +3,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ArrowLeft, Palette, Shuffle, Download, Droplets } from "lucide-react";
 import {
-    getGenerationById, generateConfig, saveGeneration,
+    getGenerationById, generateConfig, saveGeneration, adjustColor,
     COLOR_PALETTES, MAIN_VARIANT_COUNT, SUMMARY_VARIANT_COUNT, CONTACT_VARIANT_COUNT, BRAND_VARIANT_COUNT,
     type GenerationConfig, type BlogProfile,
 } from "../themes";
@@ -38,7 +38,7 @@ function PreviewContent() {
         const newConfig: GenerationConfig = {
             ...config,
             accentColor: palette.accent,
-            secondaryAccent: palette.accent,
+            secondaryAccent: adjustColor(palette.accent, -25),
             backgroundColor: palette.bg,
             textColor: palette.text,
             mainVariant: Math.floor(Math.random() * MAIN_VARIANT_COUNT),
@@ -61,7 +61,7 @@ function PreviewContent() {
         const newConfig: GenerationConfig = {
             ...config,
             accentColor: palette.accent,
-            secondaryAccent: palette.accent,
+            secondaryAccent: adjustColor(palette.accent, -25),
             backgroundColor: palette.bg,
             textColor: palette.text,
         };
@@ -114,7 +114,7 @@ function PreviewContent() {
                 const canvas = await html2canvas(el, {
                     scale: 1,
                     useCORS: true,
-                    backgroundColor: "#0C0C0C",
+                    backgroundColor: config.backgroundColor || "#0C0C0C",
                     width: 1000,
                     height: 1000,
                 });
@@ -198,7 +198,7 @@ function PreviewContent() {
                         <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                             <span className="w-5 h-5 rounded-full bg-[#3563AE]/20 text-[#3563AE] text-[10px] font-bold flex items-center justify-center">1</span>메인 이미지 (썸네일)
                         </h3>
-                        <span className="text-[10px] text-[#4B5563]">1000 × 1000px · 변형 {config.mainVariant + 1}/10</span>
+                        <span className="text-[10px] text-[#4B5563]">1000 × 1000px · 변형 {config.mainVariant + 1}/{MAIN_VARIANT_COUNT}</span>
                     </div>
                     <div className="rounded-xl overflow-hidden border border-[#1F2937] shadow-lg shadow-black/20 inline-block"><MainImage config={config} profile={profile} /></div>
                 </div>
@@ -207,7 +207,7 @@ function PreviewContent() {
                         <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                             <span className="w-5 h-5 rounded-full bg-[#8B5CF6]/20 text-[#8B5CF6] text-[10px] font-bold flex items-center justify-center">2</span>중간 요약 이미지
                         </h3>
-                        <span className="text-[10px] text-[#4B5563]">1000 × 1000px · 변형 {config.summaryVariant + 1}/10</span>
+                        <span className="text-[10px] text-[#4B5563]">1000 × 1000px · 변형 {config.summaryVariant + 1}/{SUMMARY_VARIANT_COUNT}</span>
                     </div>
                     <div className="rounded-xl overflow-hidden border border-[#1F2937] shadow-lg shadow-black/20 inline-block"><SummaryImage config={config} profile={profile} /></div>
                 </div>
@@ -225,7 +225,7 @@ function PreviewContent() {
                         <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                             <span className="w-5 h-5 rounded-full bg-[#F59E0B]/20 text-[#F59E0B] text-[10px] font-bold flex items-center justify-center">4</span>브랜드 이미지
                         </h3>
-                        <span className="text-[10px] text-[#4B5563]">1000 × 1000px · 변형 {(config.brandVariant || 0) + 1}/10</span>
+                        <span className="text-[10px] text-[#4B5563]">1000 × 1000px · 변형 {(config.brandVariant || 0) + 1}/{BRAND_VARIANT_COUNT}</span>
                     </div>
                     <div className="rounded-xl overflow-hidden border border-[#1F2937] shadow-lg shadow-black/20 inline-block"><BrandImage config={config} profile={profile} /></div>
                 </div>

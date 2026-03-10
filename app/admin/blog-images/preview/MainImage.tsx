@@ -1,5 +1,5 @@
 "use client";
-import { S, FONT, TS, ML_ALL, getContrastColor, isLightColor } from "./designs";
+import { S, FONT, TS, ML_ALL, getContrastColor, getSubContrastColor, isLightColor } from "./designs";
 import type { GenerationConfig, BlogProfile } from "../themes";
 
 interface P { config: GenerationConfig; profile: BlogProfile; }
@@ -57,14 +57,14 @@ export default function MainImage({ config, profile }: P) {
         return <div id="blog-main-image" style={{ ...base, display: "flex" }}>
             <div style={{ flex: "0 0 55%", position: "relative", display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 50px 60px 70px", background: `linear-gradient(180deg, ${accent} 0%, ${a2} 100%)` }}>
                 <div style={{ position: "relative", zIndex: 1 }}>
-                    <div style={{ width: 4, height: 36, background: bg, borderRadius: 2, marginBottom: 20 }} />
-                    <span style={{ color: "#111", fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 12, display: "block", opacity: 0.7 }}>{tags[0] || "법률 전문"}</span>
-                    <h1 style={{ color: "#111", fontSize: ts, fontWeight: 900, lineHeight: 1.25, letterSpacing: "-0.02em", wordBreak: "keep-all" }}>{t}</h1>
-                    <div style={{ marginTop: 24 }}><span style={{ color: "rgba(0,0,0,0.6)", fontSize: 15 }}>{nm} 변호사{of ? ` · ${of}` : ""}</span></div>
+                    <div style={{ width: 4, height: 36, background: getContrastColor(accent), borderRadius: 2, marginBottom: 20 }} />
+                    <span style={{ color: getContrastColor(accent), fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 12, display: "block", opacity: 0.7 }}>{tags[0] || "법률 전문"}</span>
+                    <h1 style={{ color: getContrastColor(accent), fontSize: ts, fontWeight: 900, lineHeight: 1.25, letterSpacing: "-0.02em", wordBreak: "keep-all" }}>{t}</h1>
+                    <div style={{ marginTop: 24 }}><span style={{ color: getSubContrastColor(accent), fontSize: 15 }}>{nm} 변호사{of ? ` · ${of}` : ""}</span></div>
                 </div>
             </div>
             <div style={{ flex: "0 0 45%", position: "relative" }}>
-                {(pImg || oImg) ? <img src={pImg || oImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} /> : <div style={{ width: "100%", height: "100%", background: "#161616" }} />}
+                {(pImg || oImg) ? <img src={pImg || oImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} /> : <div style={{ width: "100%", height: "100%", background: bg }} />}
                 <div style={{ position: "absolute", inset: 0, background: `linear-gradient(90deg,${accent} 0%,transparent 25%)` }} />
             </div>{logoEl}
         </div>;
@@ -87,11 +87,11 @@ export default function MainImage({ config, profile }: P) {
             <div style={{ position: "absolute", bottom: -60, left: -60, width: 300, height: 300, borderRadius: "50%", background: "rgba(255,255,255,0.08)" }} />
             <div style={{ position: "absolute", top: "40%", left: "55%", width: 200, height: 200, borderRadius: "50%", background: "rgba(0,0,0,0.06)" }} />
             <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 70px 60px 90px" }}>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>{tags.map((t, i) => <span key={i} style={{ padding: "5px 14px", borderRadius: 4, background: "rgba(0,0,0,0.15)", color: "#111", fontSize: 13, fontWeight: 700 }}>{t}</span>)}</div>
-                <h1 style={{ color: "#111", fontSize: ts, fontWeight: 900, lineHeight: 1.2, letterSpacing: "-0.03em", wordBreak: "keep-all", maxWidth: 700 }}>{t}</h1>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>{tags.map((t, i) => <span key={i} style={{ padding: "5px 14px", borderRadius: 4, background: "rgba(0,0,0,0.15)", color: getContrastColor(accent), fontSize: 13, fontWeight: 700 }}>{t}</span>)}</div>
+                <h1 style={{ color: getContrastColor(accent), fontSize: ts, fontWeight: 900, lineHeight: 1.2, letterSpacing: "-0.03em", wordBreak: "keep-all", maxWidth: 700 }}>{t}</h1>
                 <div style={{ marginTop: 28, display: "flex", alignItems: "center", gap: 16 }}>
                     {circleProfile(50)}
-                    <span style={{ color: "rgba(0,0,0,0.65)", fontSize: 15 }}>{nm} 변호사{of ? ` · ${of}` : ""}</span>
+                    <span style={{ color: getSubContrastColor(accent), fontSize: 15 }}>{nm} 변호사{of ? ` · ${of}` : ""}</span>
                 </div>
             </div>{logoEl}
         </div>;
@@ -102,7 +102,7 @@ export default function MainImage({ config, profile }: P) {
             <div style={{ ...abs0, background: `linear-gradient(135deg,${accent}90 0%,transparent 45%,${a2}60 100%)` }} />
             <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 8, background: accent }} />
             <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "60px 70px 80px" }}>
-                <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>{tags.map((t, i) => <span key={i} style={{ padding: "5px 16px", borderRadius: 20, background: accent, color: "#111", fontSize: 12, fontWeight: 700 }}>{t}</span>)}</div>
+                <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>{tags.map((t, i) => <span key={i} style={{ padding: "5px 16px", borderRadius: 20, background: accent, color: getContrastColor(accent), fontSize: 12, fontWeight: 700 }}>{t}</span>)}</div>
                 <h1 style={{ color: "#fff", fontSize: ts, fontWeight: 900, lineHeight: 1.2, letterSpacing: "-0.03em", wordBreak: "keep-all", textShadow: TS }}>{t}</h1>
                 <div style={{ marginTop: 20 }}>{nameTag}</div>
             </div>{logoEl}
@@ -115,9 +115,9 @@ export default function MainImage({ config, profile }: P) {
                 <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "50%", background: `linear-gradient(180deg,transparent,${accent})` }} />
             </div>
             <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "60px 70px" }}>
-                <div style={{ width: 4, height: 30, background: bg, borderRadius: 2, marginBottom: 16 }} />
-                <h1 style={{ color: "#111", fontSize: ts, fontWeight: 900, lineHeight: 1.25, wordBreak: "keep-all" }}>{t}</h1>
-                <div style={{ marginTop: 20 }}><span style={{ color: "rgba(0,0,0,0.6)", fontSize: 15 }}>{nm} 변호사{of ? ` · ${of}` : ""}</span></div>
+                <div style={{ width: 4, height: 30, background: getContrastColor(accent), borderRadius: 2, marginBottom: 16 }} />
+                <h1 style={{ color: getContrastColor(accent), fontSize: ts, fontWeight: 900, lineHeight: 1.25, wordBreak: "keep-all" }}>{t}</h1>
+                <div style={{ marginTop: 20 }}><span style={{ color: getSubContrastColor(accent), fontSize: 15 }}>{nm} 변호사{of ? ` · ${of}` : ""}</span></div>
             </div>{logoEl}
         </div>;
     }
@@ -137,7 +137,7 @@ export default function MainImage({ config, profile }: P) {
         return <div id="blog-main-image" style={base}>
             {bgPhoto}
             <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "60px 70px" }}>
-                <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>{tags.map((t, i) => <span key={i} style={{ padding: "5px 16px", borderRadius: 20, background: accent, color: "#fff", fontSize: 12, fontWeight: 700 }}>{t}</span>)}</div>
+                <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>{tags.map((t, i) => <span key={i} style={{ padding: "5px 16px", borderRadius: 20, background: accent, color: getContrastColor(accent), fontSize: 12, fontWeight: 700 }}>{t}</span>)}</div>
                 <h1 style={{ color: "#fff", fontSize: ts, fontWeight: 900, lineHeight: 1.2, textShadow: TS, wordBreak: "keep-all" }}>{t}</h1>
                 <div style={{ marginTop: 20 }}>{nameTag}</div>
             </div>{logoEl}
@@ -197,7 +197,7 @@ export default function MainImage({ config, profile }: P) {
         return <div id="blog-main-image" style={base}>
             {bgPhoto}
             <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 70px" }}>
-                <div style={{ background: accent, color: "#111", padding: "6px 14px", borderRadius: 4, alignSelf: "flex-start", fontSize: 13, fontWeight: 800, marginBottom: 24, boxShadow: "0 4px 12px rgba(0,0,0,0.2)" }}>
+                <div style={{ background: accent, color: getContrastColor(accent), padding: "6px 14px", borderRadius: 4, alignSelf: "flex-start", fontSize: 13, fontWeight: 800, marginBottom: 24, boxShadow: "0 4px 12px rgba(0,0,0,0.2)" }}>
                     {tags[0] || of || "법률정보"}
                 </div>
                 <h1 style={{ color: "#fff", fontSize: ts, fontWeight: 900, lineHeight: 1.45, wordBreak: "keep-all", textShadow: "0 2px 10px rgba(0,0,0,0.5)" }}>
@@ -232,7 +232,7 @@ export default function MainImage({ config, profile }: P) {
             {bgPhoto}
             <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", padding: "60px 70px", textAlign: "center" }}>
                 <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 18, fontWeight: 600, marginBottom: 20 }}>{nm} 변호사 {of && `· ${of}`}</p>
-                <h1 style={{ color: "#111", fontSize: ts, fontWeight: 900, lineHeight: 1.45, letterSpacing: "-0.02em", wordBreak: "keep-all" }}>
+                <h1 style={{ color: getContrastColor(accent), fontSize: ts, fontWeight: 900, lineHeight: 1.45, letterSpacing: "-0.02em", wordBreak: "keep-all" }}>
                     <span style={{ background: accent, padding: "0 10px", display: "inline-block", lineHeight: 1.2, marginBottom: "8px" }}>{firstHalf}</span><br />
                     <span style={{ background: a2, padding: "0 10px", display: "inline-block", lineHeight: 1.2 }}>{secondHalf}</span>
                 </h1>
@@ -347,14 +347,14 @@ export default function MainImage({ config, profile }: P) {
                 {pImg ? <img src={pImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
                     : oImg ? <img src={oImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                         : <div style={{ width: "100%", height: "100%", background: "#2a2a2a" }} />}
-                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, #1a1a1a 0%, transparent 30%)" }} />
-                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, #1a1a1a 0%, transparent 15%)" }} />
+                <div style={{ position: "absolute", inset: 0, background: `linear-gradient(90deg, ${bg} 0%, transparent 30%)` }} />
+                <div style={{ position: "absolute", inset: 0, background: `linear-gradient(180deg, ${bg} 0%, transparent 15%)` }} />
             </div>
             {/* Brand at top */}
             <div style={{ position: "relative", zIndex: 2, height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-start", padding: "60px 70px" }}>
                 {logo ? <img src={logo} alt="" style={{ height: 36, objectFit: "contain", marginBottom: 60 }} />
                     : of ? <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 14, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 60 }}>{of}</p> : <div style={{ marginBottom: 60 }} />}
-                <h1 style={{ color: "#fff", fontSize: Math.round(ts * 1.1), fontWeight: 900, lineHeight: 1.35, letterSpacing: "-0.03em", wordBreak: "keep-all", maxWidth: 580, textShadow: TS }}>{t}</h1>
+                <h1 style={{ color: tc, fontSize: Math.round(ts * 1.1), fontWeight: 900, lineHeight: 1.35, letterSpacing: "-0.03em", wordBreak: "keep-all", maxWidth: 580, textShadow: isLightColor(bg) ? "none" : TS }}>{t}</h1>
                 <div style={{ marginTop: "auto", paddingBottom: 20 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                         <div style={{ width: 30, height: 2, background: accent }} />
@@ -385,8 +385,8 @@ export default function MainImage({ config, profile }: P) {
         {/* Text content - upper left */}
         <div style={{ position: "relative", zIndex: 3, height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-start", padding: "70px 70px" }}>
             {logo && <img src={logo} alt="" style={{ height: 32, objectFit: "contain", position: "absolute", top: 40, right: 60 }} />}
-            <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 14, fontWeight: 600, marginBottom: 16 }}>{tags[0] || of || "법률 전문"}</span>
-            <h1 style={{ color: "#fff", fontSize: ts, fontWeight: 900, lineHeight: 1.35, letterSpacing: "-0.03em", wordBreak: "keep-all", maxWidth: 550, textShadow: TS }}>{t}</h1>
+            <span style={{ color: `${tc}99`, fontSize: 14, fontWeight: 600, marginBottom: 16 }}>{tags[0] || of || "법률 전문"}</span>
+            <h1 style={{ color: tc, fontSize: ts, fontWeight: 900, lineHeight: 1.35, letterSpacing: "-0.03em", wordBreak: "keep-all", maxWidth: 550, textShadow: isLightColor(bg) ? "none" : TS }}>{t}</h1>
             {/* Bottom info on accent area */}
             <div style={{ marginTop: "auto", paddingBottom: 20 }}>
                 <p style={{ color: getContrastColor(accent), fontSize: 16, fontWeight: 800 }}>{tags.length > 1 ? tags.slice(0, 3).join(" · ") : nm + " 변호사"}</p>

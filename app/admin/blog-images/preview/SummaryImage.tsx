@@ -34,7 +34,7 @@ export default function SummaryImage({ config, profile }: P) {
         </div><div style={{ filter: isLightColor(a1) ? "brightness(0.1)" : "brightness(1)" }}>{logoEl}</div></div>;
     }
     if (v === 1) { // Accent cards on accent gradient
-        return <div id="blog-summary-image" style={{ ...base, background: `linear-gradient(160deg, ${a1}40, ${a2}30, #1a1a1a)` }}><div style={{ height: "100%", display: "flex", flexDirection: "column", padding: "60px 70px" }}>
+        return <div id="blog-summary-image" style={{ ...base, background: `linear-gradient(160deg, ${a1}40, ${a2}30, ${bg})` }}><div style={{ height: "100%", display: "flex", flexDirection: "column", padding: "60px 70px" }}>
             <h2 style={{ color: "#fff", fontSize: 26, fontWeight: 800, marginBottom: 10, wordBreak: "keep-all" }}>{title}</h2>
             <p style={{ color: "rgba(255,255,255,0.75)", marginBottom: 30 }}>{nameEl}</p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, flex: 1 }}>
@@ -55,7 +55,7 @@ export default function SummaryImage({ config, profile }: P) {
                 <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
                     {lines.map((l, i) => <div key={i} style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
                         <span style={{ color: a1, fontSize: 32, fontWeight: 900, lineHeight: 1, minWidth: 40 }}>0{i + 1}</span>
-                        <p style={{ color: "rgba(255,255,255,0.85)", fontSize: 16, lineHeight: 1.7, wordBreak: "keep-all", paddingTop: 4 }}>{l}</p>
+                        <p style={{ color: `${tc}DD`, fontSize: 16, lineHeight: 1.7, wordBreak: "keep-all", paddingTop: 4 }}>{l}</p>
                     </div>)}
                 </div>
             </div>{logoEl}</div>;
@@ -96,7 +96,7 @@ export default function SummaryImage({ config, profile }: P) {
         </div>;
     }
     if (v === 5) { // 3 Columns with accent colored headers
-        return <div id="blog-summary-image" style={{ ...base, background: `linear-gradient(180deg, ${a1}35 0%, #1a1a1a 100%)` }}><div style={{ height: "100%", display: "flex", flexDirection: "column", padding: "60px 70px" }}>
+        return <div id="blog-summary-image" style={{ ...base, background: `linear-gradient(180deg, ${a1}35 0%, ${bg} 100%)` }}><div style={{ height: "100%", display: "flex", flexDirection: "column", padding: "60px 70px" }}>
             <span style={{ color: a1, fontSize: 13, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 8 }}>핵심 포인트</span>
             <h2 style={{ color: "#fff", fontSize: 26, fontWeight: 800, marginBottom: 40, wordBreak: "keep-all" }}>{title}</h2>
             <div style={{ display: "flex", gap: 20, flex: 1 }}>
@@ -132,7 +132,7 @@ export default function SummaryImage({ config, profile }: P) {
         </div>;
     }
     if (v === 7) { // Horizontal accent bars
-        return <div id="blog-summary-image" style={{ ...base, background: `linear-gradient(135deg, ${a1}30 0%, #1a1a1a 60%, ${a2}25 100%)` }}><div style={{ height: "100%", display: "flex", flexDirection: "column", padding: "60px 70px" }}>
+        return <div id="blog-summary-image" style={{ ...base, background: `linear-gradient(135deg, ${a1}30 0%, ${bg} 60%, ${a2}25 100%)` }}><div style={{ height: "100%", display: "flex", flexDirection: "column", padding: "60px 70px" }}>
             <h2 style={{ color: "#fff", fontSize: 26, fontWeight: 800, marginBottom: 40, wordBreak: "keep-all" }}>{title}</h2>
             <div style={{ display: "flex", flexDirection: "column", gap: 16, flex: 1 }}>
                 {lines.map((l, i) => <div key={i} style={{ display: "flex", alignItems: "stretch", gap: 0, borderRadius: 14, overflow: "hidden" }}>
@@ -144,7 +144,7 @@ export default function SummaryImage({ config, profile }: P) {
         </div>{logoEl}</div>;
     }
     if (v === 8) { // Big accent numbers
-        return <div id="blog-summary-image" style={{ ...base, background: `linear-gradient(135deg,#111 0%,${a1}50 100%)` }}><div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 80px", textAlign: "center" }}>
+        return <div id="blog-summary-image" style={{ ...base, background: `linear-gradient(135deg,${bg} 0%,${a1}50 100%)` }}><div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 80px", textAlign: "center" }}>
             <span style={{ color: a1, fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", marginBottom: 8 }}>핵심 포인트</span>
             <h2 style={{ color: "#fff", fontSize: 24, fontWeight: 800, marginBottom: 40, wordBreak: "keep-all" }}>{title}</h2>
             <div style={{ display: "flex", flexDirection: "column", gap: 28, width: "100%", maxWidth: 700 }}>
@@ -157,7 +157,7 @@ export default function SummaryImage({ config, profile }: P) {
     }
 
     if (v === 10) { // Horizontal Process Timeline (Ref 4)
-        return <div id="blog-summary-image" style={{ ...base, background: `linear-gradient(180deg, #0F1115 0%, ${a1}30 50%, #0F1115 100%)`, display: "flex", flexDirection: "column" }}>
+        return <div id="blog-summary-image" style={{ ...base, background: `linear-gradient(180deg, ${bg} 0%, ${a1}30 50%, ${bg} 100%)`, display: "flex", flexDirection: "column" }}>
             <div style={{ flex: 1, padding: "70px 60px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
                 <span style={{ color: a1, fontSize: 13, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 8 }}>{of || "핵심 매뉴얼"}</span>
                 <h2 style={{ color: "#fff", fontSize: 26, fontWeight: 800, marginBottom: 50, wordBreak: "keep-all" }}>{title}</h2>
@@ -166,7 +166,7 @@ export default function SummaryImage({ config, profile }: P) {
                     <div style={{ position: "absolute", top: 12, left: 20, width: "40%", height: 2, background: a1 }} />
                     {lines.map((l, i) => (
                         <div key={i} style={{ position: "relative", width: "30%", zIndex: 1 }}>
-                            <div style={{ width: 26, height: 26, borderRadius: "50%", background: i === 0 ? a1 : "#222", border: `4px solid ${i === 0 ? "#0F1115" : "rgba(255,255,255,0.15)"}`, margin: "0 auto", boxShadow: i === 0 ? `0 0 0 2px ${a1}` : "none" }} />
+                            <div style={{ width: 26, height: 26, borderRadius: "50%", background: i === 0 ? a1 : `${bg}DD`, border: `4px solid ${i === 0 ? bg : "rgba(255,255,255,0.15)"}`, margin: "0 auto", boxShadow: i === 0 ? `0 0 0 2px ${a1}` : "none" }} />
                             <div style={{ marginTop: 24, textAlign: "center" }}>
                                 <span style={{ color: i === 0 ? a1 : "rgba(255,255,255,0.7)", fontSize: 13, fontWeight: 800, letterSpacing: "0.05em" }}>STEP 0{i + 1}</span>
                                 <p style={{ color: i === 0 ? "#fff" : "rgba(255,255,255,0.6)", fontSize: 15, lineHeight: 1.6, wordBreak: "keep-all", marginTop: 8 }}>{l}</p>
@@ -181,7 +181,7 @@ export default function SummaryImage({ config, profile }: P) {
     }
 
     if (v === 11) { // Giant Colored Numbers Cards (Ref 2)
-        return <div id="blog-summary-image" style={{ ...base, background: `linear-gradient(160deg, #111 0%, ${a1}25 100%)` }}><div style={{ height: "100%", display: "flex", flexDirection: "column", padding: "60px 70px" }}>
+        return <div id="blog-summary-image" style={{ ...base, background: `linear-gradient(160deg, ${bg} 0%, ${a1}25 100%)` }}><div style={{ height: "100%", display: "flex", flexDirection: "column", padding: "60px 70px" }}>
             <div style={{ alignSelf: "center", background: a1, color: "#fff", padding: "6px 20px", borderRadius: 20, fontSize: 13, fontWeight: 800, letterSpacing: "0.1em", marginBottom: 30 }}>PROJECT GOAL</div>
             <h2 style={{ color: "#fff", fontSize: 26, fontWeight: 800, marginBottom: 40, textAlign: "center", wordBreak: "keep-all" }}>{title}</h2>
             <div style={{ display: "flex", gap: 24, flex: 1 }}>
@@ -197,13 +197,13 @@ export default function SummaryImage({ config, profile }: P) {
     // v===9: Light warm background
     return <div id="blog-summary-image" style={{ ...base, background: `linear-gradient(150deg,${a1},${a2},#F5F0EB)` }}><div style={{ height: "100%", display: "flex", flexDirection: "column", padding: "60px 70px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-            <div style={{ width: 6, height: 24, background: bg, borderRadius: 3 }} />
-            <span style={{ color: "#111", fontSize: 13, fontWeight: 700, letterSpacing: "0.08em" }}>핵심 포인트</span>
+            <div style={{ width: 6, height: 24, background: tc, borderRadius: 3 }} />
+            <span style={{ color: tc, fontSize: 13, fontWeight: 700, letterSpacing: "0.08em" }}>핵심 포인트</span>
         </div>
         <h2 style={{ color: "#111", fontSize: 26, fontWeight: 800, marginBottom: 36, wordBreak: "keep-all" }}>{title}</h2>
         <div style={{ display: "flex", flexDirection: "column", gap: 20, flex: 1 }}>
             {lines.map((l, i) => <div key={i} style={{ display: "flex", gap: 16, alignItems: "flex-start", padding: "16px 20px", borderRadius: 12, background: "rgba(255,255,255,0.75)", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
-                <div style={{ width: 28, height: 28, borderRadius: "50%", background: bg, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, flexShrink: 0, marginTop: 2 }}>{i + 1}</div>
+                <div style={{ width: 28, height: 28, borderRadius: "50%", background: tc, color: bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, flexShrink: 0, marginTop: 2 }}>{i + 1}</div>
                 <p style={{ color: "#111", fontSize: 16, lineHeight: 1.8, wordBreak: "keep-all" }}>{l}</p>
             </div>)}
         </div>

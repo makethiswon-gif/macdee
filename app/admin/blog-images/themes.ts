@@ -88,6 +88,16 @@ export const SUMMARY_VARIANT_COUNT = 12;
 export const CONTACT_VARIANT_COUNT = 10;
 export const BRAND_VARIANT_COUNT = 15;
 
+/** Lighten (positive) or darken (negative) a hex color */
+export function adjustColor(hex: string, amount: number): string {
+    const h = hex.replace("#", "");
+    const f = h.length === 3 ? h.split("").map(c => c + c).join("") : h.slice(0, 6);
+    const r = Math.max(0, Math.min(255, parseInt(f.slice(0, 2), 16) + amount));
+    const g = Math.max(0, Math.min(255, parseInt(f.slice(2, 4), 16) + amount));
+    const b = Math.max(0, Math.min(255, parseInt(f.slice(4, 6), 16) + amount));
+    return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+}
+
 export function generateConfig(
     profileId: string,
     postTitle: string,
@@ -102,7 +112,7 @@ export function generateConfig(
         postTitle,
         postSummary,
         accentColor: palette.accent,
-        secondaryAccent: palette.accent,
+        secondaryAccent: adjustColor(palette.accent, -25),
         backgroundColor: palette.bg,
         textColor: palette.text,
         mainVariant: Math.floor(Math.random() * MAIN_VARIANT_COUNT),
