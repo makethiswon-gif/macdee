@@ -69,7 +69,7 @@ export default function ContactImage({ config, profile }: P) {
                 <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
                     {ci.map((c, i) => <div key={i} style={{ display: "flex", alignItems: "center", gap: 18 }}>
                         <div style={{ width: 46, height: 46, borderRadius: 14, background: `${accent}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>{c.icon}</div>
-                        <div><p style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, marginBottom: 2 }}>{c.label}</p><p style={{ color: "#fff", fontSize: 17, fontWeight: 600 }}>{c.value}</p></div>
+                        <div><p style={{ color: "rgba(255,255,255,0.75)", fontSize: 11, marginBottom: 2 }}>{c.label}</p><p style={{ color: "#fff", fontSize: 17, fontWeight: 600 }}>{c.value}</p></div>
                     </div>)}
                 </div>
             </div>{logoEl}
@@ -97,7 +97,7 @@ export default function ContactImage({ config, profile }: P) {
             <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: "50px 70px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 36 }}>
                     {profImg(60, 60, 30)}
-                    <div><h2 style={{ color: "#fff", fontSize: 30, fontWeight: 900 }}>{nm} 변호사</h2>{of && <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 14 }}>{of}</p>}</div>
+                    <div><h2 style={{ color: "#fff", fontSize: 30, fontWeight: 900 }}>{nm} 변호사</h2>{of && <p style={{ color: "rgba(255,255,255,0.75)", fontSize: 14 }}>{of}</p>}</div>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
                     {ci.map((c, i) => <div key={i} style={{ padding: "24px 28px", borderRadius: 16, background: i === 0 ? accent : `${accent}99`, color: "#111" }}>
@@ -122,7 +122,7 @@ export default function ContactImage({ config, profile }: P) {
                 <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
                     {ci.map((c, i) => <div key={i} style={{ display: "flex", gap: 14, alignItems: "center" }}>
                         <span style={{ fontSize: 20, width: 24, textAlign: "center" }}>{c.icon}</span>
-                        <div><p style={{ color: "rgba(255,255,255,0.5)", fontSize: 11 }}>{c.label}</p><p style={{ color: "#fff", fontSize: 16, fontWeight: 600 }}>{c.value}</p></div>
+                        <div><p style={{ color: "rgba(255,255,255,0.75)", fontSize: 11 }}>{c.label}</p><p style={{ color: "#fff", fontSize: 16, fontWeight: 600 }}>{c.value}</p></div>
                     </div>)}
                 </div>
             </div>
@@ -150,11 +150,11 @@ export default function ContactImage({ config, profile }: P) {
             <div style={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: "50px 70px 50px 90px" }}>
                 <p style={{ color: accent, fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 12 }}>상담 안내</p>
                 <h2 style={{ color: "#fff", fontSize: 34, fontWeight: 900, marginBottom: 6 }}>{nm} 변호사</h2>
-                {of && <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 14, marginBottom: 32 }}>{of}</p>}
+                {of && <p style={{ color: "rgba(255,255,255,0.75)", fontSize: 14, marginBottom: 32 }}>{of}</p>}
                 <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
                     {ci.map((c, i) => <div key={i} style={{ display: "flex", alignItems: "center", gap: 16 }}>
                         <div style={{ width: 44, height: 44, borderRadius: 12, background: `${accent}40`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{c.icon}</div>
-                        <div><p style={{ color: "rgba(255,255,255,0.5)", fontSize: 11 }}>{c.label}</p><p style={{ color: "#fff", fontSize: 16, fontWeight: 600 }}>{c.value}</p></div>
+                        <div><p style={{ color: "rgba(255,255,255,0.75)", fontSize: 11 }}>{c.label}</p><p style={{ color: "#fff", fontSize: 16, fontWeight: 600 }}>{c.value}</p></div>
                     </div>)}
                 </div>
             </div>{logoEl}

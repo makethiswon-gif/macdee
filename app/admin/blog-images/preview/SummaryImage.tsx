@@ -34,7 +34,7 @@ export default function SummaryImage({ config, profile }: P) {
     if (v === 1) { // Accent cards on accent gradient
         return <div id="blog-summary-image" style={{ ...base, background: `linear-gradient(160deg, ${a1}40, ${a2}30, #1a1a1a)` }}><div style={{ height: "100%", display: "flex", flexDirection: "column", padding: "60px 70px" }}>
             <h2 style={{ color: "#fff", fontSize: 26, fontWeight: 800, marginBottom: 10, wordBreak: "keep-all" }}>{title}</h2>
-            <p style={{ color: "rgba(255,255,255,0.5)", marginBottom: 30 }}>{nameEl}</p>
+            <p style={{ color: "rgba(255,255,255,0.75)", marginBottom: 30 }}>{nameEl}</p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, flex: 1 }}>
                 {lines.map((l, i) => <div key={i} style={{ padding: "28px 28px", borderRadius: 16, background: i === 0 ? a1 : i === 1 ? a2 : `${a1}80`, color: "#fff" }}>
                     <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", opacity: 0.7 }}>포인트 0{i + 1}</span>
@@ -107,7 +107,7 @@ export default function SummaryImage({ config, profile }: P) {
                     </div>
                 </div>)}
             </div>
-            <div style={{ marginTop: 24, color: "rgba(255,255,255,0.5)" }}>{nameEl}</div>
+            <div style={{ marginTop: 24, color: "rgba(255,255,255,0.75)" }}>{nameEl}</div>
         </div>{logoEl}</div>;
     }
     if (v === 6) { // Accent border left cards on photo bg
@@ -125,7 +125,7 @@ export default function SummaryImage({ config, profile }: P) {
                         </div>
                     </div>)}
                 </div>
-                <div style={{ marginTop: 20, color: "rgba(255,255,255,0.5)" }}>{nameEl}</div>
+                <div style={{ marginTop: 20, color: "rgba(255,255,255,0.75)" }}>{nameEl}</div>
             </div>{logoEl}
         </div>;
     }
@@ -138,7 +138,7 @@ export default function SummaryImage({ config, profile }: P) {
                     <div style={{ flex: 1, padding: "20px 24px", background: "rgba(255,255,255,0.06)" }}><p style={{ color: "rgba(255,255,255,0.9)", fontSize: 16, lineHeight: 1.7, wordBreak: "keep-all" }}>{l}</p></div>
                 </div>)}
             </div>
-            <div style={{ marginTop: 24, color: "rgba(255,255,255,0.5)" }}>{nameEl}</div>
+            <div style={{ marginTop: 24, color: "rgba(255,255,255,0.75)" }}>{nameEl}</div>
         </div>{logoEl}</div>;
     }
     if (v === 8) { // Big accent numbers
@@ -166,14 +166,14 @@ export default function SummaryImage({ config, profile }: P) {
                         <div key={i} style={{ position: "relative", width: "30%", zIndex: 1 }}>
                             <div style={{ width: 26, height: 26, borderRadius: "50%", background: i === 0 ? a1 : "#222", border: `4px solid ${i === 0 ? "#0F1115" : "rgba(255,255,255,0.15)"}`, margin: "0 auto", boxShadow: i === 0 ? `0 0 0 2px ${a1}` : "none" }} />
                             <div style={{ marginTop: 24, textAlign: "center" }}>
-                                <span style={{ color: i === 0 ? a1 : "rgba(255,255,255,0.4)", fontSize: 13, fontWeight: 800, letterSpacing: "0.05em" }}>STEP 0{i + 1}</span>
+                                <span style={{ color: i === 0 ? a1 : "rgba(255,255,255,0.7)", fontSize: 13, fontWeight: 800, letterSpacing: "0.05em" }}>STEP 0{i + 1}</span>
                                 <p style={{ color: i === 0 ? "#fff" : "rgba(255,255,255,0.6)", fontSize: 15, lineHeight: 1.6, wordBreak: "keep-all", marginTop: 8 }}>{l}</p>
                             </div>
                         </div>
                     ))}
                 </div>
             </div>
-            <div style={{ padding: "0 60px 40px", color: "rgba(255,255,255,0.4)" }}>{nameEl}</div>
+            <div style={{ padding: "0 60px 40px", color: "rgba(255,255,255,0.7)" }}>{nameEl}</div>
             {logoEl}
         </div>;
     }
@@ -188,7 +188,7 @@ export default function SummaryImage({ config, profile }: P) {
                     <p style={{ color: "rgba(255,255,255,0.8)", fontSize: 15, lineHeight: 1.7, wordBreak: "keep-all" }}>{l}</p>
                 </div>)}
             </div>
-            <div style={{ marginTop: 24, color: "rgba(255,255,255,0.5)", textAlign: "center" }}>{nameEl}</div>
+            <div style={{ marginTop: 24, color: "rgba(255,255,255,0.75)", textAlign: "center" }}>{nameEl}</div>
         </div>{logoEl}</div>;
     }
 

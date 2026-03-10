@@ -69,7 +69,7 @@ export default function BrandImage({ config, profile }: P) {
             <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
                 {logoEl(100)}
                 <h2 style={{ color: "#fff", fontSize: 34, fontWeight: 900 }}>{nm} 변호사</h2>
-                {of && <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 14 }}>{of}</p>}
+                {of && <p style={{ color: "rgba(255,255,255,0.75)", fontSize: 14 }}>{of}</p>}
             </div>
         </div>;
     }
@@ -93,7 +93,7 @@ export default function BrandImage({ config, profile }: P) {
             <div style={{ flex: "0 0 50%", background: "#111", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
                 {logoEl(80)}
                 <p style={{ color: "#fff", fontSize: 18, fontWeight: 700 }}>변호사</p>
-                {of && <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>{of}</p>}
+                {of && <p style={{ color: "rgba(255,255,255,0.75)", fontSize: 13 }}>{of}</p>}
                 <p style={{ color: a1, fontSize: 12, letterSpacing: "0.1em", marginTop: 8 }}>{tagLine}</p>
             </div>
         </div>;
@@ -133,7 +133,7 @@ export default function BrandImage({ config, profile }: P) {
             <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 20 }}>
                 {logoEl(100)}
                 <h2 style={{ color: "#fff", fontSize: 36, fontWeight: 900 }}>{nm} 변호사</h2>
-                {of && <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 15 }}>{of}</p>}
+                {of && <p style={{ color: "rgba(255,255,255,0.75)", fontSize: 15 }}>{of}</p>}
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
                     <div style={{ width: 24, height: 2, background: a1 }} />
                     <span style={{ color: a1, fontSize: 13, fontWeight: 600, letterSpacing: "0.1em" }}>{tagLine}</span>
@@ -180,11 +180,11 @@ export default function BrandImage({ config, profile }: P) {
             {/* Name + specialty in top corners */}
             <div style={{ position: "absolute", top: 50, left: 60, zIndex: 2 }}>
                 <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 13, fontWeight: 700, letterSpacing: "0.1em" }}>{nm} 변호사</p>
-                {of && <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, marginTop: 4 }}>{of}</p>}
+                {of && <p style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, marginTop: 4 }}>{of}</p>}
             </div>
             <div style={{ position: "absolute", top: 50, right: 60, textAlign: "right", zIndex: 2 }}>
                 <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 13, fontWeight: 700, letterSpacing: "0.1em" }}>{tags?.[0] || "법률 전문"}</p>
-                {tags?.[1] && <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, marginTop: 4 }}>{tags[1]}</p>}
+                {tags?.[1] && <p style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, marginTop: 4 }}>{tags[1]}</p>}
             </div>
             {/* Centered serif italic quote with bracket decoration */}
             <div style={{ position: "relative", zIndex: 2, height: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 80px" }}>
