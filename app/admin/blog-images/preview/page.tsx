@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { ArrowLeft, Palette, Shuffle, Download } from "lucide-react";
+import { ArrowLeft, Palette, Shuffle, Download, Droplets } from "lucide-react";
 import {
     getGenerationById, generateConfig, saveGeneration,
     COLOR_PALETTES, MAIN_VARIANT_COUNT, SUMMARY_VARIANT_COUNT, CONTACT_VARIANT_COUNT, BRAND_VARIANT_COUNT,
@@ -48,6 +48,22 @@ function PreviewContent() {
             profileImageIndex: Math.floor(Math.random() * Math.max(1, profile.profileImages?.length || 0)),
             officeImageIndex: Math.floor(Math.random() * Math.max(1, profile.officeImages?.length || 0)),
             overlayOpacity: 0.55 + Math.random() * 0.3,
+        };
+        setConfig(newConfig);
+        const items = JSON.parse(localStorage.getItem("macdee_blog_generations") || "[]");
+        const idx = items.findIndex((i: GenerationConfig) => i.id === config.id);
+        if (idx >= 0) { items[idx] = newConfig; localStorage.setItem("macdee_blog_generations", JSON.stringify(items)); }
+    };
+
+    const handleChangeColor = () => {
+        if (!config || !profile) return;
+        const palette = COLOR_PALETTES[Math.floor(Math.random() * COLOR_PALETTES.length)];
+        const newConfig: GenerationConfig = {
+            ...config,
+            accentColor: palette.accent,
+            secondaryAccent: palette.accent,
+            backgroundColor: palette.bg,
+            textColor: palette.text,
         };
         setConfig(newConfig);
         const items = JSON.parse(localStorage.getItem("macdee_blog_generations") || "[]");
@@ -156,6 +172,9 @@ function PreviewContent() {
                 <div className="flex items-center gap-2">
                     <button onClick={handleRedesign} className="flex items-center gap-2 px-4 py-2 text-sm text-[#8B5CF6] bg-[#8B5CF6]/10 rounded-lg hover:bg-[#8B5CF6]/20 transition-colors">
                         <Palette size={14} /> 디자인 변경
+                    </button>
+                    <button onClick={handleChangeColor} className="flex items-center gap-2 px-4 py-2 text-sm text-[#EC4899] bg-[#EC4899]/10 rounded-lg hover:bg-[#EC4899]/20 transition-colors">
+                        <Droplets size={14} /> 색상 변경
                     </button>
                     <button onClick={handleRegenerate} className="flex items-center gap-2 px-4 py-2 text-sm text-[#10B981] bg-[#10B981]/10 rounded-lg hover:bg-[#10B981]/20 transition-colors">
                         <Shuffle size={14} /> 새로 생성
