@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
     try {
         if (action === "create") {
             const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-            const { error } = await supabase.from("blog_profiles").insert({
+            const insertData: Record<string, unknown> = {
                 id,
                 lawyer_name: body.lawyerName || "",
                 office_name: body.officeName || "",
@@ -154,27 +154,41 @@ export async function POST(request: NextRequest) {
                 address: body.address || "",
                 website: body.website || "",
                 specialty: body.specialty || [],
-                brand_lines: body.brandLines || [],
                 profile_images: [],
                 office_images: [],
                 logo_image: "",
                 brand_color: "",
-            });
+            };
+            if (body.brandLines) insertData.brand_lines = body.brandLines;
+            let { error } = await supabase.from("blog_profiles").insert(insertData);
+            // If brand_lines column doesn't exist yet, retry without it
+            if (error && error.message?.includes("brand_lines")) {
+                delete insertData.brand_lines;
+                const retry = await supabase.from("blog_profiles").insert(insertData);
+                error = retry.error;
+            }
             if (error) return NextResponse.json({ error: error.message }, { status: 500 });
             const { data } = await supabase.from("blog_profiles").select("*").eq("id", id).single();
             return NextResponse.json({ profile: dbToProfile(data!) });
         }
 
         if (action === "update") {
-            const { error } = await supabase.from("blog_profiles").update({
+            const updateData: Record<string, unknown> = {
                 lawyer_name: body.lawyerName,
                 office_name: body.officeName,
                 phone: body.phone,
                 address: body.address,
                 website: body.website,
                 specialty: body.specialty,
-                brand_lines: body.brandLines || [],
-            }).eq("id", body.id);
+            };
+            if (body.brandLines) updateData.brand_lines = body.brandLines;
+            let { error } = await supabase.from("blog_profiles").update(updateData).eq("id", body.id);
+            // If brand_lines column doesn't exist yet, retry without it
+            if (error && error.message?.includes("brand_lines")) {
+                delete updateData.brand_lines;
+                const retry = await supabase.from("blog_profiles").update(updateData).eq("id", body.id);
+                error = retry.error;
+            }
             if (error) return NextResponse.json({ error: error.message }, { status: 500 });
             const { data } = await supabase.from("blog_profiles").select("*").eq("id", body.id).single();
             return NextResponse.json({ profile: dbToProfile(data!) });
