@@ -21,7 +21,7 @@ export default function MainImage({ config, profile }: P) {
     const abs0: React.CSSProperties = { position: "absolute", inset: 0 };
     const grad = (d: string, o1: number, o2: number) => `linear-gradient(${d},rgba(0,0,0,${o1}),rgba(0,0,0,${o2}))`;
     const nameTag = <span style={{ color: "rgba(255,255,255,0.65)", fontSize: 15, textShadow: TS }}>{nm} 변호사{of ? ` · ${of}` : ""}</span>;
-    const logoEl = logo && <img src={logo} alt="" style={{ position: "absolute", bottom: 24, right: 28, height: 30, objectFit: "contain", opacity: 0.7 }} />;
+    const logoEl = logo && <img src={logo} alt="" style={{ position: "absolute", bottom: 24, right: 28, height: 60, objectFit: "contain", opacity: 0.7 }} />;
     const tagEls = tags.length > 0 && <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>{tags.map((t, i) => <span key={i} style={{ padding: "5px 14px", borderRadius: 4, background: `${accent}22`, color: accent, fontSize: 13, fontWeight: 600 }}>{t}</span>)}</div>;
 
     if (v === 0) { // Full photo bg + bottom text
@@ -174,7 +174,7 @@ export default function MainImage({ config, profile }: P) {
                         </h1>
                     </div>
                 </div>
-            </div>{logoEl && <div style={{ position: "absolute", bottom: 36, right: 40, filter: "invert(1)" }}><img src={logo} alt="" style={{ height: 30, opacity: 0.8 }} /></div>}
+            </div>{logoEl && <div style={{ position: "absolute", bottom: 36, right: 40, filter: "invert(1)" }}><img src={logo} alt="" style={{ height: 60, opacity: 0.8 }} /></div>}
         </div>;
     }
     if (v === 12) { // Strikethrough marker

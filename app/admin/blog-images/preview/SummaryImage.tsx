@@ -13,7 +13,7 @@ export default function SummaryImage({ config, profile }: P) {
     const title = config.postTitle;
     const logo = profile.logoImage;
     const base: React.CSSProperties = { width: S, height: S, position: "relative", overflow: "hidden", fontFamily: FONT, background: "#0C0C0C" };
-    const logoEl = logo && <img src={logo} alt="" style={{ position: "absolute", bottom: 24, right: 28, height: 30, objectFit: "contain", opacity: 0.7 }} />;
+    const logoEl = logo && <img src={logo} alt="" style={{ position: "absolute", bottom: 24, right: 28, height: 60, objectFit: "contain", opacity: 0.7 }} />;
     const nameEl = <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 13 }}>{nm} 변호사{of ? ` · ${of}` : ""}</span>;
 
     if (v === 0) { // Numbered vertical list

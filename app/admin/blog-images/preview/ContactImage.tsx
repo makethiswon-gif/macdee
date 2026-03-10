@@ -10,7 +10,7 @@ export default function ContactImage({ config, profile }: P) {
     const oImg = profile.officeImages?.[config.officeImageIndex] || profile.officeImages?.[0];
     const { lawyerName: nm, officeName: of, phone, address, website, logoImage: logo } = profile;
     const base: React.CSSProperties = { width: S, height: S, position: "relative", overflow: "hidden", fontFamily: FONT, background: "#0C0C0C" };
-    const logoEl = logo && <img src={logo} alt="" style={{ position: "absolute", bottom: 24, right: 28, height: 30, objectFit: "contain", opacity: 0.7 }} />;
+    const logoEl = logo && <img src={logo} alt="" style={{ position: "absolute", bottom: 24, right: 28, height: 60, objectFit: "contain", opacity: 0.7 }} />;
     const ci = [phone && { icon: "📞", label: "전화", value: phone }, address && { icon: "📍", label: "주소", value: address }, website && { icon: "🌐", label: "웹사이트", value: website }].filter(Boolean) as { icon: string; label: string; value: string }[];
 
     if (v === 0) { // Centered profile + info
