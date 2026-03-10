@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
+import { createClient } from "@supabase/supabase-js";
 
 export const dynamic = "force-dynamic";
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const DATA_FILE = path.join(DATA_DIR, "blog-profiles.json");
-
+// BlogProfile interface (kept for client compatibility)
 export interface BlogProfile {
     id: string;
     lawyerName: string;
@@ -34,51 +31,55 @@ function verifyAdmin(request: Request): boolean {
     }
 }
 
-function ensureDataFile() {
-    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-    if (!fs.existsSync(DATA_FILE)) fs.writeFileSync(DATA_FILE, "[]");
+function getSupabase() {
+    return createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+        process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+    );
 }
 
-function readProfiles(): BlogProfile[] {
-    ensureDataFile();
-    const profiles: BlogProfile[] = JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
-    // Migrate old profiles missing new fields
-    let dirty = false;
-    for (const p of profiles) {
-        if (p.logoImage === undefined) { p.logoImage = ""; dirty = true; }
-        if (p.brandColor === undefined) { p.brandColor = ""; dirty = true; }
-    }
-    if (dirty) writeProfiles(profiles);
-    return profiles;
-}
-
-function writeProfiles(profiles: BlogProfile[]) {
-    ensureDataFile();
-    fs.writeFileSync(DATA_FILE, JSON.stringify(profiles, null, 2));
+function dbToProfile(row: Record<string, unknown>): BlogProfile {
+    return {
+        id: row.id as string,
+        lawyerName: (row.lawyer_name as string) || "",
+        officeName: (row.office_name as string) || "",
+        phone: (row.phone as string) || "",
+        address: (row.address as string) || "",
+        website: (row.website as string) || "",
+        specialty: (row.specialty as string[]) || [],
+        profileImages: (row.profile_images as string[]) || [],
+        officeImages: (row.office_images as string[]) || [],
+        logoImage: (row.logo_image as string) || "",
+        brandColor: (row.brand_color as string) || "",
+        createdAt: new Date(row.created_at as string).getTime(),
+        updatedAt: new Date(row.updated_at as string).getTime(),
+    };
 }
 
 async function compressImage(base64: string, maxW: number, maxH: number): Promise<string> {
-    const sharp = (await import("sharp")).default;
-    const match = base64.match(/^data:image\/\w+;base64,(.+)$/);
-    if (!match) return base64;
-    const buf = Buffer.from(match[1], "base64");
-    const compressed = await sharp(buf)
-        .resize(maxW, maxH, { fit: "inside", withoutEnlargement: true })
-        .jpeg({ quality: 80 })
-        .toBuffer();
-    return `data:image/jpeg;base64,${compressed.toString("base64")}`;
+    try {
+        const sharp = (await import("sharp")).default;
+        const match = base64.match(/^data:image\/\w+;base64,(.+)$/);
+        if (!match) return base64;
+        const buf = Buffer.from(match[1], "base64");
+        const resized = await sharp(buf).resize(maxW, maxH, { fit: "cover" }).webp({ quality: 75 }).toBuffer();
+        return `data:image/webp;base64,${resized.toString("base64")}`;
+    } catch {
+        return base64;
+    }
 }
 
 async function compressLogo(base64: string): Promise<string> {
-    const sharp = (await import("sharp")).default;
-    const match = base64.match(/^data:image\/(\w+);base64,(.+)$/);
-    if (!match) return base64;
-    const buf = Buffer.from(match[2], "base64");
-    const compressed = await sharp(buf)
-        .resize(300, 300, { fit: "inside", withoutEnlargement: true })
-        .png({ quality: 90 })
-        .toBuffer();
-    return `data:image/png;base64,${compressed.toString("base64")}`;
+    try {
+        const sharp = (await import("sharp")).default;
+        const match = base64.match(/^data:image\/\w+;base64,(.+)$/);
+        if (!match) return base64;
+        const buf = Buffer.from(match[1], "base64");
+        const resized = await sharp(buf).resize(200, 80, { fit: "inside" }).webp({ quality: 80 }).toBuffer();
+        return `data:image/webp;base64,${resized.toString("base64")}`;
+    } catch {
+        return base64;
+    }
 }
 
 async function getDominantColor(base64: string): Promise<string> {
@@ -95,128 +96,137 @@ async function getDominantColor(base64: string): Promise<string> {
     }
 }
 
-// GET: list all (without images for perf) or single with images
+// GET: list all or single profile
 export async function GET(request: NextRequest) {
     if (!verifyAdmin(request)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+    const supabase = getSupabase();
     const id = request.nextUrl.searchParams.get("id");
-    const profiles = readProfiles();
 
     if (id) {
-        const p = profiles.find((p) => p.id === id);
-        if (!p) return NextResponse.json({ error: "Not found" }, { status: 404 });
-        return NextResponse.json({ profile: p });
+        const { data, error } = await supabase.from("blog_profiles").select("*").eq("id", id).single();
+        if (error || !data) return NextResponse.json({ error: "Not found" }, { status: 404 });
+        return NextResponse.json({ profile: dbToProfile(data) });
     }
 
-    const list = profiles.map(({ profileImages, officeImages, logoImage, ...rest }) => ({
-        ...rest,
-        profileImageCount: profileImages.length,
-        officeImageCount: officeImages.length,
-        hasLogo: !!logoImage,
-    }));
+    const { data, error } = await supabase.from("blog_profiles").select("*").order("created_at", { ascending: false });
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    const list = (data || []).map((row) => {
+        const p = dbToProfile(row);
+        return {
+            id: p.id,
+            lawyerName: p.lawyerName,
+            officeName: p.officeName,
+            phone: p.phone,
+            address: p.address,
+            website: p.website,
+            specialty: p.specialty,
+            brandColor: p.brandColor,
+            createdAt: p.createdAt,
+            updatedAt: p.updatedAt,
+            profileImageCount: p.profileImages.length,
+            officeImageCount: p.officeImages.length,
+            hasLogo: !!p.logoImage,
+        };
+    });
     return NextResponse.json({ profiles: list });
 }
 
-// POST: create, update, addImage, removeImage
+// POST: create, update, addImage, removeImage, delete
 export async function POST(request: NextRequest) {
     if (!verifyAdmin(request)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+    const supabase = getSupabase();
     const body = await request.json();
     const { action } = body;
-    const profiles = readProfiles();
 
-    if (action === "create") {
-        const newProfile: BlogProfile = {
-            id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
-            lawyerName: body.lawyerName || "",
-            officeName: body.officeName || "",
-            phone: body.phone || "",
-            address: body.address || "",
-            website: body.website || "",
-            specialty: body.specialty || [],
-            profileImages: [],
-            officeImages: [],
-            logoImage: "",
-            brandColor: "",
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
-        };
-        profiles.push(newProfile);
-        writeProfiles(profiles);
-        return NextResponse.json({ profile: newProfile });
-    }
-
-    if (action === "update") {
-        const idx = profiles.findIndex((p) => p.id === body.id);
-        if (idx === -1) return NextResponse.json({ error: "Not found" }, { status: 404 });
-        profiles[idx] = {
-            ...profiles[idx],
-            lawyerName: body.lawyerName ?? profiles[idx].lawyerName,
-            officeName: body.officeName ?? profiles[idx].officeName,
-            phone: body.phone ?? profiles[idx].phone,
-            address: body.address ?? profiles[idx].address,
-            website: body.website ?? profiles[idx].website,
-            specialty: body.specialty ?? profiles[idx].specialty,
-            updatedAt: Date.now(),
-        };
-        writeProfiles(profiles);
-        return NextResponse.json({ profile: profiles[idx] });
-    }
-
-    if (action === "addImage") {
-        const idx = profiles.findIndex((p) => p.id === body.profileId);
-        if (idx === -1) return NextResponse.json({ error: "Not found" }, { status: 404 });
-        const imageType = body.imageType;
-        if (imageType === "logo") {
-            const compressed = await compressLogo(body.base64);
-            profiles[idx].logoImage = compressed;
-            const dominant = await getDominantColor(body.base64);
-            if (dominant) profiles[idx].brandColor = dominant;
-            profiles[idx].updatedAt = Date.now();
-            writeProfiles(profiles);
-            return NextResponse.json({ success: true, brandColor: profiles[idx].brandColor });
+    try {
+        if (action === "create") {
+            const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+            const { error } = await supabase.from("blog_profiles").insert({
+                id,
+                lawyer_name: body.lawyerName || "",
+                office_name: body.officeName || "",
+                phone: body.phone || "",
+                address: body.address || "",
+                website: body.website || "",
+                specialty: body.specialty || [],
+                profile_images: [],
+                office_images: [],
+                logo_image: "",
+                brand_color: "",
+            });
+            if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+            const { data } = await supabase.from("blog_profiles").select("*").eq("id", id).single();
+            return NextResponse.json({ profile: dbToProfile(data!) });
         }
-        const isProfile = imageType === "profile";
-        const compressed = await compressImage(body.base64, isProfile ? 400 : 900, isProfile ? 500 : 600);
-        if (isProfile) {
-            profiles[idx].profileImages.push(compressed);
-        } else {
-            profiles[idx].officeImages.push(compressed);
-        }
-        profiles[idx].updatedAt = Date.now();
-        writeProfiles(profiles);
-        return NextResponse.json({ success: true, imageCount: isProfile ? profiles[idx].profileImages.length : profiles[idx].officeImages.length });
-    }
 
-    if (action === "removeImage") {
-        const idx = profiles.findIndex((p) => p.id === body.profileId);
-        if (idx === -1) return NextResponse.json({ error: "Not found" }, { status: 404 });
-        const imageType = body.imageType;
-        if (imageType === "logo") {
-            profiles[idx].logoImage = "";
-            profiles[idx].updatedAt = Date.now();
-            writeProfiles(profiles);
+        if (action === "update") {
+            const { error } = await supabase.from("blog_profiles").update({
+                lawyer_name: body.lawyerName,
+                office_name: body.officeName,
+                phone: body.phone,
+                address: body.address,
+                website: body.website,
+                specialty: body.specialty,
+            }).eq("id", body.id);
+            if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+            const { data } = await supabase.from("blog_profiles").select("*").eq("id", body.id).single();
+            return NextResponse.json({ profile: dbToProfile(data!) });
+        }
+
+        if (action === "addImage") {
+            const { data: row, error: fetchErr } = await supabase.from("blog_profiles").select("*").eq("id", body.profileId).single();
+            if (fetchErr || !row) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+            const imageType = body.imageType;
+            if (imageType === "logo") {
+                const compressed = await compressLogo(body.base64);
+                const brandColor = await getDominantColor(body.base64);
+                const { error } = await supabase.from("blog_profiles").update({
+                    logo_image: compressed,
+                    brand_color: brandColor || row.brand_color,
+                }).eq("id", body.profileId);
+                if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+                return NextResponse.json({ success: true, brandColor: brandColor || row.brand_color });
+            }
+
+            const isProfile = imageType === "profile";
+            const compressed = await compressImage(body.base64, isProfile ? 400 : 900, isProfile ? 500 : 600);
+            const images = isProfile ? [...(row.profile_images || []), compressed] : [...(row.office_images || []), compressed];
+            const updateField = isProfile ? { profile_images: images } : { office_images: images };
+            const { error } = await supabase.from("blog_profiles").update(updateField).eq("id", body.profileId);
+            if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+            return NextResponse.json({ success: true, imageCount: images.length });
+        }
+
+        if (action === "removeImage") {
+            const { data: row, error: fetchErr } = await supabase.from("blog_profiles").select("*").eq("id", body.profileId).single();
+            if (fetchErr || !row) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+            const imageType = body.imageType;
+            if (imageType === "logo") {
+                await supabase.from("blog_profiles").update({ logo_image: "", brand_color: "" }).eq("id", body.profileId);
+                return NextResponse.json({ success: true });
+            }
+
+            const isProfile = imageType === "profile";
+            const images = isProfile ? [...(row.profile_images || [])] : [...(row.office_images || [])];
+            images.splice(body.imageIndex, 1);
+            const updateField = isProfile ? { profile_images: images } : { office_images: images };
+            await supabase.from("blog_profiles").update(updateField).eq("id", body.profileId);
             return NextResponse.json({ success: true });
         }
-        const isProfile = imageType === "profile";
-        const imgIdx = body.imageIndex;
-        if (isProfile) {
-            profiles[idx].profileImages.splice(imgIdx, 1);
-        } else {
-            profiles[idx].officeImages.splice(imgIdx, 1);
+
+        if (action === "delete") {
+            await supabase.from("blog_profiles").delete().eq("id", body.id);
+            return NextResponse.json({ success: true });
         }
-        profiles[idx].updatedAt = Date.now();
-        writeProfiles(profiles);
-        return NextResponse.json({ success: true });
-    }
 
-    if (action === "delete") {
-        const filtered = profiles.filter((p) => p.id !== body.id);
-        writeProfiles(filtered);
-        return NextResponse.json({ success: true });
+        return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+    } catch (err) {
+        console.error("[blog-profiles] Error:", err);
+        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
-
-    return NextResponse.json({ error: "Unknown action" }, { status: 400 });
 }
-
-

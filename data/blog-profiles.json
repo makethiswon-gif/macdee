@@ -49,5 +49,39 @@
     "brandColor": "",
     "createdAt": 1773127815932,
     "updatedAt": 1773127815932
+  },
+  {
+    "id": "mmkb1n5l26drn",
+    "lawyerName": "Test 2",
+    "officeName": "Test Law 2",
+    "phone": "010-1234-5678",
+    "address": "Seoul",
+    "website": "https://test.com",
+    "specialty": [
+      "Test"
+    ],
+    "profileImages": [],
+    "officeImages": [],
+    "logoImage": "",
+    "brandColor": "",
+    "createdAt": 1773128697465,
+    "updatedAt": 1773128697465
+  },
+  {
+    "id": "mmkb5peg3hda2",
+    "lawyerName": "이지은",
+    "officeName": "법무법인 그날",
+    "phone": "02-1234-5678",
+    "address": "서울시 강남구 ...",
+    "website": "https://example.com",
+    "specialty": [
+      "이혼"
+    ],
+    "profileImages": [],
+    "officeImages": [],
+    "logoImage": "",
+    "brandColor": "",
+    "createdAt": 1773128887000,
+    "updatedAt": 1773128887000
   }
 ]
