@@ -179,7 +179,8 @@ export async function POST(request: Request) {
                         .single();
 
                     if (uploadError || !upload) {
-                        send({ type: "progress", index: i, status: "error", url, error: "업로드 레코드 생성 실패" });
+                        console.error(`[Migrate] Upload insert failed:`, uploadError);
+                        send({ type: "progress", index: i, status: "error", url, error: `업로드 레코드 생성 실패: ${uploadError?.message || "unknown"}` });
                         continue;
                     }
 
