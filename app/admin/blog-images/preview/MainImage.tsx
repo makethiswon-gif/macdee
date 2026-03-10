@@ -239,22 +239,157 @@ export default function MainImage({ config, profile }: P) {
         </div>;
     }
     // v===15: Serif + Badge (Ref 5)
-    return <div id="blog-main-image" style={{ ...base, fontFamily: "'Nanum Myeongjo', 'Gowun Batang', serif" }}>
-        {bgPhoto}
-        <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.6)" }} />
-        <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 70px", alignItems: "flex-start" }}>
-            <div style={{ background: accent, color: getContrastColor(accent), padding: "4px 10px", fontSize: 14, fontWeight: 800, fontFamily: FONT, letterSpacing: "0.05em", marginBottom: 20 }}>{of || nm + " 변호사"}</div>
-            <h1 style={{ color: "#fff", fontSize: ts + 10, fontWeight: 800, lineHeight: 1.4, letterSpacing: "-0.05em", wordBreak: "keep-all", textShadow: TS }}>
-                {t.split(" ").map((word, i) => (
-                    <span key={i} style={{ display: "inline-block", marginRight: "0.3em", position: "relative" }}>
-                        {word}
-                        {i % 2 === 1 && <span style={{ position: "absolute", bottom: "15%", left: "-10%", right: "-10%", height: "2px", background: accent, transform: "rotate(-2deg)" }} />}
-                    </span>
-                ))}
-            </h1>
-            <div style={{ marginTop: 50, display: "flex", gap: 16 }}>
-                {tags.map((t, i) => <span key={i} style={{ color: "rgba(255,255,255,0.7)", fontFamily: FONT, fontSize: 13, border: "1px solid rgba(255,255,255,0.3)", padding: "4px 12px", borderRadius: 20 }}>{t}</span>)}
+    if (v === 15) {
+        return <div id="blog-main-image" style={{ ...base, fontFamily: "'Nanum Myeongjo', 'Gowun Batang', serif" }}>
+            {bgPhoto}
+            <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.6)" }} />
+            <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 70px", alignItems: "flex-start" }}>
+                <div style={{ background: accent, color: getContrastColor(accent), padding: "4px 10px", fontSize: 14, fontWeight: 800, fontFamily: FONT, letterSpacing: "0.05em", marginBottom: 20 }}>{of || nm + " 변호사"}</div>
+                <h1 style={{ color: "#fff", fontSize: ts + 10, fontWeight: 800, lineHeight: 1.4, letterSpacing: "-0.05em", wordBreak: "keep-all", textShadow: TS }}>
+                    {t.split(" ").map((word, i) => (
+                        <span key={i} style={{ display: "inline-block", marginRight: "0.3em", position: "relative" }}>
+                            {word}
+                            {i % 2 === 1 && <span style={{ position: "absolute", bottom: "15%", left: "-10%", right: "-10%", height: "2px", background: accent, transform: "rotate(-2deg)" }} />}
+                        </span>
+                    ))}
+                </h1>
+                <div style={{ marginTop: 50, display: "flex", gap: 16 }}>
+                    {tags.map((t, i) => <span key={i} style={{ color: "rgba(255,255,255,0.7)", fontFamily: FONT, fontSize: 13, border: "1px solid rgba(255,255,255,0.3)", padding: "4px 12px", borderRadius: 20 }}>{t}</span>)}
+                </div>
+            </div>{logoEl}
+        </div>;
+    }
+
+    // v===16: Photo BG + Bold Colored Highlight Blocks (New Ref 1)
+    // Full photo background with large colored block highlights behind title text
+    if (v === 16) {
+        const words = t.split(" ");
+        const line1 = words.slice(0, Math.ceil(words.length * 0.6)).join(" ");
+        const line2 = words.slice(Math.ceil(words.length * 0.6)).join(" ");
+        const tc = getContrastColor(accent);
+        return <div id="blog-main-image" style={base}>
+            {oImg && <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${oImg})`, backgroundSize: "cover", backgroundPosition: "center" }} />}
+            <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.15)" }} />
+            <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-start", padding: "80px 70px" }}>
+                <h1 style={{ fontSize: Math.round(ts * 1.1), fontWeight: 900, lineHeight: 1.3, letterSpacing: "-0.03em", wordBreak: "keep-all" }}>
+                    <span style={{ background: accent, color: tc, padding: "4px 14px", display: "inline", boxDecorationBreak: "clone", lineHeight: 1.7 }}>{line1}</span>
+                    {line2 && <><br /><span style={{ background: accent, color: tc, padding: "4px 14px", display: "inline", boxDecorationBreak: "clone", lineHeight: 1.7 }}>{line2}</span></>}
+                </h1>
+                <p style={{ color: "#fff", fontSize: 20, fontWeight: 600, marginTop: 30, textShadow: TS }}>{nm} 변호사{of ? ` · ${of}` : ""}</p>
+                {tags.length > 0 && <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+                    {tags.map((t, i) => <span key={i} style={{ padding: "4px 12px", borderRadius: 4, background: "rgba(0,0,0,0.5)", color: "#fff", fontSize: 13, fontWeight: 600 }}>{t}</span>)}
+                </div>}
+            </div>{logoEl}
+        </div>;
+    }
+
+    // v===17: White BG + Grayscale Profile Top + Accent Tags (New Ref 2)
+    // Clean white background, grayscale profile photo centered at top, bold black title, accent-colored tag labels  
+    if (v === 17) {
+        return <div id="blog-main-image" style={{ ...base, background: "#fff" }}>
+            {/* Grayscale profile photo area - top portion */}
+            <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "45%", display: "flex", justifyContent: "center", alignItems: "flex-end", overflow: "hidden" }}>
+                {pImg ? <img src={pImg} alt="" style={{ height: "100%", objectFit: "cover", objectPosition: "top", filter: "grayscale(100%)", maxWidth: "80%" }} />
+                    : oImg ? <img src={oImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "grayscale(100%)" }} />
+                        : <div style={{ width: "100%", height: "100%", background: "#E8E8E8" }} />}
+                <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "30%", background: "linear-gradient(180deg, transparent, #fff)" }} />
             </div>
-        </div>{logoEl}
+            {/* Accent bar at top */}
+            <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 6, background: accent }} />
+            {/* Text content at bottom */}
+            <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "60px 70px" }}>
+                <span style={{ color: accent, fontSize: 14, fontWeight: 700, letterSpacing: "0.05em", marginBottom: 12 }}>{of || "법률 전문"}</span>
+                <h1 style={{ color: "#111", fontSize: ts, fontWeight: 900, lineHeight: 1.3, letterSpacing: "-0.03em", wordBreak: "keep-all" }}>{t}</h1>
+                <div style={{ display: "flex", gap: 12, marginTop: 24, alignItems: "center" }}>
+                    {tags.map((t, i) => <span key={i} style={{ color: accent, fontSize: 16, fontWeight: 800 }}>{t}</span>)}
+                    {tags.length > 1 && tags.slice(0, -1).map((_, i) => <span key={`s${i}`} style={{ color: "#ccc", fontSize: 16 }}>|</span>).flatMap((el, i) => i < tags.length - 1 ? [el] : [])}
+                </div>
+                <p style={{ color: "#888", fontSize: 14, fontWeight: 600, marginTop: 12 }}>{nm} 변호사</p>
+            </div>
+            {logo && <img src={logo} alt="" style={{ position: "absolute", bottom: 24, right: 28, height: 50, objectFit: "contain", filter: "brightness(0.2)", opacity: 0.5 }} />}
+        </div>;
+    }
+
+    // v===18: White BG + Circular Portrait with Accent Circle Behind (New Ref 3)
+    // White/light background, large circular portrait with accent circle, bold black title text
+    if (v === 18) {
+        return <div id="blog-main-image" style={{ ...base, background: "#fff" }}>
+            {/* Accent circle behind profile photo - positioned top right */}
+            <div style={{ position: "absolute", top: 60, right: 80, width: 380, height: 380, borderRadius: "50%", background: accent }} />
+            {/* Circular profile photo, slightly offset from accent circle */}
+            <div style={{ position: "absolute", top: 80, right: 100, width: 340, height: 340, borderRadius: "50%", overflow: "hidden" }}>
+                {pImg ? <img src={pImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
+                    : <div style={{ width: "100%", height: "100%", background: "#E8E8E8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 80, fontWeight: 900, color: "#ccc" }}>{nm[0]}</div>}
+            </div>
+            {/* Office name / brand at top-left */}
+            <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-start", padding: "60px 70px" }}>
+                {logo ? <img src={logo} alt="" style={{ height: 40, objectFit: "contain", filter: "brightness(0.2)", marginBottom: 80 }} />
+                    : <p style={{ color: "#111", fontSize: 16, fontWeight: 900, letterSpacing: "0.1em", marginBottom: 80 }}>{of || ""}</p>}
+                <span style={{ color: "#666", fontSize: 15, fontWeight: 600, marginBottom: 8 }}>{tags[0] || of || "법률 칼럼"}</span>
+                <h1 style={{ color: "#111", fontSize: ts, fontWeight: 900, lineHeight: 1.3, letterSpacing: "-0.03em", wordBreak: "keep-all", maxWidth: 520 }}>{t}</h1>
+                <p style={{ color: accent, fontSize: 16, fontWeight: 700, marginTop: 16 }}>{nm} 변호사{of ? ` · ${of}` : ""}</p>
+            </div>
+        </div>;
+    }
+
+    // v===19: Dark Editorial + Large Portrait Right + Curved Accent Lines (New Ref 4)
+    // Dark charcoal background, large portrait on right side, bold white title on left, decorative curved accent lines
+    if (v === 19) {
+        return <div id="blog-main-image" style={{ ...base, background: "#1a1a1a" }}>
+            {/* Curved decorative accent line */}
+            <svg style={{ position: "absolute", top: "25%", left: "30%", width: 500, height: 500, opacity: 0.2, zIndex: 1 }} viewBox="0 0 500 500" fill="none">
+                <ellipse cx="250" cy="250" rx="200" ry="220" stroke={accent} strokeWidth="1.5" />
+            </svg>
+            {/* Large portrait on right */}
+            <div style={{ position: "absolute", right: 0, bottom: 0, width: "55%", height: "85%", overflow: "hidden" }}>
+                {pImg ? <img src={pImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
+                    : oImg ? <img src={oImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        : <div style={{ width: "100%", height: "100%", background: "#2a2a2a" }} />}
+                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, #1a1a1a 0%, transparent 30%)" }} />
+                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, #1a1a1a 0%, transparent 15%)" }} />
+            </div>
+            {/* Brand at top */}
+            <div style={{ position: "relative", zIndex: 2, height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-start", padding: "60px 70px" }}>
+                {logo ? <img src={logo} alt="" style={{ height: 36, objectFit: "contain", marginBottom: 60 }} />
+                    : of ? <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 14, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 60 }}>{of}</p> : <div style={{ marginBottom: 60 }} />}
+                <h1 style={{ color: "#fff", fontSize: Math.round(ts * 1.1), fontWeight: 900, lineHeight: 1.35, letterSpacing: "-0.03em", wordBreak: "keep-all", maxWidth: 580, textShadow: TS }}>{t}</h1>
+                <div style={{ marginTop: "auto", paddingBottom: 20 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                        <div style={{ width: 30, height: 2, background: accent }} />
+                        <span style={{ color: accent, fontSize: 18, fontWeight: 800, fontStyle: "italic", fontFamily: "'Georgia', serif" }}>{tags[0] || "Legal Insight"}</span>
+                    </div>
+                    <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 14 }}>{nm} 변호사{of ? ` · ${of}` : ""}</p>
+                </div>
+            </div>
+        </div>;
+    }
+
+    // v===20 (fallback): Black/Accent Split + Portrait Overlap (New Ref 5)
+    // Black upper-left with text, accent color block bottom-right, portrait overlapping both, decorative curves
+    return <div id="blog-main-image" style={{ ...base, background: "#111" }}>
+        {/* Accent color block - bottom right */}
+        <div style={{ position: "absolute", bottom: 0, right: 0, width: "55%", height: "40%", background: accent }} />
+        {/* Decorative curved accent lines */}
+        <svg style={{ position: "absolute", top: "15%", left: "10%", width: 600, height: 600, opacity: 0.15, zIndex: 1 }} viewBox="0 0 600 600" fill="none">
+            <ellipse cx="300" cy="300" rx="250" ry="280" stroke={accent} strokeWidth="1.5" />
+            <ellipse cx="320" cy="280" rx="200" ry="230" stroke={accent} strokeWidth="1" />
+        </svg>
+        {/* Portrait photo - overlapping both sections */}
+        <div style={{ position: "absolute", right: 40, bottom: 0, width: "50%", height: "80%", zIndex: 2 }}>
+            {pImg ? <img src={pImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
+                : oImg ? <img src={oImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    : null}
+        </div>
+        {/* Text content - upper left */}
+        <div style={{ position: "relative", zIndex: 3, height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-start", padding: "70px 70px" }}>
+            {logo && <img src={logo} alt="" style={{ height: 32, objectFit: "contain", position: "absolute", top: 40, right: 60 }} />}
+            <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 14, fontWeight: 600, marginBottom: 16 }}>{tags[0] || of || "법률 전문"}</span>
+            <h1 style={{ color: "#fff", fontSize: ts, fontWeight: 900, lineHeight: 1.35, letterSpacing: "-0.03em", wordBreak: "keep-all", maxWidth: 550, textShadow: TS }}>{t}</h1>
+            {/* Bottom info on accent area */}
+            <div style={{ marginTop: "auto", paddingBottom: 20 }}>
+                <p style={{ color: getContrastColor(accent), fontSize: 16, fontWeight: 800 }}>{tags.length > 1 ? tags.slice(0, 3).join(" · ") : nm + " 변호사"}</p>
+                <p style={{ color: getContrastColor(accent), fontSize: 14, fontWeight: 500, marginTop: 4, opacity: 0.7 }}>{of || ""}</p>
+            </div>
+        </div>
     </div>;
 }

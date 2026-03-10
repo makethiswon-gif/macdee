@@ -64,7 +64,12 @@ export const ML_ALL: ML[] = [
     { txtPos: "center", photo: "full", deco: "bar-t", titleScale: 1.4 }, // 12: Strikethrough
     { txtPos: "bl", photo: "full", deco: "none", titleScale: 1.15 }, // 13: Cafe/Food
     { txtPos: "center", photo: "full", deco: "box", titleScale: 1.5 }, // 14: Highlighter (Ref 1/3)
-    { txtPos: "bl", photo: "full", deco: "pill", titleScale: 1.2 }, // 15: Serif Serif Badge (Ref 5)
+    { txtPos: "bl", photo: "full", deco: "pill", titleScale: 1.2 }, // 15: Serif Badge (Ref 5)
+    { txtPos: "center", photo: "full", deco: "box", titleScale: 1.6 }, // 16: Photo + Bold Highlight Blocks (New Ref 1)
+    { txtPos: "bl", photo: "none", deco: "none", titleScale: 1.3 },  // 17: White BG + Grayscale Portrait Top (New Ref 2)
+    { txtPos: "tl", photo: "none", deco: "circle", titleScale: 1.3 }, // 18: White BG + Circular Accent Portrait (New Ref 3)
+    { txtPos: "tl", photo: "right", deco: "none", titleScale: 1.4 },  // 19: Dark Editorial + Right Portrait (New Ref 4)
+    { txtPos: "tl", photo: "right", deco: "diag", titleScale: 1.3 },  // 20: Black/Accent Split + Portrait Overlap (New Ref 5)
 ];
 
 export const SL_ALL: SL[] = [
