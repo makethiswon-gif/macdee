@@ -6,10 +6,14 @@ interface P { config: GenerationConfig; profile: BlogProfile; }
 export default function BrandImage({ config, profile }: P) {
     const v = config.brandVariant % BL_ALL.length;
     const accent = profile.brandColor || config.accentColor;
-    const { lawyerName: nm, officeName: of, logoImage: logo, specialty: tags } = profile;
+    const { lawyerName: nm, officeName: of, logoImage: logo, specialty: tags, brandLines: bl } = profile;
     const base: React.CSSProperties = { width: S, height: S, position: "relative", overflow: "hidden", fontFamily: FONT, background: "#0C0C0C" };
     const logoEl = (w = 120) => logo ? <img src={logo} alt="" style={{ height: w, objectFit: "contain" }} /> : null;
     const tagLine = tags?.join(" · ") || "법률 전문";
+    const lines = (bl || []).slice(0, 3);
+    const linesEl = lines.length > 0 ? <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 16, textAlign: "center" }}>
+        {lines.map((l, i) => <p key={i} style={{ color: "rgba(255,255,255,0.7)", fontSize: 15, fontWeight: 500, lineHeight: 1.5 }}>{l}</p>)}
+    </div> : null;
 
     if (v === 0) { // Logo centered
         return <div id="blog-brand-image" style={{ ...base, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 24 }}>
@@ -18,6 +22,7 @@ export default function BrandImage({ config, profile }: P) {
             <h2 style={{ color: "#fff", fontSize: 40, fontWeight: 900, letterSpacing: "-0.03em" }}>{nm} 변호사</h2>
             {of && <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 16 }}>{of}</p>}
             <p style={{ color: accent, fontSize: 13, fontWeight: 600, letterSpacing: "0.12em", marginTop: 8 }}>{tagLine.toUpperCase()}</p>
+            {linesEl}
         </div>;
     }
     if (v === 1) { // Name bold fullscreen
@@ -27,6 +32,7 @@ export default function BrandImage({ config, profile }: P) {
             <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 18, fontWeight: 600, marginTop: 8 }}>변호사</p>
             <div style={{ width: 50, height: 3, background: accent, borderRadius: 2, marginTop: 24 }} />
             {logo && <div style={{ marginTop: 30 }}>{logoEl(80)}</div>}
+            {linesEl}
         </div>;
     }
     if (v === 2) { // Minimal with line
@@ -46,6 +52,7 @@ export default function BrandImage({ config, profile }: P) {
             <h2 style={{ color: "#fff", fontSize: 36, fontWeight: 900 }}>{nm} 변호사</h2>
             {of && <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 15 }}>{of}</p>}
             <div style={{ display: "flex", gap: 10, marginTop: 12 }}>{(tags || []).map((t, i) => <span key={i} style={{ padding: "5px 16px", borderRadius: 20, border: `1px solid ${accent}40`, color: accent, fontSize: 12, fontWeight: 600 }}>{t}</span>)}</div>
+            {linesEl}
         </div>;
     }
     if (v === 4) { // Accent stripe
@@ -91,6 +98,7 @@ export default function BrandImage({ config, profile }: P) {
                 <h2 style={{ color: "#fff", fontSize: 38, fontWeight: 900 }}>{nm} 변호사</h2>
                 {of && <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 15 }}>{of}</p>}
                 <div style={{ display: "flex", gap: 8, marginTop: 8 }}>{(tags || []).slice(0, 3).map((t, i) => <span key={i} style={{ padding: "4px 14px", borderRadius: 6, background: `${accent}15`, color: accent, fontSize: 12, fontWeight: 600 }}>{t}</span>)}</div>
+                {linesEl}
             </div>
         </div>;
     }

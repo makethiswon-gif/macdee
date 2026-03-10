@@ -13,6 +13,7 @@ export interface BlogProfile {
     officeImages: string[];
     logoImage: string;
     brandColor: string;
+    brandLines: string[];
     profileImageCount?: number;
     officeImageCount?: number;
     hasLogo?: boolean;

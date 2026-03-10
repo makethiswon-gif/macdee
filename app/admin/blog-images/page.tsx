@@ -239,13 +239,13 @@ function ProfilesTab({ profiles, onRefresh }: { profiles: BlogProfile[]; onRefre
     const [editId, setEditId] = useState<string | null>(null);
     const [showForm, setShowForm] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [form, setForm] = useState({ lawyerName: "", officeName: "", phone: "", address: "", website: "", specialty: "" });
+    const [form, setForm] = useState({ lawyerName: "", officeName: "", phone: "", address: "", website: "", specialty: "", brandLines: "" });
     const [fullProfile, setFullProfile] = useState<BlogProfile | null>(null);
     const [uploadingType, setUploadingType] = useState<"profile" | "office" | "logo" | null>(null);
     const fileRef = useRef<HTMLInputElement>(null);
 
     const resetForm = () => {
-        setForm({ lawyerName: "", officeName: "", phone: "", address: "", website: "", specialty: "" });
+        setForm({ lawyerName: "", officeName: "", phone: "", address: "", website: "", specialty: "", brandLines: "" });
         setEditId(null);
         setFullProfile(null);
         setShowForm(false);
@@ -264,6 +264,7 @@ function ProfilesTab({ profiles, onRefresh }: { profiles: BlogProfile[]; onRefre
                 address: profile.address,
                 website: profile.website,
                 specialty: profile.specialty?.join(", ") || "",
+                brandLines: profile.brandLines?.join("\n") || "",
             });
             setEditId(id);
             setShowForm(true);
@@ -286,6 +287,7 @@ function ProfilesTab({ profiles, onRefresh }: { profiles: BlogProfile[]; onRefre
                 address: form.address,
                 website: form.website,
                 specialty: form.specialty.split(",").map((s) => s.trim()).filter(Boolean),
+                brandLines: form.brandLines.split("\n").map((s) => s.trim()).filter(Boolean),
             };
             const res = await fetch("/api/admin/blog-profiles", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
             if (!res.ok) { alert(`저장 실패: ${res.status}`); setSaving(false); return; }
@@ -390,6 +392,12 @@ function ProfilesTab({ profiles, onRefresh }: { profiles: BlogProfile[]; onRefre
                             <label className={labelClass}>전문 분야 (쉼표 구분)</label>
                             <input type="text" value={form.specialty} onChange={(e) => setForm({ ...form, specialty: e.target.value })}
                                 placeholder="형사법, 이혼, 부동산" className={inputClass} />
+                        </div>
+                        <div className="col-span-2">
+                            <label className={labelClass}>브랜드 문구 (줄바꿈 구분, 최대 3줄)</label>
+                            <textarea value={form.brandLines} onChange={(e) => setForm({ ...form, brandLines: e.target.value })}
+                                placeholder={`# 주말 및 휴일 365일 상담 예약 가능\n# 상담부터 재판까지 밀착케어서비스\n# 홍길동 대표 변호사`}
+                                rows={3} className={inputClass + " resize-none"} />
                         </div>
                     </div>
 

@@ -16,6 +16,7 @@ export interface BlogProfile {
     officeImages: string[];
     logoImage: string;
     brandColor: string;
+    brandLines: string[];
     createdAt: number;
     updatedAt: number;
 }
@@ -51,6 +52,7 @@ function dbToProfile(row: Record<string, unknown>): BlogProfile {
         officeImages: (row.office_images as string[]) || [],
         logoImage: (row.logo_image as string) || "",
         brandColor: (row.brand_color as string) || "",
+        brandLines: (row.brand_lines as string[]) || [],
         createdAt: new Date(row.created_at as string).getTime(),
         updatedAt: new Date(row.updated_at as string).getTime(),
     };
@@ -152,6 +154,7 @@ export async function POST(request: NextRequest) {
                 address: body.address || "",
                 website: body.website || "",
                 specialty: body.specialty || [],
+                brand_lines: body.brandLines || [],
                 profile_images: [],
                 office_images: [],
                 logo_image: "",
@@ -170,6 +173,7 @@ export async function POST(request: NextRequest) {
                 address: body.address,
                 website: body.website,
                 specialty: body.specialty,
+                brand_lines: body.brandLines || [],
             }).eq("id", body.id);
             if (error) return NextResponse.json({ error: error.message }, { status: 500 });
             const { data } = await supabase.from("blog_profiles").select("*").eq("id", body.id).single();
