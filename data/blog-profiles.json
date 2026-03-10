@@ -1,0 +1,19 @@
+[
+  {
+    "id": "mmk7tqueydiye",
+    "lawyerName": "Lawyer Kim",
+    "officeName": "Justice Law Office",
+    "phone": "02-555-1234",
+    "address": "123 Teheran-ro, Gangnam, Seoul",
+    "website": "https://justice-law.kr",
+    "specialty": [
+      "Criminal",
+      "DUI",
+      "Traffic"
+    ],
+    "profileImages": [],
+    "officeImages": [],
+    "createdAt": 1773123290150,
+    "updatedAt": 1773123290150
+  }
+]
