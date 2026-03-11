@@ -108,7 +108,7 @@ function PreviewContent() {
         if (!config || !editProfile) return;
         setDownloading(true);
         try {
-            const html2canvas = (await import("html2canvas")).default;
+            const { toPng } = await import("html-to-image");
             const JSZip = (await import("jszip")).default;
             const { saveAs } = await import("file-saver");
             const zip = new JSZip();
@@ -125,24 +125,47 @@ function PreviewContent() {
             for (const { id, suffix } of imageIds) {
                 const el = document.getElementById(id);
                 if (!el) continue;
-                // Wait for images/fonts to render
-                await new Promise(r => setTimeout(r, 200));
-                const canvas = await html2canvas(el, {
-                    scale: 2, useCORS: true, allowTaint: true,
-                    backgroundColor: config.backgroundColor || "#0C0C0C",
-                    width: 1000, height: 1000,
-                    logging: false,
-                    imageTimeout: 15000,
-                });
+                // Wait for fonts/images to fully load
+                await new Promise(r => setTimeout(r, 300));
+                // Use html-to-image (SVG foreignObject — renders Korean fonts correctly)
+                let dataUrl = "";
+                for (let attempt = 0; attempt < 3; attempt++) {
+                    try {
+                        dataUrl = await toPng(el, {
+                            width: 1000,
+                            height: 1000,
+                            pixelRatio: 2,
+                            cacheBust: true,
+                            skipAutoScale: true,
+                            style: { transform: "none", transformOrigin: "top left" },
+                        });
+                        if (dataUrl && dataUrl.length > 100) break;
+                    } catch {
+                        await new Promise(r => setTimeout(r, 200));
+                    }
+                }
+                if (!dataUrl) continue;
+                // Convert PNG dataUrl to JPEG blob for smaller file size
+                const img = new Image();
+                img.src = dataUrl;
+                await new Promise<void>((resolve) => { img.onload = () => resolve(); img.onerror = () => resolve(); });
+                const cvs = document.createElement("canvas");
+                cvs.width = 1000; cvs.height = 1000;
+                const ctx = cvs.getContext("2d");
+                if (ctx) {
+                    ctx.fillStyle = config.backgroundColor || "#0C0C0C";
+                    ctx.fillRect(0, 0, 1000, 1000);
+                    ctx.drawImage(img, 0, 0, 1000, 1000);
+                }
                 let quality = 0.92;
-                let blob = await new Promise<Blob | null>(r => canvas.toBlob(r, "image/jpeg", quality));
+                let blob = await new Promise<Blob | null>(r => cvs.toBlob(r, "image/jpeg", quality));
                 if (blob && blob.size > 800 * 1024) {
                     quality = 0.8;
-                    blob = await new Promise<Blob | null>(r => canvas.toBlob(r, "image/jpeg", quality));
+                    blob = await new Promise<Blob | null>(r => cvs.toBlob(r, "image/jpeg", quality));
                 }
                 if (blob && blob.size > 800 * 1024) {
                     quality = 0.65;
-                    blob = await new Promise<Blob | null>(r => canvas.toBlob(r, "image/jpeg", quality));
+                    blob = await new Promise<Blob | null>(r => cvs.toBlob(r, "image/jpeg", quality));
                 }
                 if (blob) zip.file(`${prefix}_${suffix}.jpg`, blob);
             }
