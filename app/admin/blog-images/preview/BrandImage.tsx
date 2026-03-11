@@ -12,7 +12,7 @@ export default function BrandImage({ config, profile }: P) {
     const tc = config.textColor || "#fff";
     const base: React.CSSProperties = { width: S, height: S, position: "relative", overflow: "hidden", fontFamily: FONT, background: bg };
     const logoEl = (w = 120) => logo ? <img src={logo} alt="" style={{ height: w, objectFit: "contain" }} /> : null;
-    const tagLine = tags?.join(" · ") || "법률 전문";
+    const tagLine = ""; // specialty tags disabled per user request
     const lines = (bl || []).slice(0, 3);
     const linesEl = lines.length > 0 ? <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 16, textAlign: "center" }}>
         {lines.map((l, i) => <p key={i} style={{ fontSize: 15, fontWeight: 500, lineHeight: 1.5 }}>{l}</p>)}

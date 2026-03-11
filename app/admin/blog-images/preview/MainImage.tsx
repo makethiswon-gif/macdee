@@ -12,7 +12,7 @@ export default function MainImage({ config, profile }: P) {
     const pImg = profile.profileImages?.[config.profileImageIndex] || profile.profileImages?.[0];
     const op = config.overlayOpacity;
     const t = config.postTitle;
-    const tags = profile.specialty || [];
+    const tags: string[] = []; // specialty tags disabled per user request
     const nm = profile.lawyerName;
     const of = profile.officeName;
     const logo = profile.logoImage;
