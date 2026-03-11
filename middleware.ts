@@ -1,7 +1,15 @@
-import { type NextRequest } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
 export async function middleware(request: NextRequest) {
+    // Redirect non-www to www (SEO canonical)
+    const host = request.headers.get("host") || "";
+    if (host === "makethis1.com") {
+        const url = request.nextUrl.clone();
+        url.host = "www.makethis1.com";
+        return NextResponse.redirect(url, 301);
+    }
+
     return await updateSession(request);
 }
 
