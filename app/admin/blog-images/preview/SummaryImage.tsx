@@ -16,7 +16,8 @@ export default function SummaryImage({ config, profile }: P) {
     const bg = config.backgroundColor || "#111";
     const tc = config.textColor || "#fff";
     const base: React.CSSProperties = { width: S, height: S, position: "relative", overflow: "hidden", fontFamily: FONT, background: bg };
-    const logoEl = logo && <img src={logo} alt="" style={{ position: "absolute", bottom: 24, right: 28, height: 60, objectFit: "contain", opacity: 0.7 }} />;
+    const isDark = !isLightColor(bg);
+    const logoEl = logo && <img src={logo} alt="" style={{ position: "absolute", bottom: 24, right: 28, height: 60, objectFit: "contain", opacity: 0.7, filter: isDark ? "none" : "brightness(0.2)" }} />;
     const nameEl = <span style={{ fontSize: 14, fontWeight: 600 }}>{nm} 변호사{of ? ` · ${of}` : ""}</span>;
 
     if (v === 0) { // Warm bg + accent number badges
