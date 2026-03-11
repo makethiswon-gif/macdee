@@ -1,0 +1,334 @@
+/* ============================================
+   makethis1. — Script
+   Animations, Data Layer, & Interactions
+   ============================================ */
+
+// ---- INTRO ANIMATION ----
+function runIntro() {
+  const splash = document.getElementById('introSplash');
+  if (!splash) return;
+
+  // Wait for character animations to finish, then fade out
+  setTimeout(() => {
+    splash.classList.add('hidden');
+    document.body.classList.remove('intro-active');
+
+    // Remove from DOM after transition
+    setTimeout(() => {
+      splash.remove();
+    }, 700);
+  }, 2400);
+}
+
+// ---- DATA LAYER (localStorage) ----
+const STORAGE_KEYS = {
+  PORTFOLIO: 'macdee_portfolio',
+  COLUMNS: 'macdee_columns'
+};
+
+const DEFAULT_PORTFOLIO = [
+  {
+    id: 1,
+    title: '법무법인 율빛',
+    category: 'Website',
+    description: '홈페이지 제작',
+    image: '',
+    color: '#0a2d6e'
+  },
+  {
+    id: 2,
+    title: '법무법인 해밀',
+    category: 'Video',
+    description: '홍보 영상 제작',
+    image: '',
+    color: '#1a1050'
+  },
+  {
+    id: 3,
+    title: '법무법인 안세',
+    category: 'Blog Design',
+    description: '블로그 디자인',
+    image: '',
+    color: '#0a3048'
+  },
+  {
+    id: 4,
+    title: '카라 법률사무소',
+    category: 'Blog Management',
+    description: '브랜드 블로그 관리',
+    image: '',
+    color: '#2a1838'
+  },
+  {
+    id: 5,
+    title: '법무법인 그날',
+    category: 'Consulting',
+    description: '마케팅 컨설팅',
+    image: '',
+    color: '#0c2450'
+  },
+  {
+    id: 6,
+    title: '법무법인 류현',
+    category: 'Website',
+    description: '홈페이지 제작',
+    image: '',
+    color: '#182050'
+  }
+];
+
+const DEFAULT_COLUMNS = [
+  {
+    id: 1,
+    title: 'AI 시대에도 변호사 블로그를 멈추면 안 되는 이유',
+    excerpt: 'AI가 발전해도 전문성과 신뢰를 보여줄 수 있는 블로그의 가치는 오히려 높아집니다.',
+    date: '2026.01.15'
+  },
+  {
+    id: 2,
+    title: '네이버 블로그 지수, 정말 중요한가?',
+    excerpt: '블로그 지수의 실체와 로펌 마케팅에서 진정으로 중요한 지표를 분석합니다.',
+    date: '2026.01.08'
+  },
+  {
+    id: 3,
+    title: '법률사무소 마케팅 블로그가 필수인 이유',
+    excerpt: '잠재 의뢰인이 변호사를 찾는 경로와 블로그의 역할을 데이터로 살펴봅니다.',
+    date: '2025.12.20'
+  }
+];
+
+function getData(key, defaults) {
+  try {
+    const stored = localStorage.getItem(key);
+    if (stored) return JSON.parse(stored);
+  } catch (e) { /* ignore */ }
+  return defaults;
+}
+
+function setData(key, data) {
+  localStorage.setItem(key, JSON.stringify(data));
+}
+
+// ---- RENDER PORTFOLIO ----
+function renderPortfolio() {
+  const grid = document.getElementById('portfolioGrid');
+  if (!grid) return;
+  const items = getData(STORAGE_KEYS.PORTFOLIO, DEFAULT_PORTFOLIO);
+
+  grid.innerHTML = items.map((item, i) => `
+    <div class="portfolio-card reveal reveal-delay-${(i % 4) + 1}">
+      <div class="card-image" style="
+        width:100%; height:100%;
+        background: linear-gradient(135deg, ${item.color || '#0a2d6e'} 0%, ${adjustColor(item.color || '#0a2d6e', 30)} 100%);
+        display: flex; align-items: center; justify-content: center;
+      ">
+        ${item.image
+      ? `<img src="${item.image}" alt="${item.title}" style="width:100%;height:100%;object-fit:cover;">`
+      : `<span style="font-family:var(--font-en);font-weight:900;font-size:2.5rem;color:rgba(255,255,255,0.06);text-transform:uppercase;letter-spacing:0.05em;">${item.category}</span>`
+    }
+      </div>
+      <div class="card-overlay">
+        <span class="card-category">${item.category}</span>
+        <h3 class="card-title">${item.title}</h3>
+        <p class="card-desc">${item.description}</p>
+      </div>
+    </div>
+  `).join('');
+
+  observeElements();
+}
+
+function adjustColor(hex, amount) {
+  hex = hex.replace('#', '');
+  const num = parseInt(hex, 16);
+  let r = Math.min(255, ((num >> 16) & 0xFF) + amount);
+  let g = Math.min(255, ((num >> 8) & 0xFF) + amount);
+  let b = Math.min(255, (num & 0xFF) + amount);
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
+}
+
+// ---- RENDER COLUMNS ----
+function renderColumns() {
+  const list = document.getElementById('columnList');
+  if (!list) return;
+  const items = getData(STORAGE_KEYS.COLUMNS, DEFAULT_COLUMNS);
+
+  list.innerHTML = items.map((item, i) => `
+    <div class="column-item reveal reveal-delay-${(i % 3) + 1}">
+      <span class="col-number">${String(i + 1).padStart(2, '0')}</span>
+      <div class="col-content">
+        <h3 class="col-title">${item.title}</h3>
+        <p class="col-excerpt">${item.excerpt || ''}</p>
+      </div>
+      <span class="col-arrow">→</span>
+    </div>
+  `).join('');
+
+  observeElements();
+}
+
+// ---- MENU ----
+const menuToggle = document.getElementById('menuToggle');
+const menuOverlay = document.getElementById('menuOverlay');
+let menuOpen = false;
+
+if (menuToggle && menuOverlay) {
+  menuToggle.addEventListener('click', () => {
+    menuOpen = !menuOpen;
+    menuToggle.classList.toggle('active', menuOpen);
+    menuOverlay.classList.toggle('active', menuOpen);
+    document.body.style.overflow = menuOpen ? 'hidden' : '';
+  });
+}
+
+function closeMenu() {
+  menuOpen = false;
+  if (menuToggle) menuToggle.classList.remove('active');
+  if (menuOverlay) menuOverlay.classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+// ---- HEADER SCROLL ----
+const header = document.getElementById('header');
+let lastScroll = 0;
+
+window.addEventListener('scroll', () => {
+  const y = window.scrollY;
+  if (header) {
+    header.classList.toggle('scrolled', y > 80);
+  }
+  lastScroll = y;
+});
+
+// ---- INTERSECTION OBSERVER (scroll reveal) ----
+function observeElements() {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+  document.querySelectorAll('.reveal:not(.visible)').forEach(el => observer.observe(el));
+}
+
+// ---- SMOOTH SCROLL ----
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+  anchor.addEventListener('click', function (e) {
+    const target = document.querySelector(this.getAttribute('href'));
+    if (target) {
+      e.preventDefault();
+      const offset = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--nav-height')) || 72;
+      window.scrollTo({
+        top: target.offsetTop - offset,
+        behavior: 'smooth'
+      });
+    }
+  });
+});
+
+// ---- CONTACT FORM ----
+function handleContactSubmit(e) {
+  e.preventDefault();
+  const form = e.target;
+  const data = new FormData(form);
+  const entries = Object.fromEntries(data);
+
+  // Save to localStorage for admin dashboard
+  const INQUIRY_KEY = 'makethis1_inquiries';
+  let inquiries = [];
+  try {
+    const stored = localStorage.getItem(INQUIRY_KEY);
+    if (stored) inquiries = JSON.parse(stored);
+  } catch (err) { /* ignore */ }
+
+  const now = new Date();
+  const inquiry = {
+    id: Date.now(),
+    name: entries.name || '',
+    firm: entries.firm || '',
+    phone: entries.phone || '',
+    email: entries.email || '',
+    subject: entries.subject || '',
+    message: entries.message || '',
+    date: `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')}`,
+    time: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`,
+    read: false
+  };
+
+  inquiries.push(inquiry);
+  localStorage.setItem(INQUIRY_KEY, JSON.stringify(inquiries));
+
+  // Show success message
+  showContactToast('문의가 접수되었습니다. 빠른 시일 내에 연락드리겠습니다.');
+  form.reset();
+}
+
+// Simple toast for main site
+function showContactToast(msg) {
+  const existing = document.querySelector('.contact-toast');
+  if (existing) existing.remove();
+
+  const toast = document.createElement('div');
+  toast.className = 'contact-toast';
+  toast.innerHTML = '<span>✓</span> ' + msg;
+  document.body.appendChild(toast);
+
+  requestAnimationFrame(() => {
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateY(0)';
+  });
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(10px)';
+    setTimeout(() => toast.remove(), 400);
+  }, 4000);
+}
+
+
+// ---- STAT COUNTER ANIMATION ----
+function initCounters() {
+  const counters = document.querySelectorAll('.stat-number[data-target]');
+  if (!counters.length) return;
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        animateCounter(entry.target);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.5 });
+
+  counters.forEach(el => observer.observe(el));
+}
+
+function animateCounter(el) {
+  const target = parseInt(el.getAttribute('data-target'));
+  const duration = 1600;
+  const start = performance.now();
+
+  function update(now) {
+    const elapsed = now - start;
+    const progress = Math.min(elapsed / duration, 1);
+    // easeOutCubic
+    const eased = 1 - Math.pow(1 - progress, 3);
+    el.textContent = Math.round(target * eased);
+    if (progress < 1) requestAnimationFrame(update);
+  }
+
+  requestAnimationFrame(update);
+}
+
+// ---- INIT ----
+document.addEventListener('DOMContentLoaded', () => {
+  runIntro();
+  renderPortfolio();
+  renderColumns();
+  observeElements();
+  initCounters();
+});

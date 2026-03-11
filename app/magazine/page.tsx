@@ -125,6 +125,7 @@ function Header() {
                     </Link>
                     <nav className="flex items-center gap-8">
                         <Link href="/" className="text-[13px] text-white/50 hover:text-white transition-colors">홈</Link>
+                        <Link href="/makethisone" className="text-[13px] text-white/50 hover:text-white transition-colors">메이크디스원</Link>
                         <Link href="/signup"
                             className="text-[13px] text-white/50 hover:text-white transition-colors">시작하기</Link>
                     </nav>

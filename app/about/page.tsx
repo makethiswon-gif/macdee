@@ -90,7 +90,10 @@ export default function AboutPage() {
             <header className="bg-white border-b border-[#E5E5E5]">
                 <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
                     <Link href="/" className="text-xl font-black tracking-tight text-[#111]">MACDEE</Link>
-                    <Link href="/magazine" className="text-sm text-[#888] hover:text-[#111]">매거진</Link>
+                    <div className="flex items-center gap-5">
+                        <Link href="/makethisone" className="text-sm text-[#888] hover:text-[#111]">메이크디스원</Link>
+                        <Link href="/magazine" className="text-sm text-[#888] hover:text-[#111]">매거진</Link>
+                    </div>
                 </div>
             </header>
 
