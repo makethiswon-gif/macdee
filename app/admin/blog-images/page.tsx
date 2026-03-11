@@ -6,6 +6,7 @@ import {
     ImageIcon, User, FileText,
     Sparkles, Upload, X, Plus, Trash2, Edit3, ChevronDown, Clock, Eye,
 } from "lucide-react";
+import { removeBackground } from "@imgly/background-removal";
 import {
     type BlogProfile, type GenerationConfig,
     generateConfig, saveGeneration, getAllGenerations, deleteGeneration,
@@ -14,7 +15,7 @@ import {
 type Tab = "generate" | "profiles";
 
 /** Client-side canvas compression to keep payloads small */
-async function compressImageClient(file: File, maxW: number, maxH: number): Promise<string> {
+async function compressImageClient(file: File | Blob, maxW: number, maxH: number): Promise<string> {
     return new Promise((resolve) => {
         const img = new window.Image();
         const url = URL.createObjectURL(file);
@@ -26,7 +27,7 @@ async function compressImageClient(file: File, maxW: number, maxH: number): Prom
             canvas.width = w; canvas.height = h;
             canvas.getContext("2d")!.drawImage(img, 0, 0, w, h);
             URL.revokeObjectURL(url);
-            resolve(canvas.toDataURL("image/jpeg", 0.82));
+            resolve(canvas.toDataURL("image/png", 1.0));
         };
         img.onerror = () => {
             URL.revokeObjectURL(url);
@@ -36,6 +37,18 @@ async function compressImageClient(file: File, maxW: number, maxH: number): Prom
         };
         img.src = url;
     });
+}
+
+/** 프로필 사진 배경 제거 (브라우저에서 ML 모델로 처리, API 비용 0) */
+async function removeProfileBg(file: File): Promise<Blob> {
+    const blob = await removeBackground(file, {
+        progress: (key, current, total) => {
+            if (key === "compute:inference") {
+                console.log(`[BgRemoval] ${Math.round((current / total) * 100)}%`);
+            }
+        },
+    });
+    return blob;
 }
 
 export default function BlogImagesPage() {
@@ -178,6 +191,7 @@ function ProfilesTab({ profiles, onRefresh }: { profiles: BlogProfile[]; onRefre
     const [showForm, setShowForm] = useState(false);
     const [saving, setSaving] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [uploadStatus, setUploadStatus] = useState("");
     const [form, setForm] = useState({ lawyerName: "", officeName: "", phone: "", address: "", website: "", specialty: "", brandLines: "" });
     const [fullProfile, setFullProfile] = useState<BlogProfile | null>(null);
     const fileRef = useRef<HTMLInputElement>(null);
@@ -242,16 +256,31 @@ function ProfilesTab({ profiles, onRefresh }: { profiles: BlogProfile[]; onRefre
         e.target.value = "";
         setUploading(true);
         try {
+            let processedFile: File | Blob = file;
+
+            // 프로필 사진: 자동 배경 제거 (브라우저에서 처리)
+            if (type === "profile") {
+                setUploadStatus("배경 제거 중... (첫 실행 시 모델 다운로드로 30초 소요)");
+                try {
+                    processedFile = await removeProfileBg(file);
+                    setUploadStatus("이미지 압축 중...");
+                } catch (err) {
+                    console.warn("[BgRemoval] Failed, using original:", err);
+                    setUploadStatus("배경 제거 실패, 원본으로 업로드 중...");
+                }
+            } else {
+                setUploadStatus("이미지 업로드 중...");
+            }
+
             const [maxW, maxH] = type === "logo" ? [400, 160] : type === "profile" ? [400, 500] : [900, 600];
-            // Compress client-side first — avoids 4MB body size limit on large phone photos
-            const base64 = await compressImageClient(file, maxW, maxH);
+            const base64 = await compressImageClient(processedFile, maxW, maxH);
             const res = await fetch("/api/admin/blog-profiles", {
                 method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ action: "addImage", profileId: editId, imageType: type, base64 }),
             });
             if (!res.ok) { const d = await res.json().catch(() => ({})); alert(`이미지 업로드 실패: ${d.error || res.status}`); }
         } catch (err) { console.error("Upload error:", err); alert("이미지 업로드 중 오류가 발생했습니다."); }
-        finally { uploadingTypeRef.current = null; setUploading(false); startEdit(editId); }
+        finally { uploadingTypeRef.current = null; setUploading(false); setUploadStatus(""); startEdit(editId); }
     };
 
     const handleRemoveImage = async (type: "profile" | "office" | "logo", index: number) => {
@@ -274,9 +303,9 @@ function ProfilesTab({ profiles, onRefresh }: { profiles: BlogProfile[]; onRefre
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
             {uploading && (
                 <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-                    <div className="bg-[#111827] border border-[#1F2937] rounded-2xl px-8 py-6 flex items-center gap-4">
+                    <div className="bg-[#111827] border border-[#1F2937] rounded-2xl px-8 py-6 flex flex-col items-center gap-4 max-w-xs">
                         <div className="animate-spin w-5 h-5 border-2 border-[#3563AE] border-t-transparent rounded-full" />
-                        <span className="text-white text-sm font-medium">이미지 업로드 중...</span>
+                        <span className="text-white text-sm font-medium text-center">{uploadStatus || "이미지 업로드 중..."}</span>
                     </div>
                 </div>
             )}
