@@ -1,4 +1,5 @@
 "use client";
+import { Fragment } from "react";
 import { S, FONT, TS, SL_ALL, getContrastColor, getSubContrastColor, isLightColor } from "./designs";
 import type { GenerationConfig, BlogProfile } from "../themes";
 interface P { config: GenerationConfig; profile: BlogProfile; }
@@ -589,12 +590,12 @@ export default function SummaryImage({ config, profile }: P) {
         return <div id="blog-summary-image" style={{ ...base, background: `linear-gradient(180deg,${bg},${a1}15)` }}><div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 70px" }}>
             <h2 style={{ color: tc, fontSize: 26, fontWeight: 800, marginBottom: 40, wordBreak: "keep-all", textAlign: "center" }}>{title}</h2>
             <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%", maxWidth: 650 }}>
-                {lines.map((l, i) => <><div key={i} style={{ padding: "20px 28px", borderRadius: 14, background: `${tc}06`, border: `1px solid ${a1}${i === 0 ? '40' : '20'}`, display: "flex", gap: 14, alignItems: "flex-start" }}>
+                {lines.map((l, i) => <Fragment key={i}><div style={{ padding: "20px 28px", borderRadius: 14, background: `${tc}06`, border: `1px solid ${a1}${i === 0 ? '40' : '20'}`, display: "flex", gap: 14, alignItems: "flex-start" }}>
                     <div style={{ width: 32, height: 32, borderRadius: 8, background: a1, display: "flex", alignItems: "center", justifyContent: "center", color: getContrastColor(a1), fontSize: 14, fontWeight: 800, flexShrink: 0 }}>{i + 1}</div>
                     <p style={{ color: `${tc}CC`, fontSize: 16, lineHeight: 1.7, wordBreak: "keep-all", paddingTop: 2 }}>{l}</p>
                 </div>
-                    {i < lines.length - 1 && <div key={`a${i}`} style={{ textAlign: "center", color: `${a1}60`, fontSize: 20 }}>↓</div>}
-                </>)}
+                    {i < lines.length - 1 && <div style={{ textAlign: "center", color: `${a1}60`, fontSize: 20 }}>↓</div>}
+                </Fragment>)}
             </div>
             <div style={{ marginTop: 28, color: `${tc}88` }}>{nameEl}</div>
         </div>{logoEl}</div>;

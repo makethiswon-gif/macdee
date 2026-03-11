@@ -150,12 +150,12 @@ function PreviewContent() {
                 img.src = dataUrl;
                 await new Promise<void>((resolve) => { img.onload = () => resolve(); img.onerror = () => resolve(); });
                 const cvs = document.createElement("canvas");
-                cvs.width = 1000; cvs.height = 1000;
+                cvs.width = 2000; cvs.height = 2000;
                 const ctx = cvs.getContext("2d");
                 if (ctx) {
                     ctx.fillStyle = config.backgroundColor || "#0C0C0C";
-                    ctx.fillRect(0, 0, 1000, 1000);
-                    ctx.drawImage(img, 0, 0, 1000, 1000);
+                    ctx.fillRect(0, 0, 2000, 2000);
+                    ctx.drawImage(img, 0, 0, 2000, 2000);
                 }
                 let quality = 0.92;
                 let blob = await new Promise<Blob | null>(r => cvs.toBlob(r, "image/jpeg", quality));
