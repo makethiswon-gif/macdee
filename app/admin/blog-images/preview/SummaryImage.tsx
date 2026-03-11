@@ -8,7 +8,7 @@ export default function SummaryImage({ config, profile }: P) {
     const a1 = profile.brandColor || config.accentColor;
     const a2 = config.secondaryAccent || a1;
     const pImg = profile.profileImages?.[config.profileImageIndex] || profile.profileImages?.[0];
-    const lines = config.postSummary.split("\n").map(l => l.trim()).filter(Boolean).slice(0, 3);
+    const lines = config.postSummary.split("\n").map(l => l.trim()).filter(Boolean).slice(0, 5);
     const nm = profile.lawyerName;
     const of = profile.officeName;
     const title = config.postTitle;
@@ -35,8 +35,8 @@ export default function SummaryImage({ config, profile }: P) {
     }
     if (v === 1) { // Accent cards on accent gradient
         return <div id="blog-summary-image" style={{ ...base, background: `linear-gradient(160deg, ${a1}40, ${a2}30, ${bg})` }}><div style={{ height: "100%", display: "flex", flexDirection: "column", padding: "60px 70px" }}>
-            <h2 style={{ color: "#fff", fontSize: 26, fontWeight: 800, marginBottom: 10, wordBreak: "keep-all" }}>{title}</h2>
-            <p style={{ color: "rgba(255,255,255,0.75)", marginBottom: 30 }}>{nameEl}</p>
+            <h2 style={{ color: tc, fontSize: 26, fontWeight: 800, marginBottom: 10, wordBreak: "keep-all" }}>{title}</h2>
+            <p style={{ color: `${tc}BB`, marginBottom: 30 }}>{nameEl}</p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, flex: 1 }}>
                 {lines.map((l, i) => <div key={i} style={{ padding: "28px 28px", borderRadius: 16, background: i === 0 ? a1 : i === 1 ? a2 : `${a1}80`, color: "#fff" }}>
                     <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", opacity: 0.7 }}>포인트 0{i + 1}</span>
@@ -98,18 +98,18 @@ export default function SummaryImage({ config, profile }: P) {
     if (v === 5) { // 3 Columns with accent colored headers
         return <div id="blog-summary-image" style={{ ...base, background: `linear-gradient(180deg, ${a1}35 0%, ${bg} 100%)` }}><div style={{ height: "100%", display: "flex", flexDirection: "column", padding: "60px 70px" }}>
             <span style={{ color: a1, fontSize: 13, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 8 }}>핵심 포인트</span>
-            <h2 style={{ color: "#fff", fontSize: 26, fontWeight: 800, marginBottom: 40, wordBreak: "keep-all" }}>{title}</h2>
+            <h2 style={{ color: tc, fontSize: 26, fontWeight: 800, marginBottom: 40, wordBreak: "keep-all" }}>{title}</h2>
             <div style={{ display: "flex", gap: 20, flex: 1 }}>
                 {lines.map((l, i) => <div key={i} style={{ flex: 1, borderRadius: 16, overflow: "hidden" }}>
-                    <div style={{ padding: "18px 24px", background: i === 0 ? a1 : i === 1 ? a2 : `${a1}AA`, color: "#fff" }}>
+                    <div style={{ padding: "18px 24px", background: i === 0 ? a1 : i === 1 ? a2 : `${a1}AA`, color: getContrastColor(a1) }}>
                         <span style={{ fontSize: 32, fontWeight: 900, lineHeight: 1 }}>0{i + 1}</span>
                     </div>
-                    <div style={{ padding: "24px 24px", background: "rgba(255,255,255,0.06)", height: "100%" }}>
-                        <p style={{ color: "rgba(255,255,255,0.85)", fontSize: 15, lineHeight: 1.7, wordBreak: "keep-all" }}>{l}</p>
+                    <div style={{ padding: "24px 24px", background: `${tc}06`, height: "100%" }}>
+                        <p style={{ color: `${tc}DD`, fontSize: 15, lineHeight: 1.7, wordBreak: "keep-all" }}>{l}</p>
                     </div>
                 </div>)}
             </div>
-            <div style={{ marginTop: 24, color: "rgba(255,255,255,0.75)" }}>{nameEl}</div>
+            <div style={{ marginTop: 24, color: `${tc}BB` }}>{nameEl}</div>
         </div>{logoEl}</div>;
     }
     if (v === 6) { // Accent border left cards on photo bg
@@ -133,64 +133,64 @@ export default function SummaryImage({ config, profile }: P) {
     }
     if (v === 7) { // Horizontal accent bars
         return <div id="blog-summary-image" style={{ ...base, background: `linear-gradient(135deg, ${a1}30 0%, ${bg} 60%, ${a2}25 100%)` }}><div style={{ height: "100%", display: "flex", flexDirection: "column", padding: "60px 70px" }}>
-            <h2 style={{ color: "#fff", fontSize: 26, fontWeight: 800, marginBottom: 40, wordBreak: "keep-all" }}>{title}</h2>
+            <h2 style={{ color: tc, fontSize: 26, fontWeight: 800, marginBottom: 40, wordBreak: "keep-all" }}>{title}</h2>
             <div style={{ display: "flex", flexDirection: "column", gap: 16, flex: 1 }}>
                 {lines.map((l, i) => <div key={i} style={{ display: "flex", alignItems: "stretch", gap: 0, borderRadius: 14, overflow: "hidden" }}>
-                    <div style={{ width: 65, background: i === 0 ? a1 : i === 1 ? a2 : `${a1}CC`, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 22, fontWeight: 900 }}>0{i + 1}</div>
-                    <div style={{ flex: 1, padding: "20px 24px", background: "rgba(255,255,255,0.06)" }}><p style={{ color: "rgba(255,255,255,0.9)", fontSize: 16, lineHeight: 1.7, wordBreak: "keep-all" }}>{l}</p></div>
+                    <div style={{ width: 65, background: i === 0 ? a1 : i === 1 ? a2 : `${a1}CC`, display: "flex", alignItems: "center", justifyContent: "center", color: getContrastColor(a1), fontSize: 22, fontWeight: 900 }}>0{i + 1}</div>
+                    <div style={{ flex: 1, padding: "20px 24px", background: `${tc}06` }}><p style={{ color: `${tc}DD`, fontSize: 16, lineHeight: 1.7, wordBreak: "keep-all" }}>{l}</p></div>
                 </div>)}
             </div>
-            <div style={{ marginTop: 24, color: "rgba(255,255,255,0.75)" }}>{nameEl}</div>
+            <div style={{ marginTop: 24, color: `${tc}BB` }}>{nameEl}</div>
         </div>{logoEl}</div>;
     }
     if (v === 8) { // Big accent numbers
         return <div id="blog-summary-image" style={{ ...base, background: `linear-gradient(135deg,${bg} 0%,${a1}50 100%)` }}><div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 80px", textAlign: "center" }}>
             <span style={{ color: a1, fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", marginBottom: 8 }}>핵심 포인트</span>
-            <h2 style={{ color: "#fff", fontSize: 24, fontWeight: 800, marginBottom: 40, wordBreak: "keep-all" }}>{title}</h2>
+            <h2 style={{ color: tc, fontSize: 24, fontWeight: 800, marginBottom: 40, wordBreak: "keep-all" }}>{title}</h2>
             <div style={{ display: "flex", flexDirection: "column", gap: 28, width: "100%", maxWidth: 700 }}>
                 {lines.map((l, i) => <div key={i} style={{ textAlign: "left", display: "flex", gap: 20, alignItems: "flex-start" }}>
                     <span style={{ color: a1, fontSize: 72, fontWeight: 900, lineHeight: 0.8, minWidth: 70 }}>{i + 1}</span>
-                    <p style={{ color: "rgba(255,255,255,0.9)", fontSize: 17, lineHeight: 1.7, wordBreak: "keep-all", paddingTop: 8 }}>{l}</p>
+                    <p style={{ color: `${tc}DD`, fontSize: 17, lineHeight: 1.7, wordBreak: "keep-all", paddingTop: 8 }}>{l}</p>
                 </div>)}
             </div>
         </div>{logoEl}</div>;
     }
 
-    if (v === 10) { // Horizontal Process Timeline (Ref 4)
+    if (v === 10) { // Horizontal Process Timeline
         return <div id="blog-summary-image" style={{ ...base, background: `linear-gradient(180deg, ${bg} 0%, ${a1}30 50%, ${bg} 100%)`, display: "flex", flexDirection: "column" }}>
             <div style={{ flex: 1, padding: "70px 60px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
                 <span style={{ color: a1, fontSize: 13, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 8 }}>{of || "핵심 매뉴얼"}</span>
-                <h2 style={{ color: "#fff", fontSize: 26, fontWeight: 800, marginBottom: 50, wordBreak: "keep-all" }}>{title}</h2>
+                <h2 style={{ color: tc, fontSize: 26, fontWeight: 800, marginBottom: 50, wordBreak: "keep-all" }}>{title}</h2>
                 <div style={{ position: "relative", display: "flex", justifyContent: "space-between", flex: 1, marginTop: 10 }}>
-                    <div style={{ position: "absolute", top: 12, left: 20, right: 20, height: 2, background: "rgba(255,255,255,0.15)" }} />
+                    <div style={{ position: "absolute", top: 12, left: 20, right: 20, height: 2, background: `${tc}15` }} />
                     <div style={{ position: "absolute", top: 12, left: 20, width: "40%", height: 2, background: a1 }} />
                     {lines.map((l, i) => (
                         <div key={i} style={{ position: "relative", width: "30%", zIndex: 1 }}>
-                            <div style={{ width: 26, height: 26, borderRadius: "50%", background: i === 0 ? a1 : `${bg}DD`, border: `4px solid ${i === 0 ? bg : "rgba(255,255,255,0.15)"}`, margin: "0 auto", boxShadow: i === 0 ? `0 0 0 2px ${a1}` : "none" }} />
+                            <div style={{ width: 26, height: 26, borderRadius: "50%", background: i === 0 ? a1 : `${bg}DD`, border: `4px solid ${i === 0 ? bg : `${tc}15`}`, margin: "0 auto", boxShadow: i === 0 ? `0 0 0 2px ${a1}` : "none" }} />
                             <div style={{ marginTop: 24, textAlign: "center" }}>
-                                <span style={{ color: i === 0 ? a1 : "rgba(255,255,255,0.7)", fontSize: 13, fontWeight: 800, letterSpacing: "0.05em" }}>STEP 0{i + 1}</span>
-                                <p style={{ color: i === 0 ? "#fff" : "rgba(255,255,255,0.6)", fontSize: 15, lineHeight: 1.6, wordBreak: "keep-all", marginTop: 8 }}>{l}</p>
+                                <span style={{ color: i === 0 ? a1 : `${tc}AA`, fontSize: 13, fontWeight: 800, letterSpacing: "0.05em" }}>STEP 0{i + 1}</span>
+                                <p style={{ color: i === 0 ? tc : `${tc}99`, fontSize: 15, lineHeight: 1.6, wordBreak: "keep-all", marginTop: 8 }}>{l}</p>
                             </div>
                         </div>
                     ))}
                 </div>
             </div>
-            <div style={{ padding: "0 60px 40px", color: "rgba(255,255,255,0.7)" }}>{nameEl}</div>
+            <div style={{ padding: "0 60px 40px", color: `${tc}BB` }}>{nameEl}</div>
             {logoEl}
         </div>;
     }
 
-    if (v === 11) { // Giant Colored Numbers Cards (Ref 2)
+    if (v === 11) { // Giant Colored Numbers Cards
         return <div id="blog-summary-image" style={{ ...base, background: `linear-gradient(160deg, ${bg} 0%, ${a1}25 100%)` }}><div style={{ height: "100%", display: "flex", flexDirection: "column", padding: "60px 70px" }}>
-            <div style={{ alignSelf: "center", background: a1, color: "#fff", padding: "6px 20px", borderRadius: 20, fontSize: 13, fontWeight: 800, letterSpacing: "0.1em", marginBottom: 30 }}>PROJECT GOAL</div>
-            <h2 style={{ color: "#fff", fontSize: 26, fontWeight: 800, marginBottom: 40, textAlign: "center", wordBreak: "keep-all" }}>{title}</h2>
+            <div style={{ alignSelf: "center", background: a1, color: getContrastColor(a1), padding: "6px 20px", borderRadius: 20, fontSize: 13, fontWeight: 800, letterSpacing: "0.1em", marginBottom: 30 }}>핵심 요약</div>
+            <h2 style={{ color: tc, fontSize: 26, fontWeight: 800, marginBottom: 40, textAlign: "center", wordBreak: "keep-all" }}>{title}</h2>
             <div style={{ display: "flex", gap: 24, flex: 1 }}>
-                {lines.map((l, i) => <div key={i} style={{ flex: 1, background: "rgba(255,255,255,0.04)", borderRadius: 16, padding: "30px 24px", border: "1px solid rgba(255,255,255,0.06)" }}>
+                {lines.map((l, i) => <div key={i} style={{ flex: 1, background: `${tc}04`, borderRadius: 16, padding: "30px 24px", border: `1px solid ${tc}08` }}>
                     <span style={{ color: i === 0 ? a1 : i === 1 ? a2 : `${a1}AA`, fontSize: 48, fontWeight: 900, lineHeight: 1, display: "block", marginBottom: 16 }}>0{i + 1}</span>
-                    <p style={{ color: "rgba(255,255,255,0.8)", fontSize: 15, lineHeight: 1.7, wordBreak: "keep-all" }}>{l}</p>
+                    <p style={{ color: `${tc}CC`, fontSize: 15, lineHeight: 1.7, wordBreak: "keep-all" }}>{l}</p>
                 </div>)}
             </div>
-            <div style={{ marginTop: 24, color: "rgba(255,255,255,0.75)", textAlign: "center" }}>{nameEl}</div>
+            <div style={{ marginTop: 24, color: `${tc}BB`, textAlign: "center" }}>{nameEl}</div>
         </div>{logoEl}</div>;
     }
 
