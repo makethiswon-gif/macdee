@@ -179,17 +179,26 @@ export default function MainImage({ config, profile }: P) {
             </div>{logoEl}
         </div>;
     }
-    // ── v10: Concentric circles + centered text + profile ──
+    // ── v10: Lookbook — 프로필 히어로 오른쪽 + 볼드 타이틀 왼쪽 ──
     if (v === 10) {
-        return <div id="blog-main-image" style={base}>
-            {bgPhoto}
-            <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 620, height: 620, borderRadius: "50%", background: `${accent}55` }} />
-            <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 460, height: 460, borderRadius: "50%", background: `${accent}45` }} />
-            <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 80px", textAlign: "center" }}>
-                {circleProfile(80)}
-                <h1 style={{ color: "#fff", fontSize: ts, fontWeight: 900, lineHeight: 1.25, wordBreak: "keep-all", textShadow: TS, marginTop: 20 }}>{t}</h1>
-                <p style={{ color: "rgba(255,255,255,0.75)", fontSize: 15, fontWeight: 600, marginTop: 20 }}>{nm} 변호사{of ? ` · ${of}` : ""}</p>
-            </div>{logoEl}
+        const lightBg = isLightColor(bg) ? bg : "#F4F1EB";
+        return <div id="blog-main-image" style={{ ...base, background: lightBg, display: "flex" }}>
+            {/* 왼쪽: 타이포그래피 영역 */}
+            <div style={{ flex: "0 0 48%", display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 20px 60px 64px", position: "relative", zIndex: 2 }}>
+                {logo ? <img src={logo} alt="" style={{ height: 28, objectFit: "contain", filter: "brightness(0.15)", marginBottom: 24, alignSelf: "flex-start" }} />
+                    : <span style={{ color: "#1A1A1A88", fontSize: 13, fontWeight: 700, letterSpacing: "0.08em", marginBottom: 24 }}>{of || ""}</span>}
+                <span style={{ color: "#1A1A1A99", fontSize: 13, fontWeight: 600, letterSpacing: "0.06em", marginBottom: 12 }}>{of || "법률 전문"}</span>
+                <h1 style={{ color: accent, fontSize: Math.min(ts + 14, 76), fontWeight: 900, lineHeight: 1.05, letterSpacing: "-0.05em", wordBreak: "keep-all" }}>{t}</h1>
+                <p style={{ color: "#1A1A1A88", fontSize: 13, lineHeight: 1.7, marginTop: 24, maxWidth: 320, wordBreak: "keep-all" }}>{nm} 변호사{of ? ` · ${of}` : ""}</p>
+            </div>
+            {/* 오른쪽: 프로필 사진 히어로 */}
+            <div style={{ flex: "0 0 52%", position: "relative", overflow: "hidden" }}>
+                {pImg ? <img src={pImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center" }} />
+                    : oImg ? <img src={oImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    : <div style={{ width: "100%", height: "100%", background: `linear-gradient(180deg,${accent}30,${accent}10)` }} />}
+                {/* 왼쪽으로 자연스러운 페이드 */}
+                <div style={{ position: "absolute", inset: 0, background: `linear-gradient(90deg,${lightBg} 0%,transparent 15%)` }} />
+            </div>
         </div>;
     }
     // ── v11: Newspaper editorial style ──
@@ -656,17 +665,29 @@ export default function MainImage({ config, profile }: P) {
             </div>{logoEl}
         </div>;
     }
-    // ── v38: Photo bg + solid accent bottom band ──
+    // ── v38: 시네마틱 인용구 — 다크 bg + 원형 프로필 크롭 + 큰 인용문 ──
     if (v === 38) {
-        return <div id="blog-main-image" style={base}>
-            {bgPhoto}
-            <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: `${accent}F0`, padding: "30px 70px 34px", zIndex: 2 }}>
-                <h1 style={{ color: getContrastColor(accent), fontSize: ts - 8, fontWeight: 900, lineHeight: 1.3, wordBreak: "keep-all" }}>{t}</h1>
-                <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 12 }}>
-                    {circleProfile(32)}
-                    <span style={{ color: getSubContrastColor(accent), fontSize: 14 }}>{nm} 변호사{of ? ` · ${of}` : ""}</span>
+        return <div id="blog-main-image" style={{ ...base, background: "#0A0A0A" }}>
+            {/* 브랜드명 좌상단 */}
+            {logo ? <img src={logo} alt="" style={{ position: "absolute", top: 36, left: 44, height: 24, objectFit: "contain", opacity: 0.7, zIndex: 3 }} />
+                : of ? <span style={{ position: "absolute", top: 36, left: 44, color: "rgba(255,255,255,0.5)", fontSize: 14, fontWeight: 800, letterSpacing: "0.08em", zIndex: 3 }}>{of}</span> : null}
+            {/* 원형 프로필 크롭 — 우상단 오프셋 */}
+            <div style={{ position: "absolute", top: 60, right: 80, width: 380, height: 380, borderRadius: "50%", overflow: "hidden", zIndex: 1 }}>
+                {pImg ? <img src={pImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top", filter: "brightness(0.85) contrast(1.1)" }} />
+                    : oImg ? <img src={oImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "brightness(0.7)" }} />
+                    : <div style={{ width: "100%", height: "100%", background: `radial-gradient(circle, ${accent}30, ${accent}10)` }} />}
+            </div>
+            {/* 장식 따옴표 */}
+            <div style={{ position: "absolute", top: 490, left: 44, fontSize: 64, fontWeight: 300, color: "rgba(255,255,255,0.2)", lineHeight: 1, fontFamily: "Georgia,serif", zIndex: 2 }}>"</div>
+            <div style={{ position: "absolute", bottom: 120, right: 300, fontSize: 64, fontWeight: 300, color: "rgba(255,255,255,0.15)", lineHeight: 1, fontFamily: "Georgia,serif", zIndex: 2, transform: "rotate(180deg)" }}>"</div>
+            {/* 큰 인용구 스타일 제목 */}
+            <div style={{ position: "relative", zIndex: 2, height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "0 60px 80px 44px" }}>
+                <h1 style={{ color: "#fff", fontSize: Math.min(ts + 12, 68), fontWeight: 800, lineHeight: 1.3, wordBreak: "keep-all", maxWidth: 600, letterSpacing: "-0.02em" }}>{t}</h1>
+                <div style={{ marginTop: 24, display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{ width: 28, height: 2, background: accent, borderRadius: 1 }} />
+                    <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 14, fontWeight: 600 }}>{nm} 변호사</span>
                 </div>
-            </div>{logoEl}
+            </div>
         </div>;
     }
     // ── v39: Corner brackets frame + radial glow + bold centered ──
@@ -787,14 +808,28 @@ export default function MainImage({ config, profile }: P) {
             </div>{logoEl}
         </div>;
     }
-    // ── v46: Photo bg + rounded inner border ──
+    // ── v46: 에디토리얼 오버레이 — 풀 포토 + 줄별 다른 스타일 텍스트 ──
     if (v === 46) {
+        const titleLines = t.split(/(?<=.{8,})/g).slice(0, 3); // 제목을 8자+ 단위로 분리
+        const styles = [
+            { fontSize: Math.min(ts + 10, 64), fontWeight: 900, color: "#fff", background: "none", padding: "0" },
+            { fontSize: Math.min(ts + 6, 52), fontWeight: 800, color: accent, background: `rgba(255,255,255,0.92)`, padding: "4px 14px", borderRadius: "6px", display: "inline" },
+            { fontSize: Math.min(ts + 10, 64), fontWeight: 900, color: "#fff", background: "none", padding: "0" },
+        ];
         return <div id="blog-main-image" style={base}>
-            {bgPhoto}
-            <div style={{ position: "absolute", inset: 28, borderRadius: 22, border: `2px solid ${accent}50`, zIndex: 1 }} />
-            <div style={{ position: "relative", zIndex: 2, height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "0 76px 60px" }}>
-                <h1 style={{ color: "#fff", fontSize: ts, fontWeight: 900, lineHeight: 1.28, wordBreak: "keep-all", textShadow: TS, marginBottom: 18 }}>{t}</h1>
-                {nameTag}
+            {/* 풀블리드 사진 */}
+            {oImg ? <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${oImg})`, backgroundSize: "cover", backgroundPosition: "center" }} />
+                : pImg ? <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${pImg})`, backgroundSize: "cover", backgroundPosition: "top" }} />
+                : <div style={{ position: "absolute", inset: 0, background: `linear-gradient(135deg, ${accent}40, ${a2}30, ${bg})` }} />}
+            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.6) 100%)" }} />
+            {/* 텍스트 레이어 */}
+            <div style={{ position: "relative", zIndex: 2, height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 70px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {titleLines.map((line, i) => (
+                        <div key={i} style={{ lineHeight: 1.35, wordBreak: "keep-all", letterSpacing: "-0.03em", textShadow: styles[i % 3].background === "none" ? TS : "none", ...(styles[i % 3] as React.CSSProperties) }}>{line}</div>
+                    ))}
+                </div>
+                <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 14, fontWeight: 600, marginTop: 28, textShadow: TS }}>{nm} 변호사{of ? ` · ${of}` : ""}</p>
             </div>{logoEl}
         </div>;
     }
@@ -819,15 +854,28 @@ export default function MainImage({ config, profile }: P) {
             {logo && <img src={logo} alt="" style={{ position: "absolute", bottom: 28, right: 32, height: 48, objectFit: "contain", filter: "brightness(0.15)", opacity: 0.35 }} />}
         </div>;
     }
-    // ── v48: Photo bg + centered accent band ──
+    // ── v48: 볼드 컬러 스플릿 — 2톤 배경 + 흑백 프로필 + 큰 따옴표 ──
     if (v === 48) {
-        return <div id="blog-main-image" style={base}>
-            {bgPhoto}
-            <div style={{ position: "absolute", top: "42%", left: 0, right: 0, height: 130, background: `${accent}E8`, zIndex: 1 }} />
-            <div style={{ position: "relative", zIndex: 2, height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 80px", textAlign: "center" }}>
-                <h1 style={{ color: getContrastColor(accent), fontSize: ts, fontWeight: 900, lineHeight: 1.28, wordBreak: "keep-all" }}>{t}</h1>
-                <span style={{ color: "rgba(255,255,255,0.75)", fontSize: 14, marginTop: 22, textShadow: TS }}>{nm} 변호사{of ? ` · ${of}` : ""}</span>
-            </div>{logoEl}
+        const darkBg = isDark ? bg : "#1A1A2E";
+        return <div id="blog-main-image" style={{ ...base, background: darkBg }}>
+            {/* 하단 accent 영역 */}
+            <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "42%", background: accent }} />
+            {/* 장식 큰따옴표 */}
+            <div style={{ position: "absolute", top: 50, left: 50, fontSize: 140, fontWeight: 900, color: "rgba(255,255,255,0.1)", lineHeight: 1, fontFamily: "Georgia,serif", zIndex: 1 }}>"</div>
+            {/* 흑백 프로필 — 경계 넘어 걸침 */}
+            <div style={{ position: "absolute", top: "8%", right: "8%", width: "46%", height: "70%", zIndex: 2 }}>
+                {pImg ? <img src={pImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top", filter: "grayscale(100%) contrast(1.1)" }} />
+                    : oImg ? <img src={oImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "grayscale(100%) contrast(1.05)" }} />
+                    : <div style={{ width: "100%", height: "100%", background: `linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))` }} />}
+            </div>
+            {/* 하단 텍스트 영역 */}
+            <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 3, padding: "32px 60px 48px" }}>
+                <h1 style={{ color: getContrastColor(accent), fontSize: Math.min(ts + 8, 66), fontWeight: 900, lineHeight: 1.2, wordBreak: "keep-all", letterSpacing: "-0.03em", maxWidth: 700 }}>{t}</h1>
+                <p style={{ color: getSubContrastColor(accent), fontSize: 14, fontWeight: 600, marginTop: 14 }}>{nm} 변호사{of ? ` · ${of}` : ""}</p>
+            </div>
+            {/* 로고/사무소명 좌상단 */}
+            {logo ? <img src={logo} alt="" style={{ position: "absolute", top: 36, left: 44, height: 28, objectFit: "contain", opacity: 0.8, zIndex: 3 }} />
+                : of ? <span style={{ position: "absolute", top: 36, left: 44, color: "rgba(255,255,255,0.6)", fontSize: 14, fontWeight: 800, letterSpacing: "0.06em", zIndex: 3 }}>{of}</span> : null}
         </div>;
     }
     // ── v49: Portrait spotlight — centered profile + radial glow ──
