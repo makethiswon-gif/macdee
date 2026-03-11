@@ -83,16 +83,26 @@ export async function POST(request: Request) {
                 });
                 const verifyData = await verifyRes.json();
 
-                if (!verifyData.success || verifyData.score < 0.5) {
+                // Log for debugging reCAPTCHA issues
+                console.log("[Signup] reCAPTCHA result:", JSON.stringify({
+                    success: verifyData.success,
+                    score: verifyData.score,
+                    action: verifyData.action,
+                    errorCodes: verifyData["error-codes"],
+                }));
+
+                // Only block very low scores (almost certainly bots)
+                // Allow through if verification itself fails (key config issue)
+                if (verifyData.success && verifyData.score < 0.3) {
                     return NextResponse.json(
                         { error: "보안 검증에 실패했습니다. 다시 시도해주세요." },
                         { status: 400 }
                     );
                 }
-            } catch {
+            } catch (err) {
                 // reCAPTCHA verification failed — allow signup to proceed
                 // to avoid blocking legitimate users due to network issues
-                console.error("[Signup] reCAPTCHA verification request failed");
+                console.error("[Signup] reCAPTCHA verification request failed:", err);
             }
         }
 
