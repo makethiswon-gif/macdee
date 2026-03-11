@@ -237,6 +237,17 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: true });
         }
 
+        if (action === "replaceImages") {
+            const { profileId, imageType, images } = body;
+            if (!profileId || !images || !Array.isArray(images)) {
+                return NextResponse.json({ error: "Missing params" }, { status: 400 });
+            }
+            const field = imageType === "profile" ? "profile_images" : "office_images";
+            const { error } = await supabase.from("blog_profiles").update({ [field]: images }).eq("id", profileId);
+            if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+            return NextResponse.json({ success: true, imageCount: images.length });
+        }
+
         if (action === "delete") {
             await supabase.from("blog_profiles").delete().eq("id", body.id);
             return NextResponse.json({ success: true });

@@ -289,6 +289,40 @@ function ProfilesTab({ profiles, onRefresh }: { profiles: BlogProfile[]; onRefre
         startEdit(editId);
     };
 
+    // 기존 프로필 사진 전체 배경 제거
+    const handleBulkBgRemoval = async () => {
+        if (!editId || !fullProfile?.profileImages?.length) return;
+        if (!confirm(`프로필 사진 ${fullProfile.profileImages.length}장의 배경을 모두 제거합니다. 진행하시겠습니까?`)) return;
+        setUploading(true);
+        try {
+            const total = fullProfile.profileImages.length;
+            const processed: string[] = [];
+            for (let i = 0; i < total; i++) {
+                setUploadStatus(`배경 제거 중... (${i + 1}/${total})`);
+                try {
+                    // base64 → Blob → removeBackground → compress → base64
+                    const imgRes = await fetch(fullProfile.profileImages[i]);
+                    const imgBlob = await imgRes.blob();
+                    const file = new File([imgBlob], `profile_${i}.png`, { type: imgBlob.type });
+                    const noBgBlob = await removeProfileBg(file);
+                    const base64 = await compressImageClient(noBgBlob, 400, 500);
+                    processed.push(base64);
+                } catch (err) {
+                    console.warn(`[BulkBgRemoval] Image ${i} failed:`, err);
+                    processed.push(fullProfile.profileImages[i]); // 실패 시 원본 유지
+                }
+            }
+            setUploadStatus("저장 중...");
+            const res = await fetch("/api/admin/blog-profiles", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "replaceImages", profileId: editId, imageType: "profile", images: processed }),
+            });
+            if (!res.ok) alert("저장 실패");
+            else alert(`${total}장의 프로필 사진 배경 제거 완료!`);
+        } catch (err) { console.error("Bulk bg removal error:", err); alert("배경 제거 중 오류가 발생했습니다."); }
+        finally { setUploading(false); setUploadStatus(""); startEdit(editId); }
+    };
+
     // Set ref BEFORE opening file dialog — avoids any potential race condition
     const triggerUpload = (type: "profile" | "office" | "logo") => {
         uploadingTypeRef.current = type;
@@ -349,7 +383,12 @@ function ProfilesTab({ profiles, onRefresh }: { profiles: BlogProfile[]; onRefre
                             <div className="mb-5">
                                 <div className="flex items-center justify-between mb-3">
                                     <label className={lc}>프로필 사진 ({fullProfile.profileImages?.length || 0}장)</label>
-                                    <button onClick={() => triggerUpload("profile")} className="text-xs text-[#3563AE] hover:underline flex items-center gap-1"><Upload size={12} />추가</button>
+                                    <div className="flex items-center gap-3">
+                                        {(fullProfile.profileImages?.length || 0) > 0 && (
+                                            <button onClick={handleBulkBgRemoval} className="text-xs text-[#10B981] hover:underline flex items-center gap-1"><Sparkles size={12} />전체 배경 제거</button>
+                                        )}
+                                        <button onClick={() => triggerUpload("profile")} className="text-xs text-[#3563AE] hover:underline flex items-center gap-1"><Upload size={12} />추가</button>
+                                    </div>
                                 </div>
                                 <div className="flex gap-2 flex-wrap">
                                     {(fullProfile.profileImages || []).map((img, i) => (
