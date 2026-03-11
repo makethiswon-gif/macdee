@@ -16,15 +16,21 @@ export default function MainImage({ config, profile }: P) {
     const logo = profile.logoImage;
     const ts = Math.min(Math.round(42 * ML_ALL[v].titleScale), 72); // cap at 72px
     const bg = config.backgroundColor || "#111";
-    const tc = config.textColor || "#fff";
-    const isDark = !isLightColor(bg);
-    const tShadow = isDark ? TS : "none";
+    const tc = "#FFFFFF";
+    const isDark = true;
+    const tShadow = TS;
 
     const base: React.CSSProperties = { width: S, height: S, position: "relative", overflow: "hidden", fontFamily: FONT, background: bg };
     const abs0: React.CSSProperties = { position: "absolute", inset: 0 };
 
-    // Reusable sub-elements
-    const bgPhoto = <>{oImg && <div style={{ ...abs0, backgroundImage: `url(${oImg})`, backgroundSize: "cover", backgroundPosition: "center" }} />}<div style={{ ...abs0, background: isDark ? `linear-gradient(180deg,${bg}AA 0%,${bg}DD 50%,${bg}CC 100%)` : `linear-gradient(180deg,${bg}CC 0%,${bg}EE 50%,${bg}DD 100%)` }} /></>;
+    // Cinematic office background: photo + color grading + dark overlay + vignetting + film grain
+    const bgPhoto = <>
+        {oImg && <div style={{ ...abs0, backgroundImage: `url(${oImg})`, backgroundSize: "cover", backgroundPosition: "center" }} />}
+        <div style={{ ...abs0, background: "linear-gradient(180deg, rgba(0,30,60,0.3) 0%, rgba(20,10,5,0.35) 100%)", mixBlendMode: "multiply" as const }} />
+        <div style={{ ...abs0, background: "linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.45) 50%, rgba(0,0,0,0.35) 100%)" }} />
+        <div style={{ ...abs0, background: "radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.5) 100%)" }} />
+        <svg style={{ position: "absolute", inset: "0", width: "100%", height: "100%", opacity: 0.1, pointerEvents: "none" } as React.CSSProperties}><filter id="filmGrain"><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" /></filter><rect width="100%" height="100%" filter="url(#filmGrain)" /></svg>
+    </>;
     const nameTag = <span style={{ color: `${tc}CC`, fontSize: 15, fontWeight: 500, letterSpacing: "0.01em", textShadow: tShadow }}>{nm} 변호사{of ? ` · ${of}` : ""}</span>;
     const logoEl = logo && <img src={logo} alt="" style={{ position: "absolute", bottom: 28, right: 32, height: 56, objectFit: "contain", opacity: 0.9 }} />;
     const circleProfile = (size: number) => pImg ? <img src={pImg} alt="" style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", objectPosition: "top", border: `3px solid ${accent}`, flexShrink: 0 }} /> : null;
@@ -56,7 +62,8 @@ export default function MainImage({ config, profile }: P) {
     // ── v2: Split — accent left / photo right ──
     if (v === 2) {
         return <div id="blog-main-image" style={{ ...base, display: "flex" }}>
-            <div style={{ flex: "0 0 52%", position: "relative", display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 50px 60px 70px", background: `linear-gradient(160deg, ${accent} 0%, ${a2} 100%)` }}>
+            {bgPhoto}
+            <div style={{ flex: "0 0 52%", position: "relative", display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 50px 60px 70px", background: `linear-gradient(160deg, ${accent}CC 0%, ${a2}CC 100%)`, zIndex: 1 }}>
                 <div style={{ width: 4, height: 40, background: getContrastColor(accent), borderRadius: 2, marginBottom: 24, opacity: 0.6 }} />
                 <h1 style={{ color: getContrastColor(accent), fontSize: ts, fontWeight: 900, lineHeight: 1.3, letterSpacing: "-0.02em", wordBreak: "keep-all" }}>{t}</h1>
                 <div style={{ marginTop: 28, display: "flex", alignItems: "center", gap: 10 }}>
@@ -64,9 +71,9 @@ export default function MainImage({ config, profile }: P) {
                     <span style={{ color: getSubContrastColor(accent), fontSize: 14 }}>{nm} 변호사{of ? ` · ${of}` : ""}</span>
                 </div>
             </div>
-            <div style={{ flex: "0 0 48%", position: "relative", overflow: "hidden" }}>
+            <div style={{ flex: "0 0 48%", position: "relative", overflow: "hidden", zIndex: 1 }}>
                 {(pImg || oImg) ? <img src={pImg || oImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} /> : <div style={{ width: "100%", height: "100%", background: a2 }} />}
-                <div style={{ position: "absolute", inset: 0, background: `linear-gradient(90deg,${accent} 0%,transparent 20%)` }} />
+                <div style={{ position: "absolute", inset: 0, background: `linear-gradient(90deg,${accent}CC 0%,transparent 20%)` }} />
             </div>{logoEl}
         </div>;
     }
@@ -89,6 +96,7 @@ export default function MainImage({ config, profile }: P) {
     // ── v4: Accent gradient + stacked cards + profile badge ──
     if (v === 4) {
         return <div id="blog-main-image" style={{ ...base, background: `linear-gradient(160deg, ${accent} 0%, ${a2} 100%)` }}>
+            {bgPhoto}
             <div style={{ position: "absolute", top: 60, right: 60, width: 280, height: 180, borderRadius: 20, background: "rgba(255,255,255,0.07)", transform: "rotate(-3deg)" }} />
             <div style={{ position: "absolute", top: 80, right: 80, width: 280, height: 180, borderRadius: 20, background: "rgba(255,255,255,0.05)", transform: "rotate(2deg)" }} />
             <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 6, background: "rgba(0,0,0,0.15)" }} />
@@ -120,20 +128,18 @@ export default function MainImage({ config, profile }: P) {
     // ── v6: Top photo strip + solid accent bg ──
     if (v === 6) {
         return <div id="blog-main-image" style={{ ...base, background: accent }}>
-            <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "42%" }}>
-                {oImg ? <img src={oImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ width: "100%", height: "100%", background: a2 }} />}
-                <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "60%", background: `linear-gradient(180deg,transparent,${accent})` }} />
-            </div>
+            {bgPhoto}
             <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "0 70px 60px" }}>
-                <div style={{ width: 4, height: 32, background: getContrastColor(accent), borderRadius: 2, marginBottom: 18, opacity: 0.6 }} />
-                <h1 style={{ color: getContrastColor(accent), fontSize: ts, fontWeight: 900, lineHeight: 1.3, wordBreak: "keep-all" }}>{t}</h1>
-                <div style={{ marginTop: 20 }}><span style={{ color: getSubContrastColor(accent), fontSize: 14 }}>{nm} 변호사{of ? ` · ${of}` : ""}</span></div>
+                <div style={{ width: 4, height: 32, background: "#fff", borderRadius: 2, marginBottom: 18, opacity: 0.6 }} />
+                <h1 style={{ color: "#fff", fontSize: ts, fontWeight: 900, lineHeight: 1.3, wordBreak: "keep-all", textShadow: TS }}>{t}</h1>
+                <div style={{ marginTop: 20 }}><span style={{ color: "rgba(255,255,255,0.7)", fontSize: 14, textShadow: TS }}>{nm} 변호사{of ? ` · ${of}` : ""}</span></div>
             </div>{logoEl}
         </div>;
     }
     // ── v7: Editorial — § icon block + gradient mesh bg + profile card ──
     if (v === 7) {
         return <div id="blog-main-image" style={{ ...base, background: bg }}>
+            {bgPhoto}
             <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 15% 85%, ${accent}18 0%, transparent 50%), radial-gradient(ellipse at 85% 15%, ${a2}12 0%, transparent 45%)` }} />
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 6, background: `linear-gradient(90deg, ${accent}, ${a2}, transparent)` }} />
             <div style={{ position: "absolute", bottom: 60, right: 70, fontSize: 280, fontWeight: 900, color: `${accent}08`, lineHeight: 0.8, fontFamily: "'Georgia',serif", userSelect: "none" }}>§</div>
@@ -181,44 +187,38 @@ export default function MainImage({ config, profile }: P) {
     }
     // ── v10: Lookbook — 프로필 히어로 오른쪽 + 볼드 타이틀 왼쪽 ──
     if (v === 10) {
-        const lightBg = isLightColor(bg) ? bg : "#F4F1EB";
-        return <div id="blog-main-image" style={{ ...base, background: lightBg, display: "flex" }}>
+        return <div id="blog-main-image" style={{ ...base, display: "flex" }}>
+            {bgPhoto}
             {/* 왼쪽: 타이포그래피 영역 */}
             <div style={{ flex: "0 0 48%", display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 20px 60px 64px", position: "relative", zIndex: 2 }}>
-                {logo ? <img src={logo} alt="" style={{ height: 28, objectFit: "contain", filter: "brightness(0.15)", marginBottom: 24, alignSelf: "flex-start" }} />
-                    : <span style={{ color: "#1A1A1A88", fontSize: 13, fontWeight: 700, letterSpacing: "0.08em", marginBottom: 24 }}>{of || ""}</span>}
-                <span style={{ color: "#1A1A1A99", fontSize: 13, fontWeight: 600, letterSpacing: "0.06em", marginBottom: 12 }}>{of || "법률 전문"}</span>
-                <h1 style={{ color: accent, fontSize: Math.min(ts + 14, 76), fontWeight: 900, lineHeight: 1.05, letterSpacing: "-0.05em", wordBreak: "keep-all" }}>{t}</h1>
-                <p style={{ color: "#1A1A1A88", fontSize: 13, lineHeight: 1.7, marginTop: 24, maxWidth: 320, wordBreak: "keep-all" }}>{nm} 변호사{of ? ` · ${of}` : ""}</p>
+                {logo ? <img src={logo} alt="" style={{ height: 28, objectFit: "contain", marginBottom: 24, alignSelf: "flex-start", opacity: 0.9 }} />
+                    : <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, fontWeight: 700, letterSpacing: "0.08em", marginBottom: 24 }}>{of || ""}</span>}
+                <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: 600, letterSpacing: "0.06em", marginBottom: 12 }}>{of || "법률 전문"}</span>
+                <h1 style={{ color: "#fff", fontSize: Math.min(ts + 14, 76), fontWeight: 900, lineHeight: 1.05, letterSpacing: "-0.05em", wordBreak: "keep-all", textShadow: TS }}>{t}</h1>
+                <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, lineHeight: 1.7, marginTop: 24, maxWidth: 320, wordBreak: "keep-all", textShadow: TS }}>{nm} 변호사{of ? ` · ${of}` : ""}</p>
             </div>
             {/* 오른쪽: 프로필 사진 히어로 */}
-            <div style={{ flex: "0 0 52%", position: "relative", overflow: "hidden" }}>
+            <div style={{ flex: "0 0 52%", position: "relative", overflow: "hidden", zIndex: 1 }}>
                 {pImg ? <img src={pImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center" }} />
-                    : oImg ? <img src={oImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                     : <div style={{ width: "100%", height: "100%", background: `linear-gradient(180deg,${accent}30,${accent}10)` }} />}
-                {/* 왼쪽으로 자연스러운 페이드 */}
-                <div style={{ position: "absolute", inset: 0, background: `linear-gradient(90deg,${lightBg} 0%,transparent 15%)` }} />
+                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, rgba(0,0,0,0.5) 0%, transparent 20%)" }} />
             </div>
         </div>;
     }
     // ── v11: Newspaper editorial style ──
     if (v === 11) {
-        const paperBg = isLightColor(bg) ? bg : "#F4F1EB";
-        const paperText = "#1A1A1A";
-        return <div id="blog-main-image" style={{ ...base, background: paperBg }}>
-            <div style={{ position: "absolute", inset: 16, border: `2px solid ${paperText}` }} />
-            <div style={{ position: "absolute", inset: 22, border: `1px solid ${paperText}`, opacity: 0.3 }} />
-            <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", padding: "30px 40px" }}>
-                <div style={{ paddingBottom: 16, borderBottom: `2px solid ${paperText}`, marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ color: paperText, fontSize: 14, fontWeight: 900, fontFamily: "serif", letterSpacing: "0.08em" }}>{of || nm}</span>
-                    <span style={{ color: `${paperText}55`, fontSize: 11, fontWeight: 600, letterSpacing: "0.12em" }}>LAW COLUMN</span>
+        return <div id="blog-main-image" style={base}>
+            {bgPhoto}
+            <div style={{ position: "absolute", inset: 16, border: "2px solid rgba(255,255,255,0.5)", zIndex: 1 }} />
+            <div style={{ position: "absolute", inset: 22, border: "1px solid rgba(255,255,255,0.2)", zIndex: 1 }} />
+            <div style={{ position: "relative", zIndex: 2, height: "100%", display: "flex", flexDirection: "column", padding: "30px 40px" }}>
+                <div style={{ paddingBottom: 16, borderBottom: "2px solid rgba(255,255,255,0.5)", marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ color: "#fff", fontSize: 14, fontWeight: 900, fontFamily: "serif", letterSpacing: "0.08em", textShadow: TS }}>{of || nm}</span>
+                    <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 600, letterSpacing: "0.12em" }}>LAW COLUMN</span>
                 </div>
-                {oImg && <div style={{ width: "100%", height: 340, overflow: "hidden", border: `1px solid ${paperText}30`, marginBottom: 24 }}>
-                    <img src={oImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "grayscale(20%)" }} />
-                </div>}
-                <h1 style={{ color: paperText, fontSize: Math.min(ts - 2, 52), fontWeight: 900, lineHeight: 1.35, wordBreak: "keep-all", fontFamily: "serif", flex: 1 }}>{t}</h1>
-                <div style={{ paddingTop: 16, borderTop: `1px solid ${paperText}30`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ color: `${paperText}88`, fontSize: 12, fontWeight: 600 }}>{nm} 변호사</span>
+                <h1 style={{ color: "#fff", fontSize: Math.min(ts - 2, 52), fontWeight: 900, lineHeight: 1.35, wordBreak: "keep-all", fontFamily: "serif", flex: 1, textShadow: TS }}>{t}</h1>
+                <div style={{ paddingTop: 16, borderTop: "1px solid rgba(255,255,255,0.3)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ color: "rgba(255,255,255,0.7)", fontSize: 12, fontWeight: 600, textShadow: TS }}>{nm} 변호사</span>
                     <div style={{ display: "flex", gap: 3 }}>{[...Array(3)].map((_, i) => <div key={i} style={{ width: 6, height: 6, borderRadius: "50%", background: i === 0 ? accent : `${accent}40` }} />)}</div>
                 </div>
             </div>
@@ -297,8 +297,7 @@ export default function MainImage({ config, profile }: P) {
         const line1 = words.slice(0, Math.ceil(words.length * 0.6)).join(" ");
         const line2 = words.slice(Math.ceil(words.length * 0.6)).join(" ");
         return <div id="blog-main-image" style={base}>
-            {oImg && <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${oImg})`, backgroundSize: "cover", backgroundPosition: "center" }} />}
-            <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.18)" }} />
+            {bgPhoto}
             <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-start", padding: "80px 70px" }}>
                 <h1 style={{ fontSize: Math.round(ts * 1.05), fontWeight: 900, lineHeight: 1.35, letterSpacing: "-0.03em", wordBreak: "keep-all" }}>
                     <span style={{ background: accent, color: getContrastColor(accent), padding: "3px 14px", display: "inline", lineHeight: 1.7 }}>{line1}</span>
@@ -310,42 +309,39 @@ export default function MainImage({ config, profile }: P) {
     }
     // ── v17: White bg + grayscale top photo ──
     if (v === 17) {
-        return <div id="blog-main-image" style={{ ...base, background: "#fff" }}>
-            <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "44%", overflow: "hidden" }}>
-                {pImg ? <img src={pImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top", filter: "grayscale(100%)" }} />
-                    : oImg ? <img src={oImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "grayscale(100%)" }} />
-                        : <div style={{ width: "100%", height: "100%", background: "#DCDCDC" }} />}
-                <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "35%", background: "linear-gradient(180deg, transparent, #fff)" }} />
-            </div>
-            <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 5, background: accent }} />
+        return <div id="blog-main-image" style={base}>
+            {bgPhoto}
+            <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 5, background: accent, zIndex: 1 }} />
             <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "0 70px 60px" }}>
                 <span style={{ color: accent, fontSize: 13, fontWeight: 700, letterSpacing: "0.06em", marginBottom: 14 }}>{of || "법률 전문"}</span>
-                <h1 style={{ color: "#111", fontSize: ts, fontWeight: 900, lineHeight: 1.3, letterSpacing: "-0.03em", wordBreak: "keep-all" }}>{t}</h1>
-                <p style={{ color: "#888", fontSize: 14, fontWeight: 600, marginTop: 16 }}>{nm} 변호사</p>
+                <h1 style={{ color: "#fff", fontSize: ts, fontWeight: 900, lineHeight: 1.3, letterSpacing: "-0.03em", wordBreak: "keep-all", textShadow: TS }}>{t}</h1>
+                <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 14, fontWeight: 600, marginTop: 16, textShadow: TS }}>{nm} 변호사</p>
             </div>
-            {logo && <img src={logo} alt="" style={{ position: "absolute", bottom: 28, right: 32, height: 48, objectFit: "contain", filter: "brightness(0.2)", opacity: 0.45 }} />}
+            {logoEl}
         </div>;
     }
     // ── v18: White bg + circular profile + accent circle ──
     if (v === 18) {
-        return <div id="blog-main-image" style={{ ...base, background: "#fff" }}>
-            <div style={{ position: "absolute", top: 56, right: 72, width: 380, height: 380, borderRadius: "50%", background: `${accent}20` }} />
-            <div style={{ position: "absolute", top: 76, right: 92, width: 340, height: 340, borderRadius: "50%", overflow: "hidden" }}>
+        return <div id="blog-main-image" style={base}>
+            {bgPhoto}
+            <div style={{ position: "absolute", top: 56, right: 72, width: 380, height: 380, borderRadius: "50%", background: `${accent}20`, zIndex: 1 }} />
+            <div style={{ position: "absolute", top: 76, right: 92, width: 340, height: 340, borderRadius: "50%", overflow: "hidden", zIndex: 1 }}>
                 {pImg ? <img src={pImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
                     : <div style={{ width: "100%", height: "100%", background: `${accent}15`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 100, fontWeight: 900, color: `${accent}50` }}>{nm[0]}</div>}
             </div>
-            <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-start", padding: "60px 70px" }}>
-                {logo ? <img src={logo} alt="" style={{ height: 38, objectFit: "contain", filter: "brightness(0.15)", marginBottom: 80 }} />
-                    : <p style={{ color: "#111", fontSize: 14, fontWeight: 900, letterSpacing: "0.1em", marginBottom: 80 }}>{of || ""}</p>}
-                <span style={{ color: "#888", fontSize: 14, fontWeight: 600, marginBottom: 10 }}>{of || "법률 칼럼"}</span>
-                <h1 style={{ color: "#111", fontSize: ts, fontWeight: 900, lineHeight: 1.3, letterSpacing: "-0.03em", wordBreak: "keep-all", maxWidth: 500 }}>{t}</h1>
-                <p style={{ color: accent, fontSize: 15, fontWeight: 700, marginTop: 18 }}>{nm} 변호사{of ? ` · ${of}` : ""}</p>
+            <div style={{ position: "relative", zIndex: 2, height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-start", padding: "60px 70px" }}>
+                {logo ? <img src={logo} alt="" style={{ height: 38, objectFit: "contain", marginBottom: 80, opacity: 0.9 }} />
+                    : <p style={{ color: "#fff", fontSize: 14, fontWeight: 900, letterSpacing: "0.1em", marginBottom: 80, textShadow: TS }}>{of || ""}</p>}
+                <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 14, fontWeight: 600, marginBottom: 10 }}>{of || "법률 칼럼"}</span>
+                <h1 style={{ color: "#fff", fontSize: ts, fontWeight: 900, lineHeight: 1.3, letterSpacing: "-0.03em", wordBreak: "keep-all", maxWidth: 500, textShadow: TS }}>{t}</h1>
+                <p style={{ color: accent, fontSize: 15, fontWeight: 700, marginTop: 18, textShadow: TS }}>{nm} 변호사{of ? ` · ${of}` : ""}</p>
             </div>
         </div>;
     }
     // ── v19: Dark editorial + portrait right ──
     if (v === 19) {
         return <div id="blog-main-image" style={{ ...base, background: bg }}>
+            {bgPhoto}
             <div style={{ position: "absolute", right: 0, bottom: 0, width: "52%", height: "85%", overflow: "hidden" }}>
                 {pImg ? <img src={pImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
                     : oImg ? <img src={oImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
@@ -370,6 +366,7 @@ export default function MainImage({ config, profile }: P) {
     // ── v20: Dark + portrait + accent corner block ──
     if (v === 20) {
         return <div id="blog-main-image" style={{ ...base, background: bg }}>
+            {bgPhoto}
             <div style={{ position: "absolute", bottom: 0, right: 0, width: "50%", height: "36%", background: accent }} />
             <div style={{ position: "absolute", right: 36, bottom: 0, width: "46%", height: "82%", zIndex: 2 }}>
                 {pImg ? <img src={pImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
@@ -389,6 +386,7 @@ export default function MainImage({ config, profile }: P) {
     // ── v21: Bold serif editorial — accent horizontal stripe + serif title + divider ──
     if (v === 21) {
         return <div id="blog-main-image" style={{ ...base, background: bg }}>
+            {bgPhoto}
             <div style={{ position: "absolute", top: "44%", left: 0, right: 0, height: 100, background: `linear-gradient(90deg, ${accent}25, ${accent}10, transparent)` }} />
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 5, background: accent }} />
             <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 80px", textAlign: "center" }}>
@@ -405,6 +403,7 @@ export default function MainImage({ config, profile }: P) {
     // ── v22: Bold accent sidebar + watermark initial ──
     if (v === 22) {
         return <div id="blog-main-image" style={{ ...base, background: bg }}>
+            {bgPhoto}
             <div style={{ position: "absolute", left: 0, top: 0, width: 16, height: "100%", background: `linear-gradient(180deg, ${accent}, ${a2})` }} />
             <div style={{ position: "absolute", bottom: -40, right: 40, fontSize: 400, fontWeight: 900, color: `${accent}06`, lineHeight: 0.8, fontFamily: "serif", userSelect: "none" }}>{nm[0]}</div>
             <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 60px 60px 56px" }}>
@@ -485,6 +484,7 @@ export default function MainImage({ config, profile }: P) {
     // ── v27: Layered geometry — accent rectangles + pill tag ──
     if (v === 27) {
         return <div id="blog-main-image" style={{ ...base, background: bg }}>
+            {bgPhoto}
             <div style={{ position: "absolute", top: 60, right: 50, width: 300, height: 180, background: `${accent}12`, borderRadius: 20, transform: "rotate(-3deg)" }} />
             <div style={{ position: "absolute", top: 100, right: 90, width: 220, height: 140, background: `${accent}08`, borderRadius: 16, transform: "rotate(1deg)" }} />
             <div style={{ position: "absolute", bottom: 80, left: 60, width: 160, height: 100, background: `${a2}08`, borderRadius: 14 }} />
@@ -523,6 +523,7 @@ export default function MainImage({ config, profile }: P) {
     // ── v29: Accent gradient + frosted glass card centered ──
     if (v === 29) {
         return <div id="blog-main-image" style={{ ...base, background: `linear-gradient(160deg,${accent},${a2})` }}>
+            {bgPhoto}
             <div style={{ position: "absolute", inset: 0, backgroundImage: `radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)`, backgroundSize: "40px 40px" }} />
             <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", padding: "60px 70px" }}>
                 <div style={{ background: "rgba(0,0,0,0.2)", backdropFilter: "blur(20px)", borderRadius: 24, padding: "52px 60px", maxWidth: 720, border: "1px solid rgba(255,255,255,0.1)" }}>
@@ -538,24 +539,24 @@ export default function MainImage({ config, profile }: P) {
     }
     // ── v30: Clean white — accent top bar + profile left + bold title ──
     if (v === 30) {
-        return <div id="blog-main-image" style={{ ...base, background: "#fff" }}>
-            <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 6, background: `linear-gradient(90deg, ${accent}, ${a2})` }} />
-            <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 1, background: "#E5E7EB" }} />
-            <div style={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 80px" }}>
+        return <div id="blog-main-image" style={base}>
+            {bgPhoto}
+            <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 6, background: `linear-gradient(90deg, ${accent}, ${a2})`, zIndex: 1 }} />
+            <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 80px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 32 }}>
                     {pImg ? <img src={pImg} alt="" style={{ width: 56, height: 56, borderRadius: 14, objectFit: "cover", objectPosition: "top", border: `2px solid ${accent}30` }} /> : null}
                     <div>
-                        <span style={{ color: "#111", fontSize: 15, fontWeight: 700 }}>{nm} 변호사</span>
-                        {of && <span style={{ color: "#999", fontSize: 12, display: "block", marginTop: 2 }}>{of}</span>}
+                        <span style={{ color: "#fff", fontSize: 15, fontWeight: 700, textShadow: TS }}>{nm} 변호사</span>
+                        {of && <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, display: "block", marginTop: 2 }}>{of}</span>}
                     </div>
                 </div>
-                <h1 style={{ color: "#111", fontSize: ts + 6, fontWeight: 900, lineHeight: 1.28, wordBreak: "keep-all", letterSpacing: "-0.03em" }}>{t}</h1>
+                <h1 style={{ color: "#fff", fontSize: ts + 6, fontWeight: 900, lineHeight: 1.28, wordBreak: "keep-all", letterSpacing: "-0.03em", textShadow: TS }}>{t}</h1>
                 <div style={{ display: "flex", gap: 8, marginTop: 28 }}>
                     <div style={{ width: 48, height: 4, borderRadius: 2, background: accent }} />
                     <div style={{ width: 16, height: 4, borderRadius: 2, background: `${accent}40` }} />
                 </div>
             </div>
-            {logo && <img src={logo} alt="" style={{ position: "absolute", bottom: 28, right: 32, height: 48, objectFit: "contain", filter: "brightness(0.15)", opacity: 0.35 }} />}
+            {logoEl}
         </div>;
     }
     // ── v31: Photo + diagonal accent split ──
@@ -572,6 +573,7 @@ export default function MainImage({ config, profile }: P) {
     // ── v32: Thick accent sidebar + name watermark + structured layout ──
     if (v === 32) {
         return <div id="blog-main-image" style={{ ...base, background: bg }}>
+            {bgPhoto}
             <div style={{ position: "absolute", left: 0, top: 0, width: 18, height: "100%", background: `linear-gradient(180deg, ${accent}, ${a2})` }} />
             <div style={{ position: "absolute", top: 50, right: 50, fontSize: 360, fontWeight: 900, color: `${accent}05`, lineHeight: 0.8, userSelect: "none" }}>{nm[0]}</div>
             <div style={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 80px 60px 60px" }}>
@@ -588,6 +590,7 @@ export default function MainImage({ config, profile }: P) {
     // ── v33: Photo left / text right split ──
     if (v === 33) {
         return <div id="blog-main-image" style={{ ...base, display: "flex" }}>
+            {bgPhoto}
             <div style={{ flex: "0 0 44%", position: "relative", overflow: "hidden" }}>
                 {(pImg || oImg) ? <img src={pImg || oImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} /> : <div style={{ width: "100%", height: "100%", background: `${accent}30` }} />}
                 <div style={{ position: "absolute", inset: 0, background: `linear-gradient(270deg,${bg},transparent 28%)` }} />
@@ -603,6 +606,7 @@ export default function MainImage({ config, profile }: P) {
     // ── v34: Profile spotlight — centered photo + gradient top accent ──
     if (v === 34) {
         return <div id="blog-main-image" style={{ ...base, background: bg }}>
+            {bgPhoto}
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 120, background: `linear-gradient(180deg, ${accent}, ${accent}00)` }} />
             <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 700, height: 700, borderRadius: "50%", background: `radial-gradient(circle, ${accent}08 0%, transparent 70%)` }} />
             <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 80px", textAlign: "center" }}>
@@ -631,6 +635,7 @@ export default function MainImage({ config, profile }: P) {
     // ── v36: Rich gradient mesh + subtle grid + centered bold ──
     if (v === 36) {
         return <div id="blog-main-image" style={{ ...base, background: `radial-gradient(ellipse at 20% 80%,${accent}45,transparent 55%),radial-gradient(ellipse at 80% 20%,${a2}35,transparent 48%),${bg}` }}>
+            {bgPhoto}
             <div style={{ position: "absolute", inset: 0, backgroundImage: `linear-gradient(${tc}04 1px, transparent 1px), linear-gradient(90deg, ${tc}04 1px, transparent 1px)`, backgroundSize: "60px 60px" }} />
             <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 5, background: accent }} />
             <div style={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", padding: "60px 80px" }}>
@@ -647,6 +652,7 @@ export default function MainImage({ config, profile }: P) {
     // ── v37: Accent shadow card — centered with layered shadow ──
     if (v === 37) {
         return <div id="blog-main-image" style={{ ...base, background: bg }}>
+            {bgPhoto}
             <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 30% 80%, ${accent}10, transparent 50%), radial-gradient(ellipse at 70% 20%, ${a2}08, transparent 40%)` }} />
             <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", padding: "70px" }}>
                 <div style={{ background: `${tc}05`, borderRadius: 24, padding: "52px 60px", maxWidth: 780, boxShadow: `0 0 0 1px ${tc}06, 0 20px 60px ${accent}10, 0 8px 24px rgba(0,0,0,0.08)` }}>
@@ -668,6 +674,7 @@ export default function MainImage({ config, profile }: P) {
     // ── v38: 시네마틱 인용구 — 다크 bg + 원형 프로필 크롭 + 큰 인용문 ──
     if (v === 38) {
         return <div id="blog-main-image" style={{ ...base, background: "#0A0A0A" }}>
+            {bgPhoto}
             {/* 브랜드명 좌상단 */}
             {logo ? <img src={logo} alt="" style={{ position: "absolute", top: 36, left: 44, height: 24, objectFit: "contain", opacity: 0.7, zIndex: 3 }} />
                 : of ? <span style={{ position: "absolute", top: 36, left: 44, color: "rgba(255,255,255,0.5)", fontSize: 14, fontWeight: 800, letterSpacing: "0.08em", zIndex: 3 }}>{of}</span> : null}
@@ -693,6 +700,7 @@ export default function MainImage({ config, profile }: P) {
     // ── v39: Corner brackets frame + radial glow + bold centered ──
     if (v === 39) {
         return <div id="blog-main-image" style={{ ...base, background: bg }}>
+            {bgPhoto}
             <div style={{ position: "absolute", inset: 0, background: `radial-gradient(circle at 50% 50%, ${accent}08 0%, transparent 70%)` }} />
             <div style={{ position: "absolute", top: 36, left: 36, width: 64, height: 64, borderTop: `3px solid ${accent}`, borderLeft: `3px solid ${accent}` }} />
             <div style={{ position: "absolute", top: 36, right: 36, width: 64, height: 64, borderTop: `3px solid ${accent}`, borderRight: `3px solid ${accent}` }} />
@@ -722,6 +730,7 @@ export default function MainImage({ config, profile }: P) {
     // ── v41: Magazine cover — bottom accent band + editorial layout ──
     if (v === 41) {
         return <div id="blog-main-image" style={{ ...base, background: bg }}>
+            {bgPhoto}
             <div style={{ position: "absolute", inset: 0, background: `linear-gradient(180deg, ${accent}12 0%, transparent 25%, transparent 75%, ${accent}08 100%)` }} />
             <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 1, height: 100, background: `${accent}30` }} />
             <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 80, background: accent }} />
@@ -741,6 +750,7 @@ export default function MainImage({ config, profile }: P) {
     // ── v42: Photo collage top + gradient fade + structured text ──
     if (v === 42) {
         return <div id="blog-main-image" style={{ ...base, background: bg }}>
+            {bgPhoto}
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "40%", overflow: "hidden" }}>
                 {oImg ? <img src={oImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.6 }} /> : <div style={{ width: "100%", height: "100%", background: `linear-gradient(135deg, ${accent}30, ${a2}20)` }} />}
                 <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "70%", background: `linear-gradient(180deg,transparent,${bg})` }} />
@@ -760,6 +770,7 @@ export default function MainImage({ config, profile }: P) {
     // ── v43: Bold accent sidebar + vertical branding + profile ──
     if (v === 43) {
         return <div id="blog-main-image" style={{ ...base, display: "flex" }}>
+            {bgPhoto}
             <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 40px 60px 70px" }}>
                 <span style={{ color: accent, fontSize: 12, fontWeight: 800, letterSpacing: "0.12em", marginBottom: 20 }}>{of || "법률 전문"}</span>
                 <h1 style={{ color: tc, fontSize: ts + 2, fontWeight: 900, lineHeight: 1.28, wordBreak: "keep-all" }}>{t}</h1>
@@ -794,6 +805,7 @@ export default function MainImage({ config, profile }: P) {
     // ── v45: Accent gradient + dot texture + glass overlay card ──
     if (v === 45) {
         return <div id="blog-main-image" style={{ ...base, background: `linear-gradient(160deg,${accent},${a2})` }}>
+            {bgPhoto}
             <div style={{ position: "absolute", inset: 0, backgroundImage: `radial-gradient(circle, rgba(255,255,255,0.08) 1.5px, transparent 1.5px)`, backgroundSize: "28px 28px" }} />
             <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 6, background: "rgba(0,0,0,0.12)" }} />
             <div style={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", padding: "60px 70px", position: "relative", zIndex: 1 }}>
@@ -817,11 +829,7 @@ export default function MainImage({ config, profile }: P) {
             { fontSize: Math.min(ts + 10, 64), fontWeight: 900, color: "#fff", background: "none", padding: "0" },
         ];
         return <div id="blog-main-image" style={base}>
-            {/* 풀블리드 사진 */}
-            {oImg ? <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${oImg})`, backgroundSize: "cover", backgroundPosition: "center" }} />
-                : pImg ? <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${pImg})`, backgroundSize: "cover", backgroundPosition: "top" }} />
-                : <div style={{ position: "absolute", inset: 0, background: `linear-gradient(135deg, ${accent}40, ${a2}30, ${bg})` }} />}
-            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.6) 100%)" }} />
+            {bgPhoto}
             {/* 텍스트 레이어 */}
             <div style={{ position: "relative", zIndex: 2, height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 70px" }}>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -835,29 +843,29 @@ export default function MainImage({ config, profile }: P) {
     }
     // ── v47: Clean white editorial — accent bar group + profile + border bottom ──
     if (v === 47) {
-        return <div id="blog-main-image" style={{ ...base, background: "#FAFAFA" }}>
-            <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 5, background: `linear-gradient(90deg, ${accent}, ${a2})` }} />
-            <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 1, background: "#E5E7EB" }} />
-            <div style={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 80px" }}>
+        return <div id="blog-main-image" style={base}>
+            {bgPhoto}
+            <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 5, background: `linear-gradient(90deg, ${accent}, ${a2})`, zIndex: 1 }} />
+            <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 80px" }}>
                 <div style={{ display: "flex", gap: 5, marginBottom: 28 }}>
                     <div style={{ width: 48, height: 6, background: accent, borderRadius: 3 }} />
                     <div style={{ width: 16, height: 6, background: `${accent}50`, borderRadius: 3 }} />
                     <div style={{ width: 8, height: 6, background: `${accent}25`, borderRadius: 3 }} />
                 </div>
-                <h1 style={{ color: "#111", fontSize: ts + 4, fontWeight: 900, lineHeight: 1.28, wordBreak: "keep-all", letterSpacing: "-0.03em" }}>{t}</h1>
-                <div style={{ marginTop: 32, paddingTop: 20, borderTop: "1px solid #E5E7EB", display: "flex", alignItems: "center", gap: 14 }}>
+                <h1 style={{ color: "#fff", fontSize: ts + 4, fontWeight: 900, lineHeight: 1.28, wordBreak: "keep-all", letterSpacing: "-0.03em", textShadow: TS }}>{t}</h1>
+                <div style={{ marginTop: 32, paddingTop: 20, borderTop: "1px solid rgba(255,255,255,0.2)", display: "flex", alignItems: "center", gap: 14 }}>
                     {pImg ? <img src={pImg} alt="" style={{ width: 48, height: 48, borderRadius: 12, objectFit: "cover", objectPosition: "top" }} /> : null}
-                    <div><span style={{ color: "#111", fontSize: 15, fontWeight: 700 }}>{nm} 변호사</span>
-                    {of && <span style={{ color: "#999", fontSize: 12, display: "block", marginTop: 2 }}>{of}</span>}</div>
+                    <div><span style={{ color: "#fff", fontSize: 15, fontWeight: 700, textShadow: TS }}>{nm} 변호사</span>
+                    {of && <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, display: "block", marginTop: 2 }}>{of}</span>}</div>
                 </div>
             </div>
-            {logo && <img src={logo} alt="" style={{ position: "absolute", bottom: 28, right: 32, height: 48, objectFit: "contain", filter: "brightness(0.15)", opacity: 0.35 }} />}
+            {logoEl}
         </div>;
     }
     // ── v48: 볼드 컬러 스플릿 — 2톤 배경 + 흑백 프로필 + 큰 따옴표 ──
     if (v === 48) {
-        const darkBg = isDark ? bg : "#1A1A2E";
-        return <div id="blog-main-image" style={{ ...base, background: darkBg }}>
+        return <div id="blog-main-image" style={{ ...base, background: isDark ? bg : "#1A1A2E" }}>
+            {bgPhoto}
             {/* 하단 accent 영역 */}
             <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "42%", background: accent }} />
             {/* 장식 큰따옴표 */}
@@ -881,6 +889,7 @@ export default function MainImage({ config, profile }: P) {
     // ── v49: Portrait spotlight — centered profile + radial glow ──
     if (v === 49) {
         return <div id="blog-main-image" style={{ ...base, background: bg }}>
+            {bgPhoto}
             <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 800, height: 800, borderRadius: "50%", background: `radial-gradient(circle, ${accent}10 0%, transparent 70%)` }} />
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 5, background: `linear-gradient(90deg, transparent, ${accent}, transparent)` }} />
             <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", padding: "60px 80px" }}>
@@ -900,6 +909,7 @@ export default function MainImage({ config, profile }: P) {
     }
     // ── v50: fallback — professional gradient mesh + accent top + structured ──
     return <div id="blog-main-image" style={{ ...base, background: bg }}>
+        {bgPhoto}
         <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 20% 80%, ${accent}15 0%, transparent 55%), radial-gradient(ellipse at 80% 20%, ${a2}10 0%, transparent 45%)` }} />
         <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 5, background: accent }} />
         <div style={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 80px" }}>
