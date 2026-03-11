@@ -83,10 +83,10 @@ export const COLOR_PALETTES: ColorPalette[] = [
 // Flat list for backward compat
 export const ACCENT_COLORS = COLOR_PALETTES.map(p => p.accent);
 
-export const MAIN_VARIANT_COUNT = 21;
-export const SUMMARY_VARIANT_COUNT = 12;
-export const CONTACT_VARIANT_COUNT = 10;
-export const BRAND_VARIANT_COUNT = 15;
+export const MAIN_VARIANT_COUNT = 51;
+export const SUMMARY_VARIANT_COUNT = 42;
+export const CONTACT_VARIANT_COUNT = 40;
+export const BRAND_VARIANT_COUNT = 45;
 
 /** Lighten (positive) or darken (negative) a hex color */
 export function adjustColor(hex: string, amount: number): string {
