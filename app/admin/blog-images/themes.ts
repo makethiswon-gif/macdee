@@ -162,3 +162,13 @@ export function deleteGeneration(id: string): void {
     const items = getAllGenerations().filter((i) => i.id !== id);
     localStorage.setItem(GEN_KEY, JSON.stringify(items));
 }
+
+export function updateGeneration(id: string, partial: Partial<GenerationConfig>): GenerationConfig | null {
+    if (typeof window === "undefined") return null;
+    const items = getAllGenerations();
+    const idx = items.findIndex((i) => i.id === id);
+    if (idx < 0) return null;
+    items[idx] = { ...items[idx], ...partial };
+    localStorage.setItem(GEN_KEY, JSON.stringify(items));
+    return items[idx];
+}
