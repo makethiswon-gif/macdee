@@ -2,9 +2,10 @@ import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
 export async function middleware(request: NextRequest) {
-    // Redirect non-www to www (SEO canonical)
+    // Redirect non-www to www (SEO canonical) — except RSS/sitemap for Naver compatibility
     const host = request.headers.get("host") || "";
-    if (host === "makethis1.com") {
+    const path = request.nextUrl.pathname;
+    if (host === "makethis1.com" && !path.startsWith("/rss") && !path.startsWith("/sitemap")) {
         const url = request.nextUrl.clone();
         url.host = "www.makethis1.com";
         return NextResponse.redirect(url, 301);

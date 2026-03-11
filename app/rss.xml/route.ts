@@ -1,11 +1,14 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 
 // RSS 2.0 feed for Naver Search Advisor + general RSS readers
-export async function GET() {
+export async function GET(request: NextRequest) {
     try {
         const supabase = await createAdminClient();
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
+        // Use request host so RSS link matches the registered site (www or non-www)
+        const host = request.headers.get("host") || "www.makethis1.com";
+        const proto = request.headers.get("x-forwarded-proto") || "https";
+        const baseUrl = `${proto}://${host}`;
 
         // Get published blog posts
         const { data: blogPosts } = await supabase
