@@ -2,12 +2,14 @@ import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
 export async function middleware(request: NextRequest) {
-    // Redirect non-www to www (SEO canonical) — except RSS/sitemap for Naver compatibility
+    // Redirect non-canonical domains to www.makethis1.com (SEO) — except RSS/sitemap for Naver
     const host = request.headers.get("host") || "";
     const path = request.nextUrl.pathname;
-    if (host === "makethis1.com" && !path.startsWith("/rss") && !path.startsWith("/sitemap")) {
+    const nonCanonical = ["makethis1.com", "aimacdee.com", "www.aimacdee.com"];
+    if (nonCanonical.includes(host) && !path.startsWith("/rss") && !path.startsWith("/sitemap")) {
         const url = request.nextUrl.clone();
         url.host = "www.makethis1.com";
+        url.protocol = "https";
         return NextResponse.redirect(url, 301);
     }
 
