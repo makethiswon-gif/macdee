@@ -278,6 +278,7 @@ function ProfilesTab({ profiles, onRefresh }: { profiles: BlogProfile[]; onRefre
     const handleSave = async () => {
         setSaving(true);
         try {
+            const isCreating = !editId;
             const payload = {
                 action: editId ? "update" : "create",
                 ...(editId ? { id: editId } : {}),
@@ -293,10 +294,12 @@ function ProfilesTab({ profiles, onRefresh }: { profiles: BlogProfile[]; onRefre
             if (!res.ok) { alert(`저장 실패: ${res.status}`); setSaving(false); return; }
             const result = await res.json();
             setSaving(false);
-            onRefresh();
-            if (!editId && result.profile?.id) {
-                startEdit(result.profile.id);
+            if (isCreating && result.profile?.id) {
+                // Auto-transition to edit mode to allow photo upload
+                await startEdit(result.profile.id);
+                onRefresh();
             } else {
+                onRefresh();
                 resetForm();
             }
         } catch (err) {
@@ -316,18 +319,53 @@ function ProfilesTab({ profiles, onRefresh }: { profiles: BlogProfile[]; onRefre
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file || !editId || !uploadingType) return;
-        const reader = new FileReader();
-        reader.onload = async () => {
+
+        try {
+            const compressClientImage = (file: File): Promise<string> => {
+                return new Promise((resolve, reject) => {
+                    const img = new window.Image();
+                    img.onload = () => {
+                        const canvas = document.createElement("canvas");
+                        let width = img.width;
+                        let height = img.height;
+                        const maxDim = 1200;
+                        if (width > maxDim || height > maxDim) {
+                            if (width > height) {
+                                height = Math.round((height * maxDim) / width);
+                                width = maxDim;
+                            } else {
+                                width = Math.round((width * maxDim) / height);
+                                height = maxDim;
+                            }
+                        }
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext("2d");
+                        if (!ctx) return resolve("");
+                        ctx.drawImage(img, 0, 0, width, height);
+                        resolve(canvas.toDataURL(file.type === "image/png" ? "image/png" : "image/jpeg", 0.8));
+                    };
+                    img.onerror = reject;
+                    img.src = URL.createObjectURL(file);
+                });
+            };
+
+            const base64 = await compressClientImage(file);
+            if (!base64) throw new Error("Compression failed");
+
             await fetch("/api/admin/blog-profiles", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ action: "addImage", profileId: editId, imageType: uploadingType, base64: reader.result }),
+                body: JSON.stringify({ action: "addImage", profileId: editId, imageType: uploadingType, base64 }),
             });
             setUploadingType(null);
             startEdit(editId);
-        };
-        reader.readAsDataURL(file);
-        e.target.value = "";
+        } catch (err) {
+            console.error("Image upload error:", err);
+            alert("이미지 업로드 중 오류가 발생했습니다. 용량이 너무 큰 경우 해상도를 줄여서 다시 시도해주세요.");
+        } finally {
+            e.target.value = "";
+        }
     };
 
     const handleRemoveImage = async (type: "profile" | "office" | "logo", index: number) => {
