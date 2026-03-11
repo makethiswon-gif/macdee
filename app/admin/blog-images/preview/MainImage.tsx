@@ -10,7 +10,7 @@ export default function MainImage({ config, profile }: P) {
     const a2 = config.secondaryAccent || accent;
     const oImg = profile.officeImages?.[config.officeImageIndex] || profile.officeImages?.[0];
     const pImg = profile.profileImages?.[config.profileImageIndex] || profile.profileImages?.[0];
-    const t = config.postTitle;
+    const t = config.postTitle || `${profile.officeName || profile.lawyerName} 법률 칼럼`;
     const nm = profile.lawyerName;
     const of = profile.officeName;
     const logo = profile.logoImage;
