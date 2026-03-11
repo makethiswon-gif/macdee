@@ -125,10 +125,14 @@ function PreviewContent() {
             for (const { id, suffix } of imageIds) {
                 const el = document.getElementById(id);
                 if (!el) continue;
+                // Wait for images/fonts to render
+                await new Promise(r => setTimeout(r, 200));
                 const canvas = await html2canvas(el, {
-                    scale: 1, useCORS: true,
+                    scale: 2, useCORS: true, allowTaint: true,
                     backgroundColor: config.backgroundColor || "#0C0C0C",
                     width: 1000, height: 1000,
+                    logging: false,
+                    imageTimeout: 15000,
                 });
                 let quality = 0.92;
                 let blob = await new Promise<Blob | null>(r => canvas.toBlob(r, "image/jpeg", quality));

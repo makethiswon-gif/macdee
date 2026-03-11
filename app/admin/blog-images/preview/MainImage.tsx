@@ -27,7 +27,7 @@ export default function MainImage({ config, profile }: P) {
     const bgPhoto = <>{oImg && <div style={{ ...abs0, backgroundImage: `url(${oImg})`, backgroundSize: "cover", backgroundPosition: "center" }} />}<div style={{ ...abs0, background: isDark ? `linear-gradient(180deg,${bg}AA 0%,${bg}DD 50%,${bg}CC 100%)` : `linear-gradient(180deg,${bg}CC 0%,${bg}EE 50%,${bg}DD 100%)` }} /></>;
     const tShadow = isDark ? TS : "none";
     const nameTag = <span style={{ color: `${tc}CC`, fontSize: 15, textShadow: tShadow }}>{nm} 변호사{of ? ` · ${of}` : ""}</span>;
-    const logoEl = logo && <img src={logo} alt="" style={{ position: "absolute", bottom: 24, right: 28, height: 60, objectFit: "contain", opacity: 0.7, filter: isDark ? "none" : "brightness(0.2)" }} />;
+    const logoEl = logo && <img src={logo} alt="" style={{ position: "absolute", bottom: 24, right: 28, height: 60, objectFit: "contain", opacity: 1 }} />;
     const tagEls = tags.length > 0 && <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>{tags.map((t, i) => <span key={i} style={{ padding: "5px 14px", borderRadius: 4, background: accent, color: getContrastColor(accent), fontSize: 13, fontWeight: 700 }}>{t}</span>)}</div>;
     // Circular profile photo helper - face-focused
     const circleProfile = (size: number) => pImg ? <img src={pImg} alt="" style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", objectPosition: "top", border: `4px solid ${accent}`, boxShadow: `0 4px 20px rgba(0,0,0,0.5)` }} /> : null;

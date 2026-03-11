@@ -77,8 +77,8 @@ async function compressLogo(base64: string): Promise<string> {
         const match = base64.match(/^data:image\/\w+;base64,(.+)$/);
         if (!match) return base64;
         const buf = Buffer.from(match[1], "base64");
-        const resized = await sharp(buf).resize(200, 80, { fit: "inside" }).webp({ quality: 80 }).toBuffer();
-        return `data:image/webp;base64,${resized.toString("base64")}`;
+        const resized = await sharp(buf).resize(400, 160, { fit: "inside" }).png({ quality: 90 }).toBuffer();
+        return `data:image/png;base64,${resized.toString("base64")}`;
     } catch {
         return base64;
     }
