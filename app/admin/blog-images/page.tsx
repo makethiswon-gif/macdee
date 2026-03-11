@@ -10,6 +10,7 @@ import { removeBackground } from "@imgly/background-removal";
 import {
     type BlogProfile, type GenerationConfig,
     generateConfig, saveGeneration, getAllGenerations, deleteGeneration,
+    COLOR_PALETTES, adjustColor,
 } from "./themes";
 
 type Tab = "generate" | "profiles";
@@ -113,9 +114,38 @@ function GenerateTab({ profiles, router }: { profiles: BlogProfile[]; router: Re
                 if (aiRes.ok) { const aiData = await aiRes.json(); if (aiData.summary) summary = aiData.summary; }
             } catch { /**/ }
         }
+
+        // AI 디자인 추천
+        let aiConfig: Partial<GenerationConfig> = {};
+        try {
+            const designRes = await fetch("/api/admin/blog-design-recommend", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ postTitle, postSummary: summary, profile }),
+            });
+            if (designRes.ok) {
+                const { recommendation } = await designRes.json();
+                if (recommendation) {
+                    const palette = COLOR_PALETTES[Math.max(0, Math.min(49, recommendation.paletteIndex || 0))];
+                    aiConfig = {
+                        mainVariant: recommendation.mainVariant ?? undefined,
+                        summaryVariant: recommendation.summaryVariant ?? undefined,
+                        contactVariant: recommendation.contactVariant ?? undefined,
+                        brandVariant: recommendation.brandVariant ?? undefined,
+                        accentColor: palette.accent,
+                        secondaryAccent: adjustColor(palette.accent, -25),
+                        backgroundColor: palette.bg,
+                        textColor: palette.text,
+                    };
+                    console.log("[AI Design]", recommendation.reason);
+                }
+            }
+        } catch (err) { console.warn("[AI Design] Failed, using random:", err); }
+
         const config = generateConfig(selectedId, postTitle, summary, profile.profileImages?.length || 0, profile.officeImages?.length || 0);
-        saveGeneration(config);
-        setTimeout(() => router.push(`/admin/blog-images/preview?id=${config.id}`), 300);
+        // AI 추천으로 덮어쓰기
+        const finalConfig = { ...config, ...aiConfig };
+        saveGeneration(finalConfig);
+        setTimeout(() => router.push(`/admin/blog-images/preview?id=${finalConfig.id}`), 300);
     };
 
     const selected = profiles.find((p) => p.id === selectedId);
