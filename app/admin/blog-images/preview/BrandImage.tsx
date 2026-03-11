@@ -106,7 +106,7 @@ export default function BrandImage({ config, profile }: P) {
         </div>;
     }
     if (v === 6) { // ④ 볼드 컬러 스플릿 — 2톤 + 흑백 프로필 + 따옴표
-        const darkTop = isDark ? bg : "#1A1A2E";
+        const darkTop = !isLightColor(bg) ? bg : "#1A1A2E";
         return <div id="blog-brand-image" style={{ ...base, background: darkTop }}>
             <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "40%", background: a1 }} />
             <div style={{ position: "absolute", top: 44, left: 50, fontSize: 120, fontWeight: 900, color: "rgba(255,255,255,0.08)", lineHeight: 1, fontFamily: "Georgia,serif", zIndex: 1 }}>"</div>
