@@ -19,6 +19,7 @@ export default function BrandImage({ config, profile }: P) {
     </div> : null;
     const oImg = officeImages?.[config.officeImageIndex] || officeImages?.[0];
     const pImg = profileImages?.[config.profileImageIndex] || profileImages?.[0];
+    const profImg = (w: number, h: number, r: number) => pImg ? <img src={pImg} alt="" style={{ width: w, height: h, borderRadius: r, objectFit: "cover", objectPosition: "top" }} /> : null;
 
     if (v === 0) { // Logo on accent gradient
         const tc = getContrastColor(a1); const sc = getSubContrastColor(a1);
@@ -249,31 +250,248 @@ export default function BrandImage({ config, profile }: P) {
         </div>;
     }
 
-    // v===14 (fallback): Full photo bg + speech bubble brand lines (mindset style)
-    return <div id="blog-brand-image" style={{ ...base, background: bg }}>
-        {(pImg || oImg) && <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${pImg || oImg})`, backgroundSize: "cover", backgroundPosition: "center top" }} />}
-        <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.25)" }} />
-        {/* Decorative curved accent lines */}
-        <svg style={{ position: "absolute", top: "10%", right: "10%", width: 300, height: 300, opacity: 0.15, zIndex: 1 }} viewBox="0 0 300 300" fill="none">
-            <path d="M 150 20 Q 280 80, 260 200 Q 240 300, 100 280" stroke={a1} strokeWidth="1.5" />
-            <path d="M 130 40 Q 250 100, 230 220 Q 210 320, 80 300" stroke={a1} strokeWidth="1" />
-        </svg>
-        {/* Speech bubble with brand line */}
-        <div style={{ position: "relative", zIndex: 2, height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 70px" }}>
-            {lines[0] && <div style={{ position: "relative", background: "rgba(50,50,50,0.85)", backdropFilter: "blur(8px)", borderRadius: 16, padding: "20px 28px", maxWidth: 450, marginBottom: 20, alignSelf: "flex-end" }}>
-                <p style={{ color: "#fff", fontSize: 18, fontWeight: 600, lineHeight: 1.5 }}>{lines[0]}</p>
-                {/* Bubble tail */}
-                <div style={{ position: "absolute", bottom: -10, right: 40, width: 0, height: 0, borderLeft: "10px solid transparent", borderRight: "10px solid transparent", borderTop: "12px solid rgba(50,50,50,0.85)" }} />
-            </div>}
-            {/* Overlay text */}
-            <div style={{ marginTop: 20 }}>
-                <h2 style={{ color: "#fff", fontSize: 32, fontWeight: 900, lineHeight: 1.4, textShadow: TS, wordBreak: "keep-all" }}>
-                    {nm} 변호사{of ? `\n${of}` : ""}
-                </h2>
-                {lines[1] && <p style={{ color: "#fff", fontSize: 22, fontWeight: 300, marginTop: 8, textShadow: TS, lineHeight: 1.5 }}>{lines[1]}</p>}
-                {tags?.[0] && <p style={{ color: "#fff", fontSize: 40, fontWeight: 900, marginTop: 4, textShadow: TS }}>{tags[0]}...</p>}
+    // v===14: Full photo bg + speech bubble brand lines
+    if (v === 14) {
+        return <div id="blog-brand-image" style={{ ...base, background: bg }}>
+            {(pImg || oImg) && <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${pImg || oImg})`, backgroundSize: "cover", backgroundPosition: "center top" }} />}
+            <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.25)" }} />
+            <svg style={{ position: "absolute", top: "10%", right: "10%", width: 300, height: 300, opacity: 0.15, zIndex: 1 }} viewBox="0 0 300 300" fill="none">
+                <path d="M 150 20 Q 280 80, 260 200 Q 240 300, 100 280" stroke={a1} strokeWidth="1.5" />
+                <path d="M 130 40 Q 250 100, 230 220 Q 210 320, 80 300" stroke={a1} strokeWidth="1" />
+            </svg>
+            <div style={{ position: "relative", zIndex: 2, height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 70px" }}>
+                {lines[0] && <div style={{ position: "relative", background: "rgba(50,50,50,0.85)", backdropFilter: "blur(8px)", borderRadius: 16, padding: "20px 28px", maxWidth: 450, marginBottom: 20, alignSelf: "flex-end" }}>
+                    <p style={{ color: "#fff", fontSize: 18, fontWeight: 600, lineHeight: 1.5 }}>{lines[0]}</p>
+                    <div style={{ position: "absolute", bottom: -10, right: 40, width: 0, height: 0, borderLeft: "10px solid transparent", borderRight: "10px solid transparent", borderTop: "12px solid rgba(50,50,50,0.85)" }} />
+                </div>}
+                <div style={{ marginTop: 20 }}>
+                    <h2 style={{ color: "#fff", fontSize: 32, fontWeight: 900, lineHeight: 1.4, textShadow: TS, wordBreak: "keep-all" }}>
+                        {nm} 변호사{of ? `\n${of}` : ""}
+                    </h2>
+                    {lines[1] && <p style={{ color: "#fff", fontSize: 22, fontWeight: 300, marginTop: 8, textShadow: TS, lineHeight: 1.5 }}>{lines[1]}</p>}
+                    {tags?.[0] && <p style={{ color: "#fff", fontSize: 40, fontWeight: 900, marginTop: 4, textShadow: TS }}>{tags[0]}...</p>}
+                </div>
             </div>
-        </div>
-        {logo && <img src={logo} alt="" style={{ position: "absolute", bottom: 24, right: 28, height: 50, objectFit: "contain", opacity: 0.6 }} />}
+            {logo && <img src={logo} alt="" style={{ position: "absolute", bottom: 24, right: 28, height: 50, objectFit: "contain", opacity: 0.6 }} />}
+        </div>;
+    }
+    // v===15: Centered name + brand line + accent circle
+    if (v === 15) {
+        return <div id="blog-brand-image" style={{ ...base, background: bg }}>
+            <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 700, height: 700, borderRadius: "50%", border: `1px solid ${a1}20` }} />
+            <div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "60px 80px" }}>
+                {profImg(100, 120, 60) && <div style={{ marginBottom: 20 }}>{profImg(100, 120, 60)}</div>}
+                <h2 style={{ color: tc, fontSize: 40, fontWeight: 900 }}>{nm} 변호사</h2>
+                {of && <p style={{ color: `${tc}AA`, fontSize: 15, marginTop: 4 }}>{of}</p>}
+                <div style={{ width: 50, height: 3, background: a1, borderRadius: 2, margin: "24px auto" }} />
+                {lines[0] && <p style={{ color: `${tc}CC`, fontSize: 20, fontWeight: 600, lineHeight: 1.5, wordBreak: "keep-all" }}>{lines[0]}</p>}
+                {tagLine && <p style={{ color: a1, fontSize: 16, fontWeight: 700, marginTop: 12 }}>{tagLine}</p>}
+            </div>{logoEl()}
+        </div>;
+    }
+    // v===16: Accent gradient bg + serif title
+    if (v === 16) {
+        const cTc = getContrastColor(a1);
+        return <div id="blog-brand-image" style={{ ...base, background: `linear-gradient(135deg,${a1},${a2})` }}>
+            <div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "60px 80px" }}>
+                <h2 style={{ color: cTc, fontSize: 44, fontWeight: 900, fontFamily: "'Nanum Myeongjo','Georgia',serif", letterSpacing: "-0.02em" }}>{nm}</h2>
+                <p style={{ color: `${cTc}CC`, fontSize: 16, fontWeight: 600, marginTop: 4 }}>변호사{of ? ` · ${of}` : ""}</p>
+                <div style={{ width: 60, height: 3, background: `${cTc}40`, borderRadius: 2, margin: "28px auto" }} />
+                {lines[0] && <p style={{ color: cTc, fontSize: 22, fontWeight: 600, lineHeight: 1.5, wordBreak: "keep-all" }}>{lines[0]}</p>}
+                {tagLine && <p style={{ color: `${cTc}99`, fontSize: 15, marginTop: 16 }}>{tagLine}</p>}
+            </div>{logoEl()}
+        </div>;
+    }
+    // v===17: Photo left + text right split
+    if (v === 17) {
+        return <div id="blog-brand-image" style={{ ...base, display: "flex" }}>
+            <div style={{ flex: "0 0 42%", position: "relative", overflow: "hidden" }}>
+                {(pImg || oImg) ? <img src={pImg || oImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} /> : <div style={{ width: "100%", height: "100%", background: `linear-gradient(180deg,${a1},${a2})` }} />}
+            </div>
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "50px 60px" }}>
+                <span style={{ color: a1, fontSize: 12, fontWeight: 800, letterSpacing: "0.12em", marginBottom: 16 }}>BRAND</span>
+                <h2 style={{ color: tc, fontSize: 34, fontWeight: 900 }}>{nm} 변호사</h2>
+                {of && <p style={{ color: `${tc}88`, fontSize: 14, marginTop: 4 }}>{of}</p>}
+                <div style={{ width: 40, height: 3, background: a1, borderRadius: 2, marginTop: 20, marginBottom: 16 }} />
+                {lines[0] && <p style={{ color: `${tc}CC`, fontSize: 18, lineHeight: 1.6, wordBreak: "keep-all" }}>{lines[0]}</p>}
+                {tagLine && <p style={{ color: a1, fontSize: 15, fontWeight: 700, marginTop: 12 }}>{tagLine}</p>}
+            </div>{logoEl()}
+        </div>;
+    }
+    // v===18: White card on dark + accent bar
+    if (v === 18) {
+        return <div id="blog-brand-image" style={{ ...base, background: bg }}>
+            <div style={{ position: "absolute", left: 0, top: 0, width: 8, height: "100%", background: `linear-gradient(180deg,${a1},${a2})` }} />
+            <div style={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 60px 60px 80px" }}>
+                {profImg(80, 80, 40) && <div style={{ marginBottom: 20 }}>{profImg(80, 80, 40)}</div>}
+                <h2 style={{ color: tc, fontSize: 38, fontWeight: 900 }}>{nm} 변호사</h2>
+                {of && <p style={{ color: `${tc}AA`, fontSize: 14, marginTop: 4 }}>{of}</p>}
+                <div style={{ marginTop: 24 }}>
+                    {lines[0] && <p style={{ color: `${tc}CC`, fontSize: 20, lineHeight: 1.6, wordBreak: "keep-all" }}>{lines[0]}</p>}
+                    {tagLine && <p style={{ color: a1, fontSize: 16, fontWeight: 700, marginTop: 12 }}>{tagLine}</p>}
+                </div>
+            </div>{logoEl()}
+        </div>;
+    }
+    // v===19: Accent box over photo
+    if (v === 19) {
+        return <div id="blog-brand-image" style={base}>
+            {(pImg || oImg) && <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${pImg || oImg})`, backgroundSize: "cover", backgroundPosition: "center top" }} />}
+            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg,transparent 30%,rgba(0,0,0,0.7))" }} />
+            <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "60px 70px" }}>
+                <div style={{ background: a1, borderRadius: 14, padding: "24px 32px", maxWidth: 500, marginBottom: 20 }}>
+                    {lines[0] && <p style={{ color: getContrastColor(a1), fontSize: 18, fontWeight: 700, lineHeight: 1.5 }}>{lines[0]}</p>}
+                </div>
+                <h2 style={{ color: "#fff", fontSize: 36, fontWeight: 900, textShadow: TS }}>{nm} 변호사</h2>
+                {of && <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 14, marginTop: 4 }}>{of}</p>}
+                {tagLine && <p style={{ color: "rgba(255,255,255,0.9)", fontSize: 16, fontWeight: 600, marginTop: 12, textShadow: TS }}>{tagLine}</p>}
+            </div>{logoEl()}
+        </div>;
+    }
+    // v===20: Minimalist white + accent highlight
+    if (v === 20) {
+        return <div id="blog-brand-image" style={{ ...base, background: "#FAFAFA" }}>
+            <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 6, background: a1 }} />
+            <div style={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 80px" }}>
+                <h2 style={{ color: "#111", fontSize: 40, fontWeight: 900 }}>{nm}</h2>
+                <p style={{ color: "#666", fontSize: 16, marginTop: 4 }}>변호사{of ? ` · ${of}` : ""}</p>
+                <div style={{ width: 60, height: 4, background: a1, borderRadius: 2, marginTop: 24, marginBottom: 20 }} />
+                {lines[0] && <p style={{ color: "#333", fontSize: 20, lineHeight: 1.6, wordBreak: "keep-all" }}>{lines[0]}</p>}
+                {tagLine && <p style={{ color: a1, fontSize: 16, fontWeight: 700, marginTop: 16 }}>{tagLine}</p>}
+            </div>
+            {logo && <img src={logo} alt="" style={{ position: "absolute", bottom: 20, right: 24, height: 40, objectFit: "contain", filter: "brightness(0.2)", opacity: 0.3 }} />}
+        </div>;
+    }
+    // v===21: Glass card centered on gradient
+    if (v === 21) {
+        return <div id="blog-brand-image" style={{ ...base, background: `linear-gradient(135deg,${a1}40,${a2}30,${bg})` }}>
+            <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: 50 }}>
+                <div style={{ background: "rgba(255,255,255,0.08)", backdropFilter: "blur(16px)", borderRadius: 20, border: "1px solid rgba(255,255,255,0.15)", padding: "50px 56px", maxWidth: 650, width: "100%", textAlign: "center" }}>
+                    {profImg(80, 80, 40) && <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>{profImg(80, 80, 40)}</div>}
+                    <h2 style={{ color: tc, fontSize: 36, fontWeight: 900 }}>{nm} 변호사</h2>
+                    {of && <p style={{ color: `${tc}99`, fontSize: 14, marginTop: 4 }}>{of}</p>}
+                    <div style={{ width: 40, height: 3, background: a1, borderRadius: 2, margin: "20px auto" }} />
+                    {lines[0] && <p style={{ color: `${tc}CC`, fontSize: 18, lineHeight: 1.5, wordBreak: "keep-all" }}>{lines[0]}</p>}
+                    {tagLine && <p style={{ color: a1, fontSize: 14, fontWeight: 700, marginTop: 12 }}>{tagLine}</p>}
+                </div>
+            </div>{logoEl()}
+        </div>;
+    }
+    // v===22: Big letter watermark + name
+    if (v === 22) {
+        return <div id="blog-brand-image" style={{ ...base, background: bg }}>
+            <div style={{ position: "absolute", top: -80, left: -40, fontSize: 500, fontWeight: 900, color: `${a1}12`, lineHeight: 1, fontFamily: "serif" }}>{nm[0]}</div>
+            <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 80px" }}>
+                {profImg(90, 110, 14) && <div style={{ marginBottom: 20 }}>{profImg(90, 110, 14)}</div>}
+                <h2 style={{ color: tc, fontSize: 42, fontWeight: 900, letterSpacing: "-0.02em" }}>{nm} 변호사</h2>
+                {of && <p style={{ color: `${tc}88`, fontSize: 14, marginTop: 4 }}>{of}</p>}
+                <div style={{ marginTop: 24 }}>
+                    {lines[0] && <p style={{ color: `${tc}CC`, fontSize: 20, lineHeight: 1.6, wordBreak: "keep-all" }}>{lines[0]}</p>}
+                    {tagLine && <p style={{ color: a1, fontSize: 15, fontWeight: 700, marginTop: 12 }}>{tagLine}</p>}
+                </div>
+            </div>{logoEl()}
+        </div>;
+    }
+    // v===23: Double frame + centered brand
+    if (v === 23) {
+        return <div id="blog-brand-image" style={{ ...base, background: bg }}>
+            <div style={{ position: "absolute", inset: 24, border: `1px solid ${a1}40`, borderRadius: 16 }} />
+            <div style={{ position: "absolute", inset: 40, border: `1px solid ${a1}20`, borderRadius: 12 }} />
+            <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "80px 100px" }}>
+                <h2 style={{ color: tc, fontSize: 42, fontWeight: 900 }}>{nm}</h2>
+                <p style={{ color: `${tc}AA`, fontSize: 16, marginTop: 4 }}>변호사{of ? ` · ${of}` : ""}</p>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "24px 0" }}><div style={{ width: 24, height: 2, background: a1 }} /><span style={{ color: a1, fontSize: 12, fontWeight: 700, letterSpacing: "0.1em" }}>BRAND</span><div style={{ width: 24, height: 2, background: a1 }} /></div>
+                {lines[0] && <p style={{ color: `${tc}CC`, fontSize: 18, lineHeight: 1.5, wordBreak: "keep-all" }}>{lines[0]}</p>}
+            </div>{logoEl()}
+        </div>;
+    }
+    // v===24: Bold stacked name on dark
+    if (v === 24) {
+        return <div id="blog-brand-image" style={{ ...base, background: bg }}>
+            <div style={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 80px" }}>
+                <span style={{ color: a1, fontSize: 13, fontWeight: 800, letterSpacing: "0.12em", marginBottom: 20 }}>ATTORNEY</span>
+                <h2 style={{ color: tc, fontSize: 56, fontWeight: 900, lineHeight: 1.05, letterSpacing: "-0.04em" }}>{nm}</h2>
+                <p style={{ color: `${tc}88`, fontSize: 18, marginTop: 8 }}>변호사{of ? ` · ${of}` : ""}</p>
+                <div style={{ width: 50, height: 3, background: a1, borderRadius: 2, marginTop: 24, marginBottom: 20 }} />
+                {lines[0] && <p style={{ color: `${tc}CC`, fontSize: 20, lineHeight: 1.6, wordBreak: "keep-all", maxWidth: 600 }}>{lines[0]}</p>}
+                {tagLine && <p style={{ color: a1, fontSize: 15, fontWeight: 700, marginTop: 16 }}>{tagLine}</p>}
+            </div>{logoEl()}
+        </div>;
+    }
+    // v===25: Accent right sidebar + brand
+    if (v === 25) {
+        return <div id="blog-brand-image" style={{ ...base, display: "flex" }}>
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 50px 60px 70px" }}>
+                {profImg(80, 100, 12) && <div style={{ marginBottom: 20 }}>{profImg(80, 100, 12)}</div>}
+                <h2 style={{ color: tc, fontSize: 36, fontWeight: 900 }}>{nm} 변호사</h2>
+                {of && <p style={{ color: `${tc}88`, fontSize: 14, marginTop: 4 }}>{of}</p>}
+                <div style={{ marginTop: 24 }}>
+                    {lines[0] && <p style={{ color: `${tc}CC`, fontSize: 18, lineHeight: 1.6, wordBreak: "keep-all" }}>{lines[0]}</p>}
+                    {tagLine && <p style={{ color: a1, fontSize: 15, fontWeight: 700, marginTop: 12 }}>{tagLine}</p>}
+                </div>
+            </div>
+            <div style={{ width: 160, background: a1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                <span style={{ color: getContrastColor(a1), fontSize: 14, fontWeight: 800, writingMode: "vertical-rl", letterSpacing: "0.2em" }}>{of || nm}</span>
+            </div>{logoEl()}
+        </div>;
+    }
+    // v===26-44: Parametric brand variants
+    if (v >= 26 && v <= 44) {
+        const layouts: Array<{ bg: string; centered: boolean; hasPhoto: boolean; accentPos: string }> = [
+            { bg: `linear-gradient(135deg,${bg},${a1}25)`, centered: false, hasPhoto: true, accentPos: "top" }, // 26
+            { bg, centered: true, hasPhoto: false, accentPos: "circle" }, // 27
+            { bg: `linear-gradient(180deg,${a1},${a2})`, centered: true, hasPhoto: true, accentPos: "none" }, // 28
+            { bg, centered: false, hasPhoto: true, accentPos: "left" }, // 29
+            { bg: `radial-gradient(ellipse at 30% 70%,${a1}50,transparent 60%),${bg}`, centered: false, hasPhoto: false, accentPos: "bottom" }, // 30
+            { bg, centered: true, hasPhoto: false, accentPos: "frame" }, // 31
+            { bg: `linear-gradient(160deg,${bg},${a2}30)`, centered: false, hasPhoto: true, accentPos: "top" }, // 32
+            { bg: a1, centered: true, hasPhoto: true, accentPos: "none" }, // 33
+            { bg, centered: false, hasPhoto: false, accentPos: "left" }, // 34
+            { bg: `linear-gradient(135deg,${a2},${a1})`, centered: true, hasPhoto: false, accentPos: "none" }, // 35
+            { bg, centered: false, hasPhoto: true, accentPos: "bottom" }, // 36
+            { bg: `linear-gradient(180deg,${bg},${a1}20)`, centered: true, hasPhoto: false, accentPos: "circle" }, // 37
+            { bg, centered: false, hasPhoto: false, accentPos: "top" }, // 38
+            { bg: `linear-gradient(135deg,${a1}60,${bg})`, centered: true, hasPhoto: true, accentPos: "none" }, // 39
+            { bg, centered: false, hasPhoto: true, accentPos: "left" }, // 40
+            { bg: `linear-gradient(180deg,${a1},${bg})`, centered: false, hasPhoto: false, accentPos: "bottom" }, // 41
+            { bg, centered: true, hasPhoto: false, accentPos: "frame" }, // 42
+            { bg: `${a2}`, centered: true, hasPhoto: true, accentPos: "none" }, // 43
+            { bg, centered: false, hasPhoto: false, accentPos: "circle" }, // 44
+        ];
+        const idx = v - 26;
+        const layout = layouts[idx];
+        const isAccentBg = v === 28 || v === 33 || v === 35 || v === 43;
+        const fgColor = isAccentBg ? getContrastColor(a1) : tc;
+        const subColor = isAccentBg ? getSubContrastColor(a1) : `${tc}AA`;
+
+        return <div id="blog-brand-image" style={{ ...base, background: layout.bg }}>
+            {layout.accentPos === "top" && <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 8, background: a1 }} />}
+            {layout.accentPos === "left" && <div style={{ position: "absolute", left: 0, top: 0, width: 8, height: "100%", background: `linear-gradient(180deg,${a1},${a2})` }} />}
+            {layout.accentPos === "bottom" && <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 6, background: a1 }} />}
+            {layout.accentPos === "circle" && <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 600, height: 600, borderRadius: "50%", border: `1px solid ${a1}20` }} />}
+            {layout.accentPos === "frame" && <div style={{ position: "absolute", inset: 24, border: `1px solid ${a1}30`, borderRadius: 16 }} />}
+            <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: layout.centered ? "column" : "column", alignItems: layout.centered ? "center" : "flex-start", justifyContent: "center", textAlign: layout.centered ? "center" : "left", padding: layout.accentPos === "left" ? "60px 70px 60px 80px" : "60px 80px" }}>
+                {layout.hasPhoto && profImg(80, layout.centered ? 80 : 100, layout.centered ? 40 : 12) && <div style={{ marginBottom: 20 }}>{profImg(80, layout.centered ? 80 : 100, layout.centered ? 40 : 12)}</div>}
+                <h2 style={{ color: fgColor, fontSize: 38, fontWeight: 900 }}>{nm} 변호사</h2>
+                {of && <p style={{ color: subColor, fontSize: 14, marginTop: 4 }}>{of}</p>}
+                <div style={{ width: 50, height: 3, background: isAccentBg ? `${fgColor}40` : a1, borderRadius: 2, margin: layout.centered ? "20px auto" : "20px 0" }} />
+                {lines[0] && <p style={{ color: isAccentBg ? fgColor : `${tc}CC`, fontSize: 18, lineHeight: 1.6, wordBreak: "keep-all" }}>{lines[0]}</p>}
+                {tagLine && <p style={{ color: isAccentBg ? `${fgColor}99` : a1, fontSize: 15, fontWeight: 700, marginTop: 12 }}>{tagLine}</p>}
+            </div>{logoEl()}
+        </div>;
+    }
+
+    // v===44 fallback: Simple dark brand
+    return <div id="blog-brand-image" style={{ ...base, background: bg }}>
+        <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 2, height: 100, background: a1 }} />
+        <div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "60px 80px" }}>
+            {profImg(80, 80, 40) && <div style={{ marginBottom: 20 }}>{profImg(80, 80, 40)}</div>}
+            <h2 style={{ color: tc, fontSize: 40, fontWeight: 900 }}>{nm} 변호사</h2>
+            {of && <p style={{ color: `${tc}AA`, fontSize: 15, marginTop: 4 }}>{of}</p>}
+            <div style={{ width: 40, height: 3, background: a1, borderRadius: 2, margin: "20px auto" }} />
+            {lines[0] && <p style={{ color: `${tc}CC`, fontSize: 20, lineHeight: 1.5, wordBreak: "keep-all" }}>{lines[0]}</p>}
+            {tagLine && <p style={{ color: a1, fontSize: 15, fontWeight: 700, marginTop: 12 }}>{tagLine}</p>}
+        </div>{logoEl()}
     </div>;
 }
+
