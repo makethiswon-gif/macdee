@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 
-// Dynamic sitemap for SEO
+// Dynamic sitemap for SEO — Google + Naver
 export async function GET() {
     try {
         const supabase = await createAdminClient();
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://makethis1.com";
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
+        const now = new Date().toISOString();
 
         // Get published blog posts
         const { data: blogPosts } = await supabase
@@ -34,18 +35,39 @@ export async function GET() {
         xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
     <url>
         <loc>${baseUrl}</loc>
+        <lastmod>${now}</lastmod>
         <changefreq>daily</changefreq>
         <priority>1.0</priority>
     </url>
     <url>
+        <loc>${baseUrl}/about</loc>
+        <lastmod>${now}</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.95</priority>
+    </url>
+    <url>
         <loc>${baseUrl}/magazine</loc>
+        <lastmod>${now}</lastmod>
         <changefreq>daily</changefreq>
         <priority>0.9</priority>
     </url>
     <url>
-        <loc>${baseUrl}/about</loc>
+        <loc>${baseUrl}/signup</loc>
+        <lastmod>${now}</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>${baseUrl}/terms</loc>
+        <lastmod>${now}</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.3</priority>
+    </url>
+    <url>
+        <loc>${baseUrl}/refund</loc>
+        <lastmod>${now}</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.3</priority>
     </url>`;
 
         // Blog posts
