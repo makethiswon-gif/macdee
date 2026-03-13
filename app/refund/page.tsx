@@ -138,7 +138,7 @@ export default function RefundPolicyPage() {
                             <li><strong>상호명:</strong> 메이크디스원</li>
                             <li><strong>대표자:</strong> 김정환</li>
                             <li><strong>사업자등록번호:</strong> 431-11-01233</li>
-                            <li><strong>주소:</strong> 경기도 용인시 한일로21번길 31</li>
+                            <li><strong>주소:</strong> 서울특별시 동대문구 왕산로5길 13</li>
                             <li><strong>연락처:</strong> 010-8935-3010</li>
                             <li><strong>이메일:</strong> support@macdee.com</li>
                         </ul>

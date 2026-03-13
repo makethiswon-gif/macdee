@@ -611,7 +611,7 @@ function Footer() {
             <ul className="space-y-3 text-[13px] text-white/25">
               <li>010-8935-3010</li>
               <li>support@macdee.com</li>
-              <li>경기도 용인시 한일로21번길 31</li>
+              <li>서울특별시 동대문구 왕산로5길 13</li>
             </ul>
           </div>
         </div>
@@ -620,7 +620,7 @@ function Footer() {
         <div className="mt-12 pt-6 border-t border-white/[0.04]">
           <p className="text-[11px] text-white/15 leading-relaxed">
             상호명: 메이크디스원 | 대표자: 김정환 | 사업자등록번호: 431-11-01233<br />
-            주소: 경기도 용인시 한일로21번길 31 | 대표번호: 010-8935-3010
+            주소: 서울특별시 동대문구 왕산로5길 13 | 대표번호: 010-8935-3010
           </p>
         </div>
 
