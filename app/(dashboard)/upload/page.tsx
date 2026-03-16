@@ -22,7 +22,12 @@ import {
 } from "lucide-react";
 
 const ACCEPT_MAP: Record<string, Record<string, string[]>> = {
-    pdf: { "application/pdf": [".pdf"] },
+    pdf: {
+        "application/pdf": [".pdf"],
+        "image/jpeg": [".jpg", ".jpeg"],
+        "image/png": [".png"],
+        "image/webp": [".webp"],
+    },
     audio: { "audio/*": [".mp3", ".wav", ".m4a", ".webm"] },
 };
 
@@ -206,7 +211,7 @@ export default function UploadPage() {
                                         {isDragActive ? "여기에 놓으세요" : "파일을 드래그하거나 클릭하세요"}
                                     </p>
                                     <p className="text-xs text-[#9CA3B0] mt-1.5">
-                                        {activeTab === "pdf" ? "PDF 파일" : "MP3, WAV, M4A, WebM 파일"} · 최대 50MB
+                                        {activeTab === "pdf" ? "PDF, JPG, PNG 파일" : "MP3, WAV, M4A, WebM 파일"} · 최대 50MB
                                     </p>
                                 </div>
 

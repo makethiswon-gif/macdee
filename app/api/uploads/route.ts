@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { extractTextFromPDF } from "@/lib/ai/pdf-extract";
+import { extractTextFromPDF, extractTextFromImage } from "@/lib/ai/pdf-extract";
 
 // POST: Upload file/content and create upload record
 export async function POST(request: Request) {
@@ -64,12 +64,18 @@ export async function POST(request: Request) {
 
                 // Extract text from PDF (in memory, no storage needed)
                 let rawText = "";
+                const isImage = file.type.startsWith("image/");
                 if (type === "pdf") {
                     try {
-                        rawText = await extractTextFromPDF(buffer);
-                        console.log(`[Upload] PDF text extracted: ${rawText.length} chars`);
+                        if (isImage) {
+                            rawText = await extractTextFromImage(buffer, file.type);
+                            console.log(`[Upload] Image OCR text extracted: ${rawText.length} chars`);
+                        } else {
+                            rawText = await extractTextFromPDF(buffer);
+                            console.log(`[Upload] PDF text extracted: ${rawText.length} chars`);
+                        }
                     } catch (err) {
-                        console.error("[Upload] PDF text extraction failed:", err);
+                        console.error(`[Upload] ${isImage ? 'Image OCR' : 'PDF'} text extraction failed:`, err);
                     }
                 }
 

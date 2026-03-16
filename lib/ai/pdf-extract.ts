@@ -43,6 +43,59 @@ export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
     throw new Error("PDF에서 텍스트를 추출할 수 없습니다.");
 }
 
+// ─── 이미지에서 텍스트 추출 (Claude Vision OCR) ───
+export async function extractTextFromImage(buffer: Buffer, mimeType: string): Promise<string> {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) throw new Error("ANTHROPIC_API_KEY가 설정되지 않았습니다.");
+
+    const base64 = buffer.toString("base64");
+    const mediaType = mimeType.startsWith("image/") ? mimeType : "image/jpeg";
+
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "x-api-key": apiKey,
+            "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+            model: "claude-sonnet-4-6",
+            max_tokens: 16384,
+            system: OCR_SYSTEM_PROMPT,
+            messages: [
+                {
+                    role: "user",
+                    content: [
+                        {
+                            type: "image",
+                            source: {
+                                type: "base64",
+                                media_type: mediaType,
+                                data: base64,
+                            },
+                        },
+                        {
+                            type: "text",
+                            text: "이 판결문 이미지의 전체 텍스트를 빠짐없이 추출해주세요. 한국어 법률 문서입니다.",
+                        },
+                    ],
+                },
+            ],
+        }),
+    });
+
+    if (!res.ok) {
+        const err = await res.text();
+        throw new Error(`Claude Vision OCR error: ${res.status} ${err}`);
+    }
+
+    const data = await res.json();
+    const text = data.content?.[0]?.text?.trim() || "";
+    if (!text) throw new Error("이미지에서 텍스트를 추출할 수 없습니다.");
+    console.log(`[Image OCR] Extracted ${text.length} chars`);
+    return text;
+}
+
 // ─── Claude Vision OCR: PDF를 base64로 직접 전송 ───
 async function ocrPDFWithClaude(buffer: Buffer): Promise<string> {
     const apiKey = process.env.ANTHROPIC_API_KEY;
