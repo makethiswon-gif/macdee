@@ -6,6 +6,8 @@ export const FREE_TRIAL_DAILY_LIMIT = 10;
 
 export const PLANS = {
     free: { name: "무료 체험 (7일)", price: 0, uploads: FREE_TRIAL_DAILY_LIMIT, label: "Free", daily: true },
+    basic: { name: "베이직", price: 49000, uploads: 30, label: "베이직", daily: false },
+    pro: { name: "무제한", price: 179000, uploads: null, label: "무제한", daily: false },
     "30": { name: "월 30건", price: 49000, uploads: 30, label: "30건", daily: false },
     "50": { name: "월 50건", price: 69000, uploads: 50, label: "50건", daily: false },
     "100": { name: "월 100건", price: 119000, uploads: 100, label: "100건", daily: false },
