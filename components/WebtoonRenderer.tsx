@@ -10,6 +10,7 @@ interface WebtoonPanel {
     dialogue?: string;
     scene?: string;
     emotion?: string;
+    role?: "hook" | "situation" | "shock" | "excuse" | "reversal" | "verdict";
 }
 
 interface WebtoonProps {
@@ -92,9 +93,9 @@ export default function WebtoonRenderer({ panels, title = "", lawyerName = "" }:
                 </div>
             </div>
 
-            {/* Grid View - 2×4 */}
+            {/* Grid View — 2×3 for 6 panels, 2×2 for 4 */}
             {viewMode === "grid" && (
-                <div ref={gridRef} className="grid grid-cols-2 gap-2 max-w-[600px] mx-auto">
+                <div ref={gridRef} className={`grid grid-cols-2 gap-2 max-w-[600px] mx-auto`}>
                     {panels.map((panel, i) => (
                         <div
                             key={i}
@@ -114,15 +115,21 @@ export default function WebtoonRenderer({ panels, title = "", lawyerName = "" }:
                                 </div>
                             )}
 
-                            {/* Narration overlay */}
                             <div className="absolute bottom-0 left-0 right-0 p-3"
                                 style={{ background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%)" }}
                             >
                                 <div className="flex items-start gap-1.5">
                                     <span className="text-[10px] font-bold text-[#F59E0B] mt-0.5">{panel.panel}</span>
-                                    <p className="text-[11px] text-white/90 leading-relaxed" style={{ fontFamily: "'Noto Serif KR', serif" }}>
-                                        {panel.narration}
-                                    </p>
+                                    <div>
+                                        {panel.dialogue && (
+                                            <p className="text-[11px] text-white font-semibold mb-0.5" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
+                                                &quot;{panel.dialogue}&quot;
+                                            </p>
+                                        )}
+                                        <p className="text-[10px] text-white/80 leading-relaxed" style={{ fontFamily: "'Noto Serif KR', serif" }}>
+                                            {panel.narration}
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
 
@@ -168,14 +175,14 @@ export default function WebtoonRenderer({ panels, title = "", lawyerName = "" }:
                                 <div className="flex items-start gap-2">
                                     <span className="text-xs font-bold text-[#F59E0B] mt-0.5 shrink-0">{panels[currentPanel].panel}컷</span>
                                     <div>
-                                        <p className="text-sm text-white leading-relaxed" style={{ fontFamily: "'Noto Serif KR', serif" }}>
-                                            {panels[currentPanel].narration}
-                                        </p>
                                         {panels[currentPanel].dialogue && (
-                                            <p className="mt-1 text-xs text-white/60 italic">
+                                            <p className="text-base text-white font-bold mb-1" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
                                                 &quot;{panels[currentPanel].dialogue}&quot;
                                             </p>
                                         )}
+                                        <p className="text-sm text-white/85 leading-relaxed" style={{ fontFamily: "'Noto Serif KR', serif" }}>
+                                            {panels[currentPanel].narration}
+                                        </p>
                                     </div>
                                 </div>
                                 {/* Lawyer name on last panel */}
@@ -243,20 +250,26 @@ export default function WebtoonRenderer({ panels, title = "", lawyerName = "" }:
                                     {panel.panel}
                                 </span>
                                 <div>
+                                    {panel.dialogue && (
+                                        <p style={{
+                                            fontSize: 36,
+                                            color: "white",
+                                            fontWeight: 700,
+                                            fontFamily: "'Noto Sans KR', sans-serif",
+                                            marginBottom: 8,
+                                        }}>
+                                            &quot;{panel.dialogue}&quot;
+                                        </p>
+                                    )}
                                     <p style={{
-                                        fontSize: 32,
-                                        color: "white",
+                                        fontSize: 28,
+                                        color: "rgba(255,255,255,0.85)",
                                         lineHeight: 1.5,
                                         fontFamily: "'Noto Serif KR', serif",
                                         fontWeight: 500,
                                     }}>
                                         {panel.narration}
                                     </p>
-                                    {panel.dialogue && (
-                                        <p style={{ fontSize: 24, color: "rgba(255,255,255,0.5)", fontStyle: "italic", marginTop: 8 }}>
-                                            &quot;{panel.dialogue}&quot;
-                                        </p>
-                                    )}
                                 </div>
                             </div>
                             {i === panels.length - 1 && lawyerName && (

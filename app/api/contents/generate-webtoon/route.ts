@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { maskPII } from "@/lib/ai/mask-pii";
 
-export const maxDuration = 120; // 4컷 생성에 충분한 시간
+export const maxDuration = 180; // 6컷 생성에 충분한 시간
 
 export async function POST(req: NextRequest) {
     try {
@@ -18,8 +18,19 @@ export async function POST(req: NextRequest) {
             .single();
         if (!lawyer) return NextResponse.json({ error: "Lawyer not found" }, { status: 404 });
 
-        // Plan check: unlimited only
-        if (lawyer.plan !== "unlimited") {
+        // Plan check: unlimited/pro only
+        // Check lawyer.plan first, then subscription as fallback
+        let hasAccess = ["unlimited", "pro"].includes(lawyer.plan || "");
+        if (!hasAccess) {
+            const { data: sub } = await supabase
+                .from("subscriptions")
+                .select("plan")
+                .eq("lawyer_id", lawyer.id)
+                .eq("status", "active")
+                .single();
+            hasAccess = ["unlimited", "pro"].includes(sub?.plan || "");
+        }
+        if (!hasAccess) {
             return NextResponse.json(
                 { error: "웹툰 기능은 무제한 플랜에서만 사용할 수 있습니다." },
                 { status: 403 }
@@ -98,7 +109,7 @@ export async function POST(req: NextRequest) {
                 title: result.scenario.title || `${upload.title} - 웹툰`,
                 body: JSON.stringify({
                     caption: result.scenario.caption || result.scenario.summary || "",
-                    hashtags: result.scenario.hashtags || ["#법률상담", "#변호사", "#승소사례"],
+                    hashtags: result.scenario.hashtags || ["법률상담", "변호사", "승소사례"],
                 }),
                 status: "review",
                 card_news_data: {

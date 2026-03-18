@@ -116,7 +116,7 @@ export default function SettingsPage() {
                 <SettingSection
                     icon={<Film size={16} />}
                     title="웹툰 그림체"
-                    desc="8컷 웹툰 생성 시 사용할 그림체를 선택합니다 (무제한 플랜 전용)"
+                    desc="6컷 웹툰 생성 시 사용할 그림체를 선택합니다 (무제한 플랜 전용)"
                 >
                     <div className="grid grid-cols-2 gap-2">
                         {WEBTOON_STYLES.map((style) => (
