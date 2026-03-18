@@ -248,14 +248,16 @@ function AIQualitySection() {
             AI Quality
           </motion.p>
           <motion.h2 variants={reveal} className="mt-6 text-[clamp(2rem,5vw,4rem)] font-extrabold text-white leading-[1.05] tracking-[-0.03em]">
-            AI가 쓴 티,
+            디테일한 학습으로 태어난
             <br />
-            절대 나지 않습니다.
+            대기업 마케팅 과장급
+            <br />
+            글쓰기 실력의 맥디.
           </motion.h2>
           <motion.p variants={reveal} className="mt-6 text-[15px] text-white/25 max-w-lg leading-relaxed">
-            &quot;~에 대해 알아보겠습니다&quot; 같은 기계적 번역투는 없습니다.
+            수천 건의 성공 사례로 학습된 맥디 AI는
             <br />
-            맥디 AI는 변호사가 직접 쓴 것처럼 전문적이고 따뜻한 글을 작성합니다.
+            변호사가 직접 쓴 것처럼 전문적이고 따뜻한 글을 작성합니다.
           </motion.p>
         </motion.div>
 
