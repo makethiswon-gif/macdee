@@ -169,7 +169,7 @@ export async function POST(request: Request) {
                         .from("uploads")
                         .insert({
                             lawyer_id: lawyer.id,
-                            type: "naver_migrate",
+                            type: "url",
                             title: scraped.title,
                             file_url: url,
                             raw_text: scraped.text,
