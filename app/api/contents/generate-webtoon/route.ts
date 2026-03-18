@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
                 title: result.scenario.title || `${upload.title} - 웹툰`,
                 body: JSON.stringify({
                     caption: result.scenario.caption || result.scenario.summary || "",
-                    hashtags: result.scenario.hashtags || ["법률상담", "변호사", "승소사례"],
+                    hashtags: (result.scenario.hashtags && result.scenario.hashtags.length > 0) ? result.scenario.hashtags : [],
                 }),
                 status: "review",
                 card_news_data: {

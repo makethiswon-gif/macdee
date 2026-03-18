@@ -572,7 +572,7 @@ export default function ContentDetailPage() {
                                 }
                                 const hashtagText = hashtags.length > 0
                                     ? hashtags.map(h => `#${h}`).join(" ")
-                                    : "#법률상담 #변호사 #승소사례 #법률사무소";
+                                    : "";
                                 const fullText = `${caption}\n\n${hashtagText}`;
 
                                 return (
