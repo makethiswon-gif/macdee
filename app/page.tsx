@@ -510,7 +510,8 @@ function PricingSection() {
                   ) : (
                     <>
                       <p className="text-[13px] text-[#3563AE]/60 font-medium">무제한 생성</p>
-                      <p className="text-[11px] text-[#3563AE]/40 mt-0.5">+ AI 홈페이지 빌더</p>
+                      <p className="text-[11px] text-[#3563AE]/40 mt-0.5">+ AI 웹툰 생성</p>
+                      <p className="text-[11px] text-[#3563AE]/40">+ AI 홈페이지 빌더</p>
                     </>
                   )}
                 </div>
