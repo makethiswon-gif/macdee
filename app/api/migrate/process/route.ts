@@ -140,7 +140,21 @@ export async function POST(request: Request) {
     const stream = new ReadableStream({
         async start(controller) {
             const send = (data: Record<string, unknown>) => {
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+                try {
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+                } catch {
+                    // Stream may already be closed
+                }
+            };
+
+            // Per-URL timeout helper (90 seconds max per URL)
+            const withTimeout = <T>(promise: Promise<T>, ms: number, label: string): Promise<T> => {
+                return Promise.race([
+                    promise,
+                    new Promise<never>((_, reject) =>
+                        setTimeout(() => reject(new Error(`${label} 시간 초과 (${Math.round(ms / 1000)}초)`)), ms)
+                    ),
+                ]);
             };
 
             send({ type: "start", total: urls.length });
@@ -152,8 +166,17 @@ export async function POST(request: Request) {
                 try {
                     send({ type: "progress", index: i, status: "scraping", url });
 
-                    // Step 1: Scrape
-                    const scraped = await scrapeUrl(url);
+                    // Step 1: Scrape (30s timeout)
+                    let scraped;
+                    try {
+                        scraped = await withTimeout(scrapeUrl(url), 30000, "스크래핑");
+                    } catch (scrapeErr) {
+                        const msg = scrapeErr instanceof Error ? scrapeErr.message : "스크래핑 실패";
+                        console.error(`[Migrate] Scrape failed for ${url}:`, msg);
+                        send({ type: "progress", index: i, status: "error", url, error: msg });
+                        continue;
+                    }
+
                     if (!scraped.text || scraped.text.length < 50) {
                         send({ type: "progress", index: i, status: "error", url, error: "본문을 추출할 수 없습니다" });
                         continue;
@@ -189,7 +212,7 @@ export async function POST(request: Request) {
                     const customPrompt = lawyer.schema_data?.customPrompt;
                     const results: { channel: string; title: string; success: boolean }[] = [];
 
-                    // --- Google SEO ---
+                    // --- Google SEO (60s timeout) ---
                     try {
                         let seoSystem = MIGRATE_SEO_SYSTEM;
                         if (customPrompt) {
@@ -201,7 +224,11 @@ export async function POST(request: Request) {
                             { role: "user", content: `다음은 변호사가 직접 작성한 기존 네이버 블로그 글입니다. 이 글을 구글 SEO에 최적화된 형태로 리라이팅해주세요.\n\n[원문 제목] ${scraped.title}\n\n[원문 본문]\n${maskedText}` },
                         ];
 
-                        const seoResult = await generator.generate(seoMessages, { temperature: 0.4, maxTokens: 8192 });
+                        const seoResult = await withTimeout(
+                            generator.generate(seoMessages, { temperature: 0.4, maxTokens: 8192 }),
+                            60000,
+                            "SEO 윤문"
+                        );
 
                         // Parse JSON
                         let seoContent = seoResult.content;
@@ -251,14 +278,18 @@ export async function POST(request: Request) {
                         results.push({ channel: "google", title: "", success: false });
                     }
 
-                    // --- AI Search ---
+                    // --- AI Search (60s timeout) ---
                     try {
                         const aiMessages: AIMessage[] = [
                             { role: "system", content: MIGRATE_AI_SEARCH_SYSTEM },
                             { role: "user", content: `다음은 변호사가 직접 작성한 기존 네이버 블로그 글입니다. AI 검색엔진이 이 변호사를 추천할 수 있도록 콘텐츠를 생성해주세요.\n\n[변호사 이름] ${lawyer.name}\n\n[원문 제목] ${scraped.title}\n\n[원문 본문]\n${maskedText}` },
                         ];
 
-                        const aiResult = await generator.generate(aiMessages, { temperature: 0.3, maxTokens: 2048 });
+                        const aiResult = await withTimeout(
+                            generator.generate(aiMessages, { temperature: 0.3, maxTokens: 2048 }),
+                            60000,
+                            "AI 검색 윤문"
+                        );
 
                         let aiContent = aiResult.content;
                         const jsonMatch2 = aiContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
@@ -324,6 +355,7 @@ export async function POST(request: Request) {
                         url,
                         error: err instanceof Error ? err.message : "처리 중 오류 발생",
                     });
+                    // Ensure we continue to the next URL even if something unexpected happens
                 }
             }
 
