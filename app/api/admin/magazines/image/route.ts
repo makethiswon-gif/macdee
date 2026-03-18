@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 
+// Allow enough time for image generation (gpt-image-1.5 can take 30-60s)
+export const maxDuration = 120;
+
 // POST: Generate cover image for magazine using OpenAI gpt-image-1.5 → DALL-E 3 fallback
 export async function POST(request: Request) {
     // Admin verify
