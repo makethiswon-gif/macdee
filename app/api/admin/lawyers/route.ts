@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
+import { createClient as createDirectClient } from "@supabase/supabase-js";
 
 function verifyAdmin(request: Request): boolean {
     const token = request.headers.get("cookie")?.match(/admin_token=([^;]+)/)?.[1];
@@ -57,7 +58,7 @@ export async function GET(request: Request) {
     }
 }
 
-// PATCH: Update lawyer plan
+// PATCH: Update lawyer plan (RLS 우회를 위해 직접 service role 클라이언트 사용)
 export async function PATCH(request: Request) {
     if (!verifyAdmin(request)) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -74,13 +75,21 @@ export async function PATCH(request: Request) {
             return NextResponse.json({ error: "유효하지 않은 플랜" }, { status: 400 });
         }
 
-        const supabase = await createAdminClient();
+        // 직접 service role 클라이언트 생성 (RLS 확실히 우회)
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!supabaseUrl || !serviceKey) {
+            return NextResponse.json({ error: "서버 설정 오류" }, { status: 500 });
+        }
+        const supabase = createDirectClient(supabaseUrl, serviceKey);
 
         // 1단계: 업데이트
-        const { error } = await supabase
+        const { error, count } = await supabase
             .from("lawyers")
             .update({ plan })
             .eq("id", lawyer_id);
+
+        console.log(`[Admin] Update result: error=${error?.message || "none"}, count=${count}`);
 
         if (error) {
             console.error("[Admin] Plan update error:", error);
@@ -88,18 +97,29 @@ export async function PATCH(request: Request) {
         }
 
         // 2단계: 업데이트 확인
-        const { data: updated } = await supabase
+        const { data: updated, error: selectErr } = await supabase
             .from("lawyers")
             .select("id, name, plan")
             .eq("id", lawyer_id)
             .single();
 
+        if (selectErr) {
+            console.error("[Admin] Plan verify error:", selectErr);
+        }
+
         const savedPlan = updated?.plan || plan;
         const name = updated?.name || "";
-        console.log(`[Admin] Lawyer "${name}" (${lawyer_id}) plan → ${savedPlan}`);
+        console.log(`[Admin] Lawyer "${name}" (${lawyer_id}) plan → ${savedPlan} (requested: ${plan})`);
+
+        if (savedPlan !== plan) {
+            console.error(`[Admin] ⚠️ Plan mismatch! Requested: ${plan}, Got: ${savedPlan}`);
+            return NextResponse.json({ error: `플랜이 저장되지 않았습니다 (현재: ${savedPlan})` }, { status: 500 });
+        }
+
         return NextResponse.json({ success: true, plan: savedPlan, name });
     } catch (err) {
         console.error("[Admin] Plan update error:", err);
         return NextResponse.json({ error: "서버 오류" }, { status: 500 });
     }
 }
+
