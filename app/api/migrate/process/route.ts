@@ -3,6 +3,8 @@ import { scrapeUrl } from "@/lib/ai/blog-scraper";
 import { maskPII } from "@/lib/ai/mask-pii";
 import { getContentGenerator, type AIMessage } from "@/lib/ai/providers";
 
+export const maxDuration = 300; // 5분 — 여러 URL 처리에 충분한 시간
+
 // ─── 마이그레이션 전용 윤문 프롬프트 ───
 
 const PII_ENFORCEMENT = `
@@ -169,7 +171,7 @@ export async function POST(request: Request) {
                     // Step 1: Scrape (30s timeout)
                     let scraped;
                     try {
-                        scraped = await withTimeout(scrapeUrl(url), 60000, "스크래핑");
+                        scraped = await withTimeout(scrapeUrl(url), 30000, "스크래핑");
                     } catch (scrapeErr) {
                         const msg = scrapeErr instanceof Error ? scrapeErr.message : "스크래핑 실패";
                         console.error(`[Migrate] Scrape failed for ${url}:`, msg);
@@ -225,8 +227,8 @@ export async function POST(request: Request) {
                         ];
 
                         const seoResult = await withTimeout(
-                            generator.generate(seoMessages, { temperature: 0.4, maxTokens: 8192 }),
-                            120000,
+                            generator.generate(seoMessages, { temperature: 0.4, maxTokens: 4096 }),
+                            60000,
                             "SEO 윤문"
                         );
 
@@ -287,7 +289,7 @@ export async function POST(request: Request) {
 
                         const aiResult = await withTimeout(
                             generator.generate(aiMessages, { temperature: 0.3, maxTokens: 2048 }),
-                            120000,
+                            60000,
                             "AI 검색 윤문"
                         );
 
