@@ -59,13 +59,31 @@ export async function POST(req: NextRequest) {
         const style = webtoon_style || lawyer.webtoon_style || "dramatic";
         const profileImageUrl = lawyer.profile_image_url || undefined;
 
+        // API 키 존재 여부 로그
+        const hasOpenAI = !!process.env.OPENAI_API_KEY;
+        const hasGemini = !!process.env.GEMINI_API_KEY;
+        const hasClaude = !!process.env.ANTHROPIC_API_KEY;
+        console.log(`[Webtoon API] Keys: OPENAI=${hasOpenAI}, GEMINI=${hasGemini}, CLAUDE=${hasClaude}`);
+
         // Generate webtoon
         const { generateWebtoon } = await import("@/lib/ai/webtoon-generate");
-        const result = await generateWebtoon(maskedText, caseType, style, profileImageUrl);
+        
+        let result;
+        try {
+            result = await generateWebtoon(maskedText, caseType, style, profileImageUrl);
+        } catch (genErr) {
+            console.error("[Webtoon API] generateWebtoon threw:", genErr);
+            return NextResponse.json(
+                { error: `웹툰 생성 실패: ${genErr instanceof Error ? genErr.message : "알 수 없는 오류"}` },
+                { status: 500 }
+            );
+        }
+
+        console.log(`[Webtoon API] Scenario: ${result.scenario?.panels?.length || 0} panels, Images: ${result.images.length}`);
 
         if (result.images.length === 0) {
             return NextResponse.json(
-                { error: "이미지 생성에 실패했습니다. OPENAI_API_KEY를 확인하거나 잠시 후 다시 시도해주세요." },
+                { error: `이미지 생성에 실패했습니다. (OpenAI키=${hasOpenAI}, Gemini키=${hasGemini}) Vercel 로그를 확인해주세요.` },
                 { status: 500 }
             );
         }
