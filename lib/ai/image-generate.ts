@@ -158,7 +158,7 @@ export async function generateCoverImage(
                     Authorization: `Bearer ${apiKey}`,
                 },
                 body: JSON.stringify({
-                    model: "gpt-image-1.5",
+                    model: "gpt-image-1",
                     prompt: finalPrompt,
                     n: 1,
                     size: "1024x1024",
@@ -188,7 +188,7 @@ export async function generateCoverImage(
         try {
             console.log(`[CoverImage] Trying Gemini ${style} fallback`);
             const res = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiKey}`,
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${geminiKey}`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },

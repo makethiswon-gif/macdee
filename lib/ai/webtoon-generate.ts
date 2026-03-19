@@ -268,14 +268,15 @@ JSON만 출력하세요. 코드 블록 없이.`;
     }
 }
 
-// ─── Step 2: GPT Image 이미지 생성 (6컷 병렬) ───
+// ─── Step 2: Gemini 이미지 생성 (주 엔진) + GPT Image 폴백 ───
 export async function generateWebtoonImages(
     scenario: WebtoonScenario,
     style: WebtoonStyleKey = "dramatic",
     profileImageUrl?: string,
 ): Promise<{ panelIndex: number; imageBase64: string }[]> {
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) throw new Error("OPENAI_API_KEY not set");
+    const geminiKey = process.env.GEMINI_API_KEY;
+    const openaiKey = process.env.OPENAI_API_KEY;
+    if (!geminiKey && !openaiKey) throw new Error("GEMINI_API_KEY 또는 OPENAI_API_KEY가 필요합니다.");
 
     const stylePrompt = WEBTOON_STYLES[style]?.prompt || WEBTOON_STYLES.dramatic.prompt;
     const charSheet = scenario.character_sheet;
@@ -293,7 +294,10 @@ REFERENCE: The lawyer character should resemble the person in this photo: ${prof
     // Generate all panels
     const allPanels = scenario.panels.slice(0, totalPanels);
 
-    const generatePanel = async (panel: WebtoonPanel, retries = 2): Promise<{ panelIndex: number; imageBase64: string } | null> => {
+    // ── Gemini 이미지 생성 ──
+    const generatePanelGemini = async (panel: WebtoonPanel): Promise<{ panelIndex: number; imageBase64: string } | null> => {
+        if (!geminiKey) return null;
+
         const prompt = `Create a single comic panel illustration.
 
 Art style: ${stylePrompt}
@@ -313,15 +317,76 @@ Requirements:
 - Focus on VISUAL STORYTELLING — the image should convey the emotion without needing text`;
 
         try {
-            console.log(`[Webtoon] Generating panel ${panel.panel}/${totalPanels} (${panel.role})...`);
+            console.log(`[Webtoon/Gemini] Generating panel ${panel.panel}/${totalPanels} (${panel.role})...`);
+            const res = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${geminiKey}`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
+                    }),
+                }
+            );
+
+            if (!res.ok) {
+                const err = await res.text();
+                console.error(`[Webtoon/Gemini] Panel ${panel.panel} error (${res.status}):`, err);
+                return null;
+            }
+
+            const data = await res.json();
+            const parts = data.candidates?.[0]?.content?.parts || [];
+            const imagePart = parts.find(
+                (p: { inlineData?: { mimeType: string; data: string } }) =>
+                    p.inlineData?.mimeType?.startsWith("image/")
+            );
+
+            if (imagePart?.inlineData?.data) {
+                console.log(`[Webtoon/Gemini] Panel ${panel.panel} generated successfully`);
+                return { panelIndex: panel.panel, imageBase64: imagePart.inlineData.data };
+            }
+            console.error(`[Webtoon/Gemini] Panel ${panel.panel}: no image in response`);
+            return null;
+        } catch (err) {
+            console.error(`[Webtoon/Gemini] Panel ${panel.panel} failed:`, err);
+            return null;
+        }
+    };
+
+    // ── GPT Image 폴백 ──
+    const generatePanelGPT = async (panel: WebtoonPanel): Promise<{ panelIndex: number; imageBase64: string } | null> => {
+        if (!openaiKey) return null;
+
+        const prompt = `Create a single comic panel illustration.
+
+Art style: ${stylePrompt}
+
+${characterPrompt}
+
+Panel ${panel.panel}/${totalPanels} - "${panel.emotion}" mood:
+Scene: ${panel.scene}
+
+Requirements:
+- Single panel, square 1:1 ratio
+- No speech bubbles, no text, no words, no letters
+- Clear emotional expression matching "${panel.emotion}"
+- Cinematic composition with dramatic camera angles
+- Korean characters and setting
+- Leave small space at bottom for minimal text overlay
+- Focus on VISUAL STORYTELLING — the image should convey the emotion without needing text`;
+
+        try {
+            console.log(`[Webtoon/GPT] Fallback: Generating panel ${panel.panel}/${totalPanels}...`);
             const res = await fetch("https://api.openai.com/v1/images/generations", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${apiKey}`,
+                    Authorization: `Bearer ${openaiKey}`,
                 },
                 body: JSON.stringify({
-                    model: "gpt-image-1.5",
+                    model: "gpt-image-1",
                     prompt,
                     n: 1,
                     size: "1024x1024",
@@ -332,30 +397,43 @@ Requirements:
 
             if (!res.ok) {
                 const err = await res.text();
-                console.error(`[Webtoon] Panel ${panel.panel} error (${res.status}):`, err);
+                console.error(`[Webtoon/GPT] Panel ${panel.panel} error (${res.status}):`, err);
                 return null;
             }
 
             const data = await res.json();
             const b64 = data.data?.[0]?.b64_json;
             if (b64) {
-                console.log(`[Webtoon] Panel ${panel.panel} generated (b64_json)`);
+                console.log(`[Webtoon/GPT] Panel ${panel.panel} generated (fallback)`);
                 return { panelIndex: panel.panel, imageBase64: b64 };
             }
-            console.error(`[Webtoon] Panel ${panel.panel}: no b64_json in response, keys:`, Object.keys(data.data?.[0] || {}));
             return null;
         } catch (err) {
-            console.error(`[Webtoon] Panel ${panel.panel} failed:`, err);
-            if (retries > 0) {
-                console.log(`[Webtoon] Retrying panel ${panel.panel}... (${retries} left)`);
-                await new Promise(r => setTimeout(r, 2000));
-                return generatePanel(panel, retries - 1);
-            }
+            console.error(`[Webtoon/GPT] Panel ${panel.panel} fallback failed:`, err);
             return null;
         }
     };
 
-    console.log(`[Webtoon] Generating all ${totalPanels} panels...`);
+    // ── 패널 생성: Gemini 우선, 실패 시 GPT 폴백 ──
+    const generatePanel = async (panel: WebtoonPanel, retries = 1): Promise<{ panelIndex: number; imageBase64: string } | null> => {
+        // 1차: Gemini
+        const geminiResult = await generatePanelGemini(panel);
+        if (geminiResult) return geminiResult;
+
+        // 2차: GPT Image 폴백
+        const gptResult = await generatePanelGPT(panel);
+        if (gptResult) return gptResult;
+
+        // 재시도
+        if (retries > 0) {
+            console.log(`[Webtoon] Retrying panel ${panel.panel}... (${retries} left)`);
+            await new Promise(r => setTimeout(r, 2000));
+            return generatePanel(panel, retries - 1);
+        }
+        return null;
+    };
+
+    console.log(`[Webtoon] Generating all ${totalPanels} panels (Gemini primary, GPT fallback)...`);
     const results = await Promise.all(allPanels.map(p => generatePanel(p)));
 
     const successful = results.filter((r): r is { panelIndex: number; imageBase64: string } => r !== null);
