@@ -12,19 +12,25 @@ interface Lawyer {
     region: string;
     office_name: string;
     experience_years: number;
+    plan: string;
     created_at: string;
     uploads_count: number;
     contents_count: number;
     subscription: { plan: string; status: string } | null;
 }
 
-const PLAN_LABELS: Record<string, string> = {
-    free: "무료",
-    "30": "30건",
-    "50": "50건",
-    "100": "100건",
-    unlimited: "무제한",
-};
+const PLAN_OPTIONS = [
+    { value: "free", label: "무료" },
+    { value: "30", label: "30건" },
+    { value: "50", label: "50건" },
+    { value: "100", label: "100건" },
+    { value: "pro", label: "프로" },
+    { value: "unlimited", label: "무제한" },
+];
+
+const PLAN_LABELS: Record<string, string> = Object.fromEntries(
+    PLAN_OPTIONS.map((p) => [p.value, p.label])
+);
 
 export default function AdminLawyersPage() {
     const [lawyers, setLawyers] = useState<Lawyer[]>([]);
@@ -32,6 +38,7 @@ export default function AdminLawyersPage() {
     const [page, setPage] = useState(1);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
+    const [updatingId, setUpdatingId] = useState<string | null>(null);
 
     useEffect(() => {
         setLoading(true);
@@ -43,6 +50,31 @@ export default function AdminLawyersPage() {
             })
             .finally(() => setLoading(false));
     }, [page]);
+
+    const handlePlanChange = async (lawyerId: string, newPlan: string) => {
+        setUpdatingId(lawyerId);
+        try {
+            const res = await fetch("/api/admin/lawyers", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ lawyer_id: lawyerId, plan: newPlan }),
+            });
+            if (res.ok) {
+                setLawyers((prev) =>
+                    prev.map((l) =>
+                        l.id === lawyerId ? { ...l, plan: newPlan } : l
+                    )
+                );
+            } else {
+                const data = await res.json();
+                alert(`플랜 변경 실패: ${data.error}`);
+            }
+        } catch {
+            alert("플랜 변경 중 오류가 발생했습니다.");
+        } finally {
+            setUpdatingId(null);
+        }
+    };
 
     const filtered = search
         ? lawyers.filter(
@@ -93,43 +125,60 @@ export default function AdminLawyersPage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {filtered.map((lawyer) => (
-                                <tr key={lawyer.id} className="border-b border-[#1F2937] hover:bg-[#1A1F2E] transition-colors">
-                                    <td className="px-4 py-3">
-                                        <p className="font-medium text-white">{lawyer.name}</p>
-                                        <p className="text-[11px] text-[#6B7280] flex items-center gap-1 mt-0.5">
-                                            <Mail size={10} /> {lawyer.email || "—"}
-                                        </p>
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <p className="text-[#9CA3B0] flex items-center gap-1">
-                                            <Briefcase size={12} /> {lawyer.office_name || "—"}
-                                        </p>
-                                        {lawyer.region && (
-                                            <p className="text-[11px] text-[#4B5563] flex items-center gap-1 mt-0.5">
-                                                <MapPin size={10} /> {lawyer.region}
+                            {filtered.map((lawyer) => {
+                                const currentPlan = lawyer.plan || lawyer.subscription?.plan || "free";
+                                return (
+                                    <tr key={lawyer.id} className="border-b border-[#1F2937] hover:bg-[#1A1F2E] transition-colors">
+                                        <td className="px-4 py-3">
+                                            <p className="font-medium text-white">{lawyer.name}</p>
+                                            <p className="text-[11px] text-[#6B7280] flex items-center gap-1 mt-0.5">
+                                                <Mail size={10} /> {lawyer.email || "—"}
                                             </p>
-                                        )}
-                                    </td>
-                                    <td className="px-4 py-3 text-center">
-                                        <span className="text-white font-medium">{lawyer.uploads_count}</span>
-                                    </td>
-                                    <td className="px-4 py-3 text-center">
-                                        <span className="text-white font-medium">{lawyer.contents_count}</span>
-                                    </td>
-                                    <td className="px-4 py-3 text-center">
-                                        <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${lawyer.subscription?.status === "active" && lawyer.subscription?.plan !== "free"
-                                                ? "text-emerald-400 bg-emerald-400/10"
-                                                : "text-[#6B7280] bg-[#1F2937]"
-                                            }`}>
-                                            {PLAN_LABELS[lawyer.subscription?.plan || "free"] || "무료"}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-3 text-right text-[11px] text-[#6B7280]">
-                                        {new Date(lawyer.created_at).toLocaleDateString("ko-KR")}
-                                    </td>
-                                </tr>
-                            ))}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <p className="text-[#9CA3B0] flex items-center gap-1">
+                                                <Briefcase size={12} /> {lawyer.office_name || "—"}
+                                            </p>
+                                            {lawyer.region && (
+                                                <p className="text-[11px] text-[#4B5563] flex items-center gap-1 mt-0.5">
+                                                    <MapPin size={10} /> {lawyer.region}
+                                                </p>
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-3 text-center">
+                                            <span className="text-white font-medium">{lawyer.uploads_count}</span>
+                                        </td>
+                                        <td className="px-4 py-3 text-center">
+                                            <span className="text-white font-medium">{lawyer.contents_count}</span>
+                                        </td>
+                                        <td className="px-4 py-3 text-center">
+                                            <select
+                                                value={currentPlan}
+                                                onChange={(e) => handlePlanChange(lawyer.id, e.target.value)}
+                                                disabled={updatingId === lawyer.id}
+                                                className={`text-[11px] px-2 py-1 rounded-lg font-medium border-0 cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#3563AE] ${
+                                                    updatingId === lawyer.id ? "opacity-50" : ""
+                                                } ${
+                                                    currentPlan === "unlimited" || currentPlan === "pro"
+                                                        ? "text-emerald-400 bg-emerald-400/10"
+                                                        : currentPlan !== "free"
+                                                        ? "text-blue-400 bg-blue-400/10"
+                                                        : "text-[#6B7280] bg-[#1F2937]"
+                                                }`}
+                                            >
+                                                {PLAN_OPTIONS.map((opt) => (
+                                                    <option key={opt.value} value={opt.value}>
+                                                        {opt.label}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </td>
+                                        <td className="px-4 py-3 text-right text-[11px] text-[#6B7280]">
+                                            {new Date(lawyer.created_at).toLocaleDateString("ko-KR")}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                             {filtered.length === 0 && (
                                 <tr>
                                     <td colSpan={6} className="px-4 py-10 text-center text-[#4B5563]">
