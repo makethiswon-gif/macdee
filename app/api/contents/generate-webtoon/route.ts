@@ -117,6 +117,59 @@ export async function POST(req: NextRequest) {
             });
         }
 
+        // ── 캡션: 200자 미만이면 narration들에서 자동 생성 ──
+        let caption = result.scenario.caption || result.scenario.summary || "";
+        if (caption.length < 200) {
+            const narrations = result.scenario.panels
+                .map((p: { narration?: string; dialogue?: string; panel?: number }) => p.narration || "")
+                .filter((n: string) => n.length > 0);
+            const dialogues = result.scenario.panels
+                .map((p: { dialogue?: string }) => p.dialogue || "")
+                .filter((d: string) => d.length > 0);
+            
+            const title = result.scenario.title || upload.title || "법률 사건";
+            caption = `⚖️ ${title}\n\n`;
+            // 패널별 narration을 인스타 캡션으로 조합
+            for (let i = 0; i < narrations.length; i++) {
+                caption += narrations[i];
+                if (dialogues[i]) caption += ` "${dialogues[i]}"`;
+                caption += "\n\n";
+            }
+            caption += "📌 자세한 사례가 궁금하시다면 프로필 링크를 확인하세요.\n";
+            caption += "무료 상담 예약도 가능합니다.";
+            console.log(`[Webtoon API] Caption auto-generated: ${caption.length} chars`);
+        }
+
+        // ── 해시태그: 비어있으면 caseType 기반 자동 생성 ──
+        let hashtags = (result.scenario.hashtags && result.scenario.hashtags.length > 0)
+            ? result.scenario.hashtags
+            : [];
+        if (hashtags.length === 0) {
+            const ct = caseType?.toLowerCase() || "";
+            const baseHashtags = ["법률웹툰", "변호사상담", "법률상담"];
+            const caseHashtags: Record<string, string[]> = {
+                "이혼": ["이혼소송", "양육권", "위자료", "재산분할", "이혼전문변호사", "협의이혼", "이혼절차", "양육비", "가사소송"],
+                "상간": ["상간소송", "위자료청구", "불륜위자료", "배우자외도", "상간녀소송", "혼인파탄", "부정행위", "외도증거"],
+                "사기": ["사기죄", "형사고소", "투자사기", "사기피해", "형사전문변호사", "고소장작성", "피해구제", "사기판례"],
+                "교통": ["교통사고", "합의금", "과실비율", "보험금청구", "교통사고변호사", "인신사고", "손해배상"],
+                "폭행": ["폭행죄", "상해죄", "형사합의", "피해자보호", "형사전문", "폭행피해", "합의금"],
+                "부동산": ["부동산분쟁", "임대차분쟁", "전세사기", "부동산소송", "계약해제", "매매분쟁"],
+                "상속": ["상속분쟁", "유산분할", "상속포기", "유류분", "상속전문변호사", "상속세", "유언장"],
+                "노동": ["부당해고", "노동소송", "임금체불", "해고무효", "노동법", "근로기준법"],
+            };
+            // caseType에 매칭되는 해시태그 찾기
+            for (const [key, tags] of Object.entries(caseHashtags)) {
+                if (ct.includes(key)) {
+                    hashtags = [...tags, ...baseHashtags];
+                    break;
+                }
+            }
+            if (hashtags.length === 0) {
+                hashtags = [...baseHashtags, "법률사건", "승소사례", "법원판결", "손해배상", "민사소송", "형사소송", "법률정보", "사건해결", "변호사추천"];
+            }
+            console.log(`[Webtoon API] Hashtags auto-generated: ${hashtags.length} tags`);
+        }
+
         // Save to contents table
         const { data: content, error: insertErr } = await supabase
             .from("contents")
@@ -125,10 +178,7 @@ export async function POST(req: NextRequest) {
                 lawyer_id: lawyer.id,
                 channel: "webtoon",
                 title: result.scenario.title || `${upload.title} - 웹툰`,
-                body: JSON.stringify({
-                    caption: result.scenario.caption || result.scenario.summary || "",
-                    hashtags: (result.scenario.hashtags && result.scenario.hashtags.length > 0) ? result.scenario.hashtags : [],
-                }),
+                body: JSON.stringify({ caption, hashtags }),
                 status: "review",
                 card_news_data: {
                     webtoon: true,
