@@ -21,8 +21,8 @@ export const WEBTOON_STYLES = {
     },
     minimal: {
         label: "미니멀",
-        description: "깔끔한 라인 아트",
-        prompt: "Clean minimalist line art, simple flat colors, modern illustration, vector-like, minimal details",
+        description: "일상툰 스타일",
+        prompt: "Korean daily-life webtoon style, simple round cute character designs with big heads and small bodies, monochrome pen-and-ink line art with halftone dot shading, expressive minimal faces, hand-drawn casual feel, warm and humorous mood, comic panel layout, similar to Korean slice-of-life manhwa cartoonist style, black and white only",
     },
 } as const;
 

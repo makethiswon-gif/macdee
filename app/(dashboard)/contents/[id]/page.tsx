@@ -104,6 +104,10 @@ function extractBodyFromJson(rawBody: string): string {
             const codeBlockMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
             if (codeBlockMatch) jsonStr = codeBlockMatch[1];
             const parsed = JSON.parse(jsonStr);
+            // Webtoon/Instagram: caption+hashtags JSON → 원본 그대로 보존
+            if (parsed.caption !== undefined || parsed.hashtags !== undefined) {
+                return rawBody;
+            }
             if (parsed.body) body = parsed.body;
         } catch {
             const bodyMatch = body.match(/"body"\s*:\s*"((?:[^"\\]|\\.)*)"/);
