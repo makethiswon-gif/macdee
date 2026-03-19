@@ -259,48 +259,73 @@ JSON만 출력하세요. 코드 블록 없이.`;
     const text = data.content?.[0]?.text || "";
     const clean = text.replace(/^```json?\s*\n?/i, "").replace(/\n?\s*```$/i, "").trim();
 
+    // ── JSON 복구: 문자열 安의 줄바꿈만 이스케이프 ──
+    function repairJSON(raw: string): string {
+        // JSON 블록 추출
+        const start = raw.indexOf("{");
+        const end = raw.lastIndexOf("}");
+        if (start === -1 || end === -1) return raw;
+        let json = raw.substring(start, end + 1);
+
+        // 제어문자 제거 (줄바꿈/탭 제외)
+        json = json.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
+
+        // 문자 단위 순회: 문자열 안의 줄바꿈만 이스케이프
+        let result = "";
+        let inString = false;
+        let escaped = false;
+
+        for (let i = 0; i < json.length; i++) {
+            const ch = json[i];
+
+            if (escaped) {
+                result += ch;
+                escaped = false;
+                continue;
+            }
+
+            if (ch === "\\" && inString) {
+                result += ch;
+                escaped = true;
+                continue;
+            }
+
+            if (ch === '"') {
+                inString = !inString;
+                result += ch;
+                continue;
+            }
+
+            if (inString) {
+                if (ch === "\n") { result += "\\n"; continue; }
+                if (ch === "\r") { continue; } // skip CR
+                if (ch === "\t") { result += "\\t"; continue; }
+            }
+
+            result += ch;
+        }
+
+        // trailing commas 제거
+        result = result.replace(/,\s*}/g, "}").replace(/,\s*]/g, "]");
+        return result;
+    }
+
+    // 파싱 시도
     try {
         return JSON.parse(clean);
     } catch {
-        console.error("[Webtoon] JSON parse failed, attempting recovery...");
-
-        // 복구 시도 1: 제어문자 & 줄바꿈 이스케이프
+        console.error("[Webtoon] JSON parse failed, attempting repair...");
         try {
-            const sanitized = clean
-                .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
-                .replace(/\r\n/g, "\\n")
-                .replace(/\r/g, "\\n")
-                .replace(/\n/g, "\\n")
-                .replace(/\t/g, "\\t")
-                .replace(/,\s*}/g, "}")   // trailing commas
-                .replace(/,\s*]/g, "]");  // trailing commas in arrays
-            return JSON.parse(sanitized);
-        } catch {
-            // 복구 시도 2: JSON 블록만 추출
-            try {
-                const start = text.indexOf("{");
-                const end = text.lastIndexOf("}");
-                if (start !== -1 && end > start) {
-                    const extracted = text.substring(start, end + 1)
-                        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
-                        .replace(/\r\n/g, "\\n")
-                        .replace(/\r/g, "\\n")
-                        .replace(/\n/g, "\\n")
-                        .replace(/\t/g, "\\t")
-                        .replace(/,\s*}/g, "}")
-                        .replace(/,\s*]/g, "]");
-                    return JSON.parse(extracted);
-                }
-            } catch {
-                // 복구 시도 3: 수동 필드 추출
-                console.error("[Webtoon] All JSON parse attempts failed, building minimal scenario");
-                console.error("[Webtoon] Raw text:", text.substring(0, 500));
-            }
-
-            // 최소한의 기본 시나리오 반환
+            const repaired = repairJSON(text);
+            console.log("[Webtoon] Repaired JSON (first 300):", repaired.substring(0, 300));
+            return JSON.parse(repaired);
+        } catch (e2) {
+            console.error("[Webtoon] JSON repair also failed:", e2 instanceof Error ? e2.message : e2);
+            console.error("[Webtoon] Raw text (first 500):", text.substring(0, 500));
+            // 최소 시나리오 — 사건 자료 기반으로 구성
             return {
-                title: "법률 웹툰",
-                summary: "사건 이야기",
+                title: caseType || "법률 웹툰",
+                summary: maskedText.substring(0, 200),
                 caption: "",
                 hashtags: [],
                 character_sheet: {
@@ -310,12 +335,12 @@ JSON만 출력하세요. 코드 블록 없이.`;
                     setting: "법률 사무소와 법정",
                 },
                 panels: [
-                    { panel: 1, role: "hook", scene: "의뢰인이 법률사무소에 들어서는 장면", narration: "사건의 시작", dialogue: "변호사님, 도와주세요.", emotion: "불안" },
-                    { panel: 2, role: "situation", scene: "서류를 검토하는 변호사", narration: "사건 분석", dialogue: "증거를 확인해봅시다.", emotion: "진지" },
-                    { panel: 3, role: "shock", scene: "법정에서 증거를 제시하는 장면", narration: "법적 대응", dialogue: "이 증거가 핵심입니다.", emotion: "긴장" },
-                    { panel: 4, role: "excuse", scene: "재판 중 반전의 순간", narration: "전환점", dialogue: "새로운 사실이 밝혀졌습니다.", emotion: "놀람" },
-                    { panel: 5, role: "reversal", scene: "최종 변론 장면", narration: "최종 변론", dialogue: "의뢰인의 권리를 지켜야 합니다.", emotion: "결의" },
-                    { panel: 6, role: "verdict", scene: "판결 후 안도하는 의뢰인과 변호사", narration: "승소", dialogue: "감사합니다, 변호사님.", emotion: "안도" },
+                    { panel: 1, role: "hook" as const, scene: `${caseType} 관련 의뢰인이 법률사무소를 찾아오는 장면`, narration: maskedText.substring(0, 100), dialogue: "변호사님, 사건에 대해 상담드리고 싶습니다.", emotion: "불안" },
+                    { panel: 2, role: "situation" as const, scene: "변호사가 사건 서류를 꼼꼼히 검토하는 장면", narration: maskedText.substring(100, 250), dialogue: "사건 내용을 자세히 살펴보겠습니다.", emotion: "진지" },
+                    { panel: 3, role: "shock" as const, scene: "사건의 핵심 쟁점이 드러나는 장면", narration: maskedText.substring(250, 400), dialogue: "여기서 중요한 점은...", emotion: "긴장" },
+                    { panel: 4, role: "excuse" as const, scene: "법정에서 상대측 주장과 대립하는 장면", narration: maskedText.substring(400, 550), dialogue: "이러한 주장은 근거가 없습니다.", emotion: "분노" },
+                    { panel: 5, role: "reversal" as const, scene: "결정적 증거로 반전이 일어나는 장면", narration: maskedText.substring(550, 700), dialogue: "이 증거가 사건의 핵심입니다.", emotion: "결의" },
+                    { panel: 6, role: "verdict" as const, scene: "판결 후 의뢰인과 변호사가 함께하는 장면", narration: maskedText.substring(700, 850), dialogue: "좋은 결과를 얻었습니다.", emotion: "안도" },
                 ],
             };
         }
