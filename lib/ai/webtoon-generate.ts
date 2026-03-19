@@ -365,6 +365,7 @@ Requirements:
 
     // Generate all panels
     const allPanels = scenario.panels.slice(0, totalPanels);
+    const engineErrors: string[] = [];
 
     // ── 1순위: GPT Image 1 (최고 프롬프트 이해도) ──
     const generateWithGPTImage = async (panel: WebtoonPanel): Promise<{ panelIndex: number; imageBase64: string } | null> => {
@@ -392,6 +393,7 @@ Requirements:
             if (!res.ok) {
                 const err = await res.text();
                 console.error(`[Webtoon/GPT] Panel ${panel.panel} error (${res.status}):`, err);
+                engineErrors.push(`GPT: ${res.status} - ${err.substring(0, 200)}`);
                 return null;
             }
 
@@ -403,7 +405,9 @@ Requirements:
             }
             return null;
         } catch (err) {
-            console.error(`[Webtoon/GPT] Panel ${panel.panel} failed:`, err);
+            const msg = err instanceof Error ? err.message : String(err);
+            console.error(`[Webtoon/GPT] Panel ${panel.panel} failed:`, msg);
+            engineErrors.push(`GPT exception: ${msg.substring(0, 200)}`);
             return null;
         }
     };
@@ -433,6 +437,7 @@ Requirements:
             if (!res.ok) {
                 const err = await res.text();
                 console.error(`[Webtoon/Imagen4] Panel ${panel.panel} error (${res.status}):`, err);
+                engineErrors.push(`Imagen4: ${res.status} - ${err.substring(0, 200)}`);
                 return null;
             }
 
@@ -444,7 +449,9 @@ Requirements:
             }
             return null;
         } catch (err) {
-            console.error(`[Webtoon/Imagen4] Panel ${panel.panel} failed:`, err);
+            const msg = err instanceof Error ? err.message : String(err);
+            console.error(`[Webtoon/Imagen4] Panel ${panel.panel} failed:`, msg);
+            engineErrors.push(`Imagen4 exception: ${msg.substring(0, 200)}`);
             return null;
         }
     };
@@ -475,6 +482,7 @@ Requirements:
             if (!res.ok) {
                 const err = await res.text();
                 console.error(`[Webtoon/DALL-E] Panel ${panel.panel} error (${res.status}):`, err);
+                engineErrors.push(`DALL-E: ${res.status} - ${err.substring(0, 200)}`);
                 return null;
             }
 
@@ -486,7 +494,9 @@ Requirements:
             }
             return null;
         } catch (err) {
-            console.error(`[Webtoon/DALL-E] Panel ${panel.panel} failed:`, err);
+            const msg = err instanceof Error ? err.message : String(err);
+            console.error(`[Webtoon/DALL-E] Panel ${panel.panel} failed:`, msg);
+            engineErrors.push(`DALL-E exception: ${msg.substring(0, 200)}`);
             return null;
         }
     };
@@ -519,6 +529,11 @@ Requirements:
 
     const successful = results.filter((r): r is { panelIndex: number; imageBase64: string } => r !== null);
     console.log(`[Webtoon] ${successful.length}/${totalPanels} images generated successfully`);
+    if (successful.length === 0 && engineErrors.length > 0) {
+        const uniqueErrors = [...new Set(engineErrors)].slice(0, 5);
+        console.error(`[Webtoon] All engines failed. Errors:`, uniqueErrors);
+        throw new Error(`이미지 엔진 모두 실패: ${uniqueErrors.join(" | ")}`);
+    }
     return successful;
 }
 
