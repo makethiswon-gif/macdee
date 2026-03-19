@@ -133,6 +133,51 @@ const CARD_GRADIENTS = [
     "linear-gradient(135deg, #0D1117 0%, #1A1D23 100%)",
 ];
 
+// Decorative SVG pattern for cards without cover image
+function CardDecoration({ index, size = 360 }: { index: number; size?: number }) {
+    const scale = size / 360;
+    const patterns = [
+        // Pattern 0: Large circle bottom-right
+        <>
+            <circle cx={size * 0.85} cy={size * 0.8} r={size * 0.35} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth={1.5 * scale} />
+            <circle cx={size * 0.85} cy={size * 0.8} r={size * 0.25} fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth={1 * scale} />
+            <line x1={0} y1={size * 0.15} x2={size * 0.3} y2={size * 0.15} stroke="rgba(255,255,255,0.06)" strokeWidth={1 * scale} />
+        </>,
+        // Pattern 1: Diagonal lines
+        <>
+            <line x1={size * 0.7} y1={0} x2={size} y2={size * 0.3} stroke="rgba(255,255,255,0.04)" strokeWidth={1 * scale} />
+            <line x1={size * 0.8} y1={0} x2={size} y2={size * 0.2} stroke="rgba(255,255,255,0.03)" strokeWidth={1 * scale} />
+            <circle cx={size * 0.12} cy={size * 0.88} r={size * 0.18} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth={1.5 * scale} />
+        </>,
+        // Pattern 2: Corner accent
+        <>
+            <rect x={size * 0.75} y={size * 0.05} width={size * 0.2} height={1 * scale} fill="rgba(255,255,255,0.06)" />
+            <rect x={size * 0.93} y={size * 0.05} width={1 * scale} height={size * 0.12} fill="rgba(255,255,255,0.06)" />
+            <circle cx={size * 0.15} cy={size * 0.85} r={size * 0.25} fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth={1.5 * scale} />
+            <circle cx={size * 0.15} cy={size * 0.85} r={size * 0.18} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth={1 * scale} />
+        </>,
+        // Pattern 3: Dots grid
+        <>
+            {Array.from({ length: 5 }).map((_, row) =>
+                Array.from({ length: 5 }).map((_, col) => (
+                    <circle key={`${row}-${col}`} cx={size * 0.65 + col * 18 * scale} cy={size * 0.1 + row * 18 * scale} r={1.5 * scale} fill="rgba(255,255,255,0.06)" />
+                ))
+            )}
+            <line x1={size * 0.05} y1={size * 0.92} x2={size * 0.35} y2={size * 0.92} stroke="rgba(255,255,255,0.05)" strokeWidth={1 * scale} />
+        </>,
+        // Pattern 4: Arc
+        <>
+            <path d={`M ${size * 0.5} ${size} A ${size * 0.45} ${size * 0.45} 0 0 1 ${size} ${size * 0.55}`} fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth={1.5 * scale} />
+            <rect x={size * 0.05} y={size * 0.08} width={size * 0.08} height={1 * scale} fill="rgba(255,255,255,0.06)" />
+        </>,
+    ];
+    return (
+        <svg width={size} height={size} style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+            {patterns[index % patterns.length]}
+        </svg>
+    );
+}
+
 export default function CardNewsRenderer({ body, brandColor = "#3563AE", lawyerName = "", logoUrl, coverImageUrl, profileImageUrl }: CardNewsProps) {
     const cards = parseCardNews(body);
     const hashtags = extractHashtags(body);
@@ -231,11 +276,14 @@ export default function CardNewsRenderer({ body, brandColor = "#3563AE", lawyerN
                                 />
                                 <div className="absolute inset-0" style={{
                                     background: currentCard === 0
-                                        ? "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0.15) 70%, rgba(0,0,0,0.3) 100%)"
-                                        : "linear-gradient(135deg, rgba(0,0,0,0.82) 0%, rgba(10,10,30,0.88) 100%)",
+                                        ? "linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.35) 40%, rgba(0,0,0,0.1) 70%, rgba(0,0,0,0.25) 100%)"
+                                        : "linear-gradient(135deg, rgba(0,0,0,0.65) 0%, rgba(10,10,30,0.72) 100%)",
                                 }} />
                             </>
                         )}
+
+                        {/* Decorative pattern when no cover image */}
+                        {!coverImageUrl && <CardDecoration index={currentCard} size={360} />}
 
                         <div className="relative w-full h-full flex flex-col justify-end items-center px-10 py-8 text-center">
                             {/* Brand line (hide on first card) */}
@@ -367,8 +415,8 @@ export default function CardNewsRenderer({ body, brandColor = "#3563AE", lawyerN
                                     position: "absolute",
                                     inset: 0,
                                     background: i === 0
-                                        ? "linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0.1) 70%, rgba(0,0,0,0.25) 100%)"
-                                        : "linear-gradient(135deg, rgba(0,0,0,0.82) 0%, rgba(10,10,30,0.88) 100%)",
+                                        ? "linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.35) 40%, rgba(0,0,0,0.1) 70%, rgba(0,0,0,0.25) 100%)"
+                                        : "linear-gradient(135deg, rgba(0,0,0,0.65) 0%, rgba(10,10,30,0.72) 100%)",
                                 }} />
                             </>
                         )}
@@ -389,6 +437,9 @@ export default function CardNewsRenderer({ body, brandColor = "#3563AE", lawyerN
                                 <img src={profileImageUrl} alt="profile" crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                             </div>
                         )}
+
+                        {/* Decorative patterns for export */}
+                        {!coverImageUrl && <CardDecoration index={i} size={1080} />}
 
                         {i === 0 ? (
                             /* Cover card export layout */
