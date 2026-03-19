@@ -76,18 +76,26 @@ export async function PATCH(request: Request) {
 
         const supabase = await createAdminClient();
 
-        const { error } = await supabase
+        // 업데이트 후 결과 확인
+        const { data, error } = await supabase
             .from("lawyers")
             .update({ plan })
-            .eq("id", lawyer_id);
+            .eq("id", lawyer_id)
+            .select("id, name, plan")
+            .single();
 
         if (error) {
             console.error("[Admin] Plan update error:", error);
             return NextResponse.json({ error: error.message }, { status: 500 });
         }
 
-        console.log(`[Admin] Lawyer ${lawyer_id} plan changed to ${plan}`);
-        return NextResponse.json({ success: true, plan });
+        if (!data) {
+            console.error("[Admin] Plan update: no rows matched for lawyer_id:", lawyer_id);
+            return NextResponse.json({ error: "변호사를 찾을 수 없습니다." }, { status: 404 });
+        }
+
+        console.log(`[Admin] Lawyer "${data.name}" (${lawyer_id}) plan changed to ${data.plan}`);
+        return NextResponse.json({ success: true, plan: data.plan, name: data.name });
     } catch (err) {
         console.error("[Admin] Plan update error:", err);
         return NextResponse.json({ error: "서버 오류" }, { status: 500 });

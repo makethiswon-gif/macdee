@@ -60,11 +60,14 @@ export default function AdminLawyersPage() {
                 body: JSON.stringify({ lawyer_id: lawyerId, plan: newPlan }),
             });
             if (res.ok) {
+                const result = await res.json();
                 setLawyers((prev) =>
                     prev.map((l) =>
-                        l.id === lawyerId ? { ...l, plan: newPlan } : l
+                        l.id === lawyerId ? { ...l, plan: result.plan } : l
                     )
                 );
+                const planLabel = PLAN_LABELS[result.plan] || result.plan;
+                alert(`✅ ${result.name || "변호사"} → ${planLabel} 변경 완료`);
             } else {
                 const data = await res.json();
                 alert(`플랜 변경 실패: ${data.error}`);
