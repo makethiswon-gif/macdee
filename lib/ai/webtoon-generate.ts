@@ -336,14 +336,13 @@ export async function generateWebtoonImages(
     const charSheet = scenario.character_sheet;
     const totalPanels = scenario.panels.length;
 
-    // Build character consistency prompt
-    const characterPrompt = `IMPORTANT - Use these EXACT same characters in EVERY panel:
-- Main character (의뢰인): ${charSheet.protagonist}
-- Lawyer (변호사): ${charSheet.lawyer}
-${charSheet.antagonist ? `- Opponent (상대방): ${charSheet.antagonist}` : ""}
-Setting: ${charSheet.setting}
-${profileImageUrl ? `
-REFERENCE: The lawyer character should resemble the person in this photo: ${profileImageUrl}` : ""}`;
+    // Build character consistency prompt (각 필드 500자 제한)
+    const truncate = (s: string, max: number) => s && s.length > max ? s.substring(0, max) + "..." : s;
+    const characterPrompt = `Characters:
+- 의뢰인: ${truncate(charSheet.protagonist, 500)}
+- 변호사: ${truncate(charSheet.lawyer, 500)}
+${charSheet.antagonist ? `- 상대방: ${truncate(charSheet.antagonist, 300)}` : ""}
+Setting: ${truncate(charSheet.setting, 300)}`;
 
     const buildPrompt = (panel: WebtoonPanel) => `Create a single comic panel illustration.
 
@@ -352,7 +351,7 @@ Art style: ${stylePrompt}
 ${characterPrompt}
 
 Panel ${panel.panel}/${totalPanels} - "${panel.emotion}" mood:
-Scene: ${panel.scene}
+Scene: ${truncate(panel.scene, 500)}
 
 Requirements:
 - Single panel, square 1:1 ratio
@@ -360,8 +359,13 @@ Requirements:
 - Clear emotional expression matching "${panel.emotion}"
 - Cinematic composition with dramatic camera angles
 - Korean characters and setting
-- Leave small space at bottom for minimal text overlay
-- Focus on VISUAL STORYTELLING — the image should convey the emotion without needing text`;
+- Focus on VISUAL STORYTELLING`;
+
+    // DALL-E 3 전용 (4000자 제한)
+    const buildShortPrompt = (panel: WebtoonPanel) => {
+        const p = `Comic panel. ${stylePrompt}. ${truncate(panel.scene, 300)}. Emotion: ${panel.emotion}. Korean characters, cinematic, no text/speech bubbles, square 1:1.`;
+        return p.substring(0, 3900);
+    };
 
     // Generate all panels
     const allPanels = scenario.panels.slice(0, totalPanels);
@@ -459,7 +463,7 @@ Requirements:
     // ── 3순위: DALL-E 3 (최종 폴백) ──
     const generateWithDallE = async (panel: WebtoonPanel): Promise<{ panelIndex: number; imageBase64: string } | null> => {
         if (!openaiKey) return null;
-        const prompt = buildPrompt(panel);
+        const prompt = buildShortPrompt(panel);
 
         try {
             console.log(`[Webtoon/DALL-E] Final fallback panel ${panel.panel}/${totalPanels}...`);
