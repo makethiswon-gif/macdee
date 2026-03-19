@@ -261,10 +261,64 @@ JSON만 출력하세요. 코드 블록 없이.`;
 
     try {
         return JSON.parse(clean);
-    } catch (e) {
-        console.error("[Webtoon Generate] JSON Parse Error. Raw text from Claude:", text);
-        console.error("[Webtoon Generate] Cleaned text:", clean);
-        throw e;
+    } catch {
+        console.error("[Webtoon] JSON parse failed, attempting recovery...");
+
+        // 복구 시도 1: 제어문자 & 줄바꿈 이스케이프
+        try {
+            const sanitized = clean
+                .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
+                .replace(/\r\n/g, "\\n")
+                .replace(/\r/g, "\\n")
+                .replace(/\n/g, "\\n")
+                .replace(/\t/g, "\\t")
+                .replace(/,\s*}/g, "}")   // trailing commas
+                .replace(/,\s*]/g, "]");  // trailing commas in arrays
+            return JSON.parse(sanitized);
+        } catch {
+            // 복구 시도 2: JSON 블록만 추출
+            try {
+                const start = text.indexOf("{");
+                const end = text.lastIndexOf("}");
+                if (start !== -1 && end > start) {
+                    const extracted = text.substring(start, end + 1)
+                        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
+                        .replace(/\r\n/g, "\\n")
+                        .replace(/\r/g, "\\n")
+                        .replace(/\n/g, "\\n")
+                        .replace(/\t/g, "\\t")
+                        .replace(/,\s*}/g, "}")
+                        .replace(/,\s*]/g, "]");
+                    return JSON.parse(extracted);
+                }
+            } catch {
+                // 복구 시도 3: 수동 필드 추출
+                console.error("[Webtoon] All JSON parse attempts failed, building minimal scenario");
+                console.error("[Webtoon] Raw text:", text.substring(0, 500));
+            }
+
+            // 최소한의 기본 시나리오 반환
+            return {
+                title: "법률 웹툰",
+                summary: "사건 이야기",
+                caption: "",
+                hashtags: [],
+                character_sheet: {
+                    protagonist: "의뢰인, 갈색 머리, 정장",
+                    lawyer: "변호사, 검은 머리, 양복",
+                    antagonist: "",
+                    setting: "법률 사무소와 법정",
+                },
+                panels: [
+                    { panel: 1, role: "hook", scene: "의뢰인이 법률사무소에 들어서는 장면", narration: "사건의 시작", dialogue: "변호사님, 도와주세요.", emotion: "불안" },
+                    { panel: 2, role: "situation", scene: "서류를 검토하는 변호사", narration: "사건 분석", dialogue: "증거를 확인해봅시다.", emotion: "진지" },
+                    { panel: 3, role: "shock", scene: "법정에서 증거를 제시하는 장면", narration: "법적 대응", dialogue: "이 증거가 핵심입니다.", emotion: "긴장" },
+                    { panel: 4, role: "excuse", scene: "재판 중 반전의 순간", narration: "전환점", dialogue: "새로운 사실이 밝혀졌습니다.", emotion: "놀람" },
+                    { panel: 5, role: "reversal", scene: "최종 변론 장면", narration: "최종 변론", dialogue: "의뢰인의 권리를 지켜야 합니다.", emotion: "결의" },
+                    { panel: 6, role: "verdict", scene: "판결 후 안도하는 의뢰인과 변호사", narration: "승소", dialogue: "감사합니다, 변호사님.", emotion: "안도" },
+                ],
+            };
+        }
     }
 }
 
