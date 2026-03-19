@@ -38,6 +38,7 @@ export interface GenerationConfig {
     officeImageIndex: number;
     overlayOpacity: number;
     createdAt: number;
+    aiImageUrl?: string;
 }
 
 // 50 Color Palettes — background / text / accent

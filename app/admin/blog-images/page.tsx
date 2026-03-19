@@ -104,18 +104,40 @@ function GenerateTab({ profiles, router }: { profiles: BlogProfile[]; router: Re
     const handleGenerate = async () => {
         if (!selectedId || !postTitle) return;
         setGenerating(true);
-        const res = await fetch(`/api/admin/blog-profiles?id=${selectedId}`);
-        const { profile } = await res.json();
-        let summary = postSummary;
-        if (postSummary.trim()) {
+        try {
+            const res = await fetch(`/api/admin/blog-profiles?id=${selectedId}`);
+            const { profile } = await res.json();
+            let summary = postSummary;
+            if (postSummary.trim()) {
+                try {
+                    const aiRes = await fetch("/api/admin/blog-summary", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: postSummary, title: postTitle }) });
+                    if (aiRes.ok) { const aiData = await aiRes.json(); if (aiData.summary) summary = aiData.summary; }
+                } catch { /**/ }
+            }
+
+            let aiImageUrl: string | undefined;
             try {
-                const aiRes = await fetch("/api/admin/blog-summary", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: postSummary, title: postTitle }) });
-                if (aiRes.ok) { const aiData = await aiRes.json(); if (aiData.summary) summary = aiData.summary; }
-            } catch { /**/ }
+                const photoRes = await fetch("/api/admin/blog-images/generate-photo", {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ title: postTitle, summary })
+                });
+                if (photoRes.ok) {
+                    const photoData = await photoRes.json();
+                    if (photoData.imageUrl) aiImageUrl = photoData.imageUrl;
+                }
+            } catch (err) {
+                console.error("Failed to generate AI photo:", err);
+            }
+
+            const config = generateConfig(selectedId, postTitle, summary, profile.profileImages?.length || 0, profile.officeImages?.length || 0);
+            if (aiImageUrl) config.aiImageUrl = aiImageUrl;
+            saveGeneration(config);
+            setTimeout(() => router.push(`/admin/blog-images/preview?id=${config.id}`), 300);
+        } catch (err) {
+            console.error(err);
+            alert("생성 중 오류가 발생했습니다.");
+            setGenerating(false);
         }
-        const config = generateConfig(selectedId, postTitle, summary, profile.profileImages?.length || 0, profile.officeImages?.length || 0);
-        saveGeneration(config);
-        setTimeout(() => router.push(`/admin/blog-images/preview?id=${config.id}`), 300);
     };
 
     const selected = profiles.find((p) => p.id === selectedId);

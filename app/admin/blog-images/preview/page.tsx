@@ -15,13 +15,14 @@ import SummaryImage from "./SummaryImage";
 import ContactImage from "./ContactImage";
 import BrandImage from "./BrandImage";
 
-type ImageTab = "main" | "summary" | "contact" | "brand";
+type ImageTab = "main" | "summary" | "contact" | "brand" | "photo";
 
-const IMAGE_TABS: { id: ImageTab; label: string; color: string; variantKey: keyof GenerationConfig; maxVariant: number }[] = [
+const IMAGE_TABS: { id: ImageTab; label: string; color: string; variantKey?: keyof GenerationConfig; maxVariant?: number }[] = [
     { id: "main", label: "메인", color: "#3563AE", variantKey: "mainVariant", maxVariant: MAIN_VARIANT_COUNT },
     { id: "summary", label: "요약", color: "#8B5CF6", variantKey: "summaryVariant", maxVariant: SUMMARY_VARIANT_COUNT },
     { id: "contact", label: "상담안내", color: "#10B981", variantKey: "contactVariant", maxVariant: CONTACT_VARIANT_COUNT },
     { id: "brand", label: "브랜드", color: "#F59E0B", variantKey: "brandVariant", maxVariant: BRAND_VARIANT_COUNT },
+    { id: "photo", label: "AI 사진", color: "#EC4899" },
 ];
 
 function PreviewContent() {
@@ -169,6 +170,18 @@ function PreviewContent() {
                 }
                 if (blob) zip.file(`${prefix}_${suffix}.jpg`, blob);
             }
+
+            // Also zip the AI Photo if it exists
+            if (config.aiImageUrl) {
+                try {
+                    const aiPhotoRes = await fetch(config.aiImageUrl);
+                    const aiPhotoBlob = await aiPhotoRes.blob();
+                    zip.file(`${prefix}_AI사진.jpg`, aiPhotoBlob);
+                } catch (err) {
+                    console.error("Failed to fetch AI photo for zip:", err);
+                }
+            }
+
             const zipBlob = await zip.generateAsync({ type: "blob" });
             saveAs(zipBlob, `${prefix}_블로그이미지.zip`);
         } catch (err) {
@@ -190,12 +203,17 @@ function PreviewContent() {
         );
     }
 
-    const currentVariantKey = IMAGE_TABS.find(t => t.id === activeTab)!.variantKey;
-    const currentMaxVariant = IMAGE_TABS.find(t => t.id === activeTab)!.maxVariant;
-    const currentVariant = (config[currentVariantKey] as number) || 0;
+    const currentTabObj = IMAGE_TABS.find(t => t.id === activeTab)!;
+    const currentVariantKey = currentTabObj.variantKey;
+    const currentMaxVariant = currentTabObj.maxVariant || 1;
+    const currentVariant = currentVariantKey ? ((config[currentVariantKey] as number) || 0) : 0;
 
     const renderActiveImage = () => {
         const p = editProfile;
+        if (activeTab === "photo") {
+            if (!config.aiImageUrl) return <div className="w-[1000px] h-[1000px] bg-[#111827] flex items-center justify-center text-[#6B7280]">AI 생성 이미지가 없습니다.</div>;
+            return <img src={config.aiImageUrl} alt="AI Photo" className="w-[1000px] h-[1000px] object-cover" />;
+        }
         switch (activeTab) {
             case "main": return <MainImage config={config} profile={p} />;
             case "summary": return <SummaryImage config={config} profile={p} />;
@@ -269,7 +287,8 @@ function PreviewContent() {
                     </div>
                     <div style={{ marginTop: -300 }} />
                     <p className="text-[10px] text-[#4B5563] mt-2">
-                        1000 × 1000px · 변형 {currentVariant + 1}/{currentMaxVariant}
+                        1000 × 1000px
+                        {activeTab !== "photo" && ` · 변형 ${currentVariant + 1}/${currentMaxVariant}`}
                     </p>
                 </div>
 
@@ -397,8 +416,8 @@ function PreviewContent() {
                             {/* Design Section */}
                             {editorSection === "design" && (
                                 <div className="space-y-5">
-                                    {IMAGE_TABS.map(tab => {
-                                        const val = (config[tab.variantKey] as number) || 0;
+                                    {IMAGE_TABS.filter(t => t.id !== "photo").map(tab => {
+                                        const val = (config[tab.variantKey!] as number) || 0;
                                         return (
                                             <div key={tab.id}>
                                                 <label className="block text-[11px] font-medium text-[#9CA3B0] mb-2 flex items-center gap-1.5">
@@ -408,16 +427,16 @@ function PreviewContent() {
                                                 </label>
                                                 <div className="flex items-center gap-2">
                                                     <button
-                                                        onClick={() => updateConfig({ [tab.variantKey]: (val - 1 + tab.maxVariant) % tab.maxVariant })}
+                                                        onClick={() => updateConfig({ [tab.variantKey!]: (val - 1 + tab.maxVariant!) % tab.maxVariant! })}
                                                         className="p-1.5 rounded-lg bg-[#1F2937] text-[#6B7280] hover:text-white transition-colors"
                                                     ><ChevronLeft size={14} /></button>
                                                     <input
-                                                        type="range" min="0" max={tab.maxVariant - 1} value={val}
-                                                        onChange={e => updateConfig({ [tab.variantKey]: Number(e.target.value) })}
+                                                        type="range" min="0" max={tab.maxVariant! - 1} value={val}
+                                                        onChange={e => updateConfig({ [tab.variantKey!]: Number(e.target.value) })}
                                                         className="flex-1 accent-[#3563AE] h-1.5"
                                                     />
                                                     <button
-                                                        onClick={() => updateConfig({ [tab.variantKey]: (val + 1) % tab.maxVariant })}
+                                                        onClick={() => updateConfig({ [tab.variantKey!]: (val + 1) % tab.maxVariant! })}
                                                         className="p-1.5 rounded-lg bg-[#1F2937] text-[#6B7280] hover:text-white transition-colors"
                                                     ><ChevronRight size={14} /></button>
                                                 </div>
