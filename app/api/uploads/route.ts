@@ -43,6 +43,7 @@ export async function POST(request: Request) {
 
         const formData = await request.formData();
         const type = formData.get("type") as string;
+        const lawyerRole = formData.get("lawyer_role") as string || "auto";
 
         if (!type || !["pdf", "audio", "memo", "url", "faq"].includes(type)) {
             return NextResponse.json({ error: "올바른 타입을 선택해주세요." }, { status: 400 });
@@ -109,6 +110,7 @@ export async function POST(request: Request) {
                         file_url: fileUrl || null,
                         file_name: file.name,
                         raw_text: rawText || null,
+                        structured_data: type === "pdf" && lawyerRole !== "auto" ? { lawyer_role: lawyerRole } : null,
                         status: "processing",
                     })
                     .select()

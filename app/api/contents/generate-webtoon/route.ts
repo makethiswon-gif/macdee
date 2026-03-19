@@ -58,19 +58,21 @@ export async function POST(req: NextRequest) {
         const caseType = upload.title || "법률 사건";
         const style = webtoon_style || lawyer.webtoon_style || "dramatic";
         const profileImageUrl = lawyer.profile_image_url || undefined;
+        const lawyerRole = structuredData?.lawyer_role || "auto";
 
         // API 키 존재 여부 로그
         const hasOpenAI = !!process.env.OPENAI_API_KEY;
         const hasGemini = !!process.env.GEMINI_API_KEY;
         const hasClaude = !!process.env.ANTHROPIC_API_KEY;
         console.log(`[Webtoon API] Keys: OPENAI=${hasOpenAI}, GEMINI=${hasGemini}, CLAUDE=${hasClaude}`);
+        console.log(`[Webtoon API] Lawyer role: ${lawyerRole}`);
 
         // Generate webtoon
         const { generateWebtoon } = await import("@/lib/ai/webtoon-generate");
         
         let result;
         try {
-            result = await generateWebtoon(maskedText, caseType, style, profileImageUrl);
+            result = await generateWebtoon(maskedText, caseType, style, profileImageUrl, lawyerRole);
         } catch (genErr) {
             console.error("[Webtoon API] generateWebtoon threw:", genErr);
             return NextResponse.json(

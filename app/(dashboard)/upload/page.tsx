@@ -19,6 +19,9 @@ import {
     Trash2,
     Palette,
     BookOpen,
+    Shield,
+    User,
+    Sparkles,
 } from "lucide-react";
 
 const ACCEPT_MAP: Record<string, Record<string, string[]>> = {
@@ -40,6 +43,7 @@ const TABS = [
 ];
 
 type UploadStatus = "idle" | "uploading" | "success" | "error";
+type LawyerRole = "auto" | "victim" | "defendant";
 
 
 
@@ -52,6 +56,7 @@ export default function UploadPage() {
     const [faqPairs, setFaqPairs] = useState([{ question: "", answer: "" }]);
     const [status, setStatus] = useState<UploadStatus>("idle");
     const [errorMsg, setErrorMsg] = useState("");
+    const [lawyerRole, setLawyerRole] = useState<LawyerRole>("auto");
     const router = useRouter();
 
     // File drop handler
@@ -114,6 +119,9 @@ export default function UploadPage() {
 
             if (isFileTab) {
                 files.forEach((f) => formData.append("files", f));
+                if (activeTab === "pdf") {
+                    formData.append("lawyer_role", lawyerRole);
+                }
             } else if (activeTab === "memo") {
                 formData.append("title", memoTitle);
                 formData.append("text", memoText);
@@ -229,6 +237,49 @@ export default function UploadPage() {
                                                 </button>
                                             </div>
                                         ))}
+                                    </div>
+                                )}
+
+                                {/* ─── Lawyer Role Selector (PDF only) ─── */}
+                                {activeTab === "pdf" && (
+                                    <div className="mt-5 p-4 rounded-xl bg-white border border-[#E4E7ED]">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <Shield size={15} className="text-[#3563AE]" />
+                                            <span className="text-[13px] font-semibold text-[#1F2937]">변호사 역할</span>
+                                        </div>
+                                        <div className="space-y-2">
+                                            {[
+                                                { value: "auto" as LawyerRole, label: "자동 판별", desc: "판결문에서 AI가 자동으로 판별합니다", icon: Sparkles },
+                                                { value: "victim" as LawyerRole, label: "피해자/원고 대리", desc: "의뢰인이 피해 당사자인 사건", icon: User },
+                                                { value: "defendant" as LawyerRole, label: "피고인/가해자 변호", desc: "의뢰인이 혐의를 받는 사건", icon: Shield },
+                                            ].map((opt) => (
+                                                <label
+                                                    key={opt.value}
+                                                    className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all border ${
+                                                        lawyerRole === opt.value
+                                                            ? "border-[#3563AE] bg-[#3563AE]/[0.04]"
+                                                            : "border-transparent hover:bg-[#F9FAFB]"
+                                                    }`}
+                                                >
+                                                    <input
+                                                        type="radio"
+                                                        name="lawyerRole"
+                                                        value={opt.value}
+                                                        checked={lawyerRole === opt.value}
+                                                        onChange={() => setLawyerRole(opt.value)}
+                                                        className="accent-[#3563AE] w-4 h-4"
+                                                    />
+                                                    <opt.icon size={16} className={lawyerRole === opt.value ? "text-[#3563AE]" : "text-[#9CA3B0]"} />
+                                                    <div className="flex-1">
+                                                        <p className={`text-[13px] font-medium ${lawyerRole === opt.value ? "text-[#3563AE]" : "text-[#374151]"}`}>{opt.label}</p>
+                                                        <p className="text-[11px] text-[#9CA3B0]">{opt.desc}</p>
+                                                    </div>
+                                                </label>
+                                            ))}
+                                        </div>
+                                        <p className="mt-2 text-[11px] text-[#9CA3B0] leading-relaxed">
+                                            💡 선택하지 않으면 판결문 내용을 분석하여 자동으로 판별합니다.
+                                        </p>
                                     </div>
                                 )}
                             </div>

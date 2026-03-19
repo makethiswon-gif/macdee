@@ -61,14 +61,42 @@ export interface WebtoonResult {
 export async function generateWebtoonScenario(
     maskedText: string,
     caseType: string,
+    lawyerRole: string = "auto",
 ): Promise<WebtoonScenario> {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) throw new Error("ANTHROPIC_API_KEY not set");
+
+    // 변호사 역할에 따른 시점 안내
+    let roleInstruction = "";
+    if (lawyerRole === "victim") {
+        roleInstruction = `
+[변호사 시점 — 매우 중요!!!]
+- 이 사건에서 변호사는 **피해자/원고** 측을 대리했습니다.
+- 의뢰인 = 피해자/원고입니다. 의뢰인의 입장에서 공감하며 스토리를 구성하세요.
+- 상대방(가해자/피고인)이 어떤 억지를 부렸는지, 의뢰인이 어떤 피해를 입었는지 중심으로.
+- 변호사는 피해자의 권리를 지켜주는 역할로 묘사하세요.`;
+    } else if (lawyerRole === "defendant") {
+        roleInstruction = `
+[변호사 시점 — 매우 중요!!!]
+- 이 사건에서 변호사는 **피고인/가해자** 측을 변호했습니다.
+- 의뢰인 = 피고인/피의자입니다. 의뢰인의 입장에서 억울함이나 사정을 풀어주세요.
+- 혐의가 과도하다거나, 사실관계가 다르다거나, 양형이 줄어든 성과를 중심으로.
+- 변호사는 의뢰인의 정당한 권리를 보호하는 역할로 묘사하세요.
+- 절대 피해자 입장에서 스토리를 만들지 마세요.`;
+    } else {
+        roleInstruction = `
+[변호사 시점 — 자동 판별]
+- 사건 자료를 분석하여 변호사가 어느 쪽을 대리했는지 스스로 판단하세요.
+- 판결문에 "변호인"으로 기재되어 있으면 → 피고인/가해자 측 변호사입니다.
+- "고소대리인" 또는 "피해자 대리인"으로 기재되어 있으면 → 피해자 측 변호사입니다.
+- 판단한 역할에 맞는 시점으로 스토리를 구성하세요.`;
+    }
 
     const systemPrompt = `당신은 법률 사건을 SNS 바이럴 웹툰 스토리보드로 변환하는 전문가입니다.
 
 변호사가 보내준 사건 자료를 분석하여,
 6컷 감정몰입형 웹툰 시나리오를 JSON으로 출력하세요.
+${roleInstruction}
 
 [최우선 원칙]
 - 웹툰은 "읽는 콘텐츠"가 아니라 "보면서 이해하는 콘텐츠"입니다.
@@ -245,7 +273,7 @@ JSON만 출력하세요. 코드 블록 없이.`;
             system: systemPrompt,
             messages: [{
                 role: "user",
-                content: `사건 유형: ${caseType}\n\n사건 자료:\n${maskedText.substring(0, 3000)}`,
+                content: `사건 유형: ${caseType}\n변호사 역할: ${lawyerRole === "victim" ? "피해자/원고 대리" : lawyerRole === "defendant" ? "피고인/가해자 변호" : "자동 판별"}\n\n사건 자료:\n${maskedText.substring(0, 3000)}`,
             }],
         }),
     });
@@ -572,11 +600,12 @@ export async function generateWebtoon(
     caseType: string,
     style: WebtoonStyleKey = "dramatic",
     profileImageUrl?: string,
+    lawyerRole: string = "auto",
 ): Promise<WebtoonResult> {
-    console.log(`[Webtoon] Starting generation: style=${style}, caseType=${caseType}, hasProfile=${!!profileImageUrl}`);
+    console.log(`[Webtoon] Starting generation: style=${style}, caseType=${caseType}, hasProfile=${!!profileImageUrl}, lawyerRole=${lawyerRole}`);
 
     // Step 1: Scenario
-    const scenario = await generateWebtoonScenario(maskedText, caseType);
+    const scenario = await generateWebtoonScenario(maskedText, caseType, lawyerRole);
     console.log(`[Webtoon] Scenario generated: ${scenario.panels.length} panels, title="${scenario.title}"`);
 
     // Step 2: Images (batched parallel)
