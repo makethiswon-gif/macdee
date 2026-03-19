@@ -141,78 +141,70 @@ export default function MigratePage() {
 
     const selectedCount = posts.filter((p) => p.selected).length;
 
-    // ─── Step 3: Process ───
+    // ─── Step 3: Process one by one ───
     const startMigration = useCallback(async () => {
-        const selectedUrls = posts.filter((p) => p.selected).map((p) => p.url);
+        const selectedUrls = posts
+            .map((p, i) => ({ ...p, originalIndex: i }))
+            .filter((p) => p.selected);
         if (selectedUrls.length === 0) return;
 
         setStep(3);
         setProcessing(true);
 
-        try {
-            const res = await fetch("/api/migrate/process", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ urls: selectedUrls }),
-            });
+        for (let i = 0; i < selectedUrls.length; i++) {
+            const post = selectedUrls[i];
 
-            if (!res.ok || !res.body) {
-                setError("마이그레이션을 시작할 수 없습니다.");
-                setProcessing(false);
-                return;
-            }
+            // Update status: scraping
+            setPosts((prev) =>
+                prev.map((p, idx) =>
+                    idx === post.originalIndex ? { ...p, status: "scraping" as PostStatus } : p
+                )
+            );
 
-            const reader = res.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = "";
+            try {
+                const res = await fetch("/api/migrate/process-one", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ url: post.url }),
+                });
 
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split("\n\n");
-                buffer = lines.pop() || "";
-
-                for (const line of lines) {
-                    if (!line.startsWith("data: ")) continue;
-                    try {
-                        const data = JSON.parse(line.slice(6));
-
-                        if (data.type === "progress") {
-                            setPosts((prev) => {
-                                const selected = prev.filter((p) => p.selected);
-                                const idx = data.index;
-                                if (idx >= 0 && idx < selected.length) {
-                                    // Map back to original array
-                                    let selectedIdx = 0;
-                                    return prev.map((p) => {
-                                        if (!p.selected) return p;
-                                        if (selectedIdx === idx) {
-                                            selectedIdx++;
-                                            return {
-                                                ...p,
-                                                title: data.title || p.title,
-                                                status: data.status as PostStatus,
-                                                error: data.error,
-                                                results: data.results,
-                                            };
-                                        }
-                                        selectedIdx++;
-                                        return p;
-                                    });
-                                }
-                                return prev;
-                            });
-                        }
-                    } catch { /* ignore parse errors */ }
+                if (!res.ok) {
+                    const data = await res.json();
+                    setPosts((prev) =>
+                        prev.map((p, idx) =>
+                            idx === post.originalIndex
+                                ? { ...p, status: "error" as PostStatus, error: data.error || "처리 실패" }
+                                : p
+                        )
+                    );
+                    continue;
                 }
+
+                const data = await res.json();
+                setPosts((prev) =>
+                    prev.map((p, idx) =>
+                        idx === post.originalIndex
+                            ? {
+                                ...p,
+                                title: data.title || p.title,
+                                status: "done" as PostStatus,
+                                results: data.results,
+                            }
+                            : p
+                    )
+                );
+            } catch (err) {
+                setPosts((prev) =>
+                    prev.map((p, idx) =>
+                        idx === post.originalIndex
+                            ? { ...p, status: "error" as PostStatus, error: err instanceof Error ? err.message : "네트워크 오류" }
+                            : p
+                    )
+                );
             }
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "마이그레이션 중 오류 발생");
-        } finally {
-            setProcessing(false);
         }
+
+        setProcessing(false);
     }, [posts]);
 
     // ─── Progress Stats ───
