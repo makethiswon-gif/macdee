@@ -108,9 +108,12 @@ export default function ConsultingPage() {
         setResult("");
 
         try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 180000); // 3분
             const res = await fetch("/api/consulting", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
+                signal: controller.signal,
                 body: JSON.stringify({
                     firmSize,
                     budget: BUDGETS.find(b => b.key === budget)?.value || budget,
@@ -120,6 +123,7 @@ export default function ConsultingPage() {
                     goals,
                 }),
             });
+            clearTimeout(timeout);
             const data = await res.json();
             if (data.success) {
                 setResult(data.analysis);
