@@ -42,13 +42,21 @@ function formatInline(text: string): string {
 function renderBody(rawBody: string, brandColor: string) {
     // Detect raw JSON in body and extract the "body" field
     let body = rawBody;
+
+    // Strip markdown code block wrapper (```json ... ``` or ``` ... ```)
+    const codeBlockMatch = body.match(/^\s*```(?:json)?\s*\n?([\s\S]*?)\n?\s*```\s*$/);
+    if (codeBlockMatch) {
+        body = codeBlockMatch[1].trim();
+    }
+
     if (body.trimStart().startsWith("{")) {
         try {
-            let jsonStr = body.trim();
-            const codeBlockMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-            if (codeBlockMatch) jsonStr = codeBlockMatch[1];
-            const parsed = JSON.parse(jsonStr);
+            const parsed = JSON.parse(body.trim());
             if (parsed.body) body = parsed.body;
+            else if (parsed.title && !parsed.body) {
+                // JSON has title but body is in a different key or the whole thing is the content
+                body = parsed.content || parsed.text || JSON.stringify(parsed, null, 2);
+            }
         } catch {
             // Try regex extraction as fallback
             const bodyMatch = body.match(/"body"\s*:\s*"((?:[^"\\]|\\.)*)"/);
