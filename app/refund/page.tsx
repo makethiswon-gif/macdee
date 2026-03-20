@@ -108,7 +108,7 @@ export default function RefundPolicyPage() {
                     <section>
                         <h2 className="text-xl font-bold text-[#0A0A0A] mb-4">제6조 (환불 절차)</h2>
                         <ol className="list-decimal pl-5 space-y-2">
-                            <li>환불 신청은 서비스 내 고객센터 또는 이메일(support@macdee.com)로 접수합니다.</li>
+                            <li>환불 신청은 서비스 내 고객센터 또는 이메일(teammacdee@gmail.com)로 접수합니다.</li>
                             <li>환불 신청 접수 후 3영업일 이내에 처리됩니다.</li>
                             <li>카드 결제의 경우 카드사 처리 기간에 따라 실제 환불까지 3~7영업일이 소요될 수 있습니다.</li>
                             <li>환불은 원 결제 수단으로 진행됩니다.</li>
@@ -140,7 +140,7 @@ export default function RefundPolicyPage() {
                             <li><strong>사업자등록번호:</strong> 431-11-01233</li>
                             <li><strong>주소:</strong> 서울특별시 동대문구 왕산로5길 13</li>
                             <li><strong>연락처:</strong> 010-8935-3010</li>
-                            <li><strong>이메일:</strong> support@macdee.com</li>
+                            <li><strong>이메일:</strong> teammacdee@gmail.com</li>
                         </ul>
                     </section>
 

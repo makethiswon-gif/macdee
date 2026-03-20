@@ -142,7 +142,7 @@ export default function TermsPage() {
                             <li><strong>사업자등록번호:</strong> 431-11-01233</li>
                             <li><strong>주소:</strong> 서울특별시 동대문구 왕산로5길 13</li>
                             <li><strong>연락처:</strong> 010-8935-3010</li>
-                            <li><strong>이메일:</strong> support@macdee.com</li>
+                            <li><strong>이메일:</strong> teammacdee@gmail.com</li>
                         </ul>
                     </section>
                 </div>

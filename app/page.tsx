@@ -606,14 +606,14 @@ function Footer() {
             <ul className="space-y-3">
               <li><a href="/terms" className="text-[13px] text-white/25 hover:text-white/60 transition-colors">이용약관</a></li>
               <li><a href="/refund" className="text-[13px] text-white/25 hover:text-white/60 transition-colors">환불정책</a></li>
-              <li><a href="mailto:support@macdee.com" className="text-[13px] text-white/25 hover:text-white/60 transition-colors">문의하기</a></li>
+              <li><a href="mailto:teammacdee@gmail.com" className="text-[13px] text-white/25 hover:text-white/60 transition-colors">문의하기</a></li>
             </ul>
           </div>
           <div>
             <h4 className="text-[11px] text-white/30 uppercase tracking-[0.15em] mb-5">연락처</h4>
             <ul className="space-y-3 text-[13px] text-white/25">
               <li>010-8935-3010</li>
-              <li>support@macdee.com</li>
+              <li>teammacdee@gmail.com</li>
               <li>서울특별시 동대문구 왕산로5길 13</li>
             </ul>
           </div>
