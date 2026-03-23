@@ -156,9 +156,21 @@ const GEN_KEY = "macdee_blog_generations";
 
 export function saveGeneration(config: GenerationConfig): void {
     if (typeof window === "undefined") return;
-    const items = getAllGenerations();
+    let items = getAllGenerations();
     items.push(config);
-    localStorage.setItem(GEN_KEY, JSON.stringify(items));
+    try {
+        localStorage.setItem(GEN_KEY, JSON.stringify(items));
+    } catch (err) {
+        console.warn("localStorage quota exceeded, keeping only the 3 most recent generations.");
+        items = items.slice(-3);
+        try {
+            localStorage.setItem(GEN_KEY, JSON.stringify(items));
+        } catch (err2) {
+            console.error("Still exceeding quota. Keeping only the current generation without aiPhoto.");
+            if (config.aiImageUrl) delete config.aiImageUrl;
+            localStorage.setItem(GEN_KEY, JSON.stringify([config]));
+        }
+    }
 }
 
 export function getAllGenerations(): GenerationConfig[] {

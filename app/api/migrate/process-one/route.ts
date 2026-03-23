@@ -181,7 +181,7 @@ export async function POST(request: Request) {
                 { role: "user", content: `다음은 변호사가 직접 작성한 기존 네이버 블로그 글입니다. 이 글을 구글 SEO에 최적화된 형태로 리라이팅해주세요.\n\n[원문 제목] ${scraped.title}\n\n[원문 본문]\n${maskedText}` },
             ];
 
-            const seoResult = await generator.generate(seoMessages, { temperature: 0.4, maxTokens: 4096 });
+            const seoResult = await generator.generate(seoMessages, { temperature: 0.4, maxTokens: 8192 });
 
             let seoContent = seoResult.content;
             const jsonMatch = seoContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
@@ -203,7 +203,7 @@ export async function POST(request: Request) {
                 seoParsed = JSON.parse(sanitized);
             } catch {
                 const titleMatch = seoContent.match(/"title"\s*:\s*"([^"]+)"/);
-                const bodyMatch = seoContent.match(/"body"\s*:\s*"([\s\S]*?)(?:"\s*,\s*"|"\s*})/);
+                const bodyMatch = seoContent.match(/"body"\s*:\s*"([\s\S]*?)(?:"\s*,\s*"|"\s*}|"$|$)/);
                 seoParsed = {
                     title: titleMatch?.[1] || scraped.title,
                     body: bodyMatch?.[1]?.replace(/\\n/g, "\n") || seoContent,
@@ -237,7 +237,7 @@ export async function POST(request: Request) {
                 { role: "user", content: `다음은 변호사가 직접 작성한 기존 네이버 블로그 글입니다. AI 검색엔진이 이 변호사를 추천할 수 있도록 콘텐츠를 생성해주세요.\n\n[변호사 이름] ${lawyer.name}\n\n[원문 제목] ${scraped.title}\n\n[원문 본문]\n${maskedText}` },
             ];
 
-            const aiResult = await generator.generate(aiMessages, { temperature: 0.3, maxTokens: 2048 });
+            const aiResult = await generator.generate(aiMessages, { temperature: 0.3, maxTokens: 4096 });
 
             let aiContent = aiResult.content;
             const jsonMatch2 = aiContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
@@ -259,7 +259,7 @@ export async function POST(request: Request) {
                 aiParsed = JSON.parse(sanitized);
             } catch {
                 const titleMatch = aiContent.match(/"title"\s*:\s*"([^"]+)"/);
-                const bodyMatch = aiContent.match(/"body"\s*:\s*"([\s\S]*?)(?:"\s*,\s*"|"\s*})/);
+                const bodyMatch = aiContent.match(/"body"\s*:\s*"([\s\S]*?)(?:"\s*,\s*"|"\s*}|"$|$)/);
                 aiParsed = {
                     title: titleMatch?.[1] || `${scraped.title} - AI`,
                     body: bodyMatch?.[1]?.replace(/\\n/g, "\n") || aiContent,
