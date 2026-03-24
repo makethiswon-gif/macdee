@@ -14,6 +14,7 @@ import {
     ChevronRight,
     Shield,
     ImageIcon,
+    Sparkles,
 } from "lucide-react";
 
 const ADMIN_NAV = [
@@ -24,6 +25,7 @@ const ADMIN_NAV = [
     { href: "/admin/migrate", label: "블로그→매거진", icon: ArrowRightLeft },
     { href: "/admin/subscriptions", label: "구독/매출", icon: CreditCard },
     { href: "/admin/magazines", label: "매거진 관리", icon: BookOpen },
+    { href: "/admin/blog-polish", label: "블로그 윤문", icon: Sparkles },
 ];
 
 export default function AdminLayout({
