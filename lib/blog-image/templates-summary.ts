@@ -11,17 +11,22 @@ export function renderSummaryTemplate(ctx: SKRSContext2D, input: RenderInput, as
     const { summaryPoints } = input;
     const { accent, logoImg, officeImg } = assets;
 
-    // 1. Warm Cream Beige Background with optional faint image
+    // 1. Warm Brand Pastel Background with optional faint image
+    // To create a pastel version of the brand color, we draw solid '#F9F9F9' and overlay 10-15% of the accent color.
     if (officeImg) {
         ctx.save();
         ctx.filter = "contrast(1.3) saturate(0.85) brightness(1.15)";
         drawCover(ctx, officeImg, 0, 0, S, S);
         ctx.restore();
         
-        ctx.fillStyle = "rgba(244, 240, 230, 0.9)"; // 90% opaque warm beige
+        ctx.fillStyle = "rgba(250, 250, 250, 0.9)"; // 90% opaque white
+        ctx.fillRect(0, 0, S, S);
+        ctx.fillStyle = rgba(accent, 0.12); // overlay brand color pastel tint
         ctx.fillRect(0, 0, S, S);
     } else {
-        ctx.fillStyle = "#F4F0E6";
+        ctx.fillStyle = "#F9F9F9";
+        ctx.fillRect(0, 0, S, S);
+        ctx.fillStyle = rgba(accent, 0.12);
         ctx.fillRect(0, 0, S, S);
     }
     

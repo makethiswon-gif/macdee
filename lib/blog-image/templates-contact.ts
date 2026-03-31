@@ -40,11 +40,6 @@ export async function renderContactTemplate(ctx: SKRSContext2D, input: RenderInp
     // Pure typography. 
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    
-    // Top message
-    ctx.font = `600 24px ${FONT_REGULAR}`;
-    ctx.fillStyle = "rgba(255,255,255,0.4)";
-    ctx.fillText("더 늦기 전에 상담을 시작하십시오.", S / 2, 280);
 
     // Giant Phone Number
     if (phone) {

@@ -165,22 +165,43 @@ export function renderMainTemplate(ctx: SKRSContext2D, input: RenderInput, asset
     ctx.textBaseline = "top";
     ctx.textAlign = textAlign;
 
-    // Category Badge (Lawyer Name)
-    const badgeText = `${lawyerName} 변호사`;
-    ctx.font = `700 18px ${FONT_BOLD}`;
-    const met = ctx.measureText(badgeText);
-    const badgeW = met.width + 24;
-    const badgeH = 34;
+    // Category Badges (Lawyer Name + Multiple Specialties)
+    let badges = [`${lawyerName} 변호사`];
+    const rawSpecialties = input.profile.specialty || [];
+    if (rawSpecialties.length > 0) {
+        rawSpecialties.forEach(spec => {
+            spec.split(",").forEach(part => {
+                const trimmed = part.trim();
+                // Max 3 badges total to keep design clean and avoid overlapping title too much
+                if (trimmed && badges.length < 3) badges.push(trimmed);
+            });
+        });
+    }
 
-    let bx = textX;
-    if (textAlign === "center") bx = S / 2 - badgeW / 2;
-    else if (textAlign === "right") bx = textX - badgeW;
+    const badgeH = 34;
+    const badgeGap = 8;
+    const totalBadgesHeight = badges.length * (badgeH + badgeGap);
+    const startY = textY - 16 - totalBadgesHeight;
     
-    // Draw Category Badge
-    ctx.fillStyle = accent; 
-    ctx.fillRect(bx, textY - 50, badgeW, badgeH);
-    ctx.fillStyle = "#FFFFFF";
-    ctx.fillText(badgeText, bx + 12, textY - 41);
+    for (let i = 0; i < badges.length; i++) {
+        const text = badges[i];
+        ctx.font = `700 18px ${FONT_BOLD}`;
+        const met = ctx.measureText(text);
+        const badgeW = met.width + 24;
+
+        let bx = textX;
+        if (textAlign === "center") bx = S / 2 - badgeW / 2;
+        else if (textAlign === "right") bx = textX - badgeW;
+        
+        // Highlight first badge (Name) with accent color, remaining use a sharp deep studio black
+        ctx.fillStyle = i === 0 ? accent : "rgba(28, 28, 30, 0.95)";
+        
+        const by = startY + i * (badgeH + badgeGap);
+        ctx.fillRect(bx, by, badgeW, badgeH);
+        
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillText(text, bx + 12, by + 9);
+    }
 
     // Title (White on Deep Shadow)
     // For layout 2 (Center top), textY is 120, max height is 300
