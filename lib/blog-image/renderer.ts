@@ -507,6 +507,10 @@ export async function renderBlogImage(input: RenderInput): Promise<Buffer> {
     const canvas = createCanvas(SIZE, SIZE);
     const ctx = canvas.getContext("2d");
 
+    // Set highest quality interpolation to prevent pixelation on image downscaling
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+
     // Load images
     const profiles = input.profile.profileImages || [];
     const offices = input.profile.officeImages || [];
