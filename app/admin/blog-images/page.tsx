@@ -3,8 +3,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
     ImageIcon, User, FileText, Sparkles, Download, RefreshCw,
-    ChevronDown, Loader2, Check, X, Eye,
+    ChevronDown, Loader2, Check, X, Eye, 
+    Plus, Settings
 } from "lucide-react";
+import ProfileManagerModal from "./ProfileManagerModal";
 
 type ImageType = "main" | "summary" | "contact" | "brand";
 
@@ -48,6 +50,9 @@ export default function BlogImagesPage() {
         main: 0, summary: 0, contact: 0, brand: 0,
     });
     const [previewType, setPreviewType] = useState<ImageType | null>(null);
+
+    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+    const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
 
     const fetchProfiles = useCallback(async () => {
         setLoading(true);
@@ -168,16 +173,39 @@ export default function BlogImagesPage() {
             {profiles.length === 0 ? (
                 <div className="p-10 rounded-2xl bg-[#111827] border border-[#1F2937] text-center">
                     <User size={32} className="mx-auto text-[#4B5563] mb-3" />
-                    <p className="text-[#6B7280] text-sm mb-2">등록된 변호사 프로필이 없습니다</p>
-                    <p className="text-[#4B5563] text-xs">변호사 프로필 관리 탭에서 프로필을 먼저 추가해주세요</p>
+                    <p className="text-[#6B7280] text-sm mb-4">등록된 변호사 프로필이 없습니다</p>
+                    <button 
+                        onClick={() => { setEditingProfileId(null); setIsProfileModalOpen(true); }}
+                        className="px-4 py-2 inline-flex items-center gap-2 bg-[#3563AE] text-white rounded-lg text-sm hover:bg-[#4375CA] transition-colors"
+                    >
+                        <Plus size={16} /> 첫 변호사 프로필 추가하기
+                    </button>
                 </div>
             ) : (
                 <div className="space-y-6">
                     {/* Step 1: Select Profile */}
                     <div className="p-6 rounded-2xl bg-[#111827] border border-[#1F2937]">
-                        <div className="flex items-center gap-2 mb-4">
-                            <span className="w-6 h-6 rounded-full bg-[#3563AE] text-white text-xs font-bold flex items-center justify-center">1</span>
-                            <h2 className="text-sm font-semibold text-white">변호사 선택</h2>
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-2">
+                                <span className="w-6 h-6 rounded-full bg-[#3563AE] text-white text-xs font-bold flex items-center justify-center">1</span>
+                                <h2 className="text-sm font-semibold text-white">변호사 선택</h2>
+                            </div>
+                            <div className="flex gap-2">
+                                {selectedId && (
+                                    <button 
+                                        onClick={() => { setEditingProfileId(selectedId); setIsProfileModalOpen(true); }}
+                                        className="text-[12px] flex items-center gap-1 text-[#6B7280] hover:text-white transition-colors px-2 py-1.5 rounded bg-[#1F2937]/50 border border-white/5"
+                                    >
+                                        <Settings size={14} /> 프로필 관리
+                                    </button>
+                                )}
+                                <button 
+                                    onClick={() => { setEditingProfileId(null); setIsProfileModalOpen(true); }}
+                                    className="text-[12px] flex items-center gap-1 text-[#3563AE] hover:text-[#4375CA] transition-colors px-2 py-1.5 rounded bg-[#3563AE]/10 border border-[#3563AE]/20 ml-1"
+                                >
+                                    <Plus size={14} /> 새 변호사 복사
+                                </button>
+                            </div>
                         </div>
                         <div className="relative">
                             <select value={selectedId} onChange={e => setSelectedId(e.target.value)} className={`${ic} appearance-none cursor-pointer`}>
@@ -368,6 +396,12 @@ export default function BlogImagesPage() {
                     </div>
                 </div>
             )}
+            <ProfileManagerModal
+                isOpen={isProfileModalOpen}
+                profileId={editingProfileId}
+                onClose={() => setIsProfileModalOpen(false)}
+                onSuccess={() => fetchProfiles()}
+            />
         </div>
     );
 }
