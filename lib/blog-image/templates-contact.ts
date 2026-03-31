@@ -27,12 +27,22 @@ export function renderContactTemplate(ctx: SKRSContext2D, input: RenderInput, as
 
 type Img = import("@napi-rs/canvas").Image | null;
 
+function drawOfficeBg(ctx: SKRSContext2D, officeImg: Img, baseColor = "#0A0E1A") {
+    if (officeImg) {
+        drawCover(ctx, officeImg, 0, 0, S, S);
+        ctx.fillStyle = "rgba(10, 14, 26, 0.85)";
+        ctx.fillRect(0, 0, S, S);
+    } else {
+        ctx.fillStyle = baseColor;
+        ctx.fillRect(0, 0, S, S);
+    }
+}
+
 // ════════════════════════════════════════
 // C0: 클린 가로형
 // ════════════════════════════════════════
 function c0_cleanHorizontal(ctx: SKRSContext2D, name: string, office: string, phone: string, address: string, specialty: string[], profileImg: Img, officeImg: Img, logoImg: Img, accent: string) {
-    ctx.fillStyle = "#0A0E1A";
-    ctx.fillRect(0, 0, S, S);
+    drawOfficeBg(ctx, officeImg);
 
     // Accent top
     ctx.fillStyle = accent;
@@ -122,8 +132,7 @@ function c0_cleanHorizontal(ctx: SKRSContext2D, name: string, office: string, ph
 // C1: 다크 프리미엄
 // ════════════════════════════════════════
 function c1_darkPremium(ctx: SKRSContext2D, name: string, office: string, phone: string, address: string, specialty: string[], profileImg: Img, officeImg: Img, logoImg: Img, accent: string) {
-    ctx.fillStyle = "#0A0E1A";
-    ctx.fillRect(0, 0, S, S);
+    drawOfficeBg(ctx, officeImg);
 
     // § Watermark
     ctx.font = `900 400px serif`;
@@ -211,12 +220,7 @@ function c1_darkPremium(ctx: SKRSContext2D, name: string, office: string, phone:
 // C2: 포토 배경
 // ════════════════════════════════════════
 function c2_photoBg(ctx: SKRSContext2D, name: string, office: string, phone: string, address: string, specialty: string[], profileImg: Img, officeImg: Img, logoImg: Img, accent: string) {
-    if (officeImg) {
-        drawCover(ctx, officeImg, 0, 0, S, S);
-    } else {
-        ctx.fillStyle = "#0A0E1A";
-        ctx.fillRect(0, 0, S, S);
-    }
+    drawOfficeBg(ctx, officeImg, "#0A0E1A");
 
     drawGradientOverlay(ctx, "full", "#000000", 0.4, 0.88);
 
@@ -288,8 +292,7 @@ function c2_photoBg(ctx: SKRSContext2D, name: string, office: string, phone: str
 // C3: 스플릿 프로필
 // ════════════════════════════════════════
 function c3_splitProfile(ctx: SKRSContext2D, name: string, office: string, phone: string, address: string, specialty: string[], profileImg: Img, officeImg: Img, logoImg: Img, accent: string) {
-    ctx.fillStyle = "#0A0E1A";
-    ctx.fillRect(0, 0, S, S);
+    drawOfficeBg(ctx, officeImg);
 
     // Left accent column
     const leftW = 360;

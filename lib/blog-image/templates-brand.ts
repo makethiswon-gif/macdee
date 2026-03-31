@@ -27,12 +27,22 @@ export function renderBrandTemplate(ctx: SKRSContext2D, input: RenderInput, asse
 
 type Img = import("@napi-rs/canvas").Image | null;
 
+function drawOfficeBg(ctx: SKRSContext2D, officeImg: Img, baseColor = "#0A0E1A") {
+    if (officeImg) {
+        drawCover(ctx, officeImg, 0, 0, S, S);
+        ctx.fillStyle = "rgba(10, 14, 26, 0.85)";
+        ctx.fillRect(0, 0, S, S);
+    } else {
+        ctx.fillStyle = baseColor;
+        ctx.fillRect(0, 0, S, S);
+    }
+}
+
 // ════════════════════════════════════════
 // B0: 로고 센터
 // ════════════════════════════════════════
 function b0_logoCentered(ctx: SKRSContext2D, name: string, office: string, specialty: string[], brandLines: string[], profileImg: Img, officeImg: Img, logoImg: Img, accent: string) {
-    ctx.fillStyle = "#0A0E1A";
-    ctx.fillRect(0, 0, S, S);
+    drawOfficeBg(ctx, officeImg);
 
     // Mesh gradient
     const g1 = ctx.createRadialGradient(S * 0.2, S * 0.8, 0, S * 0.2, S * 0.8, S * 0.5);
@@ -114,8 +124,7 @@ function b0_logoCentered(ctx: SKRSContext2D, name: string, office: string, speci
 // B1: 다크 에디토리얼
 // ════════════════════════════════════════
 function b1_darkEditorial(ctx: SKRSContext2D, name: string, office: string, specialty: string[], brandLines: string[], profileImg: Img, officeImg: Img, logoImg: Img, accent: string) {
-    ctx.fillStyle = "#0A0E1A";
-    ctx.fillRect(0, 0, S, S);
+    drawOfficeBg(ctx, officeImg);
 
     // Left bar
     ctx.fillStyle = accent;
@@ -177,12 +186,7 @@ function b1_darkEditorial(ctx: SKRSContext2D, name: string, office: string, spec
 // B2: 그라디언트 볼드
 // ════════════════════════════════════════
 function b2_gradientBold(ctx: SKRSContext2D, name: string, office: string, specialty: string[], brandLines: string[], profileImg: Img, officeImg: Img, logoImg: Img, accent: string) {
-    // Full gradient bg
-    const grad = ctx.createLinearGradient(0, 0, S, S);
-    grad.addColorStop(0, accent);
-    grad.addColorStop(1, darken(accent, 0.35));
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, S, S);
+    drawOfficeBg(ctx, officeImg, "#0A0E1A");
 
     // Dot pattern
     for (let y = 0; y < S; y += 32) {
@@ -248,12 +252,7 @@ function b2_gradientBold(ctx: SKRSContext2D, name: string, office: string, speci
 // B3: 포토 에디토리얼
 // ════════════════════════════════════════
 function b3_photoEditorial(ctx: SKRSContext2D, name: string, office: string, specialty: string[], brandLines: string[], profileImg: Img, officeImg: Img, logoImg: Img, accent: string) {
-    if (officeImg) {
-        drawCover(ctx, officeImg, 0, 0, S, S);
-    } else {
-        ctx.fillStyle = "#0A0E1A";
-        ctx.fillRect(0, 0, S, S);
-    }
+    drawOfficeBg(ctx, officeImg, "#0A0E1A");
 
     drawGradientOverlay(ctx, "full", "#000000", 0.5, 0.9);
 

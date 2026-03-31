@@ -150,29 +150,25 @@ export default function BlogImagesPage() {
         const newTemplates = { ...selectedTemplates };
         // Slightly vary the brand color for a unique touch
         const baseColor = selected.brandColor || "#3563AE";
-        const varyHex = (hex: string) => {
-            const num = parseInt(hex.replace("#", ""), 16);
-            if (isNaN(num)) return hex;
-            const r = (num >> 16) & 255;
-            const g = (num >> 8) & 255;
-            const b = num & 255;
-            const v = () => Math.floor(Math.random() * 41) - 20; // +/- 20 variation
-            const r2 = Math.min(255, Math.max(0, r + v()));
-            const g2 = Math.min(255, Math.max(0, g + v()));
-            const b2 = Math.min(255, Math.max(0, b + v()));
-            return `#${(r2 << 16 | g2 << 8 | b2).toString(16).padStart(6, "0")}`;
-        };
-        const variedAccent = varyHex(baseColor);
 
         for (const type of IMAGE_TYPES) {
+            const num = parseInt(baseColor.replace("#", ""), 16);
+            let r = (num >> 16) & 255;
+            let g = (num >> 8) & 255;
+            let b = num & 255;
+            
+            // Generate a random lightness offset (-30 to +40) and small hue offset (-15 to +15)
+            const adjustBright = Math.floor(Math.random() * 71) - 30; 
+            const r2 = Math.min(255, Math.max(0, r + adjustBright + (Math.floor(Math.random() * 31) - 15)));
+            const g2 = Math.min(255, Math.max(0, g + adjustBright + (Math.floor(Math.random() * 31) - 15)));
+            const b2 = Math.min(255, Math.max(0, b + adjustBright + (Math.floor(Math.random() * 31) - 15)));
+            const variedAccent = `#${(r2 << 16 | g2 << 8 | b2).toString(16).padStart(6, "0")}`;
+
             const randId = Math.floor(Math.random() * TEMPLATE_COUNTS[type.id]);
             newTemplates[type.id] = randId;
+            await handleGenerate(type.id, currentPoints, randId, variedAccent);
         }
         setSelectedTemplates(newTemplates);
-
-        for (const type of IMAGE_TYPES) {
-            await handleGenerate(type.id, currentPoints, newTemplates[type.id], variedAccent);
-        }
     };
 
     // Download image

@@ -31,22 +31,22 @@ export function renderSummaryTemplate(ctx: SKRSContext2D, input: RenderInput, as
 
 type Img = import("@napi-rs/canvas").Image | null;
 
+function drawOfficeBg(ctx: SKRSContext2D, officeImg: Img, baseColor = "#0A0E1A") {
+    if (officeImg) {
+        drawCover(ctx, officeImg, 0, 0, S, S);
+        ctx.fillStyle = "rgba(10, 14, 26, 0.85)";
+        ctx.fillRect(0, 0, S, S);
+    } else {
+        ctx.fillStyle = baseColor;
+        ctx.fillRect(0, 0, S, S);
+    }
+}
+
 // ════════════════════════════════════════
 // S0: 넘버링 리스트 (다크)
 // ════════════════════════════════════════
 function s0_numberedList(ctx: SKRSContext2D, title: string, points: string[], name: string, office: string, officeImg: Img, logoImg: Img, accent: string) {
-    // Background: office photo with heavy dark overlay
-    if (officeImg) {
-        drawCover(ctx, officeImg, 0, 0, S, S);
-        ctx.fillStyle = "rgba(0,0,0,0.85)";
-        ctx.fillRect(0, 0, S, S);
-    } else {
-        const grad = ctx.createLinearGradient(0, 0, S, S);
-        grad.addColorStop(0, "#0A0E1A");
-        grad.addColorStop(1, "#111827");
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, S, S);
-    }
+    drawOfficeBg(ctx, officeImg);
 
     // Accent top bar
     ctx.fillStyle = accent;
@@ -103,8 +103,7 @@ function s0_numberedList(ctx: SKRSContext2D, title: string, points: string[], na
 // S1: 카드 그리드
 // ════════════════════════════════════════
 function s1_cardGrid(ctx: SKRSContext2D, title: string, points: string[], name: string, office: string, officeImg: Img, logoImg: Img, accent: string) {
-    ctx.fillStyle = "#0A0E1A";
-    ctx.fillRect(0, 0, S, S);
+    drawOfficeBg(ctx, officeImg);
 
     // Subtle gradient
     const g = ctx.createRadialGradient(S * 0.5, S * 0.3, 0, S * 0.5, S * 0.3, S * 0.6);
@@ -171,8 +170,7 @@ function s1_cardGrid(ctx: SKRSContext2D, title: string, points: string[], name: 
 // S2: 타임라인
 // ════════════════════════════════════════
 function s2_timeline(ctx: SKRSContext2D, title: string, points: string[], name: string, office: string, officeImg: Img, logoImg: Img, accent: string) {
-    ctx.fillStyle = "#0A0E1A";
-    ctx.fillRect(0, 0, S, S);
+    drawOfficeBg(ctx, officeImg);
 
     // Title
     ctx.font = `900 34px ${FONT_BLACK}`;
@@ -229,14 +227,7 @@ function s2_timeline(ctx: SKRSContext2D, title: string, points: string[], name: 
 // S3: 다크 카드 (phot bg)
 // ════════════════════════════════════════
 function s3_darkCards(ctx: SKRSContext2D, title: string, points: string[], name: string, office: string, officeImg: Img, logoImg: Img, accent: string) {
-    if (officeImg) {
-        drawCover(ctx, officeImg, 0, 0, S, S);
-        ctx.fillStyle = "rgba(0,0,0,0.88)";
-        ctx.fillRect(0, 0, S, S);
-    } else {
-        ctx.fillStyle = "#0A0E1A";
-        ctx.fillRect(0, 0, S, S);
-    }
+    drawOfficeBg(ctx, officeImg);
 
     // Title with accent underline
     ctx.font = `900 32px ${FONT_BLACK}`;
@@ -285,8 +276,7 @@ function s3_darkCards(ctx: SKRSContext2D, title: string, points: string[], name:
 // S4: 액센트 바
 // ════════════════════════════════════════
 function s4_accentBars(ctx: SKRSContext2D, title: string, points: string[], name: string, office: string, officeImg: Img, logoImg: Img, accent: string) {
-    ctx.fillStyle = "#0A0E1A";
-    ctx.fillRect(0, 0, S, S);
+    drawOfficeBg(ctx, officeImg);
 
     // Accent left bar
     ctx.fillStyle = accent;
@@ -334,8 +324,7 @@ function s4_accentBars(ctx: SKRSContext2D, title: string, points: string[], name
 // S5: 미니멀 클린
 // ════════════════════════════════════════
 function s5_minimalClean(ctx: SKRSContext2D, title: string, points: string[], name: string, office: string, officeImg: Img, logoImg: Img, accent: string) {
-    ctx.fillStyle = "#0A0E1A";
-    ctx.fillRect(0, 0, S, S);
+    drawOfficeBg(ctx, officeImg);
 
     // Accent line top
     ctx.fillStyle = accent;
