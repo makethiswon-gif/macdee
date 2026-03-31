@@ -8,94 +8,134 @@ import {
 const S = SIZE;
 
 export async function renderContactTemplate(ctx: SKRSContext2D, input: RenderInput, assets: Assets) {
-    const { lawyerName, officeName, phone, address } = input.profile;
-    const { accent, officeImg, darkBg } = assets;
+    const { lawyerName, officeName, phone, address, website, jobTitle } = input.profile;
+    const { profileImg, officeImg, logoImg } = assets;
 
-    // 1. Solid minimal background (Warm Flash Magazine Mode)
-    if (officeImg) {
+    // Use raw brand color (best for white background readability)
+    const rawBrandColor = input.accentColor || input.profile.brandColor || "#2B4C7E";
+
+    // White/Beige Card Background
+    const paperColor = "#F9F8F4"; // Warm premium card paper
+    ctx.fillStyle = paperColor;
+    ctx.fillRect(0, 0, S, S);
+
+    const leftW = Math.floor(S * 0.45); // Left photo width (45%)
+    const rightW = S - leftW;
+    const centerX = leftW + (rightW / 2);
+
+    // 1. Left Side: Profile Image
+    if (profileImg) {
         ctx.save();
-        ctx.filter = "contrast(1.3) saturate(0.85) brightness(1.15)";
-        drawCover(ctx, officeImg, 0, 0, S, S);
-        ctx.restore();
+        ctx.beginPath();
+        ctx.rect(0, 0, leftW, S);
+        ctx.clip();
         
-        // Warm Cream Beige Tint via Multiply
-        ctx.save();
-        ctx.globalCompositeOperation = "multiply";
-        ctx.fillStyle = "#F4F0E6";
-        ctx.fillRect(0, 0, S, S);
+        drawCover(ctx, profileImg, 0, 0, leftW, S);
+        
+        ctx.fillStyle = "rgba(0,0,0,0.06)";
+        ctx.fillRect(leftW - 1, 0, 1, S);
+        ctx.fillStyle = "rgba(0,0,0,0.04)";
+        ctx.fillRect(leftW - 2, 0, 1, S);
         ctx.restore();
-
-        // 85% shadow mask to preserve legibility for the signature typography
-        ctx.fillStyle = "rgba(28, 28, 30, 0.85)";
-        ctx.fillRect(0, 0, S, S);
+    } else if (officeImg) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(0, 0, leftW, S);
+        ctx.clip();
+        
+        ctx.filter = "grayscale(40%)";
+        drawCover(ctx, officeImg, 0, 0, leftW, S);
+        
+        ctx.fillStyle = "rgba(0,0,0,0.06)";
+        ctx.fillRect(leftW - 1, 0, 1, S);
+        ctx.restore();
     } else {
-        ctx.fillStyle = "rgba(28, 28, 30, 1)"; // Deep studio dark
-        ctx.fillRect(0, 0, S, S);
+        ctx.fillStyle = rawBrandColor;
+        ctx.fillRect(0, 0, leftW, S);
+        ctx.fillStyle = "rgba(0,0,0,0.1)";
+        ctx.fillRect(leftW - 1, 0, 1, S);
     }
 
-    const pad = 120; // Maximum safe area margins
-
-    // 2. The Signature Core
-    // We remove all shapes, buttons, and noisy UI boxes.
-    // Pure typography. 
+    // 2. Right Side: Card Information
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
-    // Giant Phone Numbers (Dynamic Stacking)
-    if (phone) {
-        ctx.fillStyle = "#FFFFFF";
-        const phones = phone.split(",").map(p => p.trim()).filter(Boolean);
-        
-        // Calculate starting Y to keep the block vertically centered around 340
-        const gap = 110;
-        const totalHeight = (phones.length - 1) * gap;
-        let startY = 340 - (totalHeight / 2);
+    const baseText = "#333333";
+    let currY = 170;
 
-        phones.forEach((p) => {
-            drawAutoShrinkText(
-                ctx,
-                p,
-                S / 2,
-                startY,
-                S - pad * 2,
-                120,    
-                96 - (phones.length > 1 ? 16 : 0), // shrink base font slightly if multiple
-                FONT_BLACK,
-                "900",
-                { shadow: false }
-            );
-            startY += gap;
-        });
-    }
+    // Name (Brand Color)
+    ctx.fillStyle = rawBrandColor;
+    ctx.font = `900 68px ${FONT_BLACK}`;
+    ctx.fillText(lawyerName || "변호사", centerX, currY);
+    currY += 60;
 
-    // Divider
-    ctx.fillStyle = "rgba(255,255,255,0.1)";
-    ctx.fillRect(S / 2 - 40, 500, 80, 2);
+    // Title & Office
+    ctx.font = `600 20px ${FONT_REGULAR}`;
+    ctx.fillStyle = baseText;
+    const titleStr = `${officeName || "법률사무소"} ${jobTitle || "대표변호사"}`;
+    ctx.fillText(titleStr, centerX, currY);
+    currY += 55;
 
-    // Firm & Lawyer Name Hierarchy
-    ctx.font = `800 24px ${FONT_BOLD}`;
-    ctx.fillStyle = accent;
-    const jTitle = input.profile.jobTitle || "대표변호사";
-    ctx.fillText(`${officeName || "법률 서비스"} ${jTitle} ${lawyerName}`, S / 2, 560);
+    // Divider Line
+    ctx.fillStyle = rawBrandColor;
+    ctx.fillRect(centerX - 40, currY, 80, 2);
+    currY += 75;
 
-    // Address Details if Any (Very small and clean)
+    // Address
+    ctx.fillStyle = baseText;
+    ctx.globalAlpha = 0.85;
     if (address) {
-        ctx.font = `500 16px ${FONT_REGULAR}`;
-        ctx.fillStyle = "rgba(255,255,255,0.3)";
         drawAutoShrinkText(
             ctx,
             address,
-            S / 2, // Centered X
-            620,
-            S - pad * 2,
-            60,
-            16,
+            centerX,
+            currY,
+            rightW - 100,
+            100,
+            18,
             FONT_REGULAR,
             "500",
-            { shadow: false }
+            { shadow: false, minFontSize: 14 }
         );
+        currY += 100;
+    } else {
+        currY += 60;
     }
 
-    // Apply strict 3~5% film grain overlay (Texture) for human warmth
+    // Phone
+    ctx.globalAlpha = 1.0;
+    if (phone) {
+        const phones = phone.split(",").map(p => p.trim()).filter(Boolean);
+        ctx.fillStyle = rawBrandColor;
+        ctx.font = `800 32px ${FONT_BOLD}`;
+        phones.forEach(p => {
+            ctx.fillText(p, centerX, currY);
+            currY += 48;
+        });
+        currY += 40;
+    }
+
+    // Website / Email
+    if (website) {
+        ctx.fillStyle = baseText;
+        ctx.globalAlpha = 0.7;
+        ctx.font = `400 18px ${FONT_REGULAR}`;
+        ctx.fillText(website, centerX, currY);
+        ctx.globalAlpha = 1.0;
+    }
+
+    // Logo at bottom
+    if (logoImg) {
+        const lh = 80;
+        const lw = logoImg.width * (lh / logoImg.height);
+        const logoY = S - 150; 
+        ctx.drawImage(logoImg, centerX - lw / 2, logoY, lw, lh);
+    } else {
+        ctx.fillStyle = rawBrandColor;
+        ctx.font = `800 24px ${FONT_BOLD}`;
+        ctx.fillText(officeName || "LAW FIRM", centerX, S - 120);
+    }
+
+    // Paper noise
     await drawFilmGrain(ctx, 0.04);
 }
