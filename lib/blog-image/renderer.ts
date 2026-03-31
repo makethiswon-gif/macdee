@@ -15,11 +15,14 @@ function ensureFonts() {
         { file: "noto-sans-kr-korean-400-normal.woff2", family: "NotoSansKR", weight: 400 },
         { file: "noto-sans-kr-korean-700-normal.woff2", family: "NotoSansKR", weight: 700 },
         { file: "noto-sans-kr-korean-900-normal.woff2", family: "NotoSansKR", weight: 900 },
+        { file: "noto-serif-kr-korean-400-normal.woff2", family: "NotoSerifKR", weight: 400 },
+        { file: "noto-serif-kr-korean-700-normal.woff2", family: "NotoSerifKR", weight: 700 },
+        { file: "noto-serif-kr-korean-900-normal.woff2", family: "NotoSerifKR", weight: 900 },
     ];
     for (const f of fonts) {
         const p = join(fontsDir, f.file);
         if (existsSync(p)) {
-            GlobalFonts.register(readFileSync(p), `NotoSansKR-${f.weight}`);
+            GlobalFonts.register(readFileSync(p), `${f.family}-${f.weight}`);
         }
     }
     fontsLoaded = true;
@@ -30,6 +33,8 @@ export const SIZE = 1024;
 export const FONT_REGULAR = "NotoSansKR-400";
 export const FONT_BOLD = "NotoSansKR-700";
 export const FONT_BLACK = "NotoSansKR-900";
+export const FONT_SERIF_REGULAR = "NotoSerifKR-400";
+export const FONT_SERIF_BOLD = "NotoSerifKR-700";
 
 // ── Color Utilities ──
 export function hexToRgb(hex: string): [number, number, number] {

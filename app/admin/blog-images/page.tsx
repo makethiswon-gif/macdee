@@ -24,9 +24,9 @@ interface Profile {
 const IMAGE_TYPES: { id: ImageType; label: string; icon: typeof ImageIcon; desc: string }[] = [
     { id: "main", label: "메인 대표", icon: ImageIcon, desc: "블로그 썸네일 이미지" },
     { id: "summary", label: "요약 카드", icon: FileText, desc: "핵심 내용 6-8포인트" },
+    { id: "brand", label: "브랜드", icon: Sparkles, desc: "로펌 인지도 이미지" },
     { id: "career", label: "경력 약력", icon: Sparkles, desc: "신뢰감 구축형 약력" },
     { id: "contact", label: "연락처", icon: User, desc: "상담 유도 CTA" },
-    { id: "brand", label: "브랜드", icon: Sparkles, desc: "로펌 인지도 이미지" },
 ];
 
 const TEMPLATE_COUNTS: Record<ImageType, number> = { main: 1, summary: 1, contact: 1, brand: 1, career: 1 };

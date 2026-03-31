@@ -1,6 +1,6 @@
 import type { SKRSContext2D } from "@napi-rs/canvas";
 import {
-    SIZE, FONT_BOLD, FONT_BLACK, FONT_REGULAR,
+    SIZE, FONT_BOLD, FONT_BLACK, FONT_REGULAR, FONT_SERIF_BOLD,
     drawCover, drawAutoShrinkText, rgba, drawFilmGrain,
     type RenderInput, type Assets,
 } from "./renderer";
@@ -14,8 +14,9 @@ export function renderBrandTemplate(ctx: SKRSContext2D, input: RenderInput, asse
     // 1. Full Office Photo (Warm Flash Magazine Mood)
     if (officeImg) {
         ctx.save();
-        ctx.filter = "contrast(1.3) saturate(0.85) brightness(1.15)";
-        drawCover(ctx, officeImg, 0, 0, S, S);
+        ctx.filter = "blur(15px) contrast(1.2) saturate(0.85) brightness(1.2)";
+        // Draw slightly larger to hide blur edge artifacts
+        drawCover(ctx, officeImg, -30, -30, S+60, S+60);
         ctx.restore();
 
         // Warm Cream Beige Tint via Multiply
@@ -60,8 +61,8 @@ export function renderBrandTemplate(ctx: SKRSContext2D, input: RenderInput, asse
         S - pad * 2,
         360,
         64, 
-        FONT_BLACK,
-        "900",
+        FONT_SERIF_BOLD,
+        "700",
         { shadow: false }
     );
     ctx.restore();
@@ -80,8 +81,8 @@ export function renderBrandTemplate(ctx: SKRSContext2D, input: RenderInput, asse
         S - pad * 2,
         360,
         64,
-        FONT_BLACK,
-        "900",
+        FONT_SERIF_BOLD,
+        "700",
         { shadow: false }
     );
 
@@ -90,8 +91,8 @@ export function renderBrandTemplate(ctx: SKRSContext2D, input: RenderInput, asse
     ctx.fillRect(S / 2 - 20, startY + met.height + 40, 40, 2);
 
     // Office Identity Name
-    ctx.font = `600 20px ${FONT_BOLD}`;
-    ctx.fillStyle = "rgba(255,255,255,0.4)";
+    ctx.font = `600 20px ${FONT_REGULAR}`;
+    ctx.fillStyle = "rgba(255,255,255,0.6)";
     ctx.fillText(`${officeName || "법률 서비스"} · ${lawyerName} 변호사`, S / 2, startY + met.height + 80);
 
     // 3. Top Bottom Sub-branding
