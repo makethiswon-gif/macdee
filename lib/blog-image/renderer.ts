@@ -168,50 +168,58 @@ export function hasTransparency(img: Image | null): boolean {
 
 /** Wrap text into lines fitting maxWidth, preferring word breaks */
 export function wrapText(ctx: SKRSContext2D, text: string, maxWidth: number): string[] {
-    const lines: string[] = [];
-    // Split text into words (including spaces to preserve them)
-    // Wait, regex split by space leaves spaces out, but we want to know string boundaries.
-    const words = text.split(" ");
-    let currentLine = "";
-
-    for (const word of words) {
-        // If word itself is longer than maxWidth, we must character-split it
-        const wordWidth = ctx.measureText(word).width;
-        if (wordWidth > maxWidth) {
-            // Flush current line if anything exists
-            if (currentLine) {
-                lines.push(currentLine.trimEnd());
-                currentLine = "";
-            }
-            // Character split the giant word
-            const chars = word.split("");
-            for (const char of chars) {
-                const testLine = currentLine + char;
-                if (ctx.measureText(testLine).width > maxWidth && currentLine.length > 0) {
-                    lines.push(currentLine);
-                    currentLine = char;
-                } else {
-                    currentLine = testLine;
-                }
-            }
-            // Add a trailing space to resume normal words
-            currentLine += " ";
+    const finalLines: string[] = [];
+    
+    // First, preserve explicit line breaks from the user
+    const paragraphs = text.split("\n");
+    
+    for (const paragraph of paragraphs) {
+        if (!paragraph.trim()) {
+            finalLines.push(""); // Preserve empty lines if requested
             continue;
         }
 
-        const testLine = currentLine + (currentLine.length > 0 ? " " : "") + word;
-        const metrics = ctx.measureText(testLine);
+        const words = paragraph.split(" ");
+        let currentLine = "";
 
-        if (metrics.width > maxWidth && currentLine.length > 0) {
-            lines.push(currentLine.trimEnd());
-            currentLine = word + " ";
-        } else {
-            currentLine = testLine + " ";
+        for (const word of words) {
+            // If word itself is longer than maxWidth, we must character-split it
+            const wordWidth = ctx.measureText(word).width;
+            if (wordWidth > maxWidth) {
+                // Flush current line if anything exists
+                if (currentLine) {
+                    finalLines.push(currentLine.trimEnd());
+                    currentLine = "";
+                }
+                const chars = word.split("");
+                for (const char of chars) {
+                    const testLine = currentLine + char;
+                    if (ctx.measureText(testLine).width > maxWidth && currentLine.length > 0) {
+                        finalLines.push(currentLine);
+                        currentLine = char;
+                    } else {
+                        currentLine = testLine;
+                    }
+                }
+                currentLine += " ";
+                continue;
+            }
+
+            const testLine = currentLine + (currentLine.length > 0 ? " " : "") + word;
+            const metrics = ctx.measureText(testLine);
+
+            if (metrics.width > maxWidth && currentLine.length > 0) {
+                finalLines.push(currentLine.trimEnd());
+                currentLine = word + " ";
+            } else {
+                currentLine = testLine + " ";
+            }
         }
+        
+        if (currentLine.trim()) finalLines.push(currentLine.trimEnd());
     }
     
-    if (currentLine.trim()) lines.push(currentLine.trimEnd());
-    return lines;
+    return finalLines;
 }
 
 /** Draw text with shadow */
