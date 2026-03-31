@@ -1,0 +1,146 @@
+import { NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/server";
+
+function verifyAdmin(request: Request): boolean {
+    const token = request.headers.get("cookie")?.match(/admin_token=([^;]+)/)?.[1];
+    if (!token) return false;
+    try {
+        const decoded = Buffer.from(token, "base64").toString();
+        return decoded.startsWith("macdee") && decoded.includes("macdee_admin_secret");
+    } catch {
+        return false;
+    }
+}
+
+export async function GET(request: Request) {
+    if (!verifyAdmin(request)) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    try {
+        const supabase = await createAdminClient();
+        const { searchParams } = new URL(request.url);
+        const days = parseInt(searchParams.get("days") || "30");
+
+        const since = new Date();
+        since.setDate(since.getDate() - days);
+        const sinceStr = since.toISOString();
+
+        // Get all lawyers
+        const { data: lawyers } = await supabase
+            .from("lawyers")
+            .select("id, name, slug, office_name, brand_color, profile_image_url")
+            .order("created_at", { ascending: false });
+
+        if (!lawyers || lawyers.length === 0) {
+            return NextResponse.json({ lawyers: [], totals: { visitors: 0, pageviews: 0, avgDuration: 0 } });
+        }
+
+        // Get all blog visits in period
+        const { data: visits } = await supabase
+            .from("blog_visits")
+            .select("lawyer_id, post_id, session_id, page_path, duration_seconds, created_at")
+            .gte("created_at", sinceStr)
+            .order("created_at", { ascending: false });
+
+        const allVisits = visits || [];
+
+        // Get published post titles for reference
+        const { data: contents } = await supabase
+            .from("contents")
+            .select("id, title, lawyer_id")
+            .eq("status", "published");
+        const contentMap = new Map((contents || []).map(c => [c.id, c.title]));
+
+        // Aggregate per lawyer
+        const lawyerStats = lawyers.map(lawyer => {
+            const lawyerVisits = allVisits.filter(v => v.lawyer_id === lawyer.id);
+            const uniqueSessions = new Set(lawyerVisits.map(v => v.session_id));
+            const totalDuration = lawyerVisits.reduce((sum, v) => sum + (v.duration_seconds || 0), 0);
+            const avgDuration = lawyerVisits.length > 0 ? Math.round(totalDuration / lawyerVisits.length) : 0;
+
+            // Daily breakdown
+            const dailyMap: Record<string, { views: number; sessions: Set<string> }> = {};
+            for (const v of lawyerVisits) {
+                const date = v.created_at.split("T")[0];
+                if (!dailyMap[date]) dailyMap[date] = { views: 0, sessions: new Set() };
+                dailyMap[date].views++;
+                dailyMap[date].sessions.add(v.session_id);
+            }
+            const daily = Object.entries(dailyMap)
+                .map(([date, d]) => ({ date, views: d.views, visitors: d.sessions.size }))
+                .sort((a, b) => a.date.localeCompare(b.date));
+
+            // Top posts
+            const postMap: Record<string, { views: number; sessions: Set<string>; totalDuration: number }> = {};
+            for (const v of lawyerVisits) {
+                if (!v.post_id) continue;
+                if (!postMap[v.post_id]) postMap[v.post_id] = { views: 0, sessions: new Set(), totalDuration: 0 };
+                postMap[v.post_id].views++;
+                postMap[v.post_id].sessions.add(v.session_id);
+                postMap[v.post_id].totalDuration += v.duration_seconds || 0;
+            }
+            const topPosts = Object.entries(postMap)
+                .map(([postId, d]) => ({
+                    postId,
+                    title: contentMap.get(postId) || "제목 없음",
+                    views: d.views,
+                    visitors: d.sessions.size,
+                    avgDuration: d.views > 0 ? Math.round(d.totalDuration / d.views) : 0,
+                }))
+                .sort((a, b) => b.views - a.views)
+                .slice(0, 5);
+
+            return {
+                id: lawyer.id,
+                name: lawyer.name,
+                slug: lawyer.slug,
+                office_name: lawyer.office_name || "",
+                brand_color: lawyer.brand_color || "#3563AE",
+                profile_image_url: lawyer.profile_image_url || "",
+                visitors: uniqueSessions.size,
+                pageviews: lawyerVisits.length,
+                avgDuration,
+                daily,
+                topPosts,
+            };
+        });
+
+        // Filter to only lawyers with visits (but also include those without for overview)
+        const withVisits = lawyerStats.filter(l => l.pageviews > 0);
+        const withoutVisits = lawyerStats.filter(l => l.pageviews === 0);
+
+        // Total stats
+        const totalVisitors = new Set(allVisits.map(v => v.session_id)).size;
+        const totalPageviews = allVisits.length;
+        const totalDuration = allVisits.reduce((sum, v) => sum + (v.duration_seconds || 0), 0);
+        const totalAvgDuration = allVisits.length > 0 ? Math.round(totalDuration / allVisits.length) : 0;
+
+        // Global daily trend
+        const globalDailyMap: Record<string, { views: number; sessions: Set<string> }> = {};
+        for (const v of allVisits) {
+            const date = v.created_at.split("T")[0];
+            if (!globalDailyMap[date]) globalDailyMap[date] = { views: 0, sessions: new Set() };
+            globalDailyMap[date].views++;
+            globalDailyMap[date].sessions.add(v.session_id);
+        }
+        const globalDaily = Object.entries(globalDailyMap)
+            .map(([date, d]) => ({ date, views: d.views, visitors: d.sessions.size }))
+            .sort((a, b) => a.date.localeCompare(b.date));
+
+        return NextResponse.json({
+            lawyers: [...withVisits, ...withoutVisits],
+            totals: {
+                visitors: totalVisitors,
+                pageviews: totalPageviews,
+                avgDuration: totalAvgDuration,
+                lawyersWithTraffic: withVisits.length,
+            },
+            globalDaily,
+            period: days,
+        });
+    } catch (err) {
+        console.error("[Admin] Blog analytics error:", err);
+        return NextResponse.json({ error: "서버 오류" }, { status: 500 });
+    }
+}

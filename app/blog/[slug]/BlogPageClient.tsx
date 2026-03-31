@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import BlogSplash from "@/components/BlogSplash";
+import BlogTracker from "@/components/BlogTracker";
 
 interface LawyerInfo {
+    id: string;
     name: string;
     slug: string;
     specialty: string[];
@@ -44,6 +46,7 @@ export default function BlogPageClient({ lawyer, posts }: { lawyer: LawyerInfo; 
     return (
         <div className="min-h-screen bg-[#0A0A0A]" style={{ fontFamily: "'Noto Sans KR', -apple-system, sans-serif" }}>
             {/* Splash entrance */}
+            <BlogTracker lawyerId={lawyer.id} pagePath={`/blog/${lawyer.slug}`} />
             <BlogSplash name={lawyer.name} brandColor={lawyer.brand_color} profileImageUrl={lawyer.profile_image_url} />
             {/* Ambient gradient */}
             <div

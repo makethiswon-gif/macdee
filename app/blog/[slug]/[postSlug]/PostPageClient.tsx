@@ -5,8 +5,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import BlogSplash from "@/components/BlogSplash";
+import BlogTracker from "@/components/BlogTracker";
 
 interface LawyerInfo {
+    id: string;
     name: string;
     slug: string;
     specialty: string[];
@@ -165,6 +167,7 @@ export default function PostPageClient({ lawyer, post, isOwner = false }: { lawy
     return (
         <div className="min-h-screen bg-[#0A0A0A]" style={{ fontFamily: "'Noto Sans KR', -apple-system, sans-serif" }}>
             {/* Splash entrance */}
+            <BlogTracker lawyerId={lawyer.id} postId={post.id} pagePath={`/blog/${lawyer.slug}/${post.slug}`} />
             <BlogSplash name={lawyer.name} brandColor={lawyer.brand_color} profileImageUrl={lawyer.profile_image_url} />
             {/* Ambient gradient */}
             <div

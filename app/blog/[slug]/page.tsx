@@ -124,6 +124,7 @@ export default async function BlogPage({ params }: Props) {
     return (
         <BlogPageClient
             lawyer={{
+                id: lawyer.id,
                 name: lawyer.name,
                 slug: lawyer.slug,
                 specialty: lawyer.specialty || [],
