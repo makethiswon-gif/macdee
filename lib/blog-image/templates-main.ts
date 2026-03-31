@@ -10,7 +10,7 @@ const S = SIZE;
 export function renderMainTemplate(ctx: SKRSContext2D, input: RenderInput, assets: Assets) {
     const { title } = input;
     const { lawyerName, officeName } = input.profile;
-    const { accent, profileImg, officeImg } = assets;
+    const { accent, profileImg, officeImg, darkBg } = assets;
 
     // 1. Background: Grayscale blurred office photo with heavy dark overlay
     if (officeImg) {
@@ -20,10 +20,10 @@ export function renderMainTemplate(ctx: SKRSContext2D, input: RenderInput, asset
         ctx.restore();
 
         // 85% Dark overlay to kill messy details completely
-        ctx.fillStyle = "rgba(10, 14, 20, 0.85)";
+        ctx.fillStyle = rgba(darkBg, 0.85);
         ctx.fillRect(0, 0, S, S);
     } else {
-        ctx.fillStyle = "#0A0D14"; // Deep pure dark
+        ctx.fillStyle = darkBg; // Deep brand dark
         ctx.fillRect(0, 0, S, S);
     }
 
@@ -38,15 +38,17 @@ export function renderMainTemplate(ctx: SKRSContext2D, input: RenderInput, asset
         const frameX = S - pad - frameW + 20; // slightly pushed right
         const frameY = (S - frameH) / 2;
 
-        // Subtle elegant border
+        // Pill-shaped elegant border
+        const r = Math.min(frameW, frameH) / 2; // Perfect semicircle on top and bottom
+
         ctx.strokeStyle = "rgba(255,255,255,0.08)";
         ctx.lineWidth = 1;
-        roundRect(ctx, frameX, frameY, frameW, frameH, 0);
+        roundRect(ctx, frameX, frameY, frameW, frameH, r);
         ctx.stroke();
 
         ctx.save();
         ctx.beginPath();
-        roundRect(ctx, frameX + 8, frameY + 8, frameW - 16, frameH - 16, 0);
+        roundRect(ctx, frameX + 8, frameY + 8, frameW - 16, frameH - 16, r - 8);
         ctx.clip();
         
         ctx.filter = "contrast(1.05) saturate(0.95)"; // slight cinematic grade
@@ -56,7 +58,7 @@ export function renderMainTemplate(ctx: SKRSContext2D, input: RenderInput, asset
         // Subtle gradient mask at bottom of the inset frame to blend it into the void
         const dropGrad = ctx.createLinearGradient(0, frameY + frameH - 100, 0, frameY + frameH);
         dropGrad.addColorStop(0, "transparent");
-        dropGrad.addColorStop(1, "rgba(10, 14, 20, 0.95)");
+        dropGrad.addColorStop(1, rgba(darkBg, 0.95));
         ctx.fillStyle = dropGrad;
         ctx.fillRect(frameX + 8, frameY + frameH - 100, frameW - 16, 100);
     }

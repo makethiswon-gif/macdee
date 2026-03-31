@@ -1,7 +1,7 @@
 import type { SKRSContext2D } from "@napi-rs/canvas";
 import {
     SIZE, FONT_BOLD, FONT_BLACK, FONT_REGULAR,
-    drawCover, drawAutoShrinkText,
+    drawCover, drawAutoShrinkText, rgba,
     type RenderInput, type Assets,
 } from "./renderer";
 
@@ -9,7 +9,7 @@ const S = SIZE;
 
 export function renderBrandTemplate(ctx: SKRSContext2D, input: RenderInput, assets: Assets) {
     const { lawyerName, officeName, brandLines } = input.profile;
-    const { accent, officeImg, logoImg } = assets;
+    const { accent, officeImg, logoImg, darkBg } = assets;
 
     // 1. Full Office Photo with Grayscale and Heavy Overlays (The Mood)
     if (officeImg) {
@@ -19,10 +19,10 @@ export function renderBrandTemplate(ctx: SKRSContext2D, input: RenderInput, asse
         ctx.restore();
 
         // 90% Ultra Dark overlay for complete mood control and perfect legibility
-        ctx.fillStyle = "rgba(8, 10, 15, 0.9)";
+        ctx.fillStyle = rgba(darkBg, 0.9);
         ctx.fillRect(0, 0, S, S);
     } else {
-        ctx.fillStyle = "#080A0F"; // Very dark void
+        ctx.fillStyle = darkBg; // Very dark brand void
         ctx.fillRect(0, 0, S, S);
     }
 

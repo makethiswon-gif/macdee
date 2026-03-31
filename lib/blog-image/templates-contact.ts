@@ -1,7 +1,7 @@
 import type { SKRSContext2D } from "@napi-rs/canvas";
 import {
     SIZE, FONT_BOLD, FONT_BLACK, FONT_REGULAR,
-    drawCover, drawAutoShrinkText, drawFilmGrain,
+    drawCover, drawAutoShrinkText, drawFilmGrain, rgba,
     type RenderInput, type Assets,
 } from "./renderer";
 
@@ -9,7 +9,7 @@ const S = SIZE;
 
 export async function renderContactTemplate(ctx: SKRSContext2D, input: RenderInput, assets: Assets) {
     const { lawyerName, officeName, phone, address } = input.profile;
-    const { accent, officeImg } = assets;
+    const { accent, officeImg, darkBg } = assets;
 
     // 1. Solid minimal background (Deep editorial)
     if (officeImg) {
@@ -19,10 +19,10 @@ export async function renderContactTemplate(ctx: SKRSContext2D, input: RenderInp
         ctx.restore();
         
         // 95% dark overlay. It should be barely visible texture
-        ctx.fillStyle = "rgba(4, 5, 8, 0.95)";
+        ctx.fillStyle = rgba(darkBg, 0.95);
         ctx.fillRect(0, 0, S, S);
     } else {
-        ctx.fillStyle = "#040508"; // Blackest navy
+        ctx.fillStyle = darkBg; // Deep brand dark
         ctx.fillRect(0, 0, S, S);
     }
 

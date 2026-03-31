@@ -9,11 +9,11 @@ const S = SIZE;
 
 export function renderSummaryTemplate(ctx: SKRSContext2D, input: RenderInput, assets: Assets) {
     const { summaryPoints } = input;
-    const { accent, logoImg } = assets;
+    const { accent, logoImg, darkBg } = assets;
 
     // 1. Solid minimal background
     // Base dark navy/black (Deep Editorial Navy)
-    ctx.fillStyle = "#0A0D12";
+    ctx.fillStyle = darkBg;
     ctx.fillRect(0, 0, S, S);
     
     // Very subtle gradient matching accent

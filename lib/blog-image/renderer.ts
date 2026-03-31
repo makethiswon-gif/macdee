@@ -60,12 +60,67 @@ export function rgba(hex: string, alpha: number): string {
 export function darken(hex: string, amount: number): string {
     const [r, g, b] = hexToRgb(hex);
     const f = 1 - amount;
-    return `rgb(${Math.round(r * f)},${Math.round(g * f)},${Math.round(b * f)})`;
+    return `rgb(${Math.floor(r * f)},${Math.floor(g * f)},${Math.floor(b * f)})`;
 }
 
 export function lighten(hex: string, amount: number): string {
     const [r, g, b] = hexToRgb(hex);
-    return `rgb(${Math.min(255, Math.round(r + (255 - r) * amount))},${Math.min(255, Math.round(g + (255 - g) * amount))},${Math.min(255, Math.round(b + (255 - b) * amount))})`;
+    return `rgb(${Math.min(255, Math.floor(r + (255 - r) * amount))},${Math.min(255, Math.floor(g + (255 - g) * amount))},${Math.min(255, Math.floor(b + (255 - b) * amount))})`;
+}
+
+/** Get a very dark background color from an accent hex (10% brightness) */
+export function getDeepDarkColor(hex: string): string {
+    const [r, g, b] = hexToRgb(hex);
+    // Multiply by roughly 10-15%
+    const nr = Math.floor(r * 0.12);
+    const ng = Math.floor(g * 0.12);
+    const nb = Math.floor(b * 0.15);
+    return `#${((1 << 24) + (nr << 16) + (ng << 8) + nb).toString(16).slice(1)}`;
+}
+
+/** Force an accent color to be bright enough against dark backgrounds */
+export function ensureBrightAccent(hex: string): string {
+    let [r, g, b] = hexToRgb(hex);
+    // Calculate relative luminance
+    const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+    if (lum < 160) {
+        // If it's too dark to stand out, lighten it dramatically instead of failing
+        return lighten(hex, 0.6); // Boost brightness by 60%
+    }
+    return hex;
+}
+
+/** Extract visually dominant brand color from a logo image */
+export function extractDominantColor(img: Image | null, fallback: string): string {
+    if (!img) return fallback;
+    try {
+        const c = createCanvas(50, 50);
+        const ctx = c.getContext("2d");
+        ctx.drawImage(img, 0, 0, 50, 50);
+        const data = ctx.getImageData(0, 0, 50, 50).data;
+        
+        let r = 0, g = 0, b = 0, count = 0;
+        for (let i = 0; i < data.length; i += 4) {
+            const alpha = data[i+3];
+            if (alpha < 128) continue; // Skip transparency
+            
+            const pxR = data[i]; const pxG = data[i+1]; const pxB = data[i+2];
+            // Skip nearly white or nearly black pixels to avoid extracting the text color
+            if ((pxR > 240 && pxG > 240 && pxB > 240) || (pxR < 30 && pxG < 30 && pxB < 30)) continue;
+            // Skip very pure greys
+            const max = Math.max(pxR, pxG, pxB);
+            const min = Math.min(pxR, pxG, pxB);
+            if (max - min < 20) continue;
+
+            r += pxR; g += pxG; b += pxB; count++;
+        }
+        
+        if (count === 0) return fallback;
+        const outHex = `#${((1 << 24) + (Math.floor(r/count) << 16) + (Math.floor(g/count) << 8) + Math.floor(b/count)).toString(16).slice(1)}`;
+        return outHex;
+    } catch {
+        return fallback;
+    }
 }
 
 // ── Text Utilities ──
@@ -390,9 +445,17 @@ export async function renderBlogImage(input: RenderInput): Promise<Buffer> {
     const officeImg = officeUrl ? await safeLoadImage(officeUrl) : null;
     const logoImg = input.profile.logoImage ? await safeLoadImage(input.profile.logoImage) : null;
 
-    const accent = input.accentColor || input.profile.brandColor || "#2B4C7E";
+    // Calculate smart colors based on the logo if present, or fallback to the provided brand color
+    const providedAccent = input.accentColor || input.profile.brandColor || "#2B4C7E";
+    const extractedAccent = extractDominantColor(logoImg, providedAccent);
+    
+    // We get a beautifully matched dark background (10~15% brightness of the accent color)
+    const darkBg = getDeepDarkColor(extractedAccent);
+    
+    // For text overlay, check if the accent color is too dark and make it bright enough to pop
+    const accent = ensureBrightAccent(providedAccent);
 
-    const assets = { profileImg, officeImg, logoImg, accent };
+    const assets = { profileImg, officeImg, logoImg, accent, darkBg };
 
     // Dynamic import of template module
     const { renderMainTemplate } = await import("./templates-main");
@@ -423,4 +486,5 @@ export type Assets = {
     officeImg: Image | null;
     logoImg: Image | null;
     accent: string;
+    darkBg: string;
 };
