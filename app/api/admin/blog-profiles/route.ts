@@ -47,7 +47,7 @@ function dbToProfile(row: Record<string, unknown>): BlogProfile {
     const parts = rawName.split("||");
     const lawyerName = parts[0] || "";
     const jobTitle = parts[1] || "대표변호사";
-    const career = (parts[2] || "").split("\\n").filter(Boolean);
+    const career = (parts[2] || "").split(/\n|\\n/).map((s: string) => s.trim());
 
     return {
         id: row.id as string,
@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
     try {
         if (action === "create") {
             const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-            const targetCareerStr = body.career && Array.isArray(body.career) ? body.career.join("\\n") : "";
+            const targetCareerStr = body.career && Array.isArray(body.career) ? body.career.join("\n") : "";
             const insertData: Record<string, unknown> = {
                 id,
                 lawyer_name: `${body.lawyerName}||${body.jobTitle || "대표변호사"}||${targetCareerStr}`,
@@ -185,7 +185,7 @@ export async function POST(request: NextRequest) {
         }
 
         if (action === "update") {
-            const targetCareerStr = body.career && Array.isArray(body.career) ? body.career.join("\\n") : "";
+            const targetCareerStr = body.career && Array.isArray(body.career) ? body.career.join("\n") : "";
             const updateData: Record<string, unknown> = {
                 lawyer_name: `${body.lawyerName}||${body.jobTitle || "대표변호사"}||${targetCareerStr}`,
                 office_name: body.officeName,

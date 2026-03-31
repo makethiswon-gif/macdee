@@ -180,7 +180,7 @@ export async function POST(request: Request) {
                 const parts = rawName.split("||");
                 const lawyerName = parts[0] || "";
                 const jobTitle = parts[1] || "대표변호사";
-                const career = (parts[2] || "").split("\\n").filter(Boolean);
+                const career = (parts[2] || "").split(/\n|\\n/).map((s: string) => s.trim());
 
                 const profileObj = {
                     lawyerName,

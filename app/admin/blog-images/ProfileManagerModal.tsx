@@ -133,8 +133,8 @@ export default function ProfileManagerModal({ isOpen, profileId, onClose, onSucc
                 address: formData.address,
                 website: formData.website,
                 specialty: formData.specialty.split("\n").map(s => s.trim()).filter(Boolean),
-                career: formData.career.split("\n").map(s => s.trim()).filter(Boolean),
-                brandLines: formData.brandLines.split("\n").map(s => s.trim()).filter(Boolean),
+                career: formData.career.trim() ? formData.career.split("\n").map(s => s.trim()) : [],
+                brandLines: formData.brandLines.trim() ? formData.brandLines.split("\n").map(s => s.trim()) : [],
             };
             
             const res = await fetch("/api/admin/blog-profiles", {

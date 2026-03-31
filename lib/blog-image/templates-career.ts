@@ -129,7 +129,7 @@ export function renderCareerTemplate(ctx: SKRSContext2D, input: RenderInput, ass
     ctx.fillText(lawyerName, padX, currY);
     
     // Title & OfficeName combined
-    const titleText = `${officeName}\\n${jobTitle}`;
+    const titleText = `${officeName}\n${jobTitle}`;
     ctx.font = `400 22px ${FONT_REGULAR}`;
     ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
     drawWrappedText(ctx, titleText, padX + nameMet.width + 24, currY + 22, contentMaxW - nameMet.width - 24, 30);
@@ -141,7 +141,7 @@ export function renderCareerTemplate(ctx: SKRSContext2D, input: RenderInput, ass
         ctx.font = `500 20px ${FONT_REGULAR}`;
         ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
         
-        const introText = brandLines.join("\\n");
+        const introText = brandLines.join("\n");
         const drawnH = drawWrappedText(ctx, introText, padX, currY, contentMaxW, 32);
         currY += drawnH + 60;
     } else {
