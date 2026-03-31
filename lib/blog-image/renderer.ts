@@ -530,15 +530,17 @@ export async function renderBlogImage(input: RenderInput): Promise<Buffer> {
 
     // Calculate smart colors based on the logo if present, or fallback to the provided brand color
     const providedAccent = input.accentColor || input.profile.brandColor || "#2B4C7E";
+    // 1. EXTRACT color from the LOGO.
     const extractedAccent = extractDominantColor(logoImg, providedAccent);
     
-    // We get a beautifully matched dark background (10~15% brightness of the accent color)
+    // 2. Derive dark background natively from the logo color
     const darkBg = getDeepDarkColor(extractedAccent);
     
-    // For text overlay, check if the accent color is too dark and make it bright enough to pop
-    const accent = ensureBrightAccent(providedAccent);
+    // 3. Derive visible overlay colors strictly from the LOGO color
+    const accent = ensureBrightAccent(extractedAccent);
+    const rawBrandColor = extractedAccent;
 
-    const assets = { profileImg, officeImg, logoImg, accent, darkBg };
+    const assets = { profileImg, officeImg, logoImg, accent, darkBg, rawBrandColor };
 
     // Dynamic import of template module
     const { renderMainTemplate } = await import("./templates-main");
@@ -574,4 +576,5 @@ export type Assets = {
     logoImg: Image | null;
     accent: string;
     darkBg: string;
+    rawBrandColor: string;
 };

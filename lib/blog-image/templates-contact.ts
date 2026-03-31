@@ -9,10 +9,7 @@ const S = SIZE;
 
 export async function renderContactTemplate(ctx: SKRSContext2D, input: RenderInput, assets: Assets) {
     const { lawyerName, officeName, phone, address, website, jobTitle } = input.profile;
-    const { profileImg, officeImg, logoImg } = assets;
-
-    // Use raw brand color (best for white background readability)
-    const rawBrandColor = input.accentColor || input.profile.brandColor || "#2B4C7E";
+    const { profileImg, officeImg, logoImg, rawBrandColor } = assets;
 
     // White/Beige Card Background
     const paperColor = "#F9F8F4"; // Warm premium card paper
