@@ -136,17 +136,7 @@ export function renderCareerTemplate(ctx: SKRSContext2D, input: RenderInput, ass
     
     currY += 120; // Move below name
 
-    // Intro / Brand Lines
-    if (brandLines && brandLines.length > 0) {
-        ctx.font = `500 20px ${FONT_REGULAR}`;
-        ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-        
-        const introText = brandLines.join("\n");
-        const drawnH = drawWrappedText(ctx, introText, padX, currY, contentMaxW, 32);
-        currY += drawnH + 60;
-    } else {
-        currY += 40;
-    }
+    currY += 50; // Add space between name and divider
 
     // Divider Line
     ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
@@ -161,19 +151,32 @@ export function renderCareerTemplate(ctx: SKRSContext2D, input: RenderInput, ass
 
     // Career List Items
     if (career && career.length > 0) {
-        ctx.font = `500 20px ${FONT_REGULAR}`;
         ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+        ctx.textBaseline = "top";
+        ctx.textAlign = "left";
         
-        career.forEach((item, idx) => {
-            // Check if it already has a bullet
-            const hasBullet = item.trim().startsWith("-") || item.trim().startsWith("·");
-            const bullet = hasBullet ? "" : "· ";
-            const lineHtml = `${bullet}${item.trim()}`;
-            
-            // Draw wrapping for each item
-            const h = drawWrappedText(ctx, lineHtml, padX, currY, contentMaxW, 30);
-            currY += h + 8;
-        });
+        const formattedItems = career.map(item => {
+            const trimmed = item.trim();
+            if (!trimmed) return "";
+            const hasBullet = trimmed.startsWith("-") || trimmed.startsWith("·");
+            return hasBullet ? trimmed : `· ${trimmed}`;
+        }).filter(Boolean);
+        
+        const careerText = formattedItems.join("\n");
+        const remainingHeight = S - currY - 60; // 60px bottom padding
+
+        drawAutoShrinkText(
+            ctx,
+            careerText,
+            padX,
+            currY,
+            contentMaxW,
+            remainingHeight,
+            20, // initial maximum font size
+            FONT_REGULAR,
+            "500",
+            { shadow: false, minFontSize: 12 }
+        );
     }
 
 }

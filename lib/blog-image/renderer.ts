@@ -285,14 +285,16 @@ export function drawAutoShrinkText(
     initialFontSize: number,
     fontFamily: string,
     fontWeight: string,
-    opts?: { shadow?: boolean, highlightPattern?: { color: string, type: "first-line" | "all" } }
+    opts?: { shadow?: boolean, highlightPattern?: { color: string, type: "first-line" | "all" }, minFontSize?: number }
 ): { height: number; lines: string[]; fontSize: number } {
     let currentFontSize = initialFontSize;
     let lines: string[] = [];
     let lineHeight = currentFontSize * 1.3;
 
+    const minFont = opts?.minFontSize || 24;
+
     // Linear scale down until it fits
-    while (currentFontSize > 24) {
+    while (currentFontSize > minFont) {
         ctx.font = `${fontWeight} ${currentFontSize}px ${fontFamily}`;
         lines = wrapText(ctx, text, maxWidth);
         lineHeight = currentFontSize * 1.3;
