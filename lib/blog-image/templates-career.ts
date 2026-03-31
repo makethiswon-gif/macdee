@@ -107,7 +107,7 @@ export function renderCareerTemplate(ctx: SKRSContext2D, input: RenderInput, ass
     // 4. Typography Content Area (Left side)
     const padX = 100;
     const contentMaxW = S * 0.55;
-    let currY = 140; // Starting Y position (raised significantly)
+    let currY = 110; // Starting Y position (raised significantly)
 
     // Category / Office Label (Very small top accent)
     if (officeName) {
@@ -134,20 +134,10 @@ export function renderCareerTemplate(ctx: SKRSContext2D, input: RenderInput, ass
     ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
     drawWrappedText(ctx, titleText, padX + nameMet.width + 24, currY + 22, contentMaxW - nameMet.width - 24, 30);
     
-    currY += 120; // Move below name
-
-    currY += 50; // Add space between name and divider
-
-    // Divider Line
-    ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
-    ctx.fillRect(padX, currY, 60, 2);
-    currY += 30;
-
-    // "경력" (Career) Label
-    ctx.font = `700 22px ${FONT_BOLD}`;
-    ctx.fillStyle = "#FFFFFF";
-    ctx.fillText("경력", padX, currY);
-    currY += 45;
+    currY += 120; // Move below name (80px font + margin)
+    
+    // Add margin between name/title and the list
+    currY += 40;
 
     // Career List Items
     if (career && career.length > 0) {
