@@ -18,6 +18,7 @@ export interface BlogProfile {
     brandColor: string;
     brandLines: string[];
     jobTitle: string;
+    career: string[];
     createdAt: number;
     updatedAt: number;
 }
@@ -41,14 +42,18 @@ function getSupabase() {
 }
 
 function dbToProfile(row: Record<string, unknown>): BlogProfile {
-    // Parse combined name||title 
+    // Parse combined name||title||career
     const rawName = (row.lawyer_name as string) || "";
-    const [lawyerName, jobTitle = "대표변호사"] = rawName.includes("||") ? rawName.split("||") : [rawName, "대표변호사"];
+    const parts = rawName.split("||");
+    const lawyerName = parts[0] || "";
+    const jobTitle = parts[1] || "대표변호사";
+    const career = (parts[2] || "").split("\\n").filter(Boolean);
 
     return {
         id: row.id as string,
         lawyerName,
         jobTitle,
+        career,
         officeName: (row.office_name as string) || "",
         phone: (row.phone as string) || "",
         address: (row.address as string) || "",
@@ -152,9 +157,10 @@ export async function POST(request: NextRequest) {
     try {
         if (action === "create") {
             const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+            const targetCareerStr = body.career && Array.isArray(body.career) ? body.career.join("\\n") : "";
             const insertData: Record<string, unknown> = {
                 id,
-                lawyer_name: body.jobTitle ? `${body.lawyerName}||${body.jobTitle}` : body.lawyerName,
+                lawyer_name: `${body.lawyerName}||${body.jobTitle || "대표변호사"}||${targetCareerStr}`,
                 office_name: body.officeName || "",
                 phone: body.phone || "",
                 address: body.address || "",
@@ -179,8 +185,9 @@ export async function POST(request: NextRequest) {
         }
 
         if (action === "update") {
+            const targetCareerStr = body.career && Array.isArray(body.career) ? body.career.join("\\n") : "";
             const updateData: Record<string, unknown> = {
-                lawyer_name: body.jobTitle ? `${body.lawyerName}||${body.jobTitle}` : body.lawyerName,
+                lawyer_name: `${body.lawyerName}||${body.jobTitle || "대표변호사"}||${targetCareerStr}`,
                 office_name: body.officeName,
                 phone: body.phone,
                 address: body.address,

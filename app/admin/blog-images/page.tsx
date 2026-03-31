@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import ProfileManagerModal from "./ProfileManagerModal";
 
-type ImageType = "main" | "summary" | "contact" | "brand";
+type ImageType = "main" | "summary" | "contact" | "brand" | "career";
 
 interface Profile {
     id: string;
@@ -24,16 +24,18 @@ interface Profile {
 const IMAGE_TYPES: { id: ImageType; label: string; icon: typeof ImageIcon; desc: string }[] = [
     { id: "main", label: "메인 대표", icon: ImageIcon, desc: "블로그 썸네일 이미지" },
     { id: "summary", label: "요약 카드", icon: FileText, desc: "핵심 내용 6-8포인트" },
+    { id: "career", label: "경력 약력", icon: Sparkles, desc: "신뢰감 구축형 약력" },
     { id: "contact", label: "연락처", icon: User, desc: "상담 유도 CTA" },
     { id: "brand", label: "브랜드", icon: Sparkles, desc: "로펌 인지도 이미지" },
 ];
 
-const TEMPLATE_COUNTS: Record<ImageType, number> = { main: 1, summary: 1, contact: 1, brand: 1 };
+const TEMPLATE_COUNTS: Record<ImageType, number> = { main: 1, summary: 1, contact: 1, brand: 1, career: 1 };
 const TEMPLATE_NAMES: Record<ImageType, string[]> = {
     main: ["대표 썸네일형"],
     summary: ["정보 강조형"],
     contact: ["마무리 설득형"],
     brand: ["사무실 브랜딩형"],
+    career: ["신뢰감 구축 약력형"],
 };
 
 export default function BlogImagesPage() {
@@ -48,7 +50,7 @@ export default function BlogImagesPage() {
     const [generating, setGenerating] = useState<Record<string, boolean>>({});
     const [generatedImages, setGeneratedImages] = useState<Record<string, string>>({});
     const [selectedTemplates, setSelectedTemplates] = useState<Record<ImageType, number>>({
-        main: 0, summary: 0, contact: 0, brand: 0,
+        main: 0, summary: 0, contact: 0, brand: 0, career: 0
     });
     const [previewType, setPreviewType] = useState<ImageType | null>(null);
 
@@ -120,7 +122,7 @@ export default function BlogImagesPage() {
         setGenerating(prev => ({ ...prev, [key]: false }));
     };
 
-    // Generate all 4 images
+    // Generate all 5 images
     const handleGenerateAll = async () => {
         if (!selectedId || !postTitle || !selected) {
             alert("변호사를 선택하고 제목을 입력해주세요.");
@@ -172,8 +174,8 @@ export default function BlogImagesPage() {
 
             const randId = Math.floor(Math.random() * TEMPLATE_COUNTS[type.id]);
             newTemplates[type.id] = randId;
-            // Use shortTitle for the main image, regular title for others
-            const titleToUse = type.id === "main" ? currentShortTitle : postTitle;
+            // Always use full postTitle for all images
+            const titleToUse = postTitle;
             await handleGenerate(type.id, currentPoints, randId, variedAccent, titleToUse);
         }
         setSelectedTemplates(newTemplates);
@@ -345,7 +347,8 @@ export default function BlogImagesPage() {
                             )}
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        {/* Results Grid - now 5 columns or scrollable */}
+                        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
                             {IMAGE_TYPES.map(type => {
                                 const key = `${type.id}-${selectedTemplates[type.id]}`;
                                 const imgUrl = generatedImages[key];
@@ -417,8 +420,8 @@ export default function BlogImagesPage() {
                         <button onClick={handleGenerateAll} disabled={anyGenerating || summarizing || !selectedId || !postTitle}
                                 className="w-full mt-6 py-3 rounded-xl bg-gradient-to-r from-[#3563AE] to-[#2851A3] text-white text-sm font-bold shadow-lg shadow-[#3563AE]/20 hover:from-[#3a6bc2] hover:to-[#2c5bbc] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
                                 {summarizing ? <><Loader2 size={16} className="animate-spin" /> AI 요약 분석 및 이미지 텍스트 생성 중...</> :
-                                    anyGenerating ? <><Loader2 size={16} className="animate-spin" /> 4장 전체 생성 중...</> : 
-                                    <><ImageIcon size={16} /> 4장 전체 생성 (AI 포함)</>}
+                                    anyGenerating ? <><Loader2 size={16} className="animate-spin" /> 5장 전체 생성 중...</> : 
+                                    <><ImageIcon size={16} /> 5장 전체 생성 (AI 포함)</>}
                         </button>
                     </div>
                 </div>

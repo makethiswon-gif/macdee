@@ -487,6 +487,7 @@ export interface RenderInput {
         address: string;
         website: string;
         specialty: string[];
+        career: string[];
         profileImages: string[];
         officeImages: string[];
         logoImage: string;
@@ -494,7 +495,7 @@ export interface RenderInput {
         brandLines: string[];
     };
     templateId: number;
-    imageType: "main" | "summary" | "contact" | "brand";
+    imageType: "main" | "summary" | "contact" | "brand" | "career";
     accentColor?: string;
 }
 
@@ -533,6 +534,7 @@ export async function renderBlogImage(input: RenderInput): Promise<Buffer> {
     const { renderSummaryTemplate } = await import("./templates-summary");
     const { renderContactTemplate } = await import("./templates-contact");
     const { renderBrandTemplate } = await import("./templates-brand");
+    const { renderCareerTemplate } = await import("./templates-career");
 
     switch (input.imageType) {
         case "main":
@@ -546,6 +548,9 @@ export async function renderBlogImage(input: RenderInput): Promise<Buffer> {
             break;
         case "brand":
             await renderBrandTemplate(ctx, input, assets);
+            break;
+        case "career":
+            await renderCareerTemplate(ctx, input, assets);
             break;
     }
 

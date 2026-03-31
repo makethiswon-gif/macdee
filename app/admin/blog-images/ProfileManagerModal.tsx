@@ -12,6 +12,7 @@ interface Profile {
     address: string;
     website: string;
     specialty: string[];
+    career: string[];
     profileImages: string[];
     officeImages: string[];
     logoImage: string;
@@ -41,6 +42,7 @@ export default function ProfileManagerModal({ isOpen, profileId, onClose, onSucc
         address: "",
         website: "",
         specialty: "",
+        career: "",
         brandLines: "",
         brandColor: "#3563AE"
     });
@@ -71,6 +73,7 @@ export default function ProfileManagerModal({ isOpen, profileId, onClose, onSucc
                 address: "",
                 website: "",
                 specialty: "",
+                career: "",
                 brandLines: "",
                 brandColor: "#3563AE"
             });
@@ -96,6 +99,7 @@ export default function ProfileManagerModal({ isOpen, profileId, onClose, onSucc
                     address: p.address || "",
                     website: p.website || "",
                     specialty: p.specialty?.join("\n") || "",
+                    career: p.career?.join("\n") || "",
                     brandLines: p.brandLines?.join("\n") || "",
                     brandColor: p.brandColor || "#3563AE"
                 });
@@ -129,6 +133,7 @@ export default function ProfileManagerModal({ isOpen, profileId, onClose, onSucc
                 address: formData.address,
                 website: formData.website,
                 specialty: formData.specialty.split("\n").map(s => s.trim()).filter(Boolean),
+                career: formData.career.split("\n").map(s => s.trim()).filter(Boolean),
                 brandLines: formData.brandLines.split("\n").map(s => s.trim()).filter(Boolean),
             };
             
@@ -337,6 +342,11 @@ export default function ProfileManagerModal({ isOpen, profileId, onClose, onSucc
                                     <div>
                                         <label className="block text-[11px] font-medium text-white/40 mb-1.5">전문 분야 (엔터키로 줄바꿈 구분)</label>
                                         <textarea rows={3} value={formData.specialty} onChange={e => setFormData({...formData, specialty: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-white/30 resize-none scrollbar-thin scrollbar-thumb-white/10" placeholder="음주운전 전문&#13;&#10;교통사고 전문..." />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-[11px] font-medium text-white/40 mb-1.5">약력 / 경력 사항 (엔터키로 줄바꿈 구분)</label>
+                                        <textarea rows={4} value={formData.career} onChange={e => setFormData({...formData, career: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-white/30 resize-none scrollbar-thin scrollbar-thumb-white/10" placeholder="사법시험 합격&#13;&#10;대형 로펌 출신 파트너..." />
                                     </div>
 
                                     <div>

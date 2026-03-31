@@ -177,11 +177,15 @@ export async function POST(request: Request) {
 
             if (blogProfile) {
                 const rawName = (blogProfile.lawyer_name as string) || lawyer.name || "";
-                const [lawyerName, jobTitle = "대표변호사"] = rawName.includes("||") ? rawName.split("||") : [rawName, "대표변호사"];
+                const parts = rawName.split("||");
+                const lawyerName = parts[0] || "";
+                const jobTitle = parts[1] || "대표변호사";
+                const career = (parts[2] || "").split("\\n").filter(Boolean);
 
                 const profileObj = {
                     lawyerName,
                     jobTitle,
+                    career,
                     officeName: (blogProfile.office_name as string) || "",
                     phone: (blogProfile.phone as string) || "",
                     address: (blogProfile.address as string) || "",

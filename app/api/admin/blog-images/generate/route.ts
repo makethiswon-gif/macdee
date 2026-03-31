@@ -49,11 +49,15 @@ export async function POST(request: NextRequest) {
         }
 
         const rawName = (row.lawyer_name as string) || "";
-        const [lawyerName, jobTitle = "대표변호사"] = rawName.includes("||") ? rawName.split("||") : [rawName, "대표변호사"];
+        const parts = rawName.split("||");
+        const lawyerName = parts[0] || "";
+        const jobTitle = parts[1] || "대표변호사";
+        const career = (parts[2] || "").split("\\n").filter(Boolean);
 
         const profile = {
             lawyerName,
             jobTitle,
+            career,
             officeName: (row.office_name as string) || "",
             phone: (row.phone as string) || "",
             address: (row.address as string) || "",
