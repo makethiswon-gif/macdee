@@ -1,97 +1,78 @@
 import type { SKRSContext2D } from "@napi-rs/canvas";
 import {
     SIZE, FONT_BOLD, FONT_BLACK, FONT_REGULAR,
-    drawCover, roundRect, rgba,
+    drawCover, drawAutoShrinkText,
     type RenderInput, type Assets,
 } from "./renderer";
 
 const S = SIZE;
 
-type Img = import("@napi-rs/canvas").Image | null;
-
 export function renderBrandTemplate(ctx: SKRSContext2D, input: RenderInput, assets: Assets) {
     const { lawyerName, officeName, brandLines } = input.profile;
-    const { accent, profileImg, officeImg, logoImg } = assets;
+    const { accent, officeImg, logoImg } = assets;
 
-    // Background: Full office photo
+    // 1. Full Office Photo with Grayscale and Heavy Overlays (The Mood)
     if (officeImg) {
+        ctx.save();
+        ctx.filter = "grayscale(100%) blur(4px)";
         drawCover(ctx, officeImg, 0, 0, S, S);
+        ctx.restore();
+
+        // 90% Ultra Dark overlay for complete mood control and perfect legibility
+        ctx.fillStyle = "rgba(8, 10, 15, 0.9)";
+        ctx.fillRect(0, 0, S, S);
     } else {
-        ctx.fillStyle = "#1e2430";
+        ctx.fillStyle = "#080A0F"; // Very dark void
         ctx.fillRect(0, 0, S, S);
     }
 
-    // Top subtle gradient to ensure logo and copy are readable
-    const topGrad = ctx.createLinearGradient(0, 0, 0, S * 0.4);
-    topGrad.addColorStop(0, "rgba(0,0,0,0.85)");
-    topGrad.addColorStop(0.5, "rgba(0,0,0,0.4)");
-    topGrad.addColorStop(1, "transparent");
+    // Gentle vertical vignette
+    const topGrad = ctx.createLinearGradient(0, 0, 0, S);
+    topGrad.addColorStop(0, "rgba(0,0,0,0.4)");
+    topGrad.addColorStop(0.5, "transparent");
+    topGrad.addColorStop(1, "rgba(0,0,0,0.4)");
     ctx.fillStyle = topGrad;
-    ctx.fillRect(0, 0, S, S * 0.4);
-
-    // Subtle dark gradient around edges for overall cinematic feel
-    const radGrad = ctx.createRadialGradient(S/2, S/2, S*0.3, S/2, S/2, S*0.8);
-    radGrad.addColorStop(0, "transparent");
-    radGrad.addColorStop(1, "rgba(0,0,0,0.5)");
-    ctx.fillStyle = radGrad;
     ctx.fillRect(0, 0, S, S);
 
-    // Logo (Top Left)
-    if (logoImg) {
-        const lh = 56;
-        const lw = logoImg.width * (lh / logoImg.height);
-        ctx.drawImage(logoImg, 64, 64, lw, lh);
-    } else {
-        ctx.font = `800 24px ${FONT_BOLD}`;
-        ctx.fillStyle = accent;
-        ctx.fillText(officeName || "법률 전문", 64, 80);
-    }
-
-    // Short Copy / Brand Line (Top Right, or below logo depending on layout. Let's do right-aligned top)
+    // 2. Center Focus Typography (Single Elegant Tagline)
     const tagline = brandLines?.length ? brandLines[0] : `${lawyerName} 변호사가 함께합니다`;
-    ctx.font = `500 24px ${FONT_REGULAR}`;
-    ctx.fillStyle = "rgba(255,255,255,0.9)";
-    ctx.textAlign = "right";
-    ctx.textBaseline = "top";
-    ctx.fillText(tagline, S - 64, 80);
-    ctx.textAlign = "left";
+    const pad = 120; // safe zone
+    ctx.textBaseline = "middle";
+    ctx.textAlign = "center";
 
-    // Bottom Left minimal brand info
-    ctx.fillStyle = accent;
-    ctx.fillRect(64, S - 120, 32, 4);
-    ctx.font = `900 36px ${FONT_BLACK}`;
+    // Draw the tagline exactly in the center
+    const textCenterY = S / 2 - 40;
+    
     ctx.fillStyle = "#FFFFFF";
-    ctx.fillText(officeName || "법률 사무소", 64, S - 90);
+    drawAutoShrinkText(
+        ctx,
+        tagline,
+        pad,
+        textCenterY,
+        S - pad * 2,
+        200,
+        56, // starting Large but elegant
+        FONT_BLACK,
+        "900",
+        { shadow: false }
+    );
 
-    // Profile Inset Card (Bottom Right)
-    if (profileImg) {
-        const cw = 280;
-        const ch = 340;
-        const cx = S - cw - 64;
-        const cy = S - ch - 64;
+    // Accent mini-divider
+    ctx.fillStyle = accent;
+    ctx.fillRect(S / 2 - 20, textCenterY + 120, 40, 2);
 
-        // Inset bg/border
-        ctx.fillStyle = "#FFFFFF";
-        roundRect(ctx, cx, cy, cw, ch, 8);
-        ctx.fill();
+    // Office Identity Name
+    ctx.font = `600 20px ${FONT_BOLD}`;
+    ctx.fillStyle = "rgba(255,255,255,0.4)";
+    ctx.fillText(`${officeName || "법률 서비스"} · ${lawyerName} 변호사`, S / 2, textCenterY + 160);
 
-        // Image within padded bounds
-        const imgPad = 12;
-        ctx.save();
-        ctx.beginPath();
-        roundRect(ctx, cx + imgPad, cy + imgPad, cw - imgPad * 2, ch - imgPad * 2 - 80, 4);
-        ctx.clip();
-        drawCover(ctx, profileImg, cx + imgPad, cy + imgPad, cw - imgPad * 2, ch - imgPad * 2 - 80);
-        ctx.restore();
-
-        // Tag under info
-        ctx.fillStyle = "#1A1A1A";
-        ctx.font = `800 18px ${FONT_BOLD}`;
-        ctx.textBaseline = "middle";
-        ctx.fillText(`${lawyerName} 대표변호사`, cx + 24, cy + ch - 40);
-        
-        ctx.fillStyle = accent;
-        ctx.font = `600 14px ${FONT_REGULAR}`;
-        ctx.fillText("수석 파트너", cx + 24, cy + ch - 18);
+    // 3. Top Bottom Sub-branding
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    if (logoImg) {
+        const lh = 40;
+        const lw = logoImg.width * (lh / logoImg.height);
+        ctx.drawImage(logoImg, S / 2 - lw / 2, 80, lw, lh);
     }
+
 }

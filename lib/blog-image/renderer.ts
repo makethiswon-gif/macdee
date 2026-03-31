@@ -139,6 +139,53 @@ export function drawWrappedText(
     return displayLines.length * lineHeight;
 }
 
+/** 
+ * Automatically shrinks text to fit within constraints. 
+ * Prevents text cutoff for long titles (Point 4 fix).
+ */
+export function drawAutoShrinkText(
+    ctx: SKRSContext2D,
+    text: string,
+    x: number,
+    y: number,
+    maxWidth: number,
+    maxHeight: number,
+    initialFontSize: number,
+    fontFamily: string,
+    fontWeight: string,
+    opts?: { shadow?: boolean }
+): { height: number; lines: string[]; fontSize: number } {
+    let currentFontSize = initialFontSize;
+    let lines: string[] = [];
+    let lineHeight = currentFontSize * 1.3;
+
+    // Linear scale down until it fits
+    while (currentFontSize > 24) {
+        ctx.font = `${fontWeight} ${currentFontSize}px ${fontFamily}`;
+        lines = wrapText(ctx, text, maxWidth);
+        lineHeight = currentFontSize * 1.3;
+
+        if (lines.length * lineHeight <= maxHeight) {
+            break; // fits perfectly
+        }
+        currentFontSize -= 2; // shrink down by 2px
+    }
+
+    // Set finalized font size
+    ctx.font = `${fontWeight} ${currentFontSize}px ${fontFamily}`;
+    
+    // Actually draw
+    for (let i = 0; i < lines.length; i++) {
+        if (opts?.shadow) {
+            drawTextWithShadow(ctx, lines[i], x, y + i * lineHeight);
+        } else {
+            ctx.fillText(lines[i], x, y + i * lineHeight);
+        }
+    }
+
+    return { height: lines.length * lineHeight, lines, fontSize: currentFontSize };
+}
+
 // ── Image Utilities ──
 
 /** Load image from URL or base64 data URI */
@@ -304,15 +351,16 @@ export async function renderBlogImage(input: RenderInput): Promise<Buffer> {
     const ctx = canvas.getContext("2d");
 
     // Load images
-    const profileImg = input.profile.profileImages?.[0]
-        ? await safeLoadImage(input.profile.profileImages[0])
-        : null;
-    const officeImg = input.profile.officeImages?.[0]
-        ? await safeLoadImage(input.profile.officeImages[0])
-        : null;
-    const logoImg = input.profile.logoImage
-        ? await safeLoadImage(input.profile.logoImage)
-        : null;
+    const profiles = input.profile.profileImages || [];
+    const offices = input.profile.officeImages || [];
+    
+    // Randomize which photo is picked (fixes "always the same photo" issue)
+    const profileUrl = profiles.length > 0 ? profiles[Math.floor(Math.random() * profiles.length)] : null;
+    const officeUrl = offices.length > 0 ? offices[Math.floor(Math.random() * offices.length)] : null;
+
+    const profileImg = profileUrl ? await safeLoadImage(profileUrl) : null;
+    const officeImg = officeUrl ? await safeLoadImage(officeUrl) : null;
+    const logoImg = input.profile.logoImage ? await safeLoadImage(input.profile.logoImage) : null;
 
     const accent = input.accentColor || input.profile.brandColor || "#2B4C7E";
 

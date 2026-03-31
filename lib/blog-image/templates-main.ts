@@ -1,92 +1,103 @@
 import type { SKRSContext2D } from "@napi-rs/canvas";
 import {
     SIZE, FONT_BOLD, FONT_BLACK, FONT_REGULAR,
-    drawCover, drawGradientOverlay, drawWrappedText, rgba,
+    drawCover, drawAutoShrinkText, rgba, roundRect,
     type RenderInput, type Assets,
 } from "./renderer";
 
 const S = SIZE;
 
-type Img = import("@napi-rs/canvas").Image | null;
-
 export function renderMainTemplate(ctx: SKRSContext2D, input: RenderInput, assets: Assets) {
     const { title } = input;
     const { lawyerName, officeName } = input.profile;
-    const { accent, profileImg, officeImg, logoImg } = assets;
+    const { accent, profileImg, officeImg } = assets;
 
-    // Background: Office with 20% dark overlay
+    // 1. Background: Grayscale blurred office photo with heavy dark overlay
     if (officeImg) {
+        ctx.save();
+        ctx.filter = "grayscale(100%) blur(6px)";
         drawCover(ctx, officeImg, 0, 0, S, S);
-        ctx.fillStyle = "rgba(0,0,0,0.2)";
+        ctx.restore();
+
+        // 85% Dark overlay to kill messy details completely
+        ctx.fillStyle = "rgba(10, 14, 20, 0.85)";
         ctx.fillRect(0, 0, S, S);
     } else {
-        ctx.fillStyle = "#1e2430";
+        ctx.fillStyle = "#0A0D14"; // Deep pure dark
         ctx.fillRect(0, 0, S, S);
     }
-    
-    // Gradient overlay to ensure text is readable on the left
-    const grad = ctx.createLinearGradient(0, 0, S * 0.7, 0);
-    grad.addColorStop(0, "rgba(0,0,0,0.8)");
-    grad.addColorStop(0.5, "rgba(0,0,0,0.4)");
-    grad.addColorStop(1, "transparent");
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, S, S);
 
-    // Profile Photo on the right (taking ~40% of screen)
+    const pad = 80; // Massive margins
+    const rightW = profileImg ? S * 0.4 : 0;
+    const leftW = profileImg ? S - rightW - pad : S - pad * 2;
+
+    // 2. Profile Photo (structured inset frame, NOT floating cutout)
     if (profileImg) {
-        // Draw profile image covering the right side
-        // Profile should fill a box of roughly W=400, H=SIZE, aligned to right
-        const pw = S * 0.45;
-        // Keep aspect ratio
-        const scale = Math.max(pw / profileImg.width, S / profileImg.height);
-        const drawW = profileImg.width * scale;
-        const drawH = profileImg.height * scale;
-        // Position at right edge, aligned to bottom
-        const dx = S - pw; // exactly pin to right bound pw
-        const dy = S - drawH;
-        
+        const frameW = S * 0.35;
+        const frameH = S * 0.55;
+        const frameX = S - pad - frameW;
+        const frameY = (S - frameH) / 2;
+
+        // Subtle elegant border
+        ctx.strokeStyle = "rgba(255,255,255,0.08)";
+        ctx.lineWidth = 1;
+        roundRect(ctx, frameX, frameY, frameW, frameH, 0);
+        ctx.stroke();
+
         ctx.save();
         ctx.beginPath();
-        // Mask it so it only occupies the right 45% neatly, or soft gradient mask
-        ctx.rect(dx, 0, pw, S);
+        roundRect(ctx, frameX + 8, frameY + 8, frameW - 16, frameH - 16, 0);
         ctx.clip();
         
-        // Actually, just drawing it large looks better if it's a person
-        ctx.drawImage(profileImg, dx + (pw - drawW)/2, dy, drawW, drawH);
+        ctx.filter = "contrast(1.05) saturate(0.95)"; // slight cinematic grade
+        drawCover(ctx, profileImg, frameX + 8, frameY + 8, frameW - 16, frameH - 16);
         ctx.restore();
-        
-        // Overlap a small gradient at the bottom of profile to fade it down
-        const pGrad = ctx.createLinearGradient(0, S - 150, 0, S);
-        pGrad.addColorStop(0, "transparent");
-        pGrad.addColorStop(1, "rgba(0,0,0,0.6)");
-        ctx.fillStyle = pGrad;
-        ctx.fillRect(dx, S - 150, pw, 150);
+
+        // Subtle gradient mask at bottom of the inset frame to blend it into the void
+        const dropGrad = ctx.createLinearGradient(0, frameY + frameH - 100, 0, frameY + frameH);
+        dropGrad.addColorStop(0, "transparent");
+        dropGrad.addColorStop(1, "rgba(10, 14, 20, 0.95)");
+        ctx.fillStyle = dropGrad;
+        ctx.fillRect(frameX + 8, frameY + frameH - 100, frameW - 16, 100);
     }
 
-    // Logo
-    if (logoImg) {
-        const lh = 48;
-        const lw = logoImg.width * (lh / logoImg.height);
-        ctx.drawImage(logoImg, 64, 64, lw, lh);
-    }
-
-    // Top Brand Line
-    ctx.font = `700 18px ${FONT_BOLD}`;
-    ctx.fillStyle = accent;
-    ctx.fillText(`${officeName || "법률 전문"} · ${lawyerName} 변호사`, 64, logoImg ? 144 : 80);
-
-    // Title (Max 2 lines, large typography)
-    ctx.font = `900 68px ${FONT_BLACK}`;
-    ctx.fillStyle = "#FFFFFF";
+    // 3. Typography
     ctx.textBaseline = "top";
-    // x=64, y=centered roughly around 340
-    // maxWidth = remaining space minus padding
-    const maxTextWidth = profileImg ? S * 0.55 - 64 : S - 128;
     
-    // Draw text with maxLines = 2
-    const totalLinesH = drawWrappedText(ctx, title, 64, 280, maxTextWidth, 88, { maxLines: 2, shadow: true });
-
-    // Decorative Accent Bar below title
+    // Top Bar (Accent dot)
     ctx.fillStyle = accent;
-    ctx.fillRect(64, 280 + totalLinesH + 32, 60, 6);
+    ctx.fillRect(pad, pad, 12, 12);
+    
+    // Office Name
+    ctx.font = `700 18px ${FONT_BOLD}`;
+    ctx.fillStyle = "rgba(255,255,255,0.5)";
+    ctx.fillText(officeName || "법률 서비스", pad + 24, pad - 2);
+
+    // Giant Title using drawAutoShrinkText
+    // We want it visually centered vertically in relation to the frame
+    ctx.fillStyle = "#FFFFFF";
+    
+    const maxTitleH = S * 0.45; 
+    const centerY = S / 2 - maxTitleH / 2;
+    
+    drawAutoShrinkText(
+        ctx, 
+        title, 
+        pad, 
+        centerY + 40, 
+        leftW - pad, 
+        maxTitleH, 
+        88, 
+        FONT_BLACK, 
+        "900", 
+        { shadow: false } // pure flat
+    );
+
+    // Bottom Signature 
+    ctx.fillStyle = "rgba(255,255,255,0.2)";
+    ctx.fillRect(pad, S - pad - 40, 40, 2);
+    
+    ctx.font = `600 16px ${FONT_REGULAR}`;
+    ctx.fillStyle = "rgba(255,255,255,0.6)";
+    ctx.fillText(`${lawyerName} 대표변호사`, pad, S - pad - 24);
 }
