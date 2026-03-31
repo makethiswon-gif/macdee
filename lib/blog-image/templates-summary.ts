@@ -9,67 +9,118 @@ const S = SIZE;
 
 export function renderSummaryTemplate(ctx: SKRSContext2D, input: RenderInput, assets: Assets) {
     const { summaryPoints } = input;
-    const { accent, logoImg, darkBg } = assets;
+    const { accent, logoImg, officeImg, darkBg } = assets;
 
-    // 1. Solid minimal background
-    // Base dark navy/black (Deep Editorial Navy)
-    ctx.fillStyle = darkBg;
-    ctx.fillRect(0, 0, S, S);
-    
-    // Very subtle gradient matching accent
-    const g1 = ctx.createRadialGradient(0, S, 0, 0, S, S * 0.4);
-    g1.addColorStop(0, rgba(accent, 0.08));
-    g1.addColorStop(1, "transparent");
-    ctx.fillStyle = g1;
-    ctx.fillRect(0, 0, S, S);
-
-    // 2. Pure Typography Focus
-    const pad = 120; // Maximum safe area margins
-    ctx.textBaseline = "top";
-
-    if (logoImg) {
-        // Very small discreet logo top center
-        const lh = 36;
-        const lw = logoImg.width * (lh / logoImg.height);
-        ctx.drawImage(logoImg, S / 2 - lw / 2, pad, lw, lh);
-    }
-
-    // 3. Giant Quote
     const mainSentence = summaryPoints.length > 0 ? summaryPoints[0] : "문제의 핵심을 정확히 파악하여 빠르고 유리하게 대응하세요.";
     const secondaryPoint = summaryPoints.length > 1 ? summaryPoints[1] : "";
+    const pad = 120; // Maximum safe area margins
 
-    // The Quote Mark
-    ctx.textAlign = "center";
+    // Randomize Layouts (0: Classic Center, 1: Cinematic Left, 2: Cinematic Right)
+    const layout = Math.floor(Math.random() * 3);
+
+    // --- BACKGROUND RENDER ---
+    if (layout === 0 || !officeImg) {
+        // Variant 0: Solid minimal background (Deep Editorial Navy)
+        ctx.fillStyle = darkBg;
+        ctx.fillRect(0, 0, S, S);
+        const g1 = ctx.createRadialGradient(0, S, 0, 0, S, S * 0.4);
+        g1.addColorStop(0, rgba(accent, 0.08));
+        g1.addColorStop(1, "transparent");
+        ctx.fillStyle = g1;
+        ctx.fillRect(0, 0, S, S);
+    } else {
+        // Variant 1 & 2: Cinematic Office Background
+        ctx.save();
+        ctx.filter = "contrast(1.2) grayscale(60%)"; 
+        drawCover(ctx, officeImg, 0, 0, S, S);
+        ctx.restore();
+        
+        // Heavy studio shadow to make white text completely readable
+        ctx.fillStyle = "rgba(28, 28, 30, 0.88)";
+        ctx.fillRect(0, 0, S, S);
+
+        // Add a subtle vignette targeting the alignment side
+        const gradX0 = layout === 1 ? 0 : S;
+        const gradX1 = layout === 1 ? S : 0;
+        const alignGrad = ctx.createLinearGradient(gradX0, 0, gradX1, 0);
+        alignGrad.addColorStop(0, "rgba(10,10,12,0.6)");
+        alignGrad.addColorStop(1, "transparent");
+        ctx.fillStyle = alignGrad;
+        ctx.fillRect(0, 0, S, S);
+    }
+
+    drawFilmGrain(ctx, 0.03);
+
+    // --- TYPOGRAPHY RENDER ---
+    ctx.textBaseline = "top";
+    
+    // Determine Alignment Metrics
+    let align = "center";
+    let textX = S / 2;
+    let logoX = S / 2;
+    let quoteX = S / 2;
+
+    if (layout === 1) {
+        align = "left";
+        textX = pad;
+        logoX = pad;
+        quoteX = pad;
+    } else if (layout === 2) {
+        align = "right";
+        textX = S - pad;
+        logoX = S - pad;
+        quoteX = S - pad;
+    }
+
+    ctx.textAlign = align as any;
+
+    // 1. Logo (Discreet)
+    if (logoImg) {
+        const lh = 36;
+        const lw = logoImg.width * (lh / logoImg.height);
+        let drawX = logoX;
+        if (align === "center") drawX -= lw / 2;
+        if (align === "right") drawX -= lw;
+        
+        ctx.drawImage(logoImg, drawX, pad, lw, lh);
+    }
+
+    // 2. The Quote Mark
     ctx.fillStyle = accent;
     ctx.font = `900 120px serif`; 
-    ctx.fillText("“", S / 2, pad + 80);
+    ctx.fillText("“", quoteX, pad + 80);
 
-    // The Core Message (Massive size, auto shrinks if too long)
+    // 3. The Core Message (Massive size, auto shrinks if too long)
     ctx.fillStyle = "#FFFFFF";
-
+    
+    // X Anchor for drawAutoShrinkText (it handles alignment internally if configured)
     const { height: textH } = drawAutoShrinkText(
         ctx,
         mainSentence,
-        S / 2, // Centered X
+        textX, 
         pad + 240,
         S - pad * 2,
-        280,   // Max height before shrinking
+        320,   // Max height before shrinking
         64,    // Max Initial Font
         FONT_BLACK,
         "900",
         { shadow: false }
     );
 
-    // Optional Secondary Explanation Block right below
+    // 4. Optional Secondary Explanation Block right below
     if (secondaryPoint) {
         ctx.fillStyle = "rgba(255,255,255,0.4)";
-        ctx.fillRect(S / 2 - 30, pad + 240 + textH + 50, 60, 2);
         
-        ctx.textAlign = "center";
+        // Draw Accent Line
+        let lineX = textX;
+        if (align === "center") lineX = textX - 30;
+        else if (align === "right") lineX = textX - 60;
+        ctx.fillRect(lineX, pad + 240 + textH + 50, 60, 2);
+        
         drawAutoShrinkText(
             ctx,
             secondaryPoint,
-            S / 2, // Centered X
+            textX,
             pad + 240 + textH + 80,
             S - pad * 2,
             120,

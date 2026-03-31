@@ -43,24 +43,43 @@ export function renderBrandTemplate(ctx: SKRSContext2D, input: RenderInput, asse
     ctx.fillStyle = topGrad;
     ctx.fillRect(0, 0, S, S);
 
-    // 2. Center Focus Typography (Single Elegant Tagline)
-    const tagline = brandLines?.length ? brandLines[0] : `${lawyerName} 변호사가 함께합니다`;
+    // 2. Center Focus Typography (Multiline Brand Message)
+    const tagline = brandLines?.length ? brandLines.join("\n") : `${lawyerName} 변호사가\n당신의 권리를 찾습니다`;
     const pad = 120; // safe zone
     ctx.textBaseline = "middle";
     ctx.textAlign = "center";
 
-    // Draw the tagline exactly in the center
-    const textCenterY = S / 2 - 40;
-    
+    // Dry run to get exact height
+    ctx.save();
+    ctx.globalAlpha = 0;
+    const met = drawAutoShrinkText(
+        ctx,
+        tagline,
+        S / 2,
+        0,
+        S - pad * 2,
+        360,
+        64, 
+        FONT_BLACK,
+        "900",
+        { shadow: false }
+    );
+    ctx.restore();
+
+    // Vertically center the text block and elements
+    // Push the whole structure up slightly so it looks perfectly balanced
+    const startY = (S / 2) - (met.height / 2) - 40;
+
+    // Draw the actual tagline
     ctx.fillStyle = "#FFFFFF";
     drawAutoShrinkText(
         ctx,
         tagline,
-        S / 2, // Centered X
-        textCenterY,
+        S / 2,
+        startY,
         S - pad * 2,
-        200,
-        56, // starting Large but elegant
+        360,
+        64,
         FONT_BLACK,
         "900",
         { shadow: false }
@@ -68,12 +87,12 @@ export function renderBrandTemplate(ctx: SKRSContext2D, input: RenderInput, asse
 
     // Accent mini-divider
     ctx.fillStyle = accent;
-    ctx.fillRect(S / 2 - 20, textCenterY + 120, 40, 2);
+    ctx.fillRect(S / 2 - 20, startY + met.height + 40, 40, 2);
 
     // Office Identity Name
     ctx.font = `600 20px ${FONT_BOLD}`;
     ctx.fillStyle = "rgba(255,255,255,0.4)";
-    ctx.fillText(`${officeName || "법률 서비스"} · ${lawyerName} 변호사`, S / 2, textCenterY + 160);
+    ctx.fillText(`${officeName || "법률 서비스"} · ${lawyerName} 변호사`, S / 2, startY + met.height + 80);
 
     // 3. Top Bottom Sub-branding
     ctx.textAlign = "left";
