@@ -107,7 +107,7 @@ export function renderCareerTemplate(ctx: SKRSContext2D, input: RenderInput, ass
     // 4. Typography Content Area (Left side)
     const padX = 100;
     const contentMaxW = S * 0.55;
-    let currY = 240; // Starting Y position
+    let currY = 140; // Starting Y position (raised significantly)
 
     // Category / Office Label (Very small top accent)
     if (officeName) {
@@ -156,11 +156,12 @@ export function renderCareerTemplate(ctx: SKRSContext2D, input: RenderInput, ass
         ctx.textAlign = "left";
         
         const formattedItems = career.map(item => {
+            if (item === null || item === undefined) return "";
+            if (item.trim() === "") return ""; // keep empty line as pure empty string
             const trimmed = item.trim();
-            if (!trimmed) return "";
             const hasBullet = trimmed.startsWith("-") || trimmed.startsWith("·");
             return hasBullet ? trimmed : `· ${trimmed}`;
-        }).filter(Boolean);
+        });
         
         const careerText = formattedItems.join("\n");
         const remainingHeight = S - currY - 60; // 60px bottom padding
