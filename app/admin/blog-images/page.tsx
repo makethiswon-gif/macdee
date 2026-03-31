@@ -186,9 +186,15 @@ export default function BlogImagesPage() {
         const key = `${imageType}-${selectedTemplates[imageType]}`;
         const url = generatedImages[key];
         if (!url) return;
+        
+        // Form: 핵심키워드(제목)_YYMMDD_변호사명_타입.png
+        const yymmdd = new Date().toISOString().slice(2, 10).replace(/-/g, "");
+        const safeTitle = (postTitle || "블로그").replace(/[\/\\?%*:|"<>]/g, '').trim().replace(/\s+/g, '_');
+        const lawyerName = selected?.lawyerName ? selected.lawyerName.split(" ")[0] : "변호사";
+        
         const a = document.createElement("a");
         a.href = url;
-        a.download = `blog-${imageType}-${selectedTemplates[imageType]}.png`;
+        a.download = `${safeTitle}_${yymmdd}_${lawyerName}_${imageType}.png`;
         a.click();
     };
 
