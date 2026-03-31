@@ -28,7 +28,7 @@ interface PostItem {
     created_at: string;
 }
 
-export default function BlogPageClient({ lawyer, posts }: { lawyer: LawyerInfo; posts: PostItem[] }) {
+export default function BlogPageClient({ lawyer, posts, currentPage, totalPages, totalCount }: { lawyer: LawyerInfo; posts: PostItem[]; currentPage: number; totalPages: number; totalCount: number }) {
     const formatDate = (d: string) => {
         const date = new Date(d);
         return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")}`;
@@ -196,7 +196,7 @@ export default function BlogPageClient({ lawyer, posts }: { lawyer: LawyerInfo; 
                         Legal Insights
                     </span>
                     <span className="text-[11px] text-white/15 tabular-nums">
-                        {posts.length}건
+                        총 {totalCount}건
                     </span>
                 </div>
 
@@ -263,6 +263,45 @@ export default function BlogPageClient({ lawyer, posts }: { lawyer: LawyerInfo; 
                                 </Link>
                             </motion.div>
                         ))}
+
+                        {/* Pagination UI */}
+                        {totalPages > 1 && (
+                            <div className="mt-16 flex items-center justify-center gap-2">
+                                {Math.floor((currentPage - 1) / 10) > 0 && (
+                                    <Link
+                                        href={`?page=${Math.floor((currentPage - 1) / 10) * 10}`}
+                                        className="w-10 h-10 flex items-center justify-center rounded-lg border border-white/10 text-white/50 hover:text-white hover:border-white/30 hover:bg-white/5 transition-all text-sm"
+                                    >
+                                        &lt;
+                                    </Link>
+                                )}
+                                {Array.from(
+                                    { length: Math.min(10, totalPages - Math.floor((currentPage - 1) / 10) * 10) },
+                                    (_, i) => Math.floor((currentPage - 1) / 10) * 10 + 1 + i
+                                ).map((p) => (
+                                    <Link
+                                        key={p}
+                                        href={`?page=${p}`}
+                                        className={`w-10 h-10 flex items-center justify-center rounded-lg border transition-all text-sm font-medium
+                                            ${p === currentPage 
+                                                ? 'border-[lawyer.brand_color] bg-[lawyer.brand_color]/10 text-white' 
+                                                : 'border-transparent text-white/50 hover:text-white hover:bg-white/5'
+                                            }`}
+                                        style={p === currentPage ? { borderColor: lawyer.brand_color, backgroundColor: `${lawyer.brand_color}20` } : {}}
+                                    >
+                                        {p}
+                                    </Link>
+                                ))}
+                                {Math.floor((currentPage - 1) / 10) * 10 + 10 < totalPages && (
+                                    <Link
+                                        href={`?page=${Math.floor((currentPage - 1) / 10) * 10 + 11}`}
+                                        className="w-10 h-10 flex items-center justify-center rounded-lg border border-white/10 text-white/50 hover:text-white hover:border-white/30 hover:bg-white/5 transition-all text-sm"
+                                    >
+                                        &gt;
+                                    </Link>
+                                )}
+                            </div>
+                        )}
                     </div>
                 )}
             </main>

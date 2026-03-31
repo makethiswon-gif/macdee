@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { scrapeUrl } from "@/lib/ai/blog-scraper";
 import { maskPII } from "@/lib/ai/mask-pii";
 import { getContentGenerator, type AIMessage } from "@/lib/ai/providers";
+import { renderBlogImage } from "@/lib/blog-image/renderer";
+import { uploadCoverImage } from "@/lib/supabase/storage";
 
 export const maxDuration = 120; // URL 1개당 충분한 시간
 
@@ -164,6 +166,46 @@ export async function POST(request: Request) {
             return Response.json({ error: `업로드 레코드 생성 실패: ${uploadError?.message}` }, { status: 500 });
         }
 
+        // Step 3.5: Auto Generate Blog Thumbnail
+        let publicImageUrl: string | null = null;
+        try {
+            const { data: blogProfile } = await supabase
+                .from("blog_profiles")
+                .select("*")
+                .eq("id", lawyer.id)
+                .single();
+
+            if (blogProfile) {
+                const profileObj = {
+                    lawyerName: (blogProfile.lawyer_name as string) || lawyer.name || "",
+                    officeName: (blogProfile.office_name as string) || "",
+                    phone: (blogProfile.phone as string) || "",
+                    address: (blogProfile.address as string) || "",
+                    website: (blogProfile.website as string) || "",
+                    specialty: (blogProfile.specialty as string[]) || [],
+                    profileImages: (blogProfile.profile_images as string[]) || [],
+                    officeImages: (blogProfile.office_images as string[]) || [],
+                    logoImage: (blogProfile.logo_image as string) || "",
+                    brandColor: (blogProfile.brand_color as string) || "#3563AE",
+                    brandLines: (blogProfile.brand_lines as string[]) || [],
+                };
+                
+                const input = {
+                    title: scraped.title,
+                    summaryPoints: [],
+                    profile: profileObj,
+                    templateId: 0, 
+                    imageType: "main" as const,
+                    accentColor: profileObj.brandColor,
+                };
+                
+                const pngBuffer = await renderBlogImage(input);
+                publicImageUrl = await uploadCoverImage(lawyer.id, upload.id, pngBuffer.toString("base64"));
+            }
+        } catch (err) {
+            console.error(`[Migrate] Image generation failed:`, err);
+        }
+
         // Step 4: Generate content
         const generator = getContentGenerator();
         const customPrompt = lawyer.schema_data?.customPrompt;
@@ -212,12 +254,17 @@ export async function POST(request: Request) {
                 };
             }
 
+            let finalBody = seoParsed.body || seoContent;
+            if (publicImageUrl) {
+                finalBody = `![대표 이미지](${publicImageUrl})\n\n${finalBody}`;
+            }
+
             await supabase.from("contents").insert({
                 upload_id: upload.id,
                 lawyer_id: lawyer.id,
                 channel: "google",
                 title: (seoParsed.title || scraped.title).replace(/\*\*/g, ""),
-                body: seoParsed.body || seoContent,
+                body: finalBody,
                 meta_description: seoParsed.meta_description || "",
                 tags: seoParsed.keywords || [],
                 schema_markup: seoParsed.faq || null,
@@ -267,12 +314,17 @@ export async function POST(request: Request) {
                 };
             }
 
+            let finalAiBody = aiParsed.body || aiContent;
+            if (publicImageUrl) {
+                finalAiBody = `![대표 이미지](${publicImageUrl})\n\n${finalAiBody}`;
+            }
+
             await supabase.from("contents").insert({
                 upload_id: upload.id,
                 lawyer_id: lawyer.id,
                 channel: "macdee",
                 title: aiParsed.title || `${scraped.title} - AI`,
-                body: aiParsed.body || aiContent,
+                body: finalAiBody,
                 schema_markup: aiParsed.schema_markup || null,
                 status: "review",
             });

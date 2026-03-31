@@ -4,7 +4,10 @@ import BlogPageClient from "./BlogPageClient";
 
 export const dynamic = "force-dynamic";
 
-type Props = { params: Promise<{ slug: string }> };
+type Props = { 
+    params: Promise<{ slug: string }>;
+    searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
+};
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { slug } = await params;
@@ -29,8 +32,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
 }
 
-export default async function BlogPage({ params }: Props) {
+export default async function BlogPage({ params, searchParams }: Props) {
     const { slug } = await params;
+    const resolvedParams = searchParams ? await searchParams : {};
+    const page = parseInt(resolvedParams.page as string) || 1;
+    const limit = 10;
+    const start = (page - 1) * limit;
+    const end = start + limit - 1;
 
     // Fetch data server-side
     const supabase = await createAdminClient();
@@ -52,17 +60,20 @@ export default async function BlogPage({ params }: Props) {
         );
     }
 
-    console.log(`[Blog Page] Querying posts for lawyer_id=${lawyer.id}, slug=${slug}`);
+    console.log(`[Blog Page] Querying posts for lawyer_id=${lawyer.id}, slug=${slug}, page=${page}`);
 
-    const { data: posts, error: postsError } = await supabase
+    const { data: posts, error: postsError, count } = await supabase
         .from("contents")
-        .select("id, title, body, meta_description, tags, channel, created_at, status")
+        .select("id, title, body, meta_description, tags, channel, created_at, status", { count: "exact" })
         .eq("lawyer_id", lawyer.id)
         .in("channel", ["google", "macdee"])
         .eq("status", "published")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .range(start, end);
 
-    console.log(`[Blog Page] Posts query result: ${posts?.length || 0} posts, error: ${postsError?.message || 'none'}`);
+    const totalPages = count ? Math.ceil(count / limit) : 1;
+
+    console.log(`[Blog Page] Posts query result: ${posts?.length || 0} posts, error: ${postsError?.message || 'none'}, totalCount: ${count}`);
     if (posts && posts.length > 0) {
         console.log(`[Blog Page] First post: id=${posts[0].id}, title=${posts[0].title}, status=${posts[0].status}`);
     }
@@ -136,6 +147,9 @@ export default async function BlogPage({ params }: Props) {
                 profile_image_url: lawyer.profile_image_url || "",
             }}
             posts={(posts || []).map(parsePost)}
+            currentPage={page}
+            totalPages={totalPages}
+            totalCount={count || 0}
         />
     );
 }
