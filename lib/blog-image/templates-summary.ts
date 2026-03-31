@@ -19,17 +19,8 @@ export function renderSummaryTemplate(ctx: SKRSContext2D, input: RenderInput, as
     const layout = Math.floor(Math.random() * 3);
 
     // --- BACKGROUND RENDER ---
-    if (layout === 0 || !officeImg) {
-        // Variant 0: Solid minimal background (Deep Editorial Navy)
-        ctx.fillStyle = darkBg;
-        ctx.fillRect(0, 0, S, S);
-        const g1 = ctx.createRadialGradient(0, S, 0, 0, S, S * 0.4);
-        g1.addColorStop(0, rgba(accent, 0.08));
-        g1.addColorStop(1, "transparent");
-        ctx.fillStyle = g1;
-        ctx.fillRect(0, 0, S, S);
-    } else {
-        // Variant 1 & 2: Cinematic Office Background
+    if (officeImg) {
+        // Cinematic Office Background for all layouts
         ctx.save();
         ctx.filter = "contrast(1.2) grayscale(60%)"; 
         drawCover(ctx, officeImg, 0, 0, S, S);
@@ -40,12 +31,30 @@ export function renderSummaryTemplate(ctx: SKRSContext2D, input: RenderInput, as
         ctx.fillRect(0, 0, S, S);
 
         // Add a subtle vignette targeting the alignment side
-        const gradX0 = layout === 1 ? 0 : S;
-        const gradX1 = layout === 1 ? S : 0;
-        const alignGrad = ctx.createLinearGradient(gradX0, 0, gradX1, 0);
-        alignGrad.addColorStop(0, "rgba(10,10,12,0.6)");
-        alignGrad.addColorStop(1, "transparent");
-        ctx.fillStyle = alignGrad;
+        if (layout === 1 || layout === 2) {
+            const gradX0 = layout === 1 ? 0 : S;
+            const gradX1 = layout === 1 ? S : 0;
+            const alignGrad = ctx.createLinearGradient(gradX0, 0, gradX1, 0);
+            alignGrad.addColorStop(0, "rgba(10,10,12,0.6)");
+            alignGrad.addColorStop(1, "transparent");
+            ctx.fillStyle = alignGrad;
+            ctx.fillRect(0, 0, S, S);
+        } else {
+            // Center emphasis for layout 0
+            const alignGrad = ctx.createRadialGradient(S/2, S, 0, S/2, S, S*0.8);
+            alignGrad.addColorStop(0, "rgba(10,10,12,0.6)");
+            alignGrad.addColorStop(1, "transparent");
+            ctx.fillStyle = alignGrad;
+            ctx.fillRect(0, 0, S, S);
+        }
+    } else {
+        // Fallback: Solid minimal background (Deep Editorial Navy) if no photo
+        ctx.fillStyle = darkBg;
+        ctx.fillRect(0, 0, S, S);
+        const g1 = ctx.createRadialGradient(0, S, 0, 0, S, S * 0.4);
+        g1.addColorStop(0, rgba(accent, 0.08));
+        g1.addColorStop(1, "transparent");
+        ctx.fillStyle = g1;
         ctx.fillRect(0, 0, S, S);
     }
 
