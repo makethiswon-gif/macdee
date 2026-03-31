@@ -1,7 +1,7 @@
 import type { SKRSContext2D } from "@napi-rs/canvas";
 import {
     SIZE, FONT_BOLD, FONT_BLACK, FONT_REGULAR,
-    drawCover, drawAutoShrinkText, rgba,
+    drawCover, drawAutoShrinkText, rgba, drawFilmGrain,
     type RenderInput, type Assets,
 } from "./renderer";
 
@@ -11,20 +11,29 @@ export function renderBrandTemplate(ctx: SKRSContext2D, input: RenderInput, asse
     const { lawyerName, officeName, brandLines } = input.profile;
     const { accent, officeImg, logoImg, darkBg } = assets;
 
-    // 1. Full Office Photo with Grayscale and Heavy Overlays (The Mood)
+    // 1. Full Office Photo (Warm Flash Magazine Mood)
     if (officeImg) {
         ctx.save();
-        ctx.filter = "grayscale(100%) blur(4px)";
+        ctx.filter = "contrast(1.3) saturate(0.85) brightness(1.15)";
         drawCover(ctx, officeImg, 0, 0, S, S);
         ctx.restore();
 
-        // 90% Ultra Dark overlay for complete mood control and perfect legibility
-        ctx.fillStyle = rgba(darkBg, 0.9);
+        // Warm Cream Beige Tint via Multiply
+        ctx.save();
+        ctx.globalCompositeOperation = "multiply";
+        ctx.fillStyle = "#F4F0E6";
+        ctx.fillRect(0, 0, S, S);
+        ctx.restore();
+
+        // 80% Heavy Studio Shadow to make white text completely readable
+        ctx.fillStyle = "rgba(28, 28, 30, 0.8)";
         ctx.fillRect(0, 0, S, S);
     } else {
-        ctx.fillStyle = darkBg; // Very dark brand void
+        ctx.fillStyle = "rgba(28, 28, 30, 1)"; // Deep studio dark fallback
         ctx.fillRect(0, 0, S, S);
     }
+
+    drawFilmGrain(ctx, 0.03);
 
     // Gentle vertical vignette
     const topGrad = ctx.createLinearGradient(0, 0, 0, S);

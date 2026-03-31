@@ -11,18 +11,25 @@ export async function renderContactTemplate(ctx: SKRSContext2D, input: RenderInp
     const { lawyerName, officeName, phone, address } = input.profile;
     const { accent, officeImg, darkBg } = assets;
 
-    // 1. Solid minimal background (Deep editorial)
+    // 1. Solid minimal background (Warm Flash Magazine Mode)
     if (officeImg) {
         ctx.save();
-        ctx.filter = "grayscale(100%) blur(8px)";
+        ctx.filter = "contrast(1.3) saturate(0.85) brightness(1.15)";
         drawCover(ctx, officeImg, 0, 0, S, S);
         ctx.restore();
         
-        // 95% dark overlay. It should be barely visible texture
-        ctx.fillStyle = rgba(darkBg, 0.95);
+        // Warm Cream Beige Tint via Multiply
+        ctx.save();
+        ctx.globalCompositeOperation = "multiply";
+        ctx.fillStyle = "#F4F0E6";
+        ctx.fillRect(0, 0, S, S);
+        ctx.restore();
+
+        // 85% shadow mask to preserve legibility for the signature typography
+        ctx.fillStyle = "rgba(28, 28, 30, 0.85)";
         ctx.fillRect(0, 0, S, S);
     } else {
-        ctx.fillStyle = darkBg; // Deep brand dark
+        ctx.fillStyle = "rgba(28, 28, 30, 1)"; // Deep studio dark
         ctx.fillRect(0, 0, S, S);
     }
 

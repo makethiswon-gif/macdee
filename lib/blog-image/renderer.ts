@@ -277,7 +277,7 @@ export function drawAutoShrinkText(
     initialFontSize: number,
     fontFamily: string,
     fontWeight: string,
-    opts?: { shadow?: boolean }
+    opts?: { shadow?: boolean, highlightPattern?: { color: string, type: "first-line" | "all" } }
 ): { height: number; lines: string[]; fontSize: number } {
     let currentFontSize = initialFontSize;
     let lines: string[] = [];
@@ -298,7 +298,28 @@ export function drawAutoShrinkText(
     // Set finalized font size
     ctx.font = `${fontWeight} ${currentFontSize}px ${fontFamily}`;
     
-    // Actually draw
+    // Draw Highlights if requested
+    if (opts?.highlightPattern) {
+        ctx.save();
+        ctx.fillStyle = opts.highlightPattern.color;
+        // The highlight box should extend slightly below and above the text
+        const boxPadY = currentFontSize * 0.1;
+        const boxH = currentFontSize * 1.25;
+        
+        for (let i = 0; i < lines.length; i++) {
+            if (opts.highlightPattern.type === "first-line" && i > 0) break;
+            const w = ctx.measureText(lines[i]).width;
+            
+            let hx = x;
+            if (ctx.textAlign === "center") hx = x - w / 2;
+            else if (ctx.textAlign === "right") hx = x - w;
+            
+            ctx.fillRect(hx, y + i * lineHeight - boxPadY, w, boxH);
+        }
+        ctx.restore();
+    }
+    
+    // Actually draw text
     for (let i = 0; i < lines.length; i++) {
         if (opts?.shadow) {
             drawTextWithShadow(ctx, lines[i], x, y + i * lineHeight);

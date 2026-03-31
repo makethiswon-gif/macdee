@@ -1,7 +1,7 @@
 import type { SKRSContext2D } from "@napi-rs/canvas";
 import {
     SIZE, FONT_BOLD, FONT_BLACK, FONT_REGULAR,
-    drawCover, drawAutoShrinkText, rgba, hasTransparency, roundRect,
+    drawCover, drawAutoShrinkText, rgba, hasTransparency, roundRect, drawFilmGrain,
     type RenderInput, type Assets,
 } from "./renderer";
 
@@ -12,18 +12,23 @@ export function renderMainTemplate(ctx: SKRSContext2D, input: RenderInput, asset
     const { lawyerName, officeName } = input.profile;
     const { accent, profileImg, officeImg, darkBg } = assets;
 
-    // 1. Background base
+    // 1. Background Base (Warm & Flash Aesthetic)
     if (officeImg) {
         ctx.save();
-        ctx.filter = "grayscale(100%) blur(6px)";
+        // On-camera flash look: hard contrast, slightly desaturated, bright exposed
+        ctx.filter = "contrast(1.3) saturate(0.85) brightness(1.15)";
         drawCover(ctx, officeImg, 0, 0, S, S);
         ctx.restore();
 
-        // 85% Dark overlay
-        ctx.fillStyle = rgba(darkBg, 0.85);
+        // Warm Cream Beige Tint via Multiply
+        ctx.save();
+        ctx.globalCompositeOperation = "multiply";
+        ctx.fillStyle = "#F4F0E6";
         ctx.fillRect(0, 0, S, S);
+        ctx.restore();
     } else {
-        ctx.fillStyle = darkBg; 
+        // Solid Cream Beige fallback
+        ctx.fillStyle = "#F4F0E6";
         ctx.fillRect(0, 0, S, S);
     }
 
@@ -41,24 +46,40 @@ export function renderMainTemplate(ctx: SKRSContext2D, input: RenderInput, asset
     let textAlign: "left" | "right" | "center" = "left";
     let maxTextW = S * 0.5 - pad * 1.5;
 
-    // Determine coordinate spaces
+    // The Layouts and Shadows
+    let shadowGrad;
     if (layout === 0) {
-        // Variant A: Title Left, Photo Right
+        // Variant 0: Title Left, Photo Right
         textAlign = "left";
         textX = pad;
         maxTextW = S * 0.55;
+        // Shadow on the left to support white text
+        shadowGrad = ctx.createLinearGradient(0, 0, S * 0.7, 0);
     } else if (layout === 1) {
-        // Variant B: Title Right, Photo Left
+        // Variant 1: Title Right, Photo Left
         textAlign = "right";
         textX = S - pad;
         maxTextW = S * 0.55;
+        // Shadow on the right to support white text
+        shadowGrad = ctx.createLinearGradient(S, 0, S * 0.3, 0);
     } else {
-        // Variant C: Title Center Top, Photo Center Bottom
+        // Variant 2: Title Center Top, Photo Center Bottom
         textAlign = "center";
         textX = S / 2;
         textY = pad + 40;
         maxTextW = S - pad * 2;
+        // Shadow on the top to support white text
+        shadowGrad = ctx.createLinearGradient(0, 0, 0, S * 0.6);
     }
+
+    // Apply Deep Shadows (깊은 그림자) for text readability
+    shadowGrad.addColorStop(0, "rgba(28, 28, 30, 0.95)"); // Deep studio black
+    shadowGrad.addColorStop(1, "transparent");
+    ctx.fillStyle = shadowGrad;
+    ctx.fillRect(0, 0, S, S);
+
+    // FILM GRAIN applied over background but underneath portraits/text
+    drawFilmGrain(ctx, 0.03);
 
     // DRAW PHOTO FIRST if it's Center Bottom (so text overlays it if needed), 
     // or draw it after background. Actually, for clean look, draw Photo first, then text, 
@@ -130,13 +151,14 @@ export function renderMainTemplate(ctx: SKRSContext2D, input: RenderInput, asset
             ctx.restore();
             
             // Smooth gradient mask inside pill
-            const dropGrad = ctx.createLinearGradient(0, frameY + frameH - 100, 0, frameY + frameH);
+            const dropGrad = ctx.createLinearGradient(0, frameY + frameH - 120, 0, frameY + frameH);
             dropGrad.addColorStop(0, "transparent");
-            dropGrad.addColorStop(1, rgba(darkBg, 0.95));
+            // Match the deep studio black of the shadow
+            dropGrad.addColorStop(1, "rgba(28, 28, 30, 0.95)");
             ctx.fillStyle = dropGrad;
             ctx.beginPath();
             // Since custom roundRect handles simple shapes, use it for the gradient block too
-            roundRect(ctx, frameX + 8, frameY + frameH - 100, frameW - 16, 100, Math.max(0, r - 8));
+            roundRect(ctx, frameX + 8, frameY + frameH - 120, frameW - 16, 120, Math.max(0, r - 8));
             ctx.fill();
         }
     }
@@ -145,36 +167,34 @@ export function renderMainTemplate(ctx: SKRSContext2D, input: RenderInput, asset
     ctx.textBaseline = "top";
     ctx.textAlign = textAlign;
 
-    // Accent Dot / Office Name
-    let topLabelX = textX;
-    if (textAlign === "left") topLabelX += 24;
-    else if (textAlign === "right") topLabelX -= 24;
-
+    // Category Badge
+    const badgeText = officeName ? "Focus" : "Interview";
     ctx.font = `700 18px ${FONT_BOLD}`;
-    ctx.fillStyle = "rgba(255,255,255,0.5)";
-    ctx.fillText(officeName || "법률 서비스", topLabelX, textY - 40);
+    const met = ctx.measureText(badgeText);
+    const badgeW = met.width + 24;
+    const badgeH = 34;
 
-    // Accent Dot
-    ctx.fillStyle = accent;
-    if (textAlign === "left") ctx.fillRect(textX, textY - 38, 12, 12);
-    else if (textAlign === "right") ctx.fillRect(textX - 12, textY - 38, 12, 12);
-    else if (textAlign === "center") {
-        const met = ctx.measureText(officeName || "법률 서비스");
-        ctx.fillRect(S / 2 - met.width / 2 - 24, textY - 38, 12, 12);
-    }
-
-    // Title
-    ctx.fillStyle = "#FFFFFF";
+    let bx = textX;
+    if (textAlign === "center") bx = S / 2 - badgeW / 2;
+    else if (textAlign === "right") bx = textX - badgeW;
     
+    // Draw Category Badge
+    ctx.fillStyle = accent; 
+    ctx.fillRect(bx, textY - 50, badgeW, badgeH);
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillText(badgeText, bx + 12, textY - 41);
+
+    // Title (White on Deep Shadow)
     // For layout 2 (Center top), textY is 120, max height is 300
     // For layout 0,1, textY is ~300, max height is 400
     const maxTitleH = layout === 2 ? 300 : S * 0.45; 
     
+    ctx.fillStyle = "#FFFFFF";
     drawAutoShrinkText(
         ctx, 
         title, 
         textX, 
-        textY + 10, 
+        textY, 
         maxTextW, 
         maxTitleH, 
         88, 
