@@ -144,6 +144,26 @@ export function extractDominantColor(img: Image | null, fallback: string): strin
     }
 }
 
+/** Check if an image contains significant transparent pixels (cutout/누끼) */
+export function hasTransparency(img: Image | null): boolean {
+    if (!img) return false;
+    try {
+        // Fast 50x50 check
+        const c = createCanvas(50, 50);
+        const ctx = c.getContext("2d");
+        ctx.drawImage(img, 0, 0, 50, 50);
+        const data = ctx.getImageData(0, 0, 50, 50).data;
+        let transparentPixels = 0;
+        for (let i = 3; i < data.length; i += 4) {
+            if (data[i] < 240) transparentPixels++;
+        }
+        // If more than 5% of pixels are significantly transparent, treat as a cutout (누끼)
+        return transparentPixels > (2500 * 0.05);
+    } catch {
+        return false;
+    }
+}
+
 // ── Text Utilities ──
 
 /** Wrap text into lines fitting maxWidth, preferring word breaks */
