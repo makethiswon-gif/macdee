@@ -33,14 +33,29 @@ export const FONT_BLACK = "NotoSansKR-900";
 
 // ── Color Utilities ──
 export function hexToRgb(hex: string): [number, number, number] {
+    if (!hex) return [43, 76, 126]; // fallback to #2B4C7E
+    
+    // Handle "rgb(r, g, b)" fallback just in case
+    if (hex.startsWith("rgb")) {
+        const match = hex.match(/\d+/g);
+        if (match && match.length >= 3) {
+            return [parseInt(match[0]), parseInt(match[1]), parseInt(match[2])];
+        }
+    }
+
     const h = hex.replace("#", "");
     const c = h.length <= 4 ? h.slice(0, 3) : h.slice(0, 6);
     const full = c.length === 3 ? c.split("").map(ch => ch + ch).join("") : c;
-    return [
-        parseInt(full.slice(0, 2), 16),
-        parseInt(full.slice(2, 4), 16),
-        parseInt(full.slice(4, 6), 16),
-    ];
+    
+    const r = parseInt(full.slice(0, 2), 16);
+    const g = parseInt(full.slice(2, 4), 16);
+    const b = parseInt(full.slice(4, 6), 16);
+    
+    // Completely crush NaN errors
+    if (isNaN(r) || isNaN(g) || isNaN(b)) {
+        return [43, 76, 126];
+    }
+    return [r, g, b];
 }
 
 export function isLightColor(hex: string): boolean {
@@ -60,12 +75,18 @@ export function rgba(hex: string, alpha: number): string {
 export function darken(hex: string, amount: number): string {
     const [r, g, b] = hexToRgb(hex);
     const f = 1 - amount;
-    return `rgb(${Math.floor(r * f)},${Math.floor(g * f)},${Math.floor(b * f)})`;
+    const nr = Math.floor(r * f);
+    const ng = Math.floor(g * f);
+    const nb = Math.floor(b * f);
+    return `#${((1 << 24) + (nr << 16) + (ng << 8) + nb).toString(16).slice(1)}`;
 }
 
 export function lighten(hex: string, amount: number): string {
     const [r, g, b] = hexToRgb(hex);
-    return `rgb(${Math.min(255, Math.floor(r + (255 - r) * amount))},${Math.min(255, Math.floor(g + (255 - g) * amount))},${Math.min(255, Math.floor(b + (255 - b) * amount))})`;
+    const nr = Math.min(255, Math.floor(r + (255 - r) * amount));
+    const ng = Math.min(255, Math.floor(g + (255 - g) * amount));
+    const nb = Math.min(255, Math.floor(b + (255 - b) * amount));
+    return `#${((1 << 24) + (nr << 16) + (ng << 8) + nb).toString(16).slice(1)}`;
 }
 
 /** Get a very dark background color from an accent hex (10% brightness) */
