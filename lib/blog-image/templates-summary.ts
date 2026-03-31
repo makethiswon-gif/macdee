@@ -85,7 +85,7 @@ export function renderSummaryTemplate(ctx: SKRSContext2D, input: RenderInput, as
 
     // 1. Logo (Discreet)
     if (logoImg) {
-        const lh = 36;
+        const lh = 80;
         const lw = logoImg.width * (lh / logoImg.height);
         let drawX = logoX;
         if (align === "center") drawX -= lw / 2;

@@ -98,7 +98,7 @@ export function renderBrandTemplate(ctx: SKRSContext2D, input: RenderInput, asse
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
     if (logoImg) {
-        const lh = 40;
+        const lh = 80;
         const lw = logoImg.width * (lh / logoImg.height);
         ctx.drawImage(logoImg, S / 2 - lw / 2, 80, lw, lh);
     }
