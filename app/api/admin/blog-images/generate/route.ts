@@ -48,8 +48,12 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "Profile not found" }, { status: 404 });
         }
 
+        const rawName = (row.lawyer_name as string) || "";
+        const [lawyerName, jobTitle = "대표변호사"] = rawName.includes("||") ? rawName.split("||") : [rawName, "대표변호사"];
+
         const profile = {
-            lawyerName: (row.lawyer_name as string) || "",
+            lawyerName,
+            jobTitle,
             officeName: (row.office_name as string) || "",
             phone: (row.phone as string) || "",
             address: (row.address as string) || "",

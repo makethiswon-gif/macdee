@@ -176,8 +176,12 @@ export async function POST(request: Request) {
                 .single();
 
             if (blogProfile) {
+                const rawName = (blogProfile.lawyer_name as string) || lawyer.name || "";
+                const [lawyerName, jobTitle = "대표변호사"] = rawName.includes("||") ? rawName.split("||") : [rawName, "대표변호사"];
+
                 const profileObj = {
-                    lawyerName: (blogProfile.lawyer_name as string) || lawyer.name || "",
+                    lawyerName,
+                    jobTitle,
                     officeName: (blogProfile.office_name as string) || "",
                     phone: (blogProfile.phone as string) || "",
                     address: (blogProfile.address as string) || "",
