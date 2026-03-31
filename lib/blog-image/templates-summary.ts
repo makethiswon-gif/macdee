@@ -1,7 +1,7 @@
 import type { SKRSContext2D } from "@napi-rs/canvas";
 import {
     SIZE, FONT_BOLD, FONT_BLACK, FONT_REGULAR,
-    drawAutoShrinkText, drawFilmGrain, rgba,
+    drawCover, drawAutoShrinkText, drawFilmGrain, rgba,
     type RenderInput, type Assets,
 } from "./renderer";
 
@@ -9,11 +9,21 @@ const S = SIZE;
 
 export function renderSummaryTemplate(ctx: SKRSContext2D, input: RenderInput, assets: Assets) {
     const { summaryPoints } = input;
-    const { accent, logoImg } = assets;
+    const { accent, logoImg, officeImg } = assets;
 
-    // 1. Warm Cream Beige Background (Magazine style)
-    ctx.fillStyle = "#F4F0E6";
-    ctx.fillRect(0, 0, S, S);
+    // 1. Warm Cream Beige Background with optional faint image
+    if (officeImg) {
+        ctx.save();
+        ctx.filter = "contrast(1.3) saturate(0.85) brightness(1.15)";
+        drawCover(ctx, officeImg, 0, 0, S, S);
+        ctx.restore();
+        
+        ctx.fillStyle = "rgba(244, 240, 230, 0.9)"; // 90% opaque warm beige
+        ctx.fillRect(0, 0, S, S);
+    } else {
+        ctx.fillStyle = "#F4F0E6";
+        ctx.fillRect(0, 0, S, S);
+    }
     
     // Add film grain texture
     drawFilmGrain(ctx, 0.03);

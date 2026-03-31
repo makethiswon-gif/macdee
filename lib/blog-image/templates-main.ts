@@ -34,10 +34,8 @@ export function renderMainTemplate(ctx: SKRSContext2D, input: RenderInput, asset
 
     const isCutout = hasTransparency(profileImg);
     
-    // Choose Random Layout Variant (0: Classic Right, 1: Classic Left, 2: Center Bottom)
-    // To make sure variations are somewhat stable per input, we can use title length as a crude pseudo-random seed,
-    // but the user wants it to change if they click "Re-generate", so Math.random() is perfect.
-    const layout = Math.floor(Math.random() * 3);
+    // The user explicitly requested the portrait to ALWAYS be on the bottom right.
+    let layout = 0; // 0 represents: Title Left, Photo Right
     const pad = 80;
 
     // Default typography values
@@ -167,8 +165,8 @@ export function renderMainTemplate(ctx: SKRSContext2D, input: RenderInput, asset
     ctx.textBaseline = "top";
     ctx.textAlign = textAlign;
 
-    // Category Badge
-    const badgeText = officeName ? "Focus" : "Interview";
+    // Category Badge (Lawyer Name)
+    const badgeText = `${lawyerName} 변호사`;
     ctx.font = `700 18px ${FONT_BOLD}`;
     const met = ctx.measureText(badgeText);
     const badgeW = met.width + 24;
