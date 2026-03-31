@@ -89,9 +89,10 @@ export default function BlogImagesPage() {
     };
 
     // Generate single image
-    const handleGenerate = async (imageType: ImageType, overridePoints?: string[]) => {
+    const handleGenerate = async (imageType: ImageType, overridePoints?: string[], overrideTemplateId?: number, overrideAccent?: string) => {
         if (!selectedId) return;
-        const key = `${imageType}-${selectedTemplates[imageType]}`;
+        const tid = overrideTemplateId !== undefined ? overrideTemplateId : selectedTemplates[imageType];
+        const key = `${imageType}-${tid}`;
         setGenerating(prev => ({ ...prev, [key]: true }));
         try {
             const res = await fetch("/api/admin/blog-images/generate", {
@@ -101,8 +102,9 @@ export default function BlogImagesPage() {
                     profileId: selectedId,
                     title: postTitle,
                     summaryPoints: overridePoints || summaryPoints,
-                    templateId: selectedTemplates[imageType],
+                    templateId: tid,
                     imageType,
+                    accentColor: overrideAccent,
                 }),
             });
             if (res.ok) {
@@ -119,7 +121,7 @@ export default function BlogImagesPage() {
 
     // Generate all 4 images
     const handleGenerateAll = async () => {
-        if (!selectedId || !postTitle) {
+        if (!selectedId || !postTitle || !selected) {
             alert("변호사를 선택하고 제목을 입력해주세요.");
             return;
         }
@@ -144,8 +146,32 @@ export default function BlogImagesPage() {
             setSummarizing(false);
         }
 
+        // Randomize template selection
+        const newTemplates = { ...selectedTemplates };
+        // Slightly vary the brand color for a unique touch
+        const baseColor = selected.brandColor || "#3563AE";
+        const varyHex = (hex: string) => {
+            const num = parseInt(hex.replace("#", ""), 16);
+            if (isNaN(num)) return hex;
+            const r = (num >> 16) & 255;
+            const g = (num >> 8) & 255;
+            const b = num & 255;
+            const v = () => Math.floor(Math.random() * 41) - 20; // +/- 20 variation
+            const r2 = Math.min(255, Math.max(0, r + v()));
+            const g2 = Math.min(255, Math.max(0, g + v()));
+            const b2 = Math.min(255, Math.max(0, b + v()));
+            return `#${(r2 << 16 | g2 << 8 | b2).toString(16).padStart(6, "0")}`;
+        };
+        const variedAccent = varyHex(baseColor);
+
         for (const type of IMAGE_TYPES) {
-            await handleGenerate(type.id, currentPoints);
+            const randId = Math.floor(Math.random() * TEMPLATE_COUNTS[type.id]);
+            newTemplates[type.id] = randId;
+        }
+        setSelectedTemplates(newTemplates);
+
+        for (const type of IMAGE_TYPES) {
+            await handleGenerate(type.id, currentPoints, newTemplates[type.id], variedAccent);
         }
     };
 
