@@ -89,7 +89,7 @@ export default function BlogImagesPage() {
     };
 
     // Generate single image
-    const handleGenerate = async (imageType: ImageType) => {
+    const handleGenerate = async (imageType: ImageType, overridePoints?: string[]) => {
         if (!selectedId) return;
         const key = `${imageType}-${selectedTemplates[imageType]}`;
         setGenerating(prev => ({ ...prev, [key]: true }));
@@ -100,7 +100,7 @@ export default function BlogImagesPage() {
                 body: JSON.stringify({
                     profileId: selectedId,
                     title: postTitle,
-                    summaryPoints,
+                    summaryPoints: overridePoints || summaryPoints,
                     templateId: selectedTemplates[imageType],
                     imageType,
                 }),
@@ -119,9 +119,33 @@ export default function BlogImagesPage() {
 
     // Generate all 4 images
     const handleGenerateAll = async () => {
-        if (!selectedId || !postTitle) return;
+        if (!selectedId || !postTitle) {
+            alert("변호사를 선택하고 제목을 입력해주세요.");
+            return;
+        }
+
+        let currentPoints = summaryPoints;
+        
+        // Auto-summarize if there's content but no points
+        if (postContent.trim() && currentPoints.length === 0) {
+            setSummarizing(true);
+            try {
+                const res = await fetch("/api/admin/blog-images/summarize", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ content: postContent, title: postTitle }),
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    currentPoints = data.points || [];
+                    setSummaryPoints(currentPoints);
+                }
+            } catch (e) { console.error(e); }
+            setSummarizing(false);
+        }
+
         for (const type of IMAGE_TYPES) {
-            await handleGenerate(type.id);
+            await handleGenerate(type.id, currentPoints);
         }
     };
 
@@ -240,15 +264,11 @@ export default function BlogImagesPage() {
                                     placeholder="음주운전 초범, 어떻게 대처해야 할까?" className={ic} />
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-[#9CA3B0] mb-1.5">블로그 글 내용 (AI가 6-8개 핵심 포인트로 자동 요약)</label>
+                                <label className="block text-xs font-medium text-[#9CA3B0] mb-1.5">블로그 글 내용 (AI가 생성 시 핵심 내용을 자동 요약합니다)</label>
                                 <textarea value={postContent} onChange={e => setPostContent(e.target.value)}
-                                    placeholder="블로그 본문 내용을 붙여넣으세요. AI가 핵심 내용을 6-8개 포인트로 정리합니다."
-                                    rows={6} className={`${ic} resize-none`} />
+                                    placeholder="블로그 본문 내용을 붙여넣으세요. 이미지 생성 버튼 클릭 시 AI가 핵심 내용을 요약하여 요약 카드(2번째 이미지)에 삽입합니다."
+                                    rows={5} className={`${ic} resize-none`} />
                             </div>
-                            <button onClick={handleSummarize} disabled={!postContent.trim() || summarizing}
-                                className="px-5 py-2.5 rounded-xl bg-[#10B981]/10 text-[#10B981] text-sm font-medium hover:bg-[#10B981]/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-2">
-                                {summarizing ? <><Loader2 size={14} className="animate-spin" />요약 생성 중...</> : <><Sparkles size={14} />AI 핵심 포인트 추출</>}
-                            </button>
                         </div>
 
                         {/* Summary Points Display */}
@@ -364,10 +384,11 @@ export default function BlogImagesPage() {
                         </div>
 
                         {/* Generate All */}
-                        <button onClick={handleGenerateAll}
-                            disabled={!selectedId || !postTitle || anyGenerating}
-                            className="w-full mt-5 py-4 rounded-2xl bg-gradient-to-r from-[#3563AE] to-[#2851A3] text-white font-semibold text-sm hover:from-[#2851A3] hover:to-[#1E408C] disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#3563AE]/20">
-                            {anyGenerating ? <><Loader2 size={16} className="animate-spin" />생성 중...</> : <><Sparkles size={16} />4장 이미지 한번에 생성</>}
+                        <button onClick={handleGenerateAll} disabled={anyGenerating || summarizing || !selectedId || !postTitle}
+                                className="w-full mt-6 py-3 rounded-xl bg-gradient-to-r from-[#3563AE] to-[#2851A3] text-white text-sm font-bold shadow-lg shadow-[#3563AE]/20 hover:from-[#3a6bc2] hover:to-[#2c5bbc] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                                {summarizing ? <><Loader2 size={16} className="animate-spin" /> AI 요약 분석 및 이미지 텍스트 생성 중...</> :
+                                    anyGenerating ? <><Loader2 size={16} className="animate-spin" /> 4장 전체 생성 중...</> : 
+                                    <><ImageIcon size={16} /> 4장 전체 생성 (AI 포함)</>}
                         </button>
                     </div>
                 </div>
