@@ -6,6 +6,7 @@ import { X, Loader2, Upload, Trash2, Camera, Building2, MousePointerClick } from
 interface Profile {
     id: string;
     lawyerName: string;
+    jobTitle: string;
     officeName: string;
     phone: string;
     address: string;
@@ -32,6 +33,7 @@ export default function ProfileManagerModal({ isOpen, profileId, onClose, onSucc
 
     const [formData, setFormData] = useState({
         lawyerName: "",
+        jobTitle: "",
         officeName: "",
         phone1: "",
         phone2: "",
@@ -61,6 +63,7 @@ export default function ProfileManagerModal({ isOpen, profileId, onClose, onSucc
             // Reset for new
             setFormData({
                 lawyerName: "",
+                jobTitle: "",
                 officeName: "",
                 phone1: "",
                 phone2: "",
@@ -85,6 +88,7 @@ export default function ProfileManagerModal({ isOpen, profileId, onClose, onSucc
                 const phones = (p.phone || "").split(",").map(s => s.trim());
                 setFormData({
                     lawyerName: p.lawyerName || "",
+                    jobTitle: p.jobTitle || "대표변호사",
                     officeName: p.officeName || "",
                     phone1: phones[0] || "",
                     phone2: phones[1] || "",
@@ -119,6 +123,7 @@ export default function ProfileManagerModal({ isOpen, profileId, onClose, onSucc
                 action: profileId ? "update" : "create",
                 id: profileId,
                 lawyerName: formData.lawyerName,
+                jobTitle: formData.jobTitle,
                 officeName: formData.officeName,
                 phone: combinedPhone,
                 address: formData.address,
@@ -288,13 +293,18 @@ export default function ProfileManagerModal({ isOpen, profileId, onClose, onSucc
                                 <form id="profile-form" onSubmit={handleSaveInfo} className="space-y-4">
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-[11px] font-medium text-white/40 mb-1.5">변호사 이름 *</label>
+                                            <label className="block text-[11px] font-medium text-white/40 mb-1.5">이름 (대표자/변호사) *</label>
                                             <input required type="text" value={formData.lawyerName} onChange={e => setFormData({...formData, lawyerName: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-white/30" placeholder="홍길동" />
                                         </div>
                                         <div>
-                                            <label className="block text-[11px] font-medium text-white/40 mb-1.5">사무실 명칭</label>
-                                            <input type="text" value={formData.officeName} onChange={e => setFormData({...formData, officeName: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-white/30" placeholder="법무법인 맥디" />
+                                            <label className="block text-[11px] font-medium text-white/40 mb-1.5">직책 (미기재시 대표변호사)</label>
+                                            <input type="text" value={formData.jobTitle} onChange={e => setFormData({...formData, jobTitle: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-white/30" placeholder="대표변호사" />
                                         </div>
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="block text-[11px] font-medium text-white/40 mb-1.5">사무실 명칭</label>
+                                        <input type="text" value={formData.officeName} onChange={e => setFormData({...formData, officeName: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-white/30" placeholder="법무법인 맥디" />
                                     </div>
                                     
                                     <div className="grid grid-cols-2 gap-4">

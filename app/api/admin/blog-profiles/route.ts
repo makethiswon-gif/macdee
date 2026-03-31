@@ -17,6 +17,7 @@ export interface BlogProfile {
     logoImage: string;
     brandColor: string;
     brandLines: string[];
+    jobTitle: string;
     createdAt: number;
     updatedAt: number;
 }
@@ -40,9 +41,14 @@ function getSupabase() {
 }
 
 function dbToProfile(row: Record<string, unknown>): BlogProfile {
+    // Parse combined name||title 
+    const rawName = (row.lawyer_name as string) || "";
+    const [lawyerName, jobTitle = "대표변호사"] = rawName.includes("||") ? rawName.split("||") : [rawName, "대표변호사"];
+
     return {
         id: row.id as string,
-        lawyerName: (row.lawyer_name as string) || "",
+        lawyerName,
+        jobTitle,
         officeName: (row.office_name as string) || "",
         phone: (row.phone as string) || "",
         address: (row.address as string) || "",
@@ -148,7 +154,7 @@ export async function POST(request: NextRequest) {
             const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
             const insertData: Record<string, unknown> = {
                 id,
-                lawyer_name: body.lawyerName || "",
+                lawyer_name: body.jobTitle ? `${body.lawyerName}||${body.jobTitle}` : body.lawyerName,
                 office_name: body.officeName || "",
                 phone: body.phone || "",
                 address: body.address || "",
@@ -174,7 +180,7 @@ export async function POST(request: NextRequest) {
 
         if (action === "update") {
             const updateData: Record<string, unknown> = {
-                lawyer_name: body.lawyerName,
+                lawyer_name: body.jobTitle ? `${body.lawyerName}||${body.jobTitle}` : body.lawyerName,
                 office_name: body.officeName,
                 phone: body.phone,
                 address: body.address,

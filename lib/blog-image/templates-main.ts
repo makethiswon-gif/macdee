@@ -165,8 +165,8 @@ export function renderMainTemplate(ctx: SKRSContext2D, input: RenderInput, asset
     ctx.textBaseline = "top";
     ctx.textAlign = textAlign;
 
-    // Category Badges (Lawyer Name + Multiple Specialties)
-    let badges = [`${lawyerName} 변호사`];
+    // Category Badges (POST + Multiple Specialties)
+    let badges = ["POST"];
     const rawSpecialties = input.profile.specialty || [];
     if (rawSpecialties.length > 0) {
         rawSpecialties.forEach(spec => {

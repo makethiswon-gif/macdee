@@ -473,6 +473,7 @@ export interface RenderInput {
     summaryPoints: string[];
     profile: {
         lawyerName: string;
+        jobTitle: string;
         officeName: string;
         phone: string;
         address: string;

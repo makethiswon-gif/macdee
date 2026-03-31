@@ -75,7 +75,8 @@ export async function renderContactTemplate(ctx: SKRSContext2D, input: RenderInp
     // Firm & Lawyer Name Hierarchy
     ctx.font = `800 24px ${FONT_BOLD}`;
     ctx.fillStyle = accent;
-    ctx.fillText(`${officeName || "법률 서비스"} 대표변호사 ${lawyerName}`, S / 2, 560);
+    const jTitle = input.profile.jobTitle || "대표변호사";
+    ctx.fillText(`${officeName || "법률 서비스"} ${jTitle} ${lawyerName}`, S / 2, 560);
 
     // Address Details if Any (Very small and clean)
     if (address) {
