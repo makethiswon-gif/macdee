@@ -28,14 +28,14 @@ export function renderMainTemplate(ctx: SKRSContext2D, input: RenderInput, asset
     }
 
     const pad = 80; // Massive margins
-    const rightW = profileImg ? S * 0.4 : 0;
-    const leftW = profileImg ? S - rightW - pad : S - pad * 2;
+    const rightW = profileImg ? S * 0.45 : 0;
+    const leftW = profileImg ? S - rightW - pad + 40 : S - pad * 2;
 
     // 2. Profile Photo (structured inset frame, NOT floating cutout)
     if (profileImg) {
-        const frameW = S * 0.35;
-        const frameH = S * 0.55;
-        const frameX = S - pad - frameW;
+        const frameW = 420;
+        const frameH = 680;
+        const frameX = S - pad - frameW + 20; // slightly pushed right
         const frameY = (S - frameH) / 2;
 
         // Subtle elegant border

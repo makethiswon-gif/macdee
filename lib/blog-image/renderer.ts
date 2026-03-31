@@ -70,23 +70,51 @@ export function lighten(hex: string, amount: number): string {
 
 // ── Text Utilities ──
 
-/** Wrap text into lines fitting maxWidth */
+/** Wrap text into lines fitting maxWidth, preferring word breaks */
 export function wrapText(ctx: SKRSContext2D, text: string, maxWidth: number): string[] {
-    const words = text.split("");
     const lines: string[] = [];
+    // Split text into words (including spaces to preserve them)
+    // Wait, regex split by space leaves spaces out, but we want to know string boundaries.
+    const words = text.split(" ");
     let currentLine = "";
 
-    for (const char of words) {
-        const testLine = currentLine + char;
+    for (const word of words) {
+        // If word itself is longer than maxWidth, we must character-split it
+        const wordWidth = ctx.measureText(word).width;
+        if (wordWidth > maxWidth) {
+            // Flush current line if anything exists
+            if (currentLine) {
+                lines.push(currentLine.trimEnd());
+                currentLine = "";
+            }
+            // Character split the giant word
+            const chars = word.split("");
+            for (const char of chars) {
+                const testLine = currentLine + char;
+                if (ctx.measureText(testLine).width > maxWidth && currentLine.length > 0) {
+                    lines.push(currentLine);
+                    currentLine = char;
+                } else {
+                    currentLine = testLine;
+                }
+            }
+            // Add a trailing space to resume normal words
+            currentLine += " ";
+            continue;
+        }
+
+        const testLine = currentLine + (currentLine.length > 0 ? " " : "") + word;
         const metrics = ctx.measureText(testLine);
+
         if (metrics.width > maxWidth && currentLine.length > 0) {
-            lines.push(currentLine);
-            currentLine = char;
+            lines.push(currentLine.trimEnd());
+            currentLine = word + " ";
         } else {
-            currentLine = testLine;
+            currentLine = testLine + " ";
         }
     }
-    if (currentLine) lines.push(currentLine);
+    
+    if (currentLine.trim()) lines.push(currentLine.trimEnd());
     return lines;
 }
 

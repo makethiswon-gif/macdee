@@ -45,7 +45,7 @@ export async function renderContactTemplate(ctx: SKRSContext2D, input: RenderInp
         drawAutoShrinkText(
             ctx,
             phone,
-            pad,
+            S / 2, // Centered X
             340,
             S - pad * 2,
             120,    
@@ -72,7 +72,7 @@ export async function renderContactTemplate(ctx: SKRSContext2D, input: RenderInp
         drawAutoShrinkText(
             ctx,
             address,
-            pad,
+            S / 2, // Centered X
             620,
             S - pad * 2,
             60,

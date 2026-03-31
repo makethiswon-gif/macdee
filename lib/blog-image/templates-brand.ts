@@ -47,7 +47,7 @@ export function renderBrandTemplate(ctx: SKRSContext2D, input: RenderInput, asse
     drawAutoShrinkText(
         ctx,
         tagline,
-        pad,
+        S / 2, // Centered X
         textCenterY,
         S - pad * 2,
         200,

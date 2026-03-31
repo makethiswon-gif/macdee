@@ -42,17 +42,16 @@ export function renderSummaryTemplate(ctx: SKRSContext2D, input: RenderInput, as
     ctx.textAlign = "center";
     ctx.fillStyle = accent;
     ctx.font = `900 120px serif`; 
-    ctx.fillText("“", S / 2, pad + 100);
+    ctx.fillText("“", S / 2, pad + 80);
 
     // The Core Message (Massive size, auto shrinks if too long)
-    ctx.textAlign = "left";
     ctx.fillStyle = "#FFFFFF";
 
     const { height: textH } = drawAutoShrinkText(
         ctx,
         mainSentence,
-        pad,
-        pad + 260,
+        S / 2, // Centered X
+        pad + 240,
         S - pad * 2,
         280,   // Max height before shrinking
         64,    // Max Initial Font
@@ -64,14 +63,14 @@ export function renderSummaryTemplate(ctx: SKRSContext2D, input: RenderInput, as
     // Optional Secondary Explanation Block right below
     if (secondaryPoint) {
         ctx.fillStyle = "rgba(255,255,255,0.4)";
-        ctx.fillRect(S / 2 - 30, pad + 260 + textH + 50, 60, 2);
+        ctx.fillRect(S / 2 - 30, pad + 240 + textH + 50, 60, 2);
         
         ctx.textAlign = "center";
         drawAutoShrinkText(
             ctx,
             secondaryPoint,
-            pad,
-            pad + 260 + textH + 80,
+            S / 2, // Centered X
+            pad + 240 + textH + 80,
             S - pad * 2,
             120,
             24,
