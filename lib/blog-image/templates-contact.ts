@@ -41,21 +41,31 @@ export async function renderContactTemplate(ctx: SKRSContext2D, input: RenderInp
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
-    // Giant Phone Number
+    // Giant Phone Numbers (Dynamic Stacking)
     if (phone) {
         ctx.fillStyle = "#FFFFFF";
-        drawAutoShrinkText(
-            ctx,
-            phone,
-            S / 2, // Centered X
-            340,
-            S - pad * 2,
-            120,    
-            96, // start massive
-            FONT_BLACK,
-            "900",
-            { shadow: false }
-        );
+        const phones = phone.split(",").map(p => p.trim()).filter(Boolean);
+        
+        // Calculate starting Y to keep the block vertically centered around 340
+        const gap = 110;
+        const totalHeight = (phones.length - 1) * gap;
+        let startY = 340 - (totalHeight / 2);
+
+        phones.forEach((p) => {
+            drawAutoShrinkText(
+                ctx,
+                p,
+                S / 2,
+                startY,
+                S - pad * 2,
+                120,    
+                96 - (phones.length > 1 ? 16 : 0), // shrink base font slightly if multiple
+                FONT_BLACK,
+                "900",
+                { shadow: false }
+            );
+            startY += gap;
+        });
     }
 
     // Divider

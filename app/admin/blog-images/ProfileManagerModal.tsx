@@ -33,7 +33,9 @@ export default function ProfileManagerModal({ isOpen, profileId, onClose, onSucc
     const [formData, setFormData] = useState({
         lawyerName: "",
         officeName: "",
-        phone: "",
+        phone1: "",
+        phone2: "",
+        phone3: "",
         address: "",
         website: "",
         specialty: "",
@@ -60,7 +62,9 @@ export default function ProfileManagerModal({ isOpen, profileId, onClose, onSucc
             setFormData({
                 lawyerName: "",
                 officeName: "",
-                phone: "",
+                phone1: "",
+                phone2: "",
+                phone3: "",
                 address: "",
                 website: "",
                 specialty: "",
@@ -78,10 +82,13 @@ export default function ProfileManagerModal({ isOpen, profileId, onClose, onSucc
             if (res.ok) {
                 const data = await res.json();
                 const p: Profile = data.profile;
+                const phones = (p.phone || "").split(",").map(s => s.trim());
                 setFormData({
                     lawyerName: p.lawyerName || "",
                     officeName: p.officeName || "",
-                    phone: p.phone || "",
+                    phone1: phones[0] || "",
+                    phone2: phones[1] || "",
+                    phone3: phones[2] || "",
                     address: p.address || "",
                     website: p.website || "",
                     specialty: p.specialty?.join(", ") || "",
@@ -105,12 +112,15 @@ export default function ProfileManagerModal({ isOpen, profileId, onClose, onSucc
         e.preventDefault();
         setSaving(true);
         try {
+            const combinedPhone = [formData.phone1, formData.phone2, formData.phone3]
+                .map(p => p.trim()).filter(Boolean).join(", ");
+
             const payload = {
                 action: profileId ? "update" : "create",
                 id: profileId,
                 lawyerName: formData.lawyerName,
                 officeName: formData.officeName,
-                phone: formData.phone,
+                phone: combinedPhone,
                 address: formData.address,
                 website: formData.website,
                 specialty: formData.specialty.split(",").map(s => s.trim()).filter(Boolean),
@@ -289,8 +299,19 @@ export default function ProfileManagerModal({ isOpen, profileId, onClose, onSucc
                                     
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-[11px] font-medium text-white/40 mb-1.5">대표 전화번호</label>
-                                            <input type="text" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-white/30" placeholder="02-1234-5678" />
+                                            <label className="block text-[11px] font-medium text-white/40 mb-1.5">대표 전화번호 1 (메인)</label>
+                                            <input type="text" value={formData.phone1} onChange={e => setFormData({...formData, phone1: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-white/30" placeholder="02-522-7500" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[11px] font-medium text-white/40 mb-1.5">대표 전화번호 2 (선택)</label>
+                                            <input type="text" value={formData.phone2} onChange={e => setFormData({...formData, phone2: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-white/30" placeholder="직통 번호 등" />
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-[11px] font-medium text-white/40 mb-1.5">대표 전화번호 3 (선택)</label>
+                                            <input type="text" value={formData.phone3} onChange={e => setFormData({...formData, phone3: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-white/30" placeholder="야간/휴일 번호 등" />
                                         </div>
                                         <div>
                                             <label className="block text-[11px] font-medium text-white/40 mb-1.5">홈페이지 링크</label>
