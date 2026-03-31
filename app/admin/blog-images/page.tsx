@@ -28,12 +28,12 @@ const IMAGE_TYPES: { id: ImageType; label: string; icon: typeof ImageIcon; desc:
     { id: "brand", label: "브랜드", icon: Sparkles, desc: "로펌 인지도 이미지" },
 ];
 
-const TEMPLATE_COUNTS: Record<ImageType, number> = { main: 12, summary: 6, contact: 4, brand: 4 };
+const TEMPLATE_COUNTS: Record<ImageType, number> = { main: 1, summary: 1, contact: 1, brand: 1 };
 const TEMPLATE_NAMES: Record<ImageType, string[]> = {
-    main: ["다크 시네마틱", "프로필 스포트라이트", "에디토리얼", "글래스모피즘", "스플릿", "미니멀 다크", "로펌 프리미엄", "포토 오버레이", "프로필 풀샷", "매거진 커버", "인용구 스타일", "액센트 블록"],
-    summary: ["넘버링 리스트", "카드 그리드", "타임라인", "다크 카드", "액센트 바", "미니멀 클린"],
-    contact: ["클린 센터", "다크 프리미엄", "포토 배경", "스플릿 프로필"],
-    brand: ["로고 센터", "다크 에디토리얼", "그라디언트 볼드", "포토 에디토리얼"],
+    main: ["대표 썸네일형"],
+    summary: ["정보 강조형"],
+    contact: ["마무리 설득형"],
+    brand: ["사무실 브랜딩형"],
 };
 
 export default function BlogImagesPage() {
@@ -43,6 +43,7 @@ export default function BlogImagesPage() {
     const [postTitle, setPostTitle] = useState("");
     const [postContent, setPostContent] = useState("");
     const [summaryPoints, setSummaryPoints] = useState<string[]>([]);
+    const [shortTitle, setShortTitle] = useState("");
     const [summarizing, setSummarizing] = useState(false);
     const [generating, setGenerating] = useState<Record<string, boolean>>({});
     const [generatedImages, setGeneratedImages] = useState<Record<string, string>>({});
@@ -89,7 +90,7 @@ export default function BlogImagesPage() {
     };
 
     // Generate single image
-    const handleGenerate = async (imageType: ImageType, overridePoints?: string[], overrideTemplateId?: number, overrideAccent?: string) => {
+    const handleGenerate = async (imageType: ImageType, overridePoints?: string[], overrideTemplateId?: number, overrideAccent?: string, overrideTitle?: string) => {
         if (!selectedId) return;
         const tid = overrideTemplateId !== undefined ? overrideTemplateId : selectedTemplates[imageType];
         const key = `${imageType}-${tid}`;
@@ -100,7 +101,7 @@ export default function BlogImagesPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     profileId: selectedId,
-                    title: postTitle,
+                    title: overrideTitle || postTitle,
                     summaryPoints: overridePoints || summaryPoints,
                     templateId: tid,
                     imageType,
@@ -127,6 +128,7 @@ export default function BlogImagesPage() {
         }
 
         let currentPoints = summaryPoints;
+        let currentShortTitle = shortTitle || postTitle;
         
         // Auto-summarize if there's content but no points
         if (postContent.trim() && currentPoints.length === 0) {
@@ -140,6 +142,10 @@ export default function BlogImagesPage() {
                 if (res.ok) {
                     const data = await res.json();
                     currentPoints = data.points || [];
+                    if (data.shortTitle) {
+                        currentShortTitle = data.shortTitle;
+                        setShortTitle(data.shortTitle);
+                    }
                     setSummaryPoints(currentPoints);
                 }
             } catch (e) { console.error(e); }
@@ -166,7 +172,9 @@ export default function BlogImagesPage() {
 
             const randId = Math.floor(Math.random() * TEMPLATE_COUNTS[type.id]);
             newTemplates[type.id] = randId;
-            await handleGenerate(type.id, currentPoints, randId, variedAccent);
+            // Use shortTitle for the main image, regular title for others
+            const titleToUse = type.id === "main" ? currentShortTitle : postTitle;
+            await handleGenerate(type.id, currentPoints, randId, variedAccent, titleToUse);
         }
         setSelectedTemplates(newTemplates);
     };

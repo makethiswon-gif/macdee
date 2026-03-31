@@ -33,23 +33,29 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "AI API 키 미설정" }, { status: 500 });
         }
 
-        const prompt = `다음 법률 블로그 글을 분석하여 핵심 포인트를 추출해주세요.
+        const prompt = `다음 법률 블로그 글을 분석하여 썸네일용 짧은 제목과 본문 핵심 포인트를 추출해주세요.
 
 ## 규칙:
-1. 반드시 6~8개의 핵심 포인트를 추출하세요.
-2. 각 포인트는 2문장으로 작성하세요 (핵심 내용 + 구체적 설명/법적 근거).
-3. 독자가 이 포인트만 봐도 글의 핵심 내용을 파악할 수 있도록 근거가 되는 법률, 판례, 제도 등의 구체적 정보를 포함하세요.
-4. 법률 용어는 정확하되, 일반인도 이해할 수 있는 수준으로 작성하세요.
-5. 각 포인트는 서로 다른 내용을 다뤄야 합니다.
-6. 단순 요약이 아니라 "행동 가능한 인사이트"를 제공하세요 (예: "~해야 합니다", "~을 확인하세요").
+1. shortTitle: 썸네일 이미지에 들어갈 매우 짧고 강렬한 핵심 제목 (최대 20자 내외). 원본 제목이 길어도 핵심만 압축해서 짧게 만드세요.
+2. points: 반드시 6~8개의 핵심 포인트를 추출하세요.
+3. 각 포인트는 2문장으로 작성하세요 (핵심 내용 + 구체적 설명/법적 근거).
+4. 독자가 이 포인트만 봐도 글의 핵심 내용을 파악할 수 있도록 근거가 되는 법률, 판례, 제도 등의 구체적 정보를 포함하세요.
+5. 법률 용어는 정확하되, 일반인도 이해할 수 있는 수준으로 작성하세요.
+6. 각 포인트는 서로 다른 내용을 다뤄야 합니다.
+7. 단순 요약이 아니라 "행동 가능한 인사이트"를 제공하세요 (예: "~해야 합니다", "~을 확인하세요").
 
 ## 출력 형식:
-JSON 배열로 반환하세요. 다른 텍스트 없이 순수 JSON만 반환하세요.
+반드시 다음 형태의 JSON 객체로 반환하세요. 다른 텍스트는 절대 포함하지 마세요.
 
-예시:
-["포인트1 첫 번째 문장. 포인트1 두 번째 문장.", "포인트2 첫 번째 문장. 포인트2 두 번째 문장."]
+{
+  "shortTitle": "음주운전 2진 아웃, 구속 막는 초기 대응법",
+  "points": [
+    "포인트1 첫 번째 문장. 포인트1 두 번째 문장.",
+    "포인트2 첫 번째 문장. 포인트2 두 번째 문장."
+  ]
+}
 
-${title ? `## 글 제목:\n${title}\n` : ""}
+${title ? `## 원본 글 제목:\n${title}\n` : ""}
 ## 글 내용:
 ${content.substring(0, 6000)}`;
 
@@ -78,22 +84,24 @@ ${content.substring(0, 6000)}`;
 
         // Parse JSON from response
         let points: string[] = [];
+        let shortTitle = title || "";
         try {
-            // Try direct JSON parse
             const cleaned = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-            points = JSON.parse(cleaned);
+            const parsed = JSON.parse(cleaned);
+            if (Array.isArray(parsed)) {
+                points = parsed;
+            } else if (parsed.points) {
+                points = parsed.points;
+                if (parsed.shortTitle) shortTitle = parsed.shortTitle;
+            }
         } catch {
-            // Fallback: split by newlines
-            points = text
-                .split("\n")
-                .map((l: string) => l.replace(/^\d+[\.\)]\s*/, "").trim())
-                .filter((l: string) => l.length > 10);
+            points = text.split("\n").map((l: string) => l.replace(/^\d+[\.\)]\s*/, "").trim()).filter((l: string) => l.length > 10);
         }
 
-        // Ensure 6-8 points
+        // Ensure max 8 points
         if (points.length > 8) points = points.slice(0, 8);
 
-        return NextResponse.json({ points });
+        return NextResponse.json({ shortTitle, points });
     } catch (err) {
         console.error("[blog-summarize] Error:", err);
         return NextResponse.json({ error: "서버 오류" }, { status: 500 });

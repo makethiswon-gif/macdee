@@ -1,365 +1,112 @@
-/**
- * Summary Image Templates — 6 Premium Designs
- * Shows 6-8 key points from blog content
- */
 import type { SKRSContext2D } from "@napi-rs/canvas";
 import {
     SIZE, FONT_BOLD, FONT_BLACK, FONT_REGULAR,
-    drawCover, drawGradientOverlay, drawVignette,
-    drawWrappedText, roundRect, rgba, contrastColor,
+    drawCover, rgba, drawWrappedText,
     type RenderInput, type Assets,
 } from "./renderer";
 
 const S = SIZE;
 
-export function renderSummaryTemplate(ctx: SKRSContext2D, input: RenderInput, assets: Assets) {
-    const tid = (input.templateId ?? 0) % 6;
-    const { title, summaryPoints } = input;
-    const { lawyerName, officeName } = input.profile;
-    const { accent, officeImg, logoImg } = assets;
-
-    switch (tid) {
-        case 0: return s0_numberedList(ctx, title, summaryPoints, lawyerName, officeName, officeImg, logoImg, accent);
-        case 1: return s1_cardGrid(ctx, title, summaryPoints, lawyerName, officeName, officeImg, logoImg, accent);
-        case 2: return s2_timeline(ctx, title, summaryPoints, lawyerName, officeName, officeImg, logoImg, accent);
-        case 3: return s3_darkCards(ctx, title, summaryPoints, lawyerName, officeName, officeImg, logoImg, accent);
-        case 4: return s4_accentBars(ctx, title, summaryPoints, lawyerName, officeName, officeImg, logoImg, accent);
-        case 5: return s5_minimalClean(ctx, title, summaryPoints, lawyerName, officeName, officeImg, logoImg, accent);
-        default: return s0_numberedList(ctx, title, summaryPoints, lawyerName, officeName, officeImg, logoImg, accent);
-    }
-}
-
 type Img = import("@napi-rs/canvas").Image | null;
 
-function drawOfficeBg(ctx: SKRSContext2D, officeImg: Img, baseColor = "#0A0E1A") {
-    if (officeImg) {
-        drawCover(ctx, officeImg, 0, 0, S, S);
-        ctx.fillStyle = "rgba(10, 14, 26, 0.85)";
-        ctx.fillRect(0, 0, S, S);
+export function renderSummaryTemplate(ctx: SKRSContext2D, input: RenderInput, assets: Assets) {
+    const { summaryPoints } = input;
+    const { accent, profileImg, officeImg, logoImg } = assets;
+
+    // 6:4 Split Layout
+    // Left 60% = Text area, Right 40% = Image area
+    const leftW = S * 0.6;
+    const rightW = S * 0.4;
+
+    // Right side: Profile or Detail Image
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(leftW, 0, rightW, S);
+    ctx.clip();
+    if (profileImg) {
+        // Slightly desaturated or rich photo
+        drawCover(ctx, profileImg, leftW, 0, rightW, S);
+    } else if (officeImg) {
+        drawCover(ctx, officeImg, leftW, 0, rightW, S);
     } else {
-        ctx.fillStyle = baseColor;
-        ctx.fillRect(0, 0, S, S);
+        ctx.fillStyle = "#1e2430";
+        ctx.fillRect(leftW, 0, rightW, S);
     }
-}
+    // Deep overlay on the photo side to blend with the dark editorial look
+    ctx.fillStyle = "rgba(0,0,0,0.3)";
+    ctx.fillRect(leftW, 0, rightW, S);
+    ctx.restore();
 
-// ════════════════════════════════════════
-// S0: 넘버링 리스트 (다크)
-// ════════════════════════════════════════
-function s0_numberedList(ctx: SKRSContext2D, title: string, points: string[], name: string, office: string, officeImg: Img, logoImg: Img, accent: string) {
-    drawOfficeBg(ctx, officeImg);
+    // Left side: Dark solid/gradient background
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, leftW, S);
+    ctx.clip();
+    
+    // Base dark navy/black
+    ctx.fillStyle = "#0D1117";
+    ctx.fillRect(0, 0, leftW, S);
+    
+    // Subtle gradient mesh matching accent
+    const g1 = ctx.createRadialGradient(0, S, 0, 0, S, S * 0.5);
+    g1.addColorStop(0, rgba(accent, 0.1));
+    g1.addColorStop(1, "transparent");
+    ctx.fillStyle = g1;
+    ctx.fillRect(0, 0, leftW, S);
 
-    // Accent top bar
+    // Accent line at top
     ctx.fillStyle = accent;
-    ctx.fillRect(0, 0, S, 5);
+    ctx.fillRect(0, 0, leftW, 6);
 
-    // Title
-    ctx.font = `900 36px ${FONT_BLACK}`;
-    ctx.fillStyle = "#FFFFFF";
+    // Typography
+    const pad = 64;
     ctx.textBaseline = "top";
-    drawWrappedText(ctx, title, 64, 48, S - 128, 46, { maxLines: 2 });
-
-    // Divider
-    ctx.fillStyle = accent;
-    ctx.fillRect(64, 152, 48, 3);
-
-    // Points
-    const pts = points.slice(0, 8);
-    const startY = 180;
-    const itemH = Math.min(96, (S - startY - 100) / pts.length);
-
-    pts.forEach((pt, i) => {
-        const y = startY + i * itemH;
-
-        // Number circle
-        ctx.beginPath();
-        ctx.arc(88, y + 16, 16, 0, Math.PI * 2);
-        ctx.fillStyle = i < 3 ? accent : rgba(accent, 0.6);
-        ctx.fill();
-        ctx.font = `800 13px ${FONT_BOLD}`;
-        ctx.fillStyle = contrastColor(accent);
-        ctx.textAlign = "center";
-        ctx.fillText(String(i + 1).padStart(2, "0"), 88, y + 12);
-        ctx.textAlign = "left";
-
-        // Text
-        ctx.font = `500 16px ${FONT_REGULAR}`;
-        ctx.fillStyle = "rgba(255,255,255,0.9)";
-        drawWrappedText(ctx, pt, 120, y + 4, S - 192, 22, { maxLines: 3 });
-    });
-
-    // Name bottom
-    ctx.font = `500 14px ${FONT_REGULAR}`;
-    ctx.fillStyle = "rgba(255,255,255,0.5)";
-    ctx.fillText(`${name} 변호사${office ? ` · ${office}` : ""}`, 64, S - 52);
 
     if (logoImg) {
-        const lh = 36;
+        const lh = 40;
         const lw = logoImg.width * (lh / logoImg.height);
-        ctx.drawImage(logoImg, S - lw - 64, S - 60, lw, lh);
+        ctx.drawImage(logoImg, pad, pad, lw, lh);
     }
-}
 
-// ════════════════════════════════════════
-// S1: 카드 그리드
-// ════════════════════════════════════════
-function s1_cardGrid(ctx: SKRSContext2D, title: string, points: string[], name: string, office: string, officeImg: Img, logoImg: Img, accent: string) {
-    drawOfficeBg(ctx, officeImg);
+    // Point 1 - Huge and Bold (Typographic Hierarchy)
+    const pt1 = summaryPoints.length > 0 ? summaryPoints[0] : "사건의 핵심 쟁점을 파악하는 것이 우선입니다.";
+    const pt2 = summaryPoints.length > 1 ? summaryPoints[1] : "법률 전문가의 조력을 통해 빠르고 정확하게 대응하세요.";
+    const remainingPts = summaryPoints.length > 2 ? summaryPoints.slice(2, 5) : []; // Up to 3 more small points
 
-    // Subtle gradient
-    const g = ctx.createRadialGradient(S * 0.5, S * 0.3, 0, S * 0.5, S * 0.3, S * 0.6);
-    g.addColorStop(0, rgba(accent, 0.04));
-    g.addColorStop(1, "transparent");
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, S, S);
-
-    // Title
-    ctx.font = `900 32px ${FONT_BLACK}`;
+    ctx.font = `900 42px ${FONT_BLACK}`;
     ctx.fillStyle = "#FFFFFF";
-    ctx.textBaseline = "top";
-    drawWrappedText(ctx, title, 56, 44, S - 112, 42, { maxLines: 2 });
-
-    // Accent bar
+    
+    // Top highlight mark
     ctx.fillStyle = accent;
-    ctx.fillRect(56, 136, 40, 3);
-
-    // Cards grid (2 columns)
-    const pts = points.slice(0, 8);
-    const cols = 2;
-    const cardPad = 16;
-    const gridX = 56;
-    const gridY = 164;
-    const cardW = (S - 112 - cardPad) / cols;
-    const rows = Math.ceil(pts.length / cols);
-    const cardH = Math.min(100, (S - gridY - 100) / rows - cardPad);
-
-    pts.forEach((pt, i) => {
-        const col = i % cols;
-        const row = Math.floor(i / cols);
-        const cx = gridX + col * (cardW + cardPad);
-        const cy = gridY + row * (cardH + cardPad);
-
-        // Card bg
-        ctx.fillStyle = "rgba(255,255,255,0.04)";
-        roundRect(ctx, cx, cy, cardW, cardH, 12);
-        ctx.fill();
-
-        // Card border
-        ctx.strokeStyle = "rgba(255,255,255,0.06)";
-        ctx.lineWidth = 1;
-        roundRect(ctx, cx, cy, cardW, cardH, 12);
-        ctx.stroke();
-
-        // Number
-        ctx.font = `800 28px ${FONT_BLACK}`;
-        ctx.fillStyle = rgba(accent, 0.5);
-        ctx.fillText(String(i + 1).padStart(2, "0"), cx + 16, cy + 14);
-
-        // Text
-        ctx.font = `500 14px ${FONT_REGULAR}`;
-        ctx.fillStyle = "rgba(255,255,255,0.85)";
-        drawWrappedText(ctx, pt, cx + 16, cy + 48, cardW - 32, 19, { maxLines: 3 });
-    });
-
-    // Name
-    ctx.font = `500 13px ${FONT_REGULAR}`;
-    ctx.fillStyle = "rgba(255,255,255,0.45)";
-    ctx.fillText(`${name} 변호사${office ? ` · ${office}` : ""}`, 56, S - 44);
-}
-
-// ════════════════════════════════════════
-// S2: 타임라인
-// ════════════════════════════════════════
-function s2_timeline(ctx: SKRSContext2D, title: string, points: string[], name: string, office: string, officeImg: Img, logoImg: Img, accent: string) {
-    drawOfficeBg(ctx, officeImg);
-
-    // Title
-    ctx.font = `900 34px ${FONT_BLACK}`;
+    ctx.font = `900 80px serif`; // Quote mark
+    ctx.fillText("“", pad - 10, 140);
+    
+    // Draw Point 1
+    ctx.font = `900 42px ${FONT_BLACK}`;
     ctx.fillStyle = "#FFFFFF";
-    ctx.textBaseline = "top";
-    drawWrappedText(ctx, title, 64, 48, S - 128, 44, { maxLines: 2 });
+    const pt1H = drawWrappedText(ctx, pt1, pad, 190, leftW - pad * 2, 60, { maxLines: 4 });
 
-    ctx.fillStyle = accent;
-    ctx.fillRect(64, 148, 40, 3);
+    // Draw Point 2 (Medium text for secondary hierarchy)
+    ctx.font = `600 24px ${FONT_BOLD}`;
+    ctx.fillStyle = "rgba(255,255,255,0.7)";
+    const pt2H = drawWrappedText(ctx, pt2, pad, 190 + pt1H + 32, leftW - pad * 2, 38, { maxLines: 3 });
 
-    const pts = points.slice(0, 8);
-    const startY = 180;
-    const lineX = 96;
-    const itemH = Math.min(96, (S - startY - 80) / pts.length);
+    // Draw remaining points as small bullets if any
+    let bulletY = 190 + pt1H + 32 + pt2H + 48;
+    if (remainingPts.length > 0) {
+        remainingPts.forEach((pt) => {
+            // Bullet
+            ctx.beginPath();
+            ctx.arc(pad + 6, bulletY + 12, 4, 0, Math.PI * 2);
+            ctx.fillStyle = accent;
+            ctx.fill();
 
-    // Timeline vertical line
-    ctx.fillStyle = rgba(accent, 0.2);
-    ctx.fillRect(lineX, startY, 2, pts.length * itemH - 16);
-
-    pts.forEach((pt, i) => {
-        const y = startY + i * itemH;
-
-        // Dot on timeline
-        ctx.beginPath();
-        ctx.arc(lineX + 1, y + 10, 6, 0, Math.PI * 2);
-        ctx.fillStyle = accent;
-        ctx.fill();
-
-        // Inner dot
-        ctx.beginPath();
-        ctx.arc(lineX + 1, y + 10, 3, 0, Math.PI * 2);
-        ctx.fillStyle = "#0A0E1A";
-        ctx.fill();
-
-        // Number
-        ctx.font = `700 12px ${FONT_BOLD}`;
-        ctx.fillStyle = accent;
-        ctx.textAlign = "right";
-        ctx.fillText(String(i + 1).padStart(2, "0"), lineX - 16, y + 6);
-        ctx.textAlign = "left";
-
-        // Text
-        ctx.font = `500 15px ${FONT_REGULAR}`;
-        ctx.fillStyle = "rgba(255,255,255,0.88)";
-        drawWrappedText(ctx, pt, lineX + 24, y, S - lineX - 88, 21, { maxLines: 3 });
-    });
-
-    ctx.font = `500 13px ${FONT_REGULAR}`;
-    ctx.fillStyle = "rgba(255,255,255,0.45)";
-    ctx.fillText(`${name} 변호사${office ? ` · ${office}` : ""}`, 64, S - 44);
-}
-
-// ════════════════════════════════════════
-// S3: 다크 카드 (phot bg)
-// ════════════════════════════════════════
-function s3_darkCards(ctx: SKRSContext2D, title: string, points: string[], name: string, office: string, officeImg: Img, logoImg: Img, accent: string) {
-    drawOfficeBg(ctx, officeImg);
-
-    // Title with accent underline
-    ctx.font = `900 32px ${FONT_BLACK}`;
-    ctx.fillStyle = "#FFFFFF";
-    ctx.textBaseline = "top";
-    drawWrappedText(ctx, title, 56, 44, S - 112, 42, { maxLines: 2 });
-
-    ctx.fillStyle = accent;
-    ctx.fillRect(56, 138, 48, 3);
-
-    const pts = points.slice(0, 8);
-    const startY = 168;
-    const itemH = Math.min(92, (S - startY - 90) / pts.length);
-
-    pts.forEach((pt, i) => {
-        const y = startY + i * itemH;
-
-        // Left accent bar
-        ctx.fillStyle = i < 2 ? accent : rgba(accent, 0.5);
-        roundRect(ctx, 56, y + 2, 4, itemH - 14, 2);
-        ctx.fill();
-
-        // Number
-        ctx.font = `800 12px ${FONT_BOLD}`;
-        ctx.fillStyle = accent;
-        ctx.fillText(String(i + 1).padStart(2, "0"), 76, y + 4);
-
-        // Text
-        ctx.font = `500 15px ${FONT_REGULAR}`;
-        ctx.fillStyle = "rgba(255,255,255,0.88)";
-        drawWrappedText(ctx, pt, 76, y + 22, S - 148, 20, { maxLines: 3 });
-    });
-
-    ctx.font = `500 13px ${FONT_REGULAR}`;
-    ctx.fillStyle = "rgba(255,255,255,0.45)";
-    ctx.fillText(`${name} 변호사${office ? ` · ${office}` : ""}`, 56, S - 48);
-
-    if (logoImg) {
-        const lh = 36;
-        const lw = logoImg.width * (lh / logoImg.height);
-        ctx.drawImage(logoImg, S - lw - 56, S - 56, lw, lh);
+            ctx.font = `400 18px ${FONT_REGULAR}`;
+            ctx.fillStyle = "rgba(255,255,255,0.5)";
+            const bh = drawWrappedText(ctx, pt, pad + 24, bulletY, leftW - pad * 2 - 24, 28, { maxLines: 2 });
+            bulletY += bh + 20;
+        });
     }
-}
 
-// ════════════════════════════════════════
-// S4: 액센트 바
-// ════════════════════════════════════════
-function s4_accentBars(ctx: SKRSContext2D, title: string, points: string[], name: string, office: string, officeImg: Img, logoImg: Img, accent: string) {
-    drawOfficeBg(ctx, officeImg);
-
-    // Accent left bar
-    ctx.fillStyle = accent;
-    ctx.fillRect(0, 0, 8, S);
-
-    // Title
-    ctx.font = `900 34px ${FONT_BLACK}`;
-    ctx.fillStyle = "#FFFFFF";
-    ctx.textBaseline = "top";
-    drawWrappedText(ctx, title, 40, 48, S - 80, 44, { maxLines: 2 });
-
-    ctx.fillStyle = accent;
-    ctx.fillRect(40, 146, 48, 3);
-
-    const pts = points.slice(0, 8);
-    const startY = 176;
-    const itemH = Math.min(96, (S - startY - 90) / pts.length);
-
-    pts.forEach((pt, i) => {
-        const y = startY + i * itemH;
-
-        // Horizontal bar background
-        const barAlpha = 0.03 + (i % 2) * 0.02;
-        ctx.fillStyle = `rgba(255,255,255,${barAlpha})`;
-        roundRect(ctx, 40, y, S - 80, itemH - 8, 8);
-        ctx.fill();
-
-        // Number
-        ctx.font = `800 24px ${FONT_BLACK}`;
-        ctx.fillStyle = rgba(accent, 0.4);
-        ctx.fillText(String(i + 1).padStart(2, "0"), 56, y + 10);
-
-        // Text
-        ctx.font = `500 15px ${FONT_REGULAR}`;
-        ctx.fillStyle = "rgba(255,255,255,0.88)";
-        drawWrappedText(ctx, pt, 56, y + 42, S - 152, 20, { maxLines: 2 });
-    });
-
-    ctx.font = `500 13px ${FONT_REGULAR}`;
-    ctx.fillStyle = "rgba(255,255,255,0.45)";
-    ctx.fillText(`${name} 변호사${office ? ` · ${office}` : ""}`, 40, S - 44);
-}
-
-// ════════════════════════════════════════
-// S5: 미니멀 클린
-// ════════════════════════════════════════
-function s5_minimalClean(ctx: SKRSContext2D, title: string, points: string[], name: string, office: string, officeImg: Img, logoImg: Img, accent: string) {
-    drawOfficeBg(ctx, officeImg);
-
-    // Accent line top
-    ctx.fillStyle = accent;
-    ctx.fillRect(0, 0, S, 4);
-
-    // Title
-    ctx.font = `900 34px ${FONT_BLACK}`;
-    ctx.fillStyle = "#FFFFFF";
-    ctx.textBaseline = "top";
-    drawWrappedText(ctx, title, 64, 44, S - 128, 44, { maxLines: 2 });
-
-    const pts = points.slice(0, 8);
-    const startY = 148;
-    const itemH = Math.min(100, (S - startY - 80) / pts.length);
-
-    // Subtle divider
-    ctx.fillStyle = "rgba(255,255,255,0.08)";
-    ctx.fillRect(64, startY - 8, S - 128, 1);
-
-    pts.forEach((pt, i) => {
-        const y = startY + i * itemH;
-
-        // Dot
-        ctx.beginPath();
-        ctx.arc(78, y + 14, 4, 0, Math.PI * 2);
-        ctx.fillStyle = accent;
-        ctx.fill();
-
-        // Text
-        ctx.font = `500 16px ${FONT_REGULAR}`;
-        ctx.fillStyle = "rgba(255,255,255,0.9)";
-        drawWrappedText(ctx, pt, 100, y + 4, S - 172, 22, { maxLines: 3 });
-    });
-
-    ctx.font = `500 13px ${FONT_REGULAR}`;
-    ctx.fillStyle = "rgba(255,255,255,0.45)";
-    ctx.fillText(`${name} 변호사${office ? ` · ${office}` : ""}`, 64, S - 44);
+    ctx.restore();
 }

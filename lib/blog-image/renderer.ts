@@ -119,7 +119,16 @@ export function drawWrappedText(
     opts?: { shadow?: boolean; maxLines?: number }
 ): number {
     const lines = wrapText(ctx, text, maxWidth);
+    const hasMore = opts?.maxLines && lines.length > opts.maxLines;
     const displayLines = opts?.maxLines ? lines.slice(0, opts.maxLines) : lines;
+    
+    if (hasMore) {
+        // Append "..." to the last allowed line
+        let lastLine = displayLines[displayLines.length - 1];
+        lastLine = lastLine.length > 3 ? lastLine.slice(0, -3) + "..." : lastLine + "...";
+        displayLines[displayLines.length - 1] = lastLine;
+    }
+
     for (let i = 0; i < displayLines.length; i++) {
         if (opts?.shadow) {
             drawTextWithShadow(ctx, displayLines[i], x, y + i * lineHeight);
@@ -247,6 +256,24 @@ export function drawVignette(ctx: SKRSContext2D, opacity = 0.5) {
     ctx.fillRect(0, 0, s, s);
 }
 
+let cachedNoiseOverlay: Image | null = null;
+export async function drawFilmGrain(ctx: SKRSContext2D, opacity = 0.05) {
+    if (!cachedNoiseOverlay) {
+        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='1024' height='1024'>
+            <filter id='noiseFilter'>
+                <feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/>
+            </filter>
+            <rect width='100%' height='100%' filter='url(#noiseFilter)' opacity='0.5'/>
+        </svg>`;
+        const base64 = Buffer.from(svg).toString('base64');
+        cachedNoiseOverlay = await loadImage(`data:image/svg+xml;base64,${base64}`);
+    }
+    ctx.save();
+    ctx.globalAlpha = opacity;
+    ctx.drawImage(cachedNoiseOverlay, 0, 0, SIZE, SIZE);
+    ctx.restore();
+}
+
 // ── Main Render Function ──
 
 export interface RenderInput {
@@ -299,16 +326,16 @@ export async function renderBlogImage(input: RenderInput): Promise<Buffer> {
 
     switch (input.imageType) {
         case "main":
-            renderMainTemplate(ctx, input, assets);
+            await renderMainTemplate(ctx, input, assets);
             break;
         case "summary":
-            renderSummaryTemplate(ctx, input, assets);
+            await renderSummaryTemplate(ctx, input, assets);
             break;
         case "contact":
-            renderContactTemplate(ctx, input, assets);
+            await renderContactTemplate(ctx, input, assets);
             break;
         case "brand":
-            renderBrandTemplate(ctx, input, assets);
+            await renderBrandTemplate(ctx, input, assets);
             break;
     }
 
