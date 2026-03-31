@@ -91,8 +91,8 @@ export default function ProfileManagerModal({ isOpen, profileId, onClose, onSucc
                     phone3: phones[2] || "",
                     address: p.address || "",
                     website: p.website || "",
-                    specialty: p.specialty?.join(", ") || "",
-                    brandLines: p.brandLines?.join(", ") || "",
+                    specialty: p.specialty?.join("\n") || "",
+                    brandLines: p.brandLines?.join("\n") || "",
                     brandColor: p.brandColor || "#3563AE"
                 });
                 setImages({
@@ -123,8 +123,8 @@ export default function ProfileManagerModal({ isOpen, profileId, onClose, onSucc
                 phone: combinedPhone,
                 address: formData.address,
                 website: formData.website,
-                specialty: formData.specialty.split(",").map(s => s.trim()).filter(Boolean),
-                brandLines: formData.brandLines.split(",").map(s => s.trim()).filter(Boolean),
+                specialty: formData.specialty.split("\n").map(s => s.trim()).filter(Boolean),
+                brandLines: formData.brandLines.split("\n").map(s => s.trim()).filter(Boolean),
             };
             
             const res = await fetch("/api/admin/blog-profiles", {
@@ -325,13 +325,13 @@ export default function ProfileManagerModal({ isOpen, profileId, onClose, onSucc
                                     </div>
 
                                     <div>
-                                        <label className="block text-[11px] font-medium text-white/40 mb-1.5">전문 분야 (쉼표로 구분)</label>
-                                        <input type="text" value={formData.specialty} onChange={e => setFormData({...formData, specialty: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-white/30" placeholder="이혼, 상속, 가사" />
+                                        <label className="block text-[11px] font-medium text-white/40 mb-1.5">전문 분야 (엔터키로 줄바꿈 구분)</label>
+                                        <textarea rows={3} value={formData.specialty} onChange={e => setFormData({...formData, specialty: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-white/30 resize-none scrollbar-thin scrollbar-thumb-white/10" placeholder="음주운전 전문&#13;&#10;교통사고 전문..." />
                                     </div>
 
                                     <div>
-                                        <label className="block text-[11px] font-medium text-white/40 mb-1.5">슬로건 / 브랜드 메시지 (쉼표 구분)</label>
-                                        <input type="text" value={formData.brandLines} onChange={e => setFormData({...formData, brandLines: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-white/30" placeholder="당신의 권리를, 되찾아드립니다" />
+                                        <label className="block text-[11px] font-medium text-white/40 mb-1.5">슬로건 / 브랜드 메시지 (엔터키로 줄바꿈 구분)</label>
+                                        <textarea rows={3} value={formData.brandLines} onChange={e => setFormData({...formData, brandLines: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-white/30 resize-none scrollbar-thin scrollbar-thumb-white/10" placeholder="당신의 든든한 파트너&#13;&#10;책임지고 해결하겠습니다" />
                                     </div>
                                 </form>
                             </div>
