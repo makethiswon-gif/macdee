@@ -1,468 +1,373 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
-    ImageIcon, User, FileText,
-    Sparkles, Upload, X, Plus, Trash2, Edit3, ChevronDown, Clock, Eye,
+    ImageIcon, User, FileText, Sparkles, Download, RefreshCw,
+    ChevronDown, Loader2, Check, X, Eye,
 } from "lucide-react";
-import { removeBackground } from "@imgly/background-removal";
-import {
-    type BlogProfile, type GenerationConfig,
-    generateConfig, saveGeneration, getAllGenerations, deleteGeneration,
-} from "./themes";
 
-type Tab = "generate" | "profiles";
+type ImageType = "main" | "summary" | "contact" | "brand";
 
-/** Client-side canvas compression to keep payloads small */
-async function compressImageClient(file: File | Blob, maxW: number, maxH: number): Promise<string> {
-    return new Promise((resolve) => {
-        const img = new window.Image();
-        const url = URL.createObjectURL(file);
-        img.onload = () => {
-            const scale = Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight, 1);
-            const w = Math.round(img.naturalWidth * scale);
-            const h = Math.round(img.naturalHeight * scale);
-            const canvas = document.createElement("canvas");
-            canvas.width = w; canvas.height = h;
-            canvas.getContext("2d")!.drawImage(img, 0, 0, w, h);
-            URL.revokeObjectURL(url);
-            resolve(canvas.toDataURL("image/png", 1.0));
-        };
-        img.onerror = () => {
-            URL.revokeObjectURL(url);
-            const fr = new FileReader();
-            fr.onload = () => resolve(fr.result as string);
-            fr.readAsDataURL(file);
-        };
-        img.src = url;
-    });
+interface Profile {
+    id: string;
+    lawyerName: string;
+    officeName: string;
+    profileImageCount: number;
+    officeImageCount: number;
+    hasLogo: boolean;
+    specialty: string[];
+    brandColor: string;
 }
 
-/** 프로필 사진 배경 제거 (브라우저에서 ML 모델로 처리, API 비용 0) */
-async function removeProfileBg(file: File): Promise<Blob> {
-    const blob = await removeBackground(file, {
-        progress: (key, current, total) => {
-            if (key === "compute:inference") {
-                console.log(`[BgRemoval] ${Math.round((current / total) * 100)}%`);
-            }
-        },
-    });
-    return blob;
-}
+const IMAGE_TYPES: { id: ImageType; label: string; icon: typeof ImageIcon; desc: string }[] = [
+    { id: "main", label: "메인 대표", icon: ImageIcon, desc: "블로그 썸네일 이미지" },
+    { id: "summary", label: "요약 카드", icon: FileText, desc: "핵심 내용 6-8포인트" },
+    { id: "contact", label: "연락처", icon: User, desc: "상담 유도 CTA" },
+    { id: "brand", label: "브랜드", icon: Sparkles, desc: "로펌 인지도 이미지" },
+];
+
+const TEMPLATE_COUNTS: Record<ImageType, number> = { main: 12, summary: 6, contact: 4, brand: 4 };
+const TEMPLATE_NAMES: Record<ImageType, string[]> = {
+    main: ["다크 시네마틱", "프로필 스포트라이트", "에디토리얼", "글래스모피즘", "스플릿", "미니멀 다크", "로펌 프리미엄", "포토 오버레이", "프로필 풀샷", "매거진 커버", "인용구 스타일", "액센트 블록"],
+    summary: ["넘버링 리스트", "카드 그리드", "타임라인", "다크 카드", "액센트 바", "미니멀 클린"],
+    contact: ["클린 센터", "다크 프리미엄", "포토 배경", "스플릿 프로필"],
+    brand: ["로고 센터", "다크 에디토리얼", "그라디언트 볼드", "포토 에디토리얼"],
+};
 
 export default function BlogImagesPage() {
-    const router = useRouter();
-    const [tab, setTab] = useState<Tab>("generate");
-    const [profiles, setProfiles] = useState<BlogProfile[]>([]);
+    const [profiles, setProfiles] = useState<Profile[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedId, setSelectedId] = useState("");
+    const [postTitle, setPostTitle] = useState("");
+    const [postContent, setPostContent] = useState("");
+    const [summaryPoints, setSummaryPoints] = useState<string[]>([]);
+    const [summarizing, setSummarizing] = useState(false);
+    const [generating, setGenerating] = useState<Record<string, boolean>>({});
+    const [generatedImages, setGeneratedImages] = useState<Record<string, string>>({});
+    const [selectedTemplates, setSelectedTemplates] = useState<Record<ImageType, number>>({
+        main: 0, summary: 0, contact: 0, brand: 0,
+    });
+    const [previewType, setPreviewType] = useState<ImageType | null>(null);
 
     const fetchProfiles = useCallback(async () => {
         setLoading(true);
-        const res = await fetch("/api/admin/blog-profiles");
-        if (res.ok) { const data = await res.json(); setProfiles(data.profiles || []); }
+        try {
+            const res = await fetch("/api/admin/blog-profiles");
+            if (res.ok) {
+                const data = await res.json();
+                setProfiles(data.profiles || []);
+            }
+        } catch (e) { console.error(e); }
         setLoading(false);
     }, []);
 
     useEffect(() => { fetchProfiles(); }, [fetchProfiles]);
 
-    return (
-        <div className="max-w-4xl">
-            <div className="mb-6">
-                <h1 className="text-xl font-bold text-white flex items-center gap-2">
-                    <ImageIcon size={20} className="text-[#3563AE]" />
-                    블로그 이미지 생성기
-                </h1>
-                <p className="text-sm text-[#6B7280] mt-1">변호사를 선택하고 글 내용만 입력하면 자동으로 블로그 이미지를 생성합니다</p>
-            </div>
-            <div className="flex gap-1 mb-6 bg-[#111827] p-1 rounded-xl w-fit">
-                {([
-                    { id: "generate" as Tab, label: "이미지 생성", icon: Sparkles },
-                    { id: "profiles" as Tab, label: "변호사 프로필 관리", icon: User },
-                ] as const).map((t) => (
-                    <button key={t.id} onClick={() => setTab(t.id)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === t.id ? "bg-[#3563AE] text-white" : "text-[#6B7280] hover:text-white"}`}>
-                        <t.icon size={14} />{t.label}
-                    </button>
-                ))}
-            </div>
-            {loading ? (
-                <div className="flex items-center justify-center py-20"><div className="animate-spin w-6 h-6 border-2 border-[#3563AE] border-t-transparent rounded-full" /></div>
-            ) : tab === "generate" ? <GenerateTab profiles={profiles} router={router} /> : <ProfilesTab profiles={profiles} onRefresh={fetchProfiles} />}
-        </div>
-    );
-}
-
-function GenerateTab({ profiles, router }: { profiles: BlogProfile[]; router: ReturnType<typeof useRouter> }) {
-    const [selectedId, setSelectedId] = useState("");
-    const [postTitle, setPostTitle] = useState("");
-    const [postSummary, setPostSummary] = useState("");
-    const [generating, setGenerating] = useState(false);
-    const [history, setHistory] = useState<GenerationConfig[]>([]);
-    useEffect(() => { setHistory(getAllGenerations()); }, []);
-
-    const handleGenerate = async () => {
-        if (!selectedId || !postTitle) return;
-        setGenerating(true);
+    // AI Summary generation
+    const handleSummarize = async () => {
+        if (!postContent.trim()) return;
+        setSummarizing(true);
         try {
-            const res = await fetch(`/api/admin/blog-profiles?id=${selectedId}`);
-            const { profile } = await res.json();
-            let summary = postSummary;
-            if (postSummary.trim()) {
-                try {
-                    const aiRes = await fetch("/api/admin/blog-summary", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: postSummary, title: postTitle }) });
-                    if (aiRes.ok) { const aiData = await aiRes.json(); if (aiData.summary) summary = aiData.summary; }
-                } catch { /**/ }
+            const res = await fetch("/api/admin/blog-images/summarize", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ content: postContent, title: postTitle }),
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setSummaryPoints(data.points || []);
+            } else {
+                alert("요약 생성에 실패했습니다.");
             }
+        } catch (e) { console.error(e); alert("요약 생성 중 오류"); }
+        setSummarizing(false);
+    };
 
-            let aiImageUrl: string | undefined;
-            try {
-                const photoRes = await fetch("/api/admin/blog-images/generate-photo", {
-                    method: "POST", headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ title: postTitle, summary })
-                });
-                if (photoRes.ok) {
-                    const photoData = await photoRes.json();
-                    if (photoData.imageUrl) aiImageUrl = photoData.imageUrl;
-                }
-            } catch (err) {
-                console.error("Failed to generate AI photo:", err);
+    // Generate single image
+    const handleGenerate = async (imageType: ImageType) => {
+        if (!selectedId) return;
+        const key = `${imageType}-${selectedTemplates[imageType]}`;
+        setGenerating(prev => ({ ...prev, [key]: true }));
+        try {
+            const res = await fetch("/api/admin/blog-images/generate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    profileId: selectedId,
+                    title: postTitle,
+                    summaryPoints,
+                    templateId: selectedTemplates[imageType],
+                    imageType,
+                }),
+            });
+            if (res.ok) {
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                setGeneratedImages(prev => ({ ...prev, [key]: url }));
+            } else {
+                const err = await res.json().catch(() => ({}));
+                alert(`이미지 생성 실패: ${err.error || res.status}`);
             }
+        } catch (e) { console.error(e); alert("이미지 생성 중 오류"); }
+        setGenerating(prev => ({ ...prev, [key]: false }));
+    };
 
-            const config = generateConfig(selectedId, postTitle, summary, profile.profileImages?.length || 0, profile.officeImages?.length || 0);
-            if (aiImageUrl) config.aiImageUrl = aiImageUrl;
-            saveGeneration(config);
-            setTimeout(() => router.push(`/admin/blog-images/preview?id=${config.id}`), 300);
-        } catch (err) {
-            console.error(err);
-            alert("생성 중 오류가 발생했습니다.");
-            setGenerating(false);
+    // Generate all 4 images
+    const handleGenerateAll = async () => {
+        if (!selectedId || !postTitle) return;
+        for (const type of IMAGE_TYPES) {
+            await handleGenerate(type.id);
         }
     };
 
-    const selected = profiles.find((p) => p.id === selectedId);
+    // Download image
+    const handleDownload = (imageType: ImageType) => {
+        const key = `${imageType}-${selectedTemplates[imageType]}`;
+        const url = generatedImages[key];
+        if (!url) return;
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `blog-${imageType}-${selectedTemplates[imageType]}.png`;
+        a.click();
+    };
+
+    // Download all
+    const handleDownloadAll = () => {
+        IMAGE_TYPES.forEach(t => handleDownload(t.id));
+    };
+
+    const selected = profiles.find(p => p.id === selectedId);
+    const anyGenerating = Object.values(generating).some(Boolean);
+    const allGenerated = IMAGE_TYPES.every(t => generatedImages[`${t.id}-${selectedTemplates[t.id]}`]);
+
     const ic = "w-full px-4 py-3 rounded-xl bg-[#0B0F1A] border border-[#1F2937] text-white text-sm placeholder-[#4B5563] focus:outline-none focus:border-[#3563AE] transition-all";
 
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center py-20">
+                <div className="animate-spin w-6 h-6 border-2 border-[#3563AE] border-t-transparent rounded-full" />
+            </div>
+        );
+    }
+
     return (
-        <div className="space-y-6">
+        <div className="max-w-5xl">
+            {/* Header */}
+            <div className="mb-8">
+                <h1 className="text-2xl font-bold text-white flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#3563AE] to-[#2851A3] flex items-center justify-center">
+                        <ImageIcon size={20} className="text-white" />
+                    </div>
+                    블로그 이미지 생성기 v3
+                </h1>
+                <p className="text-sm text-[#6B7280] mt-2 ml-[52px]">
+                    서버에서 고품질 이미지를 직접 생성합니다 · 변호사 사진 활용 · DALL-E 비용 0원
+                </p>
+            </div>
+
             {profiles.length === 0 ? (
                 <div className="p-10 rounded-2xl bg-[#111827] border border-[#1F2937] text-center">
                     <User size={32} className="mx-auto text-[#4B5563] mb-3" />
-                    <p className="text-[#6B7280] text-sm mb-3">등록된 변호사 프로필이 없습니다</p>
-                    <p className="text-[#4B5563] text-xs">먼저 &quot;변호사 프로필 관리&quot; 탭에서 프로필을 추가해주세요</p>
+                    <p className="text-[#6B7280] text-sm mb-2">등록된 변호사 프로필이 없습니다</p>
+                    <p className="text-[#4B5563] text-xs">변호사 프로필 관리 탭에서 프로필을 먼저 추가해주세요</p>
                 </div>
-            ) : (<>
-                <div className="p-6 rounded-2xl bg-[#111827] border border-[#1F2937]">
-                    <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2"><User size={14} className="text-[#3563AE]" />변호사 선택</h2>
-                    <div className="relative">
-                        <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)} className={`${ic} appearance-none cursor-pointer`}>
-                            <option value="">변호사를 선택하세요</option>
-                            {profiles.map((p) => <option key={p.id} value={p.id}>{p.lawyerName} — {p.officeName || "사무소 미등록"} ({p.profileImageCount || 0}장/{p.officeImageCount || 0}장)</option>)}
-                        </select>
-                        <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#4B5563] pointer-events-none" />
-                    </div>
-                    {selected && (
-                        <div className="mt-3 flex gap-2 flex-wrap">
-                            {selected.specialty?.map((s, i) => <span key={i} className="px-2 py-0.5 rounded-full bg-[#3563AE]/10 text-[#3563AE] text-[11px] font-medium">{s}</span>)}
-                            {selected.phone && <span className="text-[11px] text-[#6B7280]">📞 {Array.isArray(selected.phone) ? selected.phone[0] : selected.phone}</span>}
+            ) : (
+                <div className="space-y-6">
+                    {/* Step 1: Select Profile */}
+                    <div className="p-6 rounded-2xl bg-[#111827] border border-[#1F2937]">
+                        <div className="flex items-center gap-2 mb-4">
+                            <span className="w-6 h-6 rounded-full bg-[#3563AE] text-white text-xs font-bold flex items-center justify-center">1</span>
+                            <h2 className="text-sm font-semibold text-white">변호사 선택</h2>
                         </div>
-                    )}
-                </div>
-                <div className="p-6 rounded-2xl bg-[#111827] border border-[#1F2937]">
-                    <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2"><FileText size={14} className="text-[#10B981]" />포스팅 내용</h2>
-                    <div className="space-y-4">
-                        <div><label className="block text-xs font-medium text-[#9CA3B0] mb-1.5">포스팅 제목 *</label>
-                            <input type="text" value={postTitle} onChange={(e) => setPostTitle(e.target.value)} placeholder="음주운전 초범, 어떻게 대처해야 할까?" className={ic} /></div>
-                        <div><label className="block text-xs font-medium text-[#9CA3B0] mb-1.5">블로그 글 내용 (AI가 자동 요약)</label>
-                            <textarea value={postSummary} onChange={(e) => setPostSummary(e.target.value)} placeholder={"블로그 본문 내용을 붙여넣으세요. AI가 핵심 내용을 3줄로 자동 요약합니다."} rows={6} className={`${ic} resize-none`} /></div>
-                    </div>
-                </div>
-                <button onClick={handleGenerate} disabled={!selectedId || !postTitle || generating}
-                    className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#3563AE] to-[#2851A3] text-white font-semibold text-sm hover:from-[#2851A3] hover:to-[#1E408C] disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#3563AE]/20">
-                    {generating ? <><div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />생성 중...</> : <><Sparkles size={16} />이미지 생성하기</>}
-                </button>
-            </>)}
-            {history.length > 0 && (
-                <div className="mt-8">
-                    <h2 className="text-sm font-semibold text-white mb-4">최근 생성 이력</h2>
-                    <div className="space-y-2">
-                        {history.map((item) => {
-                            const hoursLeft = Math.max(0, Math.ceil((24 * 60 * 60 * 1000 - (Date.now() - item.createdAt)) / 3600000));
-                            return (
-                                <div key={item.id} className="flex items-center justify-between p-4 rounded-xl bg-[#111827] border border-[#1F2937]">
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium text-white truncate">{item.postTitle}</p>
-                                        <p className="text-[11px] text-[#6B7280] mt-0.5 flex items-center gap-1"><Clock size={10} />{hoursLeft}시간 후 만료</p>
-                                    </div>
-                                    <div className="flex items-center gap-2 ml-4">
-                                        <button onClick={() => router.push(`/admin/blog-images/preview?id=${item.id}`)} className="px-3 py-1.5 text-xs text-[#3563AE] bg-[#3563AE]/10 rounded-lg hover:bg-[#3563AE]/20 transition-colors flex items-center gap-1"><Eye size={12} />보기</button>
-                                        <button onClick={() => { deleteGeneration(item.id); setHistory(getAllGenerations()); }} className="p-1.5 text-red-400/60 hover:text-red-400 rounded-lg hover:bg-red-400/10 transition-colors"><Trash2 size={14} /></button>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-}
-
-function ProfilesTab({ profiles, onRefresh }: { profiles: BlogProfile[]; onRefresh: () => void }) {
-    const [editId, setEditId] = useState<string | null>(null);
-    const [showForm, setShowForm] = useState(false);
-    const [saving, setSaving] = useState(false);
-    const [uploading, setUploading] = useState(false);
-    const [uploadStatus, setUploadStatus] = useState("");
-    const [form, setForm] = useState({ lawyerName: "", officeName: "", phone: "", address: "", website: "", specialty: "", brandLines: "" });
-    const [fullProfile, setFullProfile] = useState<BlogProfile | null>(null);
-    const fileRef = useRef<HTMLInputElement>(null);
-    // Use a ref (not state) for upload type to avoid stale closure in onChange handler
-    const uploadingTypeRef = useRef<"profile" | "office" | "logo" | null>(null);
-
-    const resetForm = () => {
-        setForm({ lawyerName: "", officeName: "", phone: "", address: "", website: "", specialty: "", brandLines: "" });
-        setEditId(null); setFullProfile(null); setShowForm(false);
-    };
-
-    const startEdit = async (id: string) => {
-        try {
-            const res = await fetch(`/api/admin/blog-profiles?id=${id}`, { cache: "no-store" });
-            if (!res.ok) throw new Error("Fetch failed");
-            const { profile } = await res.json();
-            setFullProfile(profile);
-            setForm({
-                lawyerName: profile.lawyerName,
-                officeName: profile.officeName,
-                phone: Array.isArray(profile.phone) ? profile.phone.join(", ") : (profile.phone || ""),
-                address: profile.address,
-                website: profile.website,
-                specialty: profile.specialty?.join(", ") || "",
-                brandLines: profile.brandLines?.join("\n") || "",
-            });
-            setEditId(id); setShowForm(true);
-        } catch (err) { console.error(err); alert("프로필을 불러오지 못했습니다."); resetForm(); }
-    };
-
-    const handleSave = async () => {
-        setSaving(true);
-        try {
-            const isCreating = !editId;
-            const payload = {
-                action: editId ? "update" : "create",
-                ...(editId ? { id: editId } : {}),
-                lawyerName: form.lawyerName, officeName: form.officeName, phone: form.phone,
-                address: form.address, website: form.website,
-                specialty: form.specialty.split(",").map((s) => s.trim()).filter(Boolean),
-                brandLines: form.brandLines.split("\n").map((s) => s.trim()).filter(Boolean),
-            };
-            const res = await fetch("/api/admin/blog-profiles", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-            if (!res.ok) { alert(`저장 실패: ${res.status}`); setSaving(false); return; }
-            const result = await res.json();
-            setSaving(false);
-            if (isCreating && result.profile?.id) { await startEdit(result.profile.id); onRefresh(); }
-            else { onRefresh(); resetForm(); }
-        } catch (err) { console.error("Save error:", err); alert("저장 중 오류가 발생했습니다."); setSaving(false); }
-    };
-
-    const handleDelete = async (id: string) => {
-        if (!confirm("이 프로필을 삭제하시겠습니까?")) return;
-        await fetch("/api/admin/blog-profiles", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "delete", id }) });
-        resetForm(); onRefresh();
-    };
-
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        const type = uploadingTypeRef.current; // Always current, never stale
-        if (!file || !editId || !type) return;
-        e.target.value = "";
-        setUploading(true);
-        try {
-            let processedFile: File | Blob = file;
-
-            // 프로필 사진: 자동 배경 제거 (브라우저에서 처리)
-            if (type === "profile") {
-                setUploadStatus("배경 제거 중... (첫 실행 시 모델 다운로드로 30초 소요)");
-                try {
-                    processedFile = await removeProfileBg(file);
-                    setUploadStatus("이미지 압축 중...");
-                } catch (err) {
-                    console.warn("[BgRemoval] Failed, using original:", err);
-                    setUploadStatus("배경 제거 실패, 원본으로 업로드 중...");
-                }
-            } else {
-                setUploadStatus("이미지 업로드 중...");
-            }
-
-            const [maxW, maxH] = type === "logo" ? [400, 160] : type === "profile" ? [400, 500] : [900, 600];
-            const base64 = await compressImageClient(processedFile, maxW, maxH);
-            const res = await fetch("/api/admin/blog-profiles", {
-                method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ action: "addImage", profileId: editId, imageType: type, base64 }),
-            });
-            if (!res.ok) { const d = await res.json().catch(() => ({})); alert(`이미지 업로드 실패: ${d.error || res.status}`); }
-        } catch (err) { console.error("Upload error:", err); alert("이미지 업로드 중 오류가 발생했습니다."); }
-        finally { uploadingTypeRef.current = null; setUploading(false); setUploadStatus(""); startEdit(editId); }
-    };
-
-    const handleRemoveImage = async (type: "profile" | "office" | "logo", index: number) => {
-        if (!editId) return;
-        await fetch("/api/admin/blog-profiles", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "removeImage", profileId: editId, imageType: type, imageIndex: index }) });
-        startEdit(editId);
-    };
-
-    // 기존 프로필 사진 전체 배경 제거
-    const handleBulkBgRemoval = async () => {
-        if (!editId || !fullProfile?.profileImages?.length) return;
-        if (!confirm(`프로필 사진 ${fullProfile.profileImages.length}장의 배경을 모두 제거합니다. 진행하시겠습니까?`)) return;
-        setUploading(true);
-        try {
-            const total = fullProfile.profileImages.length;
-            const processed: string[] = [];
-            for (let i = 0; i < total; i++) {
-                setUploadStatus(`배경 제거 중... (${i + 1}/${total})`);
-                try {
-                    // base64 → Blob → removeBackground → compress → base64
-                    const imgRes = await fetch(fullProfile.profileImages[i]);
-                    const imgBlob = await imgRes.blob();
-                    const file = new File([imgBlob], `profile_${i}.png`, { type: imgBlob.type });
-                    const noBgBlob = await removeProfileBg(file);
-                    const base64 = await compressImageClient(noBgBlob, 400, 500);
-                    processed.push(base64);
-                } catch (err) {
-                    console.warn(`[BulkBgRemoval] Image ${i} failed:`, err);
-                    processed.push(fullProfile.profileImages[i]); // 실패 시 원본 유지
-                }
-            }
-            setUploadStatus("저장 중...");
-            const res = await fetch("/api/admin/blog-profiles", {
-                method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ action: "replaceImages", profileId: editId, imageType: "profile", images: processed }),
-            });
-            if (!res.ok) alert("저장 실패");
-            else alert(`${total}장의 프로필 사진 배경 제거 완료!`);
-        } catch (err) { console.error("Bulk bg removal error:", err); alert("배경 제거 중 오류가 발생했습니다."); }
-        finally { setUploading(false); setUploadStatus(""); startEdit(editId); }
-    };
-
-    // Set ref BEFORE opening file dialog — avoids any potential race condition
-    const triggerUpload = (type: "profile" | "office" | "logo") => {
-        uploadingTypeRef.current = type;
-        fileRef.current?.click();
-    };
-
-    const ic = "w-full px-4 py-3 rounded-xl bg-[#0B0F1A] border border-[#1F2937] text-white text-sm placeholder-[#4B5563] focus:outline-none focus:border-[#3563AE] transition-all";
-    const lc = "block text-xs font-medium text-[#9CA3B0] mb-1.5";
-
-    return (
-        <div className="space-y-6">
-            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-            {uploading && (
-                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-                    <div className="bg-[#111827] border border-[#1F2937] rounded-2xl px-8 py-6 flex flex-col items-center gap-4 max-w-xs">
-                        <div className="animate-spin w-5 h-5 border-2 border-[#3563AE] border-t-transparent rounded-full" />
-                        <span className="text-white text-sm font-medium text-center">{uploadStatus || "이미지 업로드 중..."}</span>
-                    </div>
-                </div>
-            )}
-            {!showForm && (
-                <button onClick={() => { resetForm(); setShowForm(true); }} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#3563AE]/10 text-[#3563AE] text-sm font-medium hover:bg-[#3563AE]/20 transition-colors">
-                    <Plus size={16} />새 변호사 프로필 추가
-                </button>
-            )}
-            {showForm && (
-                <div className="p-6 rounded-2xl bg-[#111827] border border-[#1F2937]">
-                    <div className="flex items-center justify-between mb-5">
-                        <h2 className="text-sm font-semibold text-white">{editId ? "프로필 수정" : "새 프로필 추가"}</h2>
-                        <button onClick={resetForm} className="p-1 text-[#6B7280] hover:text-white rounded"><X size={16} /></button>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div><label className={lc}>변호사 이름 *</label><input type="text" value={form.lawyerName} onChange={(e) => setForm({ ...form, lawyerName: e.target.value })} placeholder="홍길동" className={ic} /></div>
-                        <div><label className={lc}>사무소명</label><input type="text" value={form.officeName} onChange={(e) => setForm({ ...form, officeName: e.target.value })} placeholder="법률사무소 ○○" className={ic} /></div>
-                        <div><label className={lc}>전화번호</label><input type="text" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="02-1234-5678" className={ic} /></div>
-                        <div><label className={lc}>웹사이트</label><input type="text" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} placeholder="https://example.com" className={ic} /></div>
-                        <div className="col-span-2"><label className={lc}>주소</label><input type="text" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="서울시 강남구 ..." className={ic} /></div>
-                        <div className="col-span-2"><label className={lc}>전문 분야 (쉼표 구분)</label><input type="text" value={form.specialty} onChange={(e) => setForm({ ...form, specialty: e.target.value })} placeholder="형사법, 이혼, 부동산" className={ic} /></div>
-                        <div className="col-span-2"><label className={lc}>브랜드 문구 (줄바꿈 구분, 최대 3줄)</label>
-                            <textarea value={form.brandLines} onChange={(e) => setForm({ ...form, brandLines: e.target.value })} placeholder={`# 주말 및 휴일 365일 상담 예약 가능\n# 상담부터 재판까지 밀착케어서비스\n# 홍길동 대표 변호사`} rows={3} className={ic + " resize-none"} /></div>
-                    </div>
-                    {editId && fullProfile && (
-                        <div className="mt-6 pt-6 border-t border-[#1F2937]">
-                            {/* Logo */}
-                            <div className="mb-5">
-                                <div className="flex items-center justify-between mb-3">
-                                    <label className={lc}>로고 이미지{fullProfile.brandColor && <span className="ml-2 inline-flex items-center gap-1"><span className="w-3 h-3 rounded-full inline-block" style={{ background: fullProfile.brandColor }} /><span className="text-[10px] text-[#6B7280]">{fullProfile.brandColor}</span></span>}</label>
-                                    <button onClick={() => triggerUpload("logo")} className="text-xs text-[#3563AE] hover:underline flex items-center gap-1"><Upload size={12} />{fullProfile.logoImage ? "변경" : "업로드"}</button>
-                                </div>
-                                {fullProfile.logoImage ? (
-                                    <div className="relative group w-24 h-24 rounded-lg overflow-hidden border border-[#1F2937] bg-white p-2">
-                                        <img src={fullProfile.logoImage} alt="" className="w-full h-full object-contain" />
-                                        <button onClick={() => handleRemoveImage("logo", 0)} className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={14} className="text-red-400" /></button>
-                                    </div>
-                                ) : <p className="text-[11px] text-[#4B5563]">로고가 없습니다. 업로드하면 브랜드 컬러가 자동 추출됩니다.</p>}
+                        <div className="relative">
+                            <select value={selectedId} onChange={e => setSelectedId(e.target.value)} className={`${ic} appearance-none cursor-pointer`}>
+                                <option value="">변호사를 선택하세요</option>
+                                {profiles.map(p => (
+                                    <option key={p.id} value={p.id}>
+                                        {p.lawyerName} — {p.officeName || "사무소 미등록"} (프로필 {p.profileImageCount}장 / 사무실 {p.officeImageCount}장{p.hasLogo ? " / 로고 ✓" : ""})
+                                    </option>
+                                ))}
+                            </select>
+                            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#4B5563] pointer-events-none" />
+                        </div>
+                        {selected && (
+                            <div className="mt-3 flex gap-2 flex-wrap">
+                                {selected.specialty?.map((s, i) => (
+                                    <span key={i} className="px-2 py-0.5 rounded-full bg-[#3563AE]/10 text-[#3563AE] text-[11px] font-medium">{s}</span>
+                                ))}
                             </div>
-                            {/* Profile Photos */}
-                            <div className="mb-5">
-                                <div className="flex items-center justify-between mb-3">
-                                    <label className={lc}>프로필 사진 ({fullProfile.profileImages?.length || 0}장)</label>
-                                    <div className="flex items-center gap-3">
-                                        {(fullProfile.profileImages?.length || 0) > 0 && (
-                                            <button onClick={handleBulkBgRemoval} className="text-xs text-[#10B981] hover:underline flex items-center gap-1"><Sparkles size={12} />전체 배경 제거</button>
-                                        )}
-                                        <button onClick={() => triggerUpload("profile")} className="text-xs text-[#3563AE] hover:underline flex items-center gap-1"><Upload size={12} />추가</button>
-                                    </div>
-                                </div>
-                                <div className="flex gap-2 flex-wrap">
-                                    {(fullProfile.profileImages || []).map((img, i) => (
-                                        <div key={i} className="relative group w-20 h-24 rounded-lg overflow-hidden border border-[#1F2937]">
-                                            <img src={img} alt="" className="w-full h-full object-cover object-top" />
-                                            <button onClick={() => handleRemoveImage("profile", i)} className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={14} className="text-red-400" /></button>
-                                        </div>
-                                    ))}
-                                    {(!fullProfile.profileImages || fullProfile.profileImages.length === 0) && <p className="text-[11px] text-[#4B5563]">사진이 없습니다</p>}
-                                </div>
-                            </div>
-                            {/* Office Photos */}
+                        )}
+                    </div>
+
+                    {/* Step 2: Post Content */}
+                    <div className="p-6 rounded-2xl bg-[#111827] border border-[#1F2937]">
+                        <div className="flex items-center gap-2 mb-4">
+                            <span className="w-6 h-6 rounded-full bg-[#3563AE] text-white text-xs font-bold flex items-center justify-center">2</span>
+                            <h2 className="text-sm font-semibold text-white">포스팅 내용</h2>
+                        </div>
+                        <div className="space-y-4">
                             <div>
+                                <label className="block text-xs font-medium text-[#9CA3B0] mb-1.5">포스팅 제목 *</label>
+                                <input type="text" value={postTitle} onChange={e => setPostTitle(e.target.value)}
+                                    placeholder="음주운전 초범, 어떻게 대처해야 할까?" className={ic} />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-[#9CA3B0] mb-1.5">블로그 글 내용 (AI가 6-8개 핵심 포인트로 자동 요약)</label>
+                                <textarea value={postContent} onChange={e => setPostContent(e.target.value)}
+                                    placeholder="블로그 본문 내용을 붙여넣으세요. AI가 핵심 내용을 6-8개 포인트로 정리합니다."
+                                    rows={6} className={`${ic} resize-none`} />
+                            </div>
+                            <button onClick={handleSummarize} disabled={!postContent.trim() || summarizing}
+                                className="px-5 py-2.5 rounded-xl bg-[#10B981]/10 text-[#10B981] text-sm font-medium hover:bg-[#10B981]/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-2">
+                                {summarizing ? <><Loader2 size={14} className="animate-spin" />요약 생성 중...</> : <><Sparkles size={14} />AI 핵심 포인트 추출</>}
+                            </button>
+                        </div>
+
+                        {/* Summary Points Display */}
+                        {summaryPoints.length > 0 && (
+                            <div className="mt-5 p-4 rounded-xl bg-[#0B0F1A] border border-[#1F2937]">
                                 <div className="flex items-center justify-between mb-3">
-                                    <label className={lc}>사무실 사진 ({fullProfile.officeImages?.length || 0}장)</label>
-                                    <button onClick={() => triggerUpload("office")} className="text-xs text-[#3563AE] hover:underline flex items-center gap-1"><Upload size={12} />추가</button>
+                                    <span className="text-xs font-medium text-[#10B981] flex items-center gap-1">
+                                        <Check size={12} />{summaryPoints.length}개 핵심 포인트
+                                    </span>
+                                    <button onClick={() => setSummaryPoints([])} className="text-[#4B5563] hover:text-[#9CA3B0] transition-colors">
+                                        <X size={14} />
+                                    </button>
                                 </div>
-                                <div className="flex gap-2 flex-wrap">
-                                    {(fullProfile.officeImages || []).map((img, i) => (
-                                        <div key={i} className="relative group w-28 h-20 rounded-lg overflow-hidden border border-[#1F2937]">
-                                            <img src={img} alt="" className="w-full h-full object-cover" />
-                                            <button onClick={() => handleRemoveImage("office", i)} className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={14} className="text-red-400" /></button>
+                                <div className="space-y-2">
+                                    {summaryPoints.map((pt, i) => (
+                                        <div key={i} className="flex gap-3 text-sm">
+                                            <span className="text-[#3563AE] font-bold text-xs mt-0.5 shrink-0">{String(i + 1).padStart(2, "0")}</span>
+                                            <input type="text" value={pt}
+                                                onChange={e => {
+                                                    const next = [...summaryPoints];
+                                                    next[i] = e.target.value;
+                                                    setSummaryPoints(next);
+                                                }}
+                                                className="flex-1 bg-transparent text-[#D1D5DB] text-sm border-none outline-none" />
                                         </div>
                                     ))}
-                                    {(!fullProfile.officeImages || fullProfile.officeImages.length === 0) && <p className="text-[11px] text-[#4B5563]">사진이 없습니다</p>}
                                 </div>
                             </div>
+                        )}
+                    </div>
+
+                    {/* Step 3: Template Selection + Generate */}
+                    <div className="p-6 rounded-2xl bg-[#111827] border border-[#1F2937]">
+                        <div className="flex items-center justify-between mb-5">
+                            <div className="flex items-center gap-2">
+                                <span className="w-6 h-6 rounded-full bg-[#3563AE] text-white text-xs font-bold flex items-center justify-center">3</span>
+                                <h2 className="text-sm font-semibold text-white">템플릿 선택 & 이미지 생성</h2>
+                            </div>
+                            {allGenerated && (
+                                <button onClick={handleDownloadAll}
+                                    className="px-4 py-2 rounded-xl bg-[#10B981]/10 text-[#10B981] text-xs font-medium hover:bg-[#10B981]/20 transition-colors flex items-center gap-1.5">
+                                    <Download size={12} />전체 다운로드
+                                </button>
+                            )}
                         </div>
-                    )}
-                    <div className="flex gap-3 mt-6">
-                        <button onClick={handleSave} disabled={!form.lawyerName || saving} className="px-6 py-2.5 rounded-xl bg-[#3563AE] text-white text-sm font-medium hover:bg-[#2851A3] disabled:opacity-40 transition-colors">
-                            {saving ? "저장 중..." : editId ? "수정 완료" : "추가하기"}
+
+                        <div className="grid grid-cols-2 gap-4">
+                            {IMAGE_TYPES.map(type => {
+                                const key = `${type.id}-${selectedTemplates[type.id]}`;
+                                const imgUrl = generatedImages[key];
+                                const isGen = generating[key];
+
+                                return (
+                                    <div key={type.id} className="rounded-xl bg-[#0B0F1A] border border-[#1F2937] overflow-hidden">
+                                        {/* Preview area */}
+                                        <div className="aspect-square relative bg-[#060810] flex items-center justify-center">
+                                            {imgUrl ? (
+                                                <>
+                                                    <img src={imgUrl} alt={type.label} className="w-full h-full object-contain" />
+                                                    {/* Overlay toolbar */}
+                                                    <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent flex justify-between items-center">
+                                                        <button onClick={() => setPreviewType(type.id)}
+                                                            className="px-3 py-1.5 rounded-lg bg-white/10 text-white text-[11px] font-medium hover:bg-white/20 transition-colors flex items-center gap-1">
+                                                            <Eye size={10} />확대
+                                                        </button>
+                                                        <button onClick={() => handleDownload(type.id)}
+                                                            className="px-3 py-1.5 rounded-lg bg-[#10B981]/20 text-[#10B981] text-[11px] font-medium hover:bg-[#10B981]/30 transition-colors flex items-center gap-1">
+                                                            <Download size={10} />다운로드
+                                                        </button>
+                                                    </div>
+                                                </>
+                                            ) : isGen ? (
+                                                <div className="flex flex-col items-center gap-3">
+                                                    <Loader2 size={24} className="animate-spin text-[#3563AE]" />
+                                                    <span className="text-xs text-[#6B7280]">생성 중...</span>
+                                                </div>
+                                            ) : (
+                                                <div className="flex flex-col items-center gap-2 text-[#4B5563]">
+                                                    <type.icon size={28} />
+                                                    <span className="text-xs">{type.desc}</span>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Controls */}
+                                        <div className="p-3 space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-xs font-semibold text-white">{type.label}</span>
+                                                <span className="text-[10px] text-[#6B7280]">
+                                                    {TEMPLATE_NAMES[type.id][selectedTemplates[type.id]]}
+                                                </span>
+                                            </div>
+                                            <div className="flex gap-1.5">
+                                                {Array.from({ length: TEMPLATE_COUNTS[type.id] }).map((_, i) => (
+                                                    <button key={i} onClick={() => setSelectedTemplates(prev => ({ ...prev, [type.id]: i }))}
+                                                        className={`flex-1 h-1.5 rounded-full transition-all ${selectedTemplates[type.id] === i
+                                                            ? "bg-[#3563AE]"
+                                                            : "bg-[#1F2937] hover:bg-[#2A3040]"
+                                                            }`}
+                                                        title={TEMPLATE_NAMES[type.id][i]} />
+                                                ))}
+                                            </div>
+                                            <button onClick={() => handleGenerate(type.id)}
+                                                disabled={!selectedId || !postTitle || isGen}
+                                                className="w-full py-2 rounded-lg bg-[#3563AE]/10 text-[#3563AE] text-xs font-medium hover:bg-[#3563AE]/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5">
+                                                {isGen ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+                                                {imgUrl ? "다시 생성" : "생성"}
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {/* Generate All */}
+                        <button onClick={handleGenerateAll}
+                            disabled={!selectedId || !postTitle || anyGenerating}
+                            className="w-full mt-5 py-4 rounded-2xl bg-gradient-to-r from-[#3563AE] to-[#2851A3] text-white font-semibold text-sm hover:from-[#2851A3] hover:to-[#1E408C] disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#3563AE]/20">
+                            {anyGenerating ? <><Loader2 size={16} className="animate-spin" />생성 중...</> : <><Sparkles size={16} />4장 이미지 한번에 생성</>}
                         </button>
-                        <button onClick={resetForm} className="px-4 py-2.5 rounded-xl text-[#6B7280] text-sm hover:text-white transition-colors">취소</button>
                     </div>
                 </div>
             )}
-            <div className="space-y-2">
-                {profiles.map((p) => (
-                    <div key={p.id} className="flex items-center justify-between p-4 rounded-xl bg-[#111827] border border-[#1F2937] hover:border-[#2A3040] transition-colors">
-                        <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-white">{p.lawyerName}</p>
-                            <p className="text-[11px] text-[#6B7280] mt-0.5">{p.officeName || "사무소 미등록"} · 프로필 {p.profileImageCount || 0}장 · 사무실 {p.officeImageCount || 0}장{p.hasLogo ? " · 로고 ✓" : ""}</p>
-                        </div>
-                        <div className="flex items-center gap-2 ml-4">
-                            <button onClick={() => startEdit(p.id)} className="px-3 py-1.5 text-xs text-[#9CA3B0] bg-[#1F2937] rounded-lg hover:text-white transition-colors flex items-center gap-1"><Edit3 size={12} />편집</button>
-                            <button onClick={() => handleDelete(p.id)} className="p-1.5 text-red-400/40 hover:text-red-400 rounded-lg hover:bg-red-400/10 transition-colors"><Trash2 size={14} /></button>
+
+            {/* Full Preview Modal */}
+            {previewType && generatedImages[`${previewType}-${selectedTemplates[previewType]}`] && (
+                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-8"
+                    onClick={() => setPreviewType(null)}>
+                    <div className="relative max-w-[90vh] max-h-[90vh]" onClick={e => e.stopPropagation()}>
+                        <img
+                            src={generatedImages[`${previewType}-${selectedTemplates[previewType]}`]}
+                            alt="Preview"
+                            className="max-w-full max-h-[85vh] rounded-xl shadow-2xl"
+                        />
+                        <div className="absolute top-3 right-3 flex gap-2">
+                            <button onClick={() => handleDownload(previewType)}
+                                className="px-4 py-2 rounded-lg bg-[#10B981] text-white text-sm font-medium hover:bg-[#059669] transition-colors flex items-center gap-1.5">
+                                <Download size={14} />다운로드
+                            </button>
+                            <button onClick={() => setPreviewType(null)}
+                                className="w-9 h-9 rounded-lg bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors">
+                                <X size={16} />
+                            </button>
                         </div>
                     </div>
-                ))}
-                {profiles.length === 0 && <p className="text-sm text-[#4B5563] text-center py-8">등록된 프로필이 없습니다</p>}
-            </div>
+                </div>
+            )}
         </div>
     );
 }
