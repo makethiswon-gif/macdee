@@ -2,138 +2,6 @@ import { NextResponse } from "next/server";
 
 export const maxDuration = 60;
 
-// ─── Premium Fixed Templates ───
-// Claude is ONLY used for summary text generation. All design is template-based.
-
-function thumbnailTemplate(p: TemplateData): string {
-    return `<div style="width:800px;height:800px;position:relative;overflow:hidden;background:linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, ${p.brandColor}22 100%);display:flex;flex-direction:column;justify-content:space-between;padding:60px;font-family:'Pretendard','Noto Sans KR',sans-serif;box-sizing:border-box;">
-  <div style="display:flex;align-items:center;gap:16px;">
-    ${p.logoImg ? `<img src="${p.logoImg}" style="height:50px;object-fit:contain;" />` : ''}
-    <span style="color:rgba(255,255,255,0.5);font-size:13px;letter-spacing:2px;">${p.officeName}</span>
-  </div>
-  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:20px;">
-    <div style="width:60px;height:4px;background:${p.brandColor};border-radius:2px;"></div>
-    <h1 style="margin:0;color:#fff;font-size:42px;font-weight:800;line-height:1.3;letter-spacing:-1px;word-break:keep-all;">${p.title}</h1>
-  </div>
-  <div style="display:flex;align-items:center;justify-content:space-between;">
-    <div style="display:flex;align-items:center;gap:14px;">
-      ${p.profileImg ? `<img src="${p.profileImg}" style="width:52px;height:52px;border-radius:50%;object-fit:cover;border:2px solid ${p.brandColor};" />` : ''}
-      <div>
-        <div style="color:#fff;font-size:16px;font-weight:700;">${p.lawyerName} ${p.jobTitle}</div>
-        <div style="color:rgba(255,255,255,0.5);font-size:12px;">${p.officeName}</div>
-      </div>
-    </div>
-    <div style="color:${p.brandColor};font-size:11px;letter-spacing:1px;text-transform:uppercase;">Legal Insight</div>
-  </div>
-  <div style="position:absolute;top:0;right:0;width:300px;height:300px;background:radial-gradient(circle,${p.brandColor}15 0%,transparent 70%);pointer-events:none;"></div>
-  <div style="position:absolute;bottom:0;left:0;width:400px;height:400px;background:radial-gradient(circle,${p.brandColor}10 0%,transparent 70%);pointer-events:none;"></div>
-</div>`;
-}
-
-function summaryTemplate(p: TemplateData, points: string[]): string {
-    const pointsHtml = points.map(pt =>
-        `<div style="display:flex;gap:14px;align-items:flex-start;">
-      <div style="min-width:8px;width:8px;height:8px;border-radius:50%;background:${p.brandColor};margin-top:8px;flex-shrink:0;"></div>
-      <p style="margin:0;color:rgba(255,255,255,0.9);font-size:17px;line-height:1.7;word-break:keep-all;">${pt}</p>
-    </div>`
-    ).join('');
-
-    return `<div style="width:800px;height:800px;position:relative;overflow:hidden;background:linear-gradient(160deg,#0c0c14 0%,#141420 60%,${p.brandColor}18 100%);display:flex;flex-direction:column;padding:60px;font-family:'Pretendard','Noto Sans KR',sans-serif;box-sizing:border-box;">
-  <div style="margin-bottom:12px;color:${p.brandColor};font-size:13px;font-weight:600;letter-spacing:3px;">핵심 요약</div>
-  <h2 style="margin:0 0 40px 0;color:#fff;font-size:28px;font-weight:800;line-height:1.4;word-break:keep-all;">${p.title}</h2>
-  <div style="width:100%;height:1px;background:linear-gradient(90deg,${p.brandColor}60,transparent);margin-bottom:40px;"></div>
-  <div style="display:flex;flex-direction:column;gap:28px;flex:1;">
-    ${pointsHtml}
-  </div>
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-top:40px;padding-top:24px;border-top:1px solid rgba(255,255,255,0.08);">
-    <div style="display:flex;align-items:center;gap:12px;">
-      ${p.profileImg ? `<img src="${p.profileImg}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;" />` : ''}
-      <span style="color:rgba(255,255,255,0.6);font-size:13px;">${p.lawyerName} ${p.jobTitle} | ${p.officeName}</span>
-    </div>
-    ${p.logoImg ? `<img src="${p.logoImg}" style="height:35px;object-fit:contain;opacity:0.7;" />` : ''}
-  </div>
-</div>`;
-}
-
-function careerTemplate(p: TemplateData): string {
-    const careerHtml = p.career.map(c =>
-        `<div style="display:flex;gap:10px;align-items:flex-start;">
-      <div style="min-width:6px;width:6px;height:6px;border-radius:50%;background:${p.brandColor};margin-top:7px;flex-shrink:0;"></div>
-      <span style="color:rgba(255,255,255,0.85);font-size:14px;line-height:1.5;">${c}</span>
-    </div>`
-    ).join('');
-
-    return `<div style="width:800px;height:800px;position:relative;overflow:hidden;background:linear-gradient(160deg,#0c0c14 0%,#16162a 100%);display:flex;flex-direction:column;padding:50px;font-family:'Pretendard','Noto Sans KR',sans-serif;box-sizing:border-box;">
-  <div style="display:flex;align-items:center;gap:20px;margin-bottom:30px;">
-    ${p.profileImg ? `<img src="${p.profileImg}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid ${p.brandColor};" />` : ''}
-    <div>
-      <div style="color:#fff;font-size:24px;font-weight:800;">${p.lawyerName}</div>
-      <div style="color:rgba(255,255,255,0.5);font-size:14px;margin-top:4px;">${p.jobTitle} · ${p.officeName}</div>
-    </div>
-    <div style="margin-left:auto;">${p.logoImg ? `<img src="${p.logoImg}" style="height:45px;object-fit:contain;" />` : ''}</div>
-  </div>
-  <div style="display:flex;gap:8px;margin-bottom:24px;">
-    ${p.specialties.map(s => `<span style="padding:4px 12px;border-radius:20px;background:${p.brandColor}20;color:${p.brandColor};font-size:12px;font-weight:600;">${s}</span>`).join('')}
-  </div>
-  <div style="color:${p.brandColor};font-size:13px;font-weight:600;letter-spacing:2px;margin-bottom:16px;">주요 경력</div>
-  <div style="width:100%;height:1px;background:${p.brandColor}40;margin-bottom:20px;"></div>
-  <div style="display:flex;flex-direction:column;gap:10px;flex:1;overflow:hidden;">
-    ${careerHtml}
-  </div>
-  <div style="position:absolute;top:-100px;right:-100px;width:300px;height:300px;background:radial-gradient(circle,${p.brandColor}12 0%,transparent 70%);pointer-events:none;"></div>
-</div>`;
-}
-
-function contactTemplate(p: TemplateData): string {
-    const infoRows = [
-        p.phone ? ['대표번호', p.phone] : null,
-        p.address ? ['주소', p.address] : null,
-        p.website ? ['홈페이지', p.website] : null,
-        ['전문분야', p.specialties.join(', ')],
-    ].filter(Boolean) as string[][];
-
-    const infoHtml = infoRows.map(([label, value]) =>
-        `<div style="display:flex;gap:12px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
-      <span style="min-width:70px;color:${p.brandColor};font-size:13px;font-weight:600;">${label}</span>
-      <span style="color:rgba(255,255,255,0.85);font-size:14px;word-break:break-all;">${value}</span>
-    </div>`
-    ).join('');
-
-    return `<div style="width:800px;height:800px;position:relative;overflow:hidden;background:linear-gradient(160deg,#0c0c14 0%,#141428 100%);display:flex;flex-direction:column;padding:60px;font-family:'Pretendard','Noto Sans KR',sans-serif;box-sizing:border-box;">
-  <div style="display:flex;align-items:center;gap:20px;margin-bottom:40px;">
-    ${p.profileImg ? `<img src="${p.profileImg}" style="width:100px;height:100px;border-radius:50%;object-fit:cover;border:3px solid ${p.brandColor};" />` : ''}
-    <div>
-      <div style="color:#fff;font-size:28px;font-weight:800;">${p.lawyerName}</div>
-      <div style="color:rgba(255,255,255,0.5);font-size:15px;margin-top:6px;">${p.jobTitle} · ${p.officeName}</div>
-    </div>
-  </div>
-  ${p.logoImg ? `<div style="margin-bottom:30px;"><img src="${p.logoImg}" style="height:50px;object-fit:contain;" /></div>` : ''}
-  <div style="color:${p.brandColor};font-size:13px;font-weight:600;letter-spacing:2px;margin-bottom:16px;">문의 안내</div>
-  <div style="flex:1;display:flex;flex-direction:column;">
-    ${infoHtml}
-  </div>
-  <div style="margin-top:30px;">
-    <div style="display:inline-block;padding:16px 48px;background:${p.brandColor};color:#fff;font-size:16px;font-weight:700;border-radius:12px;letter-spacing:1px;">지금 상담 예약하세요</div>
-  </div>
-  <div style="position:absolute;bottom:-80px;right:-80px;width:250px;height:250px;background:radial-gradient(circle,${p.brandColor}15 0%,transparent 70%);pointer-events:none;"></div>
-</div>`;
-}
-
-interface TemplateData {
-    title: string;
-    lawyerName: string;
-    jobTitle: string;
-    officeName: string;
-    brandColor: string;
-    profileImg: string;
-    logoImg: string;
-    phone: string;
-    address: string;
-    website: string;
-    specialties: string[];
-    career: string[];
-}
-
 export async function POST(req: Request) {
     try {
         const { profile, content, title, cardType } = await req.json();
@@ -142,68 +10,164 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
 
-        const p: TemplateData = {
-            title: title || content.substring(0, 40) + '...',
-            lawyerName: profile.lawyerName || '',
-            jobTitle: profile.jobTitle || '대표변호사',
-            officeName: profile.officeName || '',
-            brandColor: profile.brandColor || '#3563AE',
-            profileImg: profile.profileImages?.[0] || '',
-            logoImg: profile.logoImage || '',
-            phone: profile.phone || '',
-            address: profile.address || '',
-            website: profile.website || '',
-            specialties: profile.specialty || [],
-            career: (profile.career || []).filter((c: string) => c.trim()),
+        const apiKey = process.env.ANTHROPIC_API_KEY;
+        if (!apiKey) {
+            return NextResponse.json({ error: "ANTHROPIC_API_KEY not configured" }, { status: 500 });
+        }
+
+        const brandColor = profile.brandColor || "#3563AE";
+        const hasProfileImg = !!(profile.profileImages?.length);
+        const hasLogo = !!profile.logoImage;
+        const allCareer = (profile.career || []).filter((c: string) => c.trim());
+        const specialties = (profile.specialty || []).join(", ") || "전문분야 없음";
+
+        // Image placeholder instructions
+        const imgInfo = `이미지 플레이스홀더:
+${hasProfileImg ? '- 변호사 프로필 사진: <img src="__PROFILE_IMG__" />' : '- 프로필 사진 없음'}
+${hasLogo ? '- 로펌 로고: <img src="__LOGO_IMG__" />' : '- 로고 없음'}`;
+
+        // Profile context (common across all cards)
+        const profileContext = `변호사 정보:
+- 이름: ${profile.lawyerName}
+- 직함: ${profile.jobTitle || "대표변호사"}
+- 로펌: ${profile.officeName}
+- 전문분야: ${specialties}
+- 브랜드컬러: ${brandColor}
+${profile.phone ? '- 대표번호: ' + profile.phone : ''}
+${profile.address ? '- 주소: ' + profile.address : ''}
+${profile.website ? '- 홈페이지: ' + profile.website : ''}`;
+
+        const careerText = allCareer.length > 0
+            ? '경력사항:\n' + allCareer.map((c: string) => `- ${c}`).join('\n')
+            : '';
+
+        // Card-specific prompts with example HTML reference
+        const cardPrompts: Record<string, string> = {
+            thumbnail: `역할: 법률 블로그 메인 썸네일 이미지를 HTML로 코딩해.
+
+${profileContext}
+${imgInfo}
+
+블로그 본문:
+${content.substring(0, 1000)}
+
+지시사항:
+1. 블로그 본문을 읽고 핵심을 담은 매력적인 제목을 20자 이내로 직접 작성해서 카드에 넣어.
+2. 800x800px 카드. inline CSS만 사용.
+3. ${brandColor}를 메인 그라데이션 컬러로 사용.
+4. 제목을 크고 굵게 (font-size:38~44px, font-weight:800) 중앙 배치.
+5. 하단에 "${profile.lawyerName} ${profile.jobTitle || '변호사'}" 이름 작게.
+${hasLogo ? `6. 상단에 로펌 로고 <img src="__LOGO_IMG__" style="height:50px;object-fit:contain;" />` : ''}
+${hasProfileImg ? `7. 하단 이름 옆에 작은 원형 프로필 사진 <img src="__PROFILE_IMG__" style="width:48px;height:48px;border-radius:50%;object-fit:cover;" />` : ''}
+8. 영어 텍스트 사용 금지. 전문분야/요약 넣지 말 것. 제목+이름+로고만.
+9. font-family:'Pretendard','Noto Sans KR',sans-serif
+
+<div style="..."> 로 시작하는 HTML만 출력. 설명 금지.`,
+
+            summary: `역할: 법률 블로그 핵심 요약 이미지를 HTML로 코딩해.
+
+${profileContext}
+${imgInfo}
+
+블로그 본문:
+${content.substring(0, 1500)}
+
+지시사항:
+1. 블로그 본문을 읽고 핵심 포인트 3가지를 직접 뽑아서 카드에 넣어.
+2. 각 포인트는 한국어 1~2문장으로 간결하게.
+3. 800x800px 카드. inline CSS만 사용.
+4. 상단에 "핵심 요약" 라벨 + 블로그 주제를 15자 이내로 요약한 부제목.
+5. 본문에 3개 포인트를 깔끔하게 나열. 번호 매기지 말고 bullet(•) 또는 구분선 사용.
+6. ${brandColor}를 포인트 색상으로 사용.
+${hasLogo ? `7. 하단에 로펌 로고 <img src="__LOGO_IMG__" style="height:40px;object-fit:contain;" />` : ''}
+8. 다크 배경 (#0c0c14 ~ #1a1a2e 계열). 흰색 텍스트.
+9. font-family:'Pretendard','Noto Sans KR',sans-serif
+
+<div style="..."> 로 시작하는 HTML만 출력. 설명 금지.`,
+
+            career: `역할: 변호사 경력 소개 이미지를 HTML로 코딩해.
+
+${profileContext}
+${imgInfo}
+${careerText}
+
+지시사항:
+1. 800x800px 카드. inline CSS만 사용.
+2. 상단에 변호사 이름, 직함, 로펌명 표시.
+${hasProfileImg ? `3. 프로필 사진 원형으로 표시: <img src="__PROFILE_IMG__" style="width:90px;height:90px;border-radius:50%;object-fit:cover;border:3px solid ${brandColor};" />` : ''}
+${hasLogo ? `4. 로펌 로고: <img src="__LOGO_IMG__" style="height:45px;object-fit:contain;" />` : ''}
+5. 경력사항을 빠짐없이 전부 세로 리스트로 표시. font-size:13px, line-height:1.6으로 빽빽하게.
+6. ${brandColor}를 포인트 컬러로 사용.
+7. 다크 배경. 흰색 텍스트.
+8. font-family:'Pretendard','Noto Sans KR',sans-serif
+
+<div style="..."> 로 시작하는 HTML만 출력. 설명 금지.`,
+
+            contact: `역할: 변호사 문의 안내 이미지를 HTML로 코딩해.
+
+${profileContext}
+${imgInfo}
+
+지시사항:
+1. 800x800px 카드. inline CSS만 사용.
+2. 상단에 변호사 이름 크게, 직함, 로펌명.
+${hasProfileImg ? `3. 프로필 사진 원형: <img src="__PROFILE_IMG__" style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid ${brandColor};" />` : ''}
+${hasLogo ? `4. 로펌 로고 크게: <img src="__LOGO_IMG__" style="height:60px;object-fit:contain;" />` : ''}
+5. 연락처 정보를 라벨+값 형태로 명확하게 전부 표시:
+   ${profile.phone ? '대표번호: ' + profile.phone : ''}
+   ${profile.address ? '주소: ' + profile.address : ''}
+   ${profile.website ? '홈페이지: ' + profile.website : ''}
+   전문분야: ${specialties}
+6. 하단에 "지금 상담 예약하세요" CTA 버튼 (${brandColor} 배경, 흰색 텍스트, border-radius:12px).
+7. ${brandColor}를 라벨/포인트 색상으로 사용.
+8. 다크 배경. 흰색 텍스트.
+9. 블로그 내용이나 요약 절대 넣지 말 것. 연락처 정보만.
+10. font-family:'Pretendard','Noto Sans KR',sans-serif
+
+<div style="..."> 로 시작하는 HTML만 출력. 설명 금지.`,
         };
 
-        let html = '';
-
-        if (cardType === 'thumbnail') {
-            html = thumbnailTemplate(p);
-        } else if (cardType === 'summary') {
-            // ONLY this card uses Claude - just for generating 3 summary points
-            const apiKey = process.env.ANTHROPIC_API_KEY;
-            if (!apiKey) {
-                return NextResponse.json({ error: "ANTHROPIC_API_KEY not configured" }, { status: 500 });
-            }
-
-            const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "x-api-key": apiKey,
-                    "anthropic-version": "2023-06-01",
-                },
-                body: JSON.stringify({
-                    model: "claude-sonnet-4-6",
-                    max_tokens: 300,
-                    temperature: 0.3,
-                    messages: [{
-                        role: "user",
-                        content: `아래 법률 블로그 글의 핵심 내용을 정확히 3줄로 요약해. 각 줄은 한국어 1~2문장. JSON 배열만 출력: ["첫번째","두번째","세번째"]
-글: ${content.substring(0, 1500)}`
-                    }],
-                }),
-            });
-
-            let points = ["핵심 포인트를 불러오지 못했습니다.", "", ""];
-            if (anthropicRes.ok) {
-                const data = await anthropicRes.json();
-                const text = data.content?.[0]?.text || "[]";
-                try {
-                    const match = text.match(/\[[\s\S]*\]/);
-                    if (match) points = JSON.parse(match[0]);
-                } catch { /* use defaults */ }
-            }
-
-            html = summaryTemplate(p, points.filter((pt: string) => pt.trim()));
-        } else if (cardType === 'career') {
-            html = careerTemplate(p);
-        } else if (cardType === 'contact') {
-            html = contactTemplate(p);
-        } else {
+        const prompt = cardPrompts[cardType];
+        if (!prompt) {
             return NextResponse.json({ error: `Unknown card type: ${cardType}` }, { status: 400 });
+        }
+
+        const maxTokens = cardType === "career" ? 1500 : 1200;
+
+        const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "x-api-key": apiKey,
+                "anthropic-version": "2023-06-01",
+            },
+            body: JSON.stringify({
+                model: "claude-sonnet-4-6",
+                max_tokens: maxTokens,
+                temperature: 0.6,
+                messages: [{ role: "user", content: prompt }],
+            }),
+        });
+
+        if (!anthropicRes.ok) {
+            const errText = await anthropicRes.text();
+            return NextResponse.json({ error: `Claude ${anthropicRes.status}: ${errText.substring(0, 200)}` }, { status: 500 });
+        }
+
+        const data = await anthropicRes.json();
+        let html = data.content?.[0]?.text || "";
+
+        // Clean up
+        const divStart = html.indexOf("<div");
+        if (divStart > 0) html = html.substring(divStart);
+        html = html.replace(/```[\s\S]*$/g, "").trim();
+
+        // Replace image placeholders with actual base64 data
+        if (hasProfileImg && profile.profileImages[0]) {
+            html = html.replace(/__PROFILE_IMG__/g, profile.profileImages[0]);
+        }
+        if (hasLogo && profile.logoImage) {
+            html = html.replace(/__LOGO_IMG__/g, profile.logoImage);
         }
 
         const cardNames: Record<string, string> = {
