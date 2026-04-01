@@ -94,25 +94,25 @@ ${hasLogo ? `9. 하단에 로펌 로고 <img src="__LOGO_IMG__" style="height:40
 
 <div style="..."> 로 시작하는 HTML만 출력. 설명 금지.`,
 
-            career: `역할: 변호사 경력 소개 이미지를 HTML로 코딩해.
+            career: `역할: 로펌 브랜드 이미지를 HTML로 코딩해.
 
-변호사: ${profile.lawyerName} ${profile.jobTitle || "대표변호사"} | ${profile.officeName}
+로펌: ${profile.officeName}
 ${imgInfo}
-${careerText}
+브랜드컬러: ${brandColor}
+${(profile.brandLines || []).length > 0 ? '브랜드 메시지/슬로건:\n' + (profile.brandLines || []).map((b: string) => `- ${b}`).join('\n') : ''}
+전문분야: ${specialties}
 
-필수 규칙: 영어 단어 절대 사용 금지. 모든 텍스트 한국어만. 연락처/전화번호/주소 넣지 말 것. 경력 정보만.
+필수 규칙: 영어 단어 절대 사용 금지. 모든 텍스트 한국어만.
 
 지시사항:
-1. 800x800px 카드. inline CSS만 사용. 루트 div에 overflow:hidden 필수.
-2. 상단 영역을 작게: 이름+직함+로펌명 한 줄로.
-${hasProfileImg ? `3. 프로필 사진 원형 작게: <img src="__PROFILE_IMG__" style="width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid ${brandColor};" />` : ''}
-${hasLogo ? `4. 로펌 로고 작게: <img src="__LOGO_IMG__" style="height:35px;object-fit:contain;" />` : ''}
-5. "주요 경력" 라벨(${brandColor} 색상) 후 구분선.
-6. 핵심: 경력사항을 한 줄도 빠짐없이 전부 표시. 경력이 많으니 font-size:11px, line-height:1.4로 최대한 빽빽하게 넣어.
-7. 각 경력 앞에 작은 ${brandColor} bullet(•).
-8. word-break:keep-all. 텍스트가 넘치면 안 됨.
-9. 다크 배경. 흰색 텍스트.
-10. font-family:'Pretendard','Noto Sans KR',sans-serif
+1. 800x800px 카드. inline CSS만 사용. 루트 div에 position:relative;overflow:hidden 필수.
+${hasOfficeImg ? `2. 배경: 사무실 사진을 전체 배경으로 — <img src="__OFFICE_IMG__" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;" /> 그 위에 ${brandColor} 계열 그라데이션 오버레이: <div style="position:absolute;top:0;left:0;width:100%;height:100%;background:linear-gradient(180deg,${brandColor}ee 0%,rgba(0,0,0,0.7) 100%);"></div>` : `2. background: linear-gradient(135deg, ${brandColor} 0%, #0a0a0a 100%)`}
+3. 모든 콘텐츠는 position:relative;z-index:1 로 오버레이 위에.
+${hasLogo ? `4. 로펌 로고를 크고 중앙에: <img src="__LOGO_IMG__" style="height:100px;object-fit:contain;position:relative;z-index:1;" />` : ''}
+5. 로펌명을 크게(font-size:36px, font-weight:800) 표시.
+${(profile.brandLines || []).length > 0 ? '6. 브랜드 메시지/슬로건을 세련되게 표시 (font-size:18~20px, 약간 투명한 흰색).' : '6. 전문분야를 세련되게 나열.'}
+7. 전체적으로 고급스러운 브랜드 이미지 느낌.
+8. font-family:'Pretendard','Noto Sans KR',sans-serif
 
 <div style="..."> 로 시작하는 HTML만 출력. 설명 금지.`,
 
@@ -130,13 +130,15 @@ ${imgInfo}
    - 하단 60%: 어두운 배경에 연락처 정보를 정돈되게 나열.
 ${hasProfileImg ? `3. 프로필 사진을 상단과 하단 경계에 걸치게 원형으로 크게 배치: <img src="__PROFILE_IMG__" style="width:130px;height:130px;border-radius:50%;object-fit:cover;border:4px solid white;" />` : ''}
 ${hasLogo ? `4. 상단 영역에 로펌 로고: <img src="__LOGO_IMG__" style="height:50px;object-fit:contain;" />` : ''}
-5. 하단에 연락처 정보를 아이콘 없이 라벨+값으로 깔끔하게:
-   대표번호: ${profile.phone || '미등록'}
-   주소: ${profile.address || '미등록'}
-   홈페이지: ${profile.website || '미등록'}
-   전문분야: ${specialties}
-6. 맨 하단에 "지금 상담 예약하세요" 버튼 (background:${brandColor}, color:white, padding:12px 36px, border-radius:10px, font-weight:700).
-7. font-family:'Pretendard','Noto Sans KR',sans-serif
+5. 전화번호를 모두 각각 한 줄씩 표시 (하나도 빠뜨리지 말 것):
+   ${profile.phone || '미등록'}
+   위 전화번호에 쉼표(,)로 구분된 번호가 여러 개 있으면 각각 별도 줄로 나누어 표시해.
+   예: "대표번호 02-XXX", "사무장직통 010-XXX", "변호사직통 010-XXX" → 3줄로 표시.
+6. 홈페이지: ${profile.website || '미등록'} — 눈에 잘 띄게 표시.
+7. 주소: ${profile.address || '미등록'}
+8. 전문분야: ${specialties}
+9. 맨 하단에 "지금 상담 예약하세요" 버튼 (background:${brandColor}, color:white, padding:12px 36px, border-radius:10px, font-weight:700).
+10. font-family:'Pretendard','Noto Sans KR',sans-serif
 
 <div style="..."> 로 시작하는 HTML만 출력. 설명 금지.`,
         };
@@ -190,7 +192,7 @@ ${hasLogo ? `4. 상단 영역에 로펌 로고: <img src="__LOGO_IMG__" style="h
         const cardNames: Record<string, string> = {
             thumbnail: "메인 썸네일",
             summary: "핵심 요약",
-            career: "경력 소개",
+            career: "로펌 브랜드",
             contact: "문의 안내",
         };
 

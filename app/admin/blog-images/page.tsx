@@ -105,7 +105,7 @@ export default function BlogImagesPage() {
         const cardTypes = [
             { type: "thumbnail", label: "메인 썸네일" },
             { type: "summary", label: "핵심 요약" },
-            { type: "career", label: "경력 소개" },
+            { type: "career", label: "로펌 브랜드" },
             { type: "contact", label: "문의 안내" },
         ];
 
