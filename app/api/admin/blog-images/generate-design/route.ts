@@ -34,37 +34,38 @@ ${hasOfficeImg ? 'Use <img src="__OFFICE_IMG__" /> for the office photo.' : ''}`
             : '경력 정보 없음';
 
         const cardPrompts: Record<string, string> = {
-            thumbnail: `Main poster card. Large title text, lawyer name "${profile.lawyerName}" at bottom.${hasProfileImg ? ' Include circular profile photo (200px, border-radius:50%).' : ''} Background: gradient using ${brandColor} as dominant color.`,
+            thumbnail: `메인 썸네일 포스터. 블로그 제목을 크고 굵은 한국어 텍스트로 중앙에 배치. 하단에 "${profile.lawyerName} 변호사" 이름만 작게 표시.${hasProfileImg ? ' 프로필 사진 원형(200px, border-radius:50%)으로 포함.' : ''}${hasLogo ? ' 로펌 로고(height:80px) 상단에 포함.' : ''} 영어 텍스트 절대 사용 금지. 전문분야/요약 텍스트 넣지 말 것. 제목과 이름만.`,
             
-            profile_intro: `Lawyer intro card. Name: ${profile.lawyerName}, Title: ${profile.jobTitle || "대표변호사"}, Firm: ${profile.officeName}. Specialties: ${specialties}.${hasProfileImg ? ' Large profile photo (280x350px, border-radius:16px) on the left side.' : ''}${hasLogo ? ' Firm logo (height:40px) at top.' : ''}`,
+            profile_intro: `변호사 소개 카드. ${profile.lawyerName} ${profile.jobTitle || "대표변호사"}, ${profile.officeName}. 전문분야: ${specialties}.${hasProfileImg ? ' 프로필 사진 크게(280x350px, border-radius:16px) 배치.' : ''}${hasLogo ? ' 로펌 로고(height:80px) 상단.' : ''}`,
             
-            summary: `3-point summary of blog content. Numbered list with key takeaways. Title at top. Use ${brandColor} for number circles.`,
+            summary: `핵심 요약 카드. 블로그 내용에서 핵심 포인트 3가지를 번호 매겨 정리. 제목 상단에 표시. ${brandColor} 컬러로 번호 강조.${hasLogo ? ' 로펌 로고(height:80px) 하단에 포함.' : ''}`,
             
-            career: `Career/credentials card. ${profile.lawyerName} ${profile.jobTitle || "대표변호사"}, ${profile.officeName}.
-Show ALL career items as a vertical list with clean formatting:
+            career: `경력 소개 카드. ${profile.lawyerName} ${profile.jobTitle || "대표변호사"}, ${profile.officeName}.
+아래 경력을 번호 리스트로 전부 표시:
 ${careerList}
-${hasProfileImg ? 'Small circular photo (100px) at top.' : ''}${hasLogo ? ' Firm logo at top.' : ''}`,
+${hasProfileImg ? '프로필 사진 원형(120px) 포함.' : ''}${hasLogo ? ' 로펌 로고(height:80px) 포함.' : ''}`,
             
-            contact: `Contact card. Show ALL of this info clearly:
-- Name: ${profile.lawyerName} ${profile.jobTitle || "변호사"}
-- Firm: ${profile.officeName}
+            contact: `문의 안내 카드. 아래 정보를 모두 명확하게 표시:
+- ${profile.lawyerName} ${profile.jobTitle || "변호사"}
+- ${profile.officeName}
 ${profile.phone ? '- 대표번호: ' + profile.phone : ''}
 ${profile.address ? '- 주소: ' + profile.address : ''}
 ${profile.website ? '- 홈페이지: ' + profile.website : ''}
 - 전문분야: ${specialties}
-${hasProfileImg ? '- Include circular profile photo (150px).' : ''}
-${hasLogo ? '- Include firm logo prominently (height:50px).' : ''}
-- Bottom CTA button: "지금 상담 예약하세요" styled with ${brandColor} background.`,
+${hasProfileImg ? '- 프로필 사진 원형(150px) 포함.' : ''}
+${hasLogo ? '- 로펌 로고 크게(height:80px) 포함.' : ''}
+- 하단에 "지금 상담 예약하세요" CTA 버튼 (${brandColor} 배경).`,
         };
 
-        const systemPrompt = `Generate 1 HTML card (800x800px div, inline CSS only).
-COLOR SCHEME: Use ${brandColor} as the PRIMARY/MAIN color. Background should be gradient featuring ${brandColor}. Text: white. Do NOT use dark navy or #0B0F1A as main color. The card should FEEL like ${brandColor} is the brand's signature color.
-Font: Pretendard,Noto Sans KR,sans-serif. Flexbox layout. Keep HTML short.
+        const systemPrompt = `HTML 카드 1장 생성 (800x800px div, inline CSS only).
+색상: ${brandColor}를 메인 컬러로 사용. 배경 그라데이션에 ${brandColor} 반영. 텍스트 흰색. 다크 네이비(#0B0F1A) 사용 금지.
+폰트: Pretendard,Noto Sans KR,sans-serif. Flexbox. 간결한 HTML.
+모든 텍스트는 한국어로만 작성. 영어 사용 금지.
 ${imgInstructions}
-Card: ${cardPrompts[cardType] || cardPrompts.thumbnail}
-Blog title: ${title || '제목 없음'}
-Blog: ${content.substring(0, 800)}
-Output raw HTML only. Start with <div. No explanation.`;
+${cardPrompts[cardType] || cardPrompts.thumbnail}
+블로그 제목: ${title || '제목 없음'}
+블로그 내용: ${content.substring(0, 800)}
+<div 로 시작하는 HTML만 출력. 설명 금지.`;
 
         const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
             method: "POST",
