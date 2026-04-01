@@ -51,15 +51,17 @@ ${imgInfo}
 블로그 본문:
 ${content.substring(0, 1000)}
 
+필수 규칙: 영어 단어 절대 사용 금지 (Legal, Insight, Criminal 등). 모든 텍스트 한국어만.
+
 지시사항:
-1. 블로그 본문을 읽고 핵심을 담은 매력적인 제목을 20자 이내로 직접 작성해서 카드에 넣어.
-2. 800x800px 카드. inline CSS만 사용.
-3. ${brandColor}를 메인 그라데이션 컬러로 사용.
+1. 블로그 본문을 읽고 핵심을 담은 매력적인 한국어 제목을 20자 이내로 직접 작성해서 카드에 넣어.
+2. 800x800px 카드. inline CSS만 사용. 루트 div에 overflow:hidden 필수.
+3. background: linear-gradient(135deg, ${brandColor}dd 0%, ${brandColor}88 50%, #0a0a0a 100%) 같은 형태로 ${brandColor}를 배경 그라데이션의 주인공으로 사용.
 4. 제목을 크고 굵게 (font-size:38~44px, font-weight:800) 중앙 배치.
 5. 하단에 "${profile.lawyerName} ${profile.jobTitle || '변호사'}" 이름 작게.
 ${hasLogo ? `6. 상단에 로펌 로고 <img src="__LOGO_IMG__" style="height:50px;object-fit:contain;" />` : ''}
 ${hasProfileImg ? `7. 하단 이름 옆에 작은 원형 프로필 사진 <img src="__PROFILE_IMG__" style="width:48px;height:48px;border-radius:50%;object-fit:cover;" />` : ''}
-8. 영어 텍스트 사용 금지. 전문분야/요약 넣지 말 것. 제목+이름+로고만.
+8. 제목+이름+로고만 넣을 것. 전문분야, 요약, 카테고리 라벨 넣지 말 것.
 9. font-family:'Pretendard','Noto Sans KR',sans-serif
 
 <div style="..."> 로 시작하는 HTML만 출력. 설명 금지.`,
@@ -72,15 +74,17 @@ ${imgInfo}
 블로그 본문:
 ${content.substring(0, 1500)}
 
+필수 규칙: 영어 단어 절대 사용 금지. 모든 텍스트 한국어만.
+
 지시사항:
-1. 블로그 본문을 읽고 핵심 포인트 3가지를 직접 뽑아서 카드에 넣어.
-2. 각 포인트는 한국어 1~2문장으로 간결하게.
-3. 800x800px 카드. inline CSS만 사용.
-4. 상단에 "핵심 요약" 라벨 + 블로그 주제를 15자 이내로 요약한 부제목.
-5. 본문에 3개 포인트를 깔끔하게 나열. 번호 매기지 말고 bullet(•) 또는 구분선 사용.
-6. ${brandColor}를 포인트 색상으로 사용.
+1. 블로그 본문을 읽고 핵심 포인트를 정확히 3개 뽑아서 카드에 넣어. 반드시 3개, 2개도 4개도 안 됨.
+2. 각 포인트는 한국어 1~2문장(40자 이내)으로 간결하게.
+3. 800x800px 카드. inline CSS만 사용. 루트 div에 overflow:hidden 필수.
+4. 상단에 "핵심 요약" 라벨(${brandColor} 색상) + 블로그 주제를 15자 이내로 요약한 부제목.
+5. 3개 포인트를 세로로 나열. 각 포인트 앞에 ${brandColor} 색상 원형 bullet(width:8px, height:8px, border-radius:50%).
+6. 각 포인트 사이에 충분한 간격(gap:24px).
 ${hasLogo ? `7. 하단에 로펌 로고 <img src="__LOGO_IMG__" style="height:40px;object-fit:contain;" />` : ''}
-8. 다크 배경 (#0c0c14 ~ #1a1a2e 계열). 흰색 텍스트.
+8. 다크 배경. 흰색 텍스트.
 9. font-family:'Pretendard','Noto Sans KR',sans-serif
 
 <div style="..."> 로 시작하는 HTML만 출력. 설명 금지.`,
@@ -91,15 +95,18 @@ ${profileContext}
 ${imgInfo}
 ${careerText}
 
+필수 규칙: 영어 단어 절대 사용 금지. 모든 텍스트 한국어만.
+
 지시사항:
-1. 800x800px 카드. inline CSS만 사용.
+1. 800x800px 카드. inline CSS만 사용. 루트 div에 overflow:hidden 필수.
 2. 상단에 변호사 이름, 직함, 로펌명 표시.
-${hasProfileImg ? `3. 프로필 사진 원형으로 표시: <img src="__PROFILE_IMG__" style="width:90px;height:90px;border-radius:50%;object-fit:cover;border:3px solid ${brandColor};" />` : ''}
+${hasProfileImg ? `3. 프로필 사진 원형: <img src="__PROFILE_IMG__" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid ${brandColor};" />` : ''}
 ${hasLogo ? `4. 로펌 로고: <img src="__LOGO_IMG__" style="height:45px;object-fit:contain;" />` : ''}
-5. 경력사항을 빠짐없이 전부 세로 리스트로 표시. font-size:13px, line-height:1.6으로 빽빽하게.
-6. ${brandColor}를 포인트 컬러로 사용.
-7. 다크 배경. 흰색 텍스트.
-8. font-family:'Pretendard','Noto Sans KR',sans-serif
+5. 경력사항을 빠짐없이 전부 세로 리스트로 표시.
+6. 텍스트가 넘치지 않도록: font-size:12~13px, line-height:1.5, word-break:keep-all, 모든 텍스트 컨테이너에 overflow:hidden.
+7. ${brandColor}를 bullet/라벨 색상으로 사용.
+8. 다크 배경. 흰색 텍스트.
+9. font-family:'Pretendard','Noto Sans KR',sans-serif
 
 <div style="..."> 로 시작하는 HTML만 출력. 설명 금지.`,
 
@@ -108,21 +115,22 @@ ${hasLogo ? `4. 로펌 로고: <img src="__LOGO_IMG__" style="height:45px;object
 ${profileContext}
 ${imgInfo}
 
+필수 규칙: 영어 단어 절대 사용 금지 (Legal Consultation, Contact 등). 모든 텍스트 한국어만.
+
 지시사항:
-1. 800x800px 카드. inline CSS만 사용.
-2. 상단에 변호사 이름 크게, 직함, 로펌명.
+1. 800x800px 카드. inline CSS만 사용. 루트 div에 overflow:hidden 필수.
+2. 상단에 변호사 이름 크게(font-size:32px), 직함, 로펌명.
 ${hasProfileImg ? `3. 프로필 사진 원형: <img src="__PROFILE_IMG__" style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid ${brandColor};" />` : ''}
 ${hasLogo ? `4. 로펌 로고 크게: <img src="__LOGO_IMG__" style="height:60px;object-fit:contain;" />` : ''}
-5. 연락처 정보를 라벨+값 형태로 명확하게 전부 표시:
-   ${profile.phone ? '대표번호: ' + profile.phone : ''}
-   ${profile.address ? '주소: ' + profile.address : ''}
-   ${profile.website ? '홈페이지: ' + profile.website : ''}
+5. 아래 연락처 정보를 빠짐없이 모두 카드에 표시해 (라벨은 ${brandColor} 색상, 값은 흰색):
+   대표번호: ${profile.phone || '미등록'}
+   주소: ${profile.address || '미등록'}
+   홈페이지: ${profile.website || '미등록'}
    전문분야: ${specialties}
-6. 하단에 "지금 상담 예약하세요" CTA 버튼 (${brandColor} 배경, 흰색 텍스트, border-radius:12px).
-7. ${brandColor}를 라벨/포인트 색상으로 사용.
-8. 다크 배경. 흰색 텍스트.
-9. 블로그 내용이나 요약 절대 넣지 말 것. 연락처 정보만.
-10. font-family:'Pretendard','Noto Sans KR',sans-serif
+6. 하단에 "지금 상담 예약하세요" CTA 버튼 (background:${brandColor}, color:white, padding:14px 40px, border-radius:12px, font-weight:700).
+7. 다크 배경. 흰색 텍스트.
+8. 블로그 내용이나 핵심요약 절대 넣지 말 것. 위의 연락처 정보만 넣을 것.
+9. font-family:'Pretendard','Noto Sans KR',sans-serif
 
 <div style="..."> 로 시작하는 HTML만 출력. 설명 금지.`,
         };
