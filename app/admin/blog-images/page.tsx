@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
-    ImageIcon, User, Sparkles, Download, RefreshCw,
+    User, Sparkles, Download,
     ChevronDown, Loader2, Check, X, Eye, Code,
     Plus, Settings, Wand2
 } from "lucide-react";
@@ -60,6 +60,7 @@ export default function BlogImagesPage() {
         setLoading(false);
     }, []);
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => { fetchProfiles(); }, [fetchProfiles]);
 
     const handleGenerate = async () => {
@@ -97,7 +98,7 @@ export default function BlogImagesPage() {
             } else {
                 alert("디자인 생성에 실패했습니다. " + res.status);
             }
-        } catch (e: any) {
+        } catch (e: unknown) {
             console.error(e);
             alert("서버 연결에 실패했습니다.");
         }
@@ -117,7 +118,7 @@ export default function BlogImagesPage() {
                 height: 800
             });
             const link = document.createElement('a');
-            link.download = \`blog-\${card.type}-\${Date.now()}.png\`;
+            link.download = `blog-${card.type}-${Date.now()}.png`;
             link.href = dataUrl;
             link.click();
         } catch (err) {
@@ -133,7 +134,6 @@ export default function BlogImagesPage() {
         }
     };
 
-    const selected = profiles.find(p => p.id === selectedId);
     const ic = "w-full px-5 py-3 rounded-2xl bg-[#0B0F1A] border border-[#1F2937] text-white text-sm placeholder-[#4B5563] focus:outline-none focus:border-[#3563AE] focus:ring-1 focus:ring-[#3563AE]/50 transition-all";
 
     if (loading) {
@@ -192,7 +192,7 @@ export default function BlogImagesPage() {
                                         </button>
                                     </label>
                                     <div className="relative">
-                                        <select value={selectedId} onChange={e => setSelectedId(e.target.value)} className={\`\${ic} appearance-none cursor-pointer font-medium\`}>
+                                        <select value={selectedId} onChange={e => setSelectedId(e.target.value)} className={`${ic} appearance-none cursor-pointer font-medium`}>
                                             <option value="">담당 변호사 프로필을 선택하세요</option>
                                             {profiles.map(p => (
                                                 <option key={p.id} value={p.id}>
@@ -221,7 +221,7 @@ export default function BlogImagesPage() {
                                     <textarea value={postContent} onChange={e => setPostContent(e.target.value)}
                                         placeholder="글 내용을 상세히 붙여넣어주시면 AI가 맥락을 이해하여 요약 카드와 썸네일을 설계합니다."
                                         rows={8}
-                                        className={\`\${ic} resize-none font-sans text-[13px] leading-relaxed\`} />
+                                        className={`${ic} resize-none font-sans text-[13px] leading-relaxed`} />
                                 </div>
                             </div>
 
@@ -246,7 +246,7 @@ export default function BlogImagesPage() {
                             {(!isGenerating && cards.length === 0) && (
                                 <div className="flex-1 flex flex-col items-center justify-center text-[#4B5563]">
                                     <Sparkles size={48} className="mb-4 text-[#1F2937]" />
-                                    <p className="text-sm font-medium">✨ '생성형 UI 카드 만들기'를 누르면 3~4개의 테마 카드가 나옵니다.</p>
+                                    <p className="text-sm font-medium">✨ &apos;생성형 UI 카드 만들기&apos;를 누르면 3~4개의 테마 카드가 나옵니다.</p>
                                     <p className="text-xs text-[#374151] mt-2">각 카드는 순수 HTML과 CSS로 즉석 코딩되어 그려집니다.</p>
                                 </div>
                             )}
