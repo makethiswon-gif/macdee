@@ -295,7 +295,7 @@ export function drawAutoShrinkText(
     initialFontSize: number,
     fontFamily: string,
     fontWeight: string,
-    opts?: { shadow?: boolean, highlightPattern?: { color: string, type: "first-line" | "all" }, minFontSize?: number, lineGap?: number, center?: boolean }
+    opts?: { shadow?: boolean, highlightPattern?: { color: string, type: "first-line" | "all" }, minFontSize?: number, lineGap?: number, center?: boolean, maxLines?: number }
 ): { height: number; lines: string[]; fontSize: number } {
     let currentFontSize = initialFontSize;
     let lines: string[] = [];
@@ -312,7 +312,9 @@ export function drawAutoShrinkText(
         lines = wrapText(ctx, text, maxWidth);
         lineHeight = currentFontSize * lineGapMultiplier;
 
-        if (lines.length * lineHeight <= maxHeight) {
+        const meetsHeight = lines.length * lineHeight <= maxHeight;
+        const meetsLines = !opts?.maxLines || lines.length <= opts.maxLines;
+        if (meetsHeight && meetsLines) {
             break; // fits perfectly
         }
         currentFontSize -= 2; // shrink down by 2px
@@ -320,6 +322,22 @@ export function drawAutoShrinkText(
 
     // Set finalized font size
     ctx.font = `${fontWeight} ${currentFontSize}px ${fontFamily}`;
+    lines = wrapText(ctx, text, maxWidth);
+    lineHeight = currentFontSize * lineGapMultiplier;
+
+    // TRUNCATE if it still exceeds maxHeight or maxLines
+    const allowedLinesByHeight = Math.floor(maxHeight / lineHeight);
+    let finalMaxLines = allowedLinesByHeight;
+    if (opts?.maxLines && opts.maxLines < finalMaxLines) {
+        finalMaxLines = opts.maxLines;
+    }
+    
+    if (lines.length > finalMaxLines && finalMaxLines > 0) {
+        lines = lines.slice(0, finalMaxLines);
+        let lastLine = lines[lines.length - 1];
+        lastLine = lastLine.length > 3 ? lastLine.slice(0, -3) + "..." : lastLine + "...";
+        lines[lines.length - 1] = lastLine;
+    }
     
     // Draw Highlights if requested
     if (opts?.highlightPattern) {

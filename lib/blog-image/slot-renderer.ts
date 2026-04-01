@@ -146,7 +146,8 @@ export function drawDecorations(ctx: SKRSContext2D, decos: DecoSlot[], style: St
 
 export function drawPhotos(ctx: SKRSContext2D, photos: PhotoSlot[], assets: Record<string, any>, style: StylePreset, canvasSize: number) {
     for (const p of photos) {
-        const img = assets[p.source];
+        const imgKey = p.source === 'profile' ? 'profileImg' : p.source === 'office' ? 'officeImg' : 'logoImg';
+        const img = assets[imgKey];
         const { x, y, w, h } = p.rect;
         const absX = x * canvasSize;
         const absY = y * canvasSize;
@@ -290,19 +291,21 @@ export function drawTexts(ctx: SKRSContext2D, texts: TextSlot[], dataObj: Record
         if (t.role === 'category' || t.role === 'label' || t.role === 'meta' || t.role === 'subtitle') {
             // Usually single line
             ctx.font = `${weight} ${t.fontSize}px ${fontName}`;
-            ctx.fillText(content, drawX, drawY);
+            ctx.fillText(content, drawX, drawY, absW); // 삐져나가지 않도록 강제 제한
         } else if (t.role === 'body') {
             drawAutoShrinkText(ctx, content, drawX, drawY, absW, absH, t.fontSize, fontName, String(weight), { 
                 center: t.align === 'center', 
                 lineGap: 1.6, 
-                minFontSize: 14 
+                minFontSize: 14,
+                maxLines: t.maxLines
             });
         } else {
             // title
             drawAutoShrinkText(ctx, content, drawX, drawY, absW, absH, t.fontSize, fontName, String(weight), { 
                 center: t.align === 'center', 
                 lineGap: 1.3, 
-                minFontSize: t.fontSize * 0.5 
+                minFontSize: t.fontSize * 0.5,
+                maxLines: t.maxLines
             });
         }
     }
