@@ -85,22 +85,48 @@ export default function BlogImagesPage() {
                 })
             });
 
-            if (res.ok) {
-                const data = await res.json();
-                if (data.cards) {
-                    setCards(data.cards);
-                    setGenerationMessage("디자인 생성이 완료되었습니다!");
-                } else if (data.error) {
-                    alert("생성 오류: " + data.error);
-                } else {
-                    alert("올바르지 않은 응답이 반환되었습니다.");
-                }
-            } else {
+            if (!res.ok) {
                 try {
                     const errData = await res.json();
                     alert("디자인 생성에 실패했습니다. " + res.status + " - " + errData.error);
                 } catch {
                     alert("디자인 생성에 실패했습니다. " + res.status);
+                }
+            } else {
+                // Handle SSE streaming response
+                const reader = res.body?.getReader();
+                const decoder = new TextDecoder();
+
+                if (reader) {
+                    let buffer = "";
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+
+                        buffer += decoder.decode(value, { stream: true });
+                        const lines = buffer.split("\n");
+                        buffer = lines.pop() || ""; // Keep incomplete line in buffer
+
+                        for (const line of lines) {
+                            if (line.startsWith("data: ")) {
+                                try {
+                                    const event = JSON.parse(line.slice(6));
+                                    if (event.type === "progress") {
+                                        setGenerationMessage(`AI가 디자인을 코딩하고 있습니다... (${event.len} 자 생성됨)`);
+                                    } else if (event.type === "done" && event.cards) {
+                                        setCards(event.cards);
+                                        setGenerationMessage("디자인 생성이 완료되었습니다!");
+                                    } else if (event.type === "error") {
+                                        alert("생성 오류: " + event.error);
+                                    }
+                                } catch {
+                                    // skip unparseable
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    alert("스트리밍 연결에 실패했습니다.");
                 }
             }
         } catch (e: unknown) {

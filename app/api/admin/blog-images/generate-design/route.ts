@@ -1,92 +1,160 @@
-import { NextResponse } from "next/server";
-import { getContentGenerator } from "@/lib/ai/providers";
-
-export const maxDuration = 60; // Max allowed for Vercel Hobby plan, safe fallback
-
-// Helper to strip markdown json wrapper if present
-function parseJSONP(str: string) {
-    let clean = str.trim();
-    // Try to extract JSON object from between { and }
-    const firstBrace = clean.indexOf('{');
-    const lastBrace = clean.lastIndexOf('}');
-    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace >= firstBrace) {
-        clean = clean.substring(firstBrace, lastBrace + 1);
-    }
-    return JSON.parse(clean);
-}
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
     try {
         const { profile, content, title } = await req.json();
 
         if (!profile || !content) {
-            return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+            return new Response(JSON.stringify({ error: "Missing required fields" }), {
+                status: 400,
+                headers: { "Content-Type": "application/json" },
+            });
         }
 
-        const claude = getContentGenerator();
+        const apiKey = process.env.ANTHROPIC_API_KEY;
+        if (!apiKey) {
+            return new Response(JSON.stringify({ error: "ANTHROPIC_API_KEY not configured" }), {
+                status: 500,
+                headers: { "Content-Type": "application/json" },
+            });
+        }
 
-        const systemPrompt = `
-You are an elite, modern UI/UX Web Designer specializing in generating stunning blog poster images via HTML and CSS.
-The user will provide a blog post excerpt, a title, and a lawyer's profile.
-Your task is to generate exactly 3 highly stylized, aesthetic 'Image Cards' that the lawyer can screenshot and use in their Naver blog.
+        const systemPrompt = `You are an elite UI/UX designer. Generate exactly 3 blog image cards as JSON with inline CSS.
 
-# THE THREE CARDS:
-1. "thumbnail": A visually striking main poster. Include the title, a sophisticated background, and the lawyer's name.
-2. "summary": A content card with a 3-point summary (or key takeaways) of the blog text. Highly readable but extremely premium layout.
-3. "contact": A professional contact/outro card showing the lawyer/firm name, specialty, and contact encouragement.
+CARDS: thumbnail (main poster with title+name), summary (3 key takeaways), contact (lawyer info+CTA).
 
-# DESIGN REQUIREMENTS:
-- Use INLINE CSS exclusively for styling (\`style="..."\`). DO NOT use external stylesheets or Tailwind classes, as the renderer will strip them.
-- Dimension: Each card's outermost \`div\` MUST have \`width: 800px; height: 800px;\` and \`position: relative;\` and \`overflow: hidden;\`.
-- Aesthetic: Deep, premium, professional feeling. Use 'macdee.' branding style (dark tones like #0B0F1A, rich gradients, glassmorphism, subtle glows).
-- Colors: Incorporate the lawyer's \`brandColor\` elegantly (e.g., as a gradient stop or glow effect). Use #FFFFFF or very light gray for text.
-- Typography: Use standard sans-serif (e.g. \`font-family: 'Pretendard', 'Noto Sans KR', sans-serif;\`). Make titles extra large and bold. Use tracking (\`letter-spacing\`) and tight line-heights.
-- Backgrounds: Code beautiful CSS backgrounds. example: \`background: radial-gradient(circle at 20% 50%, rgba(...) 0%, #060810 80%);\` or add floating blurred orbs.
-- Layout: Use Flexbox extensively (\`display: flex; flex-direction: column; align-items: ...; justify-content: ...\`).
-- If profile has \`profileImages\`, you MAY use the first image URL (\`profile.profileImages[0]\`) creatively (e.g., as a background with \`mix-blend-mode: luminosity\` or inside a circular mask). If not, rely entirely on CSS typography and shapes.
+RULES:
+- INLINE CSS ONLY (style="..."). No external CSS/Tailwind.
+- Each card root: width:800px; height:800px; position:relative; overflow:hidden;
+- Dark premium aesthetic (#0B0F1A base), use brandColor as accent gradient/glow.
+- Font: 'Pretendard','Noto Sans KR',sans-serif. Large bold titles, letter-spacing.
+- CSS gradients, glassmorphism, flexbox layouts.
+- Keep HTML minimal and dense. Speed matters.
 
-# JSON OUTPUT FORMAT:
-Output ONLY valid JSON matching this schema:
-{
-  "cards": [
-    {
-      "type": "thumbnail",
-      "name": "메인 썸네일",
-      "html": "<div style='width: 800px; height: 800px; flex-shrink: 0; display: flex; ...'>...</div>"
-    },
-    ...
-  ]
-}
-Do not include any explanation. Output pure JSON. Keep the HTML/CSS structure as minimal, dense, and clean as possible to prioritize fast generation over unnecessary complexity.
-`;
+OUTPUT ONLY THIS JSON (no explanation):
+{"cards":[{"type":"thumbnail","name":"메인 썸네일","html":"<div style='...'>...</div>"},{"type":"summary","name":"핵심 요약","html":"..."},{"type":"contact","name":"문의 안내","html":"..."}]}`;
 
-        const userMessage = `
---- LAWYER PROFILE ---
-Name: ${profile.lawyerName}
-Firm: ${profile.officeName || '미등록'}
-Specialties: ${profile.specialty?.join(', ') || '전문분야 없음'}
-Brand Color: ${profile.brandColor || '#3563AE'}
-Profile Image URL: ${profile.profileImages?.[0] || 'None'}
+        const userMessage = `LAWYER: ${profile.lawyerName} | ${profile.officeName || '미등록'} | ${profile.specialty?.join(', ') || '전문분야 없음'} | Brand: ${profile.brandColor || '#3563AE'} | Image: ${profile.profileImages?.[0] || 'None'}
+TITLE: ${title || 'No Title'}
+CONTENT: ${content.substring(0, 2000)}`;
 
---- BLOG INPUT ---
-Title: ${title || 'No Title Given'}
-Content: ${content.substring(0, 3000)} // Using the first 3000 chars for context
-`;
-
-        const response = await claude.generate([
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userMessage }
-        ], {
-            temperature: 0.7,
-            maxTokens: 4096
+        // Call Anthropic API with streaming enabled
+        const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "x-api-key": apiKey,
+                "anthropic-version": "2023-06-01",
+            },
+            body: JSON.stringify({
+                model: "claude-sonnet-4-6",
+                max_tokens: 4096,
+                temperature: 0.7,
+                stream: true,
+                system: systemPrompt,
+                messages: [{ role: "user", content: userMessage }],
+            }),
         });
 
-        const parsedData = parseJSONP(response.content);
+        if (!anthropicRes.ok) {
+            const errText = await anthropicRes.text();
+            console.error("Anthropic API error:", anthropicRes.status, errText);
+            return new Response(JSON.stringify({ error: `Claude API error: ${anthropicRes.status} ${errText}` }), {
+                status: 500,
+                headers: { "Content-Type": "application/json" },
+            });
+        }
 
-        return NextResponse.json(parsedData);
+        // Stream the response through to the client as SSE
+        // This keeps Vercel from timing out because data keeps flowing
+        const encoder = new TextEncoder();
+        const readable = new ReadableStream({
+            async start(controller) {
+                const reader = anthropicRes.body?.getReader();
+                const decoder = new TextDecoder();
+                let fullText = "";
 
-    } catch (error: any) {
-        console.error("AI Generation Error:", error);
-        return NextResponse.json({ error: error.message || "Failed to generate designs" }, { status: 500 });
+                if (!reader) {
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: "No response body" })}\n\n`));
+                    controller.close();
+                    return;
+                }
+
+                try {
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+
+                        const chunk = decoder.decode(value, { stream: true });
+                        const lines = chunk.split("\n");
+
+                        for (const line of lines) {
+                            if (line.startsWith("data: ")) {
+                                const dataStr = line.slice(6).trim();
+                                if (dataStr === "[DONE]") continue;
+                                try {
+                                    const event = JSON.parse(dataStr);
+                                    if (event.type === "content_block_delta" && event.delta?.text) {
+                                        fullText += event.delta.text;
+                                        // Send progress heartbeat to keep connection alive
+                                        controller.enqueue(encoder.encode(`data: {"type":"progress","len":${fullText.length}}\n\n`));
+                                    }
+                                    if (event.type === "message_stop") {
+                                        // Parse and send final result
+                                        let clean = fullText.trim();
+                                        const firstBrace = clean.indexOf("{");
+                                        const lastBrace = clean.lastIndexOf("}");
+                                        if (firstBrace !== -1 && lastBrace !== -1) {
+                                            clean = clean.substring(firstBrace, lastBrace + 1);
+                                        }
+                                        const parsed = JSON.parse(clean);
+                                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "done", ...parsed })}\n\n`));
+                                    }
+                                } catch {
+                                    // Skip unparseable SSE lines
+                                }
+                            }
+                        }
+                    }
+
+                    // If message_stop was never explicitly received, try to parse what we have
+                    if (fullText.trim()) {
+                        try {
+                            let clean = fullText.trim();
+                            const firstBrace = clean.indexOf("{");
+                            const lastBrace = clean.lastIndexOf("}");
+                            if (firstBrace !== -1 && lastBrace !== -1) {
+                                clean = clean.substring(firstBrace, lastBrace + 1);
+                            }
+                            const parsed = JSON.parse(clean);
+                            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "done", ...parsed })}\n\n`));
+                        } catch {
+                            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", error: "Failed to parse AI response" })}\n\n`));
+                        }
+                    }
+                } catch (err: unknown) {
+                    const msg = err instanceof Error ? err.message : String(err);
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", error: msg })}\n\n`));
+                } finally {
+                    controller.close();
+                }
+            },
+        });
+
+        return new Response(readable, {
+            headers: {
+                "Content-Type": "text/event-stream",
+                "Cache-Control": "no-cache",
+                Connection: "keep-alive",
+            },
+        });
+
+    } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : String(error);
+        console.error("AI Generation Error:", msg);
+        return new Response(JSON.stringify({ error: msg }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" },
+        });
     }
 }
