@@ -71,67 +71,57 @@ export default function BlogImagesPage() {
         if (!selected) return;
 
         setIsGenerating(true);
-        setGenerationMessage("AI가 글 내용을 분석하여 맞춤형 디자인 코드를 생성하고 있습니다...");
         setCards([]);
 
-        try {
-            const res = await fetch("/api/admin/blog-images/generate-design", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    profile: selected,
-                    title: postTitle,
-                    content: postContent
-                })
-            });
+        const cardTypes = [
+            { type: "thumbnail", label: "메인 썸네일" },
+            { type: "summary", label: "핵심 요약" },
+            { type: "contact", label: "문의 안내" },
+        ];
 
-            if (!res.ok) {
-                try {
-                    const errData = await res.json();
-                    alert("디자인 생성에 실패했습니다. " + res.status + " - " + errData.error);
-                } catch {
-                    alert("디자인 생성에 실패했습니다. " + res.status);
+        const generatedCards: AICard[] = [];
+
+        for (let i = 0; i < cardTypes.length; i++) {
+            const ct = cardTypes[i];
+            setGenerationMessage(`AI가 ${ct.label} 카드를 디자인하고 있습니다... (${i + 1}/3)`);
+
+            try {
+                const res = await fetch("/api/admin/blog-images/generate-design", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        profile: selected,
+                        title: postTitle,
+                        content: postContent,
+                        cardType: ct.type,
+                    }),
+                });
+
+                if (!res.ok) {
+                    let errMsg = `${res.status}`;
+                    try {
+                        const errData = await res.json();
+                        errMsg += " - " + errData.error;
+                    } catch { /* ignore */ }
+                    alert(`${ct.label} 카드 생성 실패: ${errMsg}`);
+                    continue;
                 }
-            } else {
-                // Handle SSE streaming response
-                const reader = res.body?.getReader();
-                const decoder = new TextDecoder();
 
-                if (reader) {
-                    let buffer = "";
-                    while (true) {
-                        const { done, value } = await reader.read();
-                        if (done) break;
-
-                        buffer += decoder.decode(value, { stream: true });
-                        const lines = buffer.split("\n");
-                        buffer = lines.pop() || ""; // Keep incomplete line in buffer
-
-                        for (const line of lines) {
-                            if (line.startsWith("data: ")) {
-                                try {
-                                    const event = JSON.parse(line.slice(6));
-                                    if (event.type === "progress") {
-                                        setGenerationMessage(`AI가 디자인을 코딩하고 있습니다... (${event.len} 자 생성됨)`);
-                                    } else if (event.type === "done" && event.cards) {
-                                        setCards(event.cards);
-                                        setGenerationMessage("디자인 생성이 완료되었습니다!");
-                                    } else if (event.type === "error") {
-                                        alert("생성 오류: " + event.error);
-                                    }
-                                } catch {
-                                    // skip unparseable
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    alert("스트리밍 연결에 실패했습니다.");
+                const data = await res.json();
+                if (data.card) {
+                    generatedCards.push(data.card);
+                    setCards([...generatedCards]);
                 }
+            } catch (e) {
+                console.error(`Error generating ${ct.type}:`, e);
+                alert(`${ct.label} 카드 생성 중 네트워크 오류가 발생했습니다.`);
             }
-        } catch (e: unknown) {
-            console.error(e);
-            alert("서버 연결에 실패했습니다.");
+        }
+
+        if (generatedCards.length > 0) {
+            setGenerationMessage(`디자인 생성 완료! (${generatedCards.length}/3 카드)`);
+        } else {
+            setGenerationMessage("카드 생성에 실패했습니다. 다시 시도해주세요.");
         }
 
         setIsGenerating(false);
