@@ -104,7 +104,6 @@ export default function BlogImagesPage() {
 
         const cardTypes = [
             { type: "thumbnail", label: "메인 썸네일" },
-            { type: "profile_intro", label: "변호사 프로필 소개" },
             { type: "summary", label: "핵심 요약" },
             { type: "career", label: "경력 소개" },
             { type: "contact", label: "문의 안내" },
