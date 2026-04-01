@@ -5,8 +5,34 @@ import {
 } from "./renderer";
 import {
     type StylePreset, type TextSlot, type PhotoSlot, type DecoSlot, type CtaSlot,
-    type Rect, type StyleId, type ExtractedLogoColors, applyLogoColor
+    type RectConfig, type StyleId
 } from "./templates-config";
+
+export interface ExtractedLogoColors {
+    primary: string;
+    luminance: number;
+}
+
+export function applyLogoColor(preset: StylePreset, logoExtracted: ExtractedLogoColors): StylePreset {
+    const p = JSON.parse(JSON.stringify(preset)) as StylePreset;
+    const rep = logoExtracted.primary;
+    if (p.logoColorPolicy.overrideAccent) {
+        p.colors.accent.primary = rep;
+    }
+    const traverse = (obj: any) => {
+        for (const k in obj) {
+            if (typeof obj[k] === 'string') {
+                if (obj[k] === '{{logo.primary}}' || obj[k] === '{{logo.accent}}') {
+                    obj[k] = rep;
+                }
+            } else if (typeof obj[k] === 'object' && obj[k] !== null) {
+                traverse(obj[k]);
+            }
+        }
+    };
+    traverse(p);
+    return p;
+}
 
 export function getResolvedStyle(stylePreset: StylePreset, logoExtracted?: ExtractedLogoColors): StylePreset {
     if (logoExtracted) {
@@ -69,65 +95,7 @@ export function bindText(rawText: string, dataObj: Record<string, string | strin
 export function drawDecorations(ctx: SKRSContext2D, decos: DecoSlot[], style: StylePreset, canvasSize: number) {
     const scaleRatio = canvasSize / 1024;
     for (const deco of decos) {
-        if (deco.fromPreset) {
-            if (deco.type === 'sidebar' && style.decorations.sideBar) {
-                const s = style.decorations.sideBar;
-                ctx.fillStyle = s.color;
-                if (s.position === 'left') ctx.fillRect(0, 0, Math.round(s.width * scaleRatio), canvasSize);
-                if (s.position === 'top') ctx.fillRect(0, 0, canvasSize, Math.round(s.width * scaleRatio));
-                if (s.position === 'right') ctx.fillRect(canvasSize - Math.round(s.width * scaleRatio), 0, Math.round(s.width * scaleRatio), canvasSize);
-                if (s.position === 'bottom') ctx.fillRect(0, canvasSize - Math.round(s.width * scaleRatio), canvasSize, Math.round(s.width * scaleRatio));
-            }
-            if (deco.type === 'frame' && style.decorations.innerFrame) {
-                const f = style.decorations.innerFrame;
-                ctx.strokeStyle = f.borderColor;
-                ctx.lineWidth = Math.max(1, Math.round(f.borderWidth * scaleRatio));
-                const inset = Math.round(f.inset * scaleRatio);
-                if (f.borderRadius && f.borderRadius > 0) {
-                    ctx.beginPath();
-                    roundRect(ctx, inset, inset, canvasSize - inset * 2, canvasSize - inset * 2, Math.round(f.borderRadius * scaleRatio));
-                    ctx.stroke();
-                } else {
-                    ctx.strokeRect(inset, inset, canvasSize - inset * 2, canvasSize - inset * 2);
-                }
-            }
-            if (deco.type === 'scanlines' && style.decorations.scanlines) {
-                ctx.fillStyle = "rgba(0,0,0,0.08)";
-                for (let y = 0; y < canvasSize; y += 4) {
-                    ctx.fillRect(0, y, canvasSize, 1);
-                }
-            }
-            if (deco.type === 'circle' && style.decorations.circleAccents) {
-                const c = style.decorations.circleAccents;
-                ctx.fillStyle = c.color;
-                ctx.globalAlpha = c.opacity;
-                ctx.beginPath();
-                ctx.arc(canvasSize * 0.8, canvasSize * 0.1, Math.round(150 * scaleRatio), 0, Math.PI * 2);
-                ctx.fill();
-                if (c.count > 1) {
-                    ctx.beginPath();
-                    ctx.arc(canvasSize * 0.2, canvasSize * 0.9, Math.round(80 * scaleRatio), 0, Math.PI * 2);
-                    ctx.fill();
-                }
-                ctx.globalAlpha = 1.0;
-            }
-            if (deco.type === 'orb' && style.decorations.gradientOrbs) {
-                for (const orb of style.decorations.gradientOrbs) {
-                    const cx = (orb.x / 100) * canvasSize;
-                    const cy = (orb.y / 100) * canvasSize;
-                    const r = Math.round(orb.size * 3 * scaleRatio); 
-                    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-                    grad.addColorStop(0, orb.color);
-                    grad.addColorStop(1, "transparent");
-                    ctx.globalAlpha = orb.opacity;
-                    ctx.fillStyle = grad;
-                    ctx.beginPath();
-                    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-                ctx.globalAlpha = 1.0;
-            }
-        } else if (deco.rect) {
+        if (deco.rect) {
             const rx = Math.round(deco.rect.x * canvasSize);
             const ry = Math.round(deco.rect.y * canvasSize);
             const rw = Math.round(deco.rect.w * canvasSize);
@@ -276,14 +244,9 @@ export function drawTexts(ctx: SKRSContext2D, texts: TextSlot[], dataObj: Record
         // Determine font
         let family = style.typography.titleFont;
         let weight: string | number = style.typography.titleWeight;
-        if (t.role === 'body' || t.role === 'meta' || t.role === 'label') {
+        if (t.role === 'body' || t.role === 'meta') {
             family = style.typography.bodyFont;
             weight = style.typography.bodyWeight;
-        }
-
-        if (t.fontOverride) {
-            family = t.fontOverride.font || family;
-            weight = t.fontOverride.weight || weight;
         }
 
         const fontName = resolveFont(family, weight);
@@ -300,7 +263,7 @@ export function drawTexts(ctx: SKRSContext2D, texts: TextSlot[], dataObj: Record
         if (t.align === 'center') drawX += Math.round(absW / 2);
         if (t.align === 'right') drawX += Math.round(absW);
 
-        if (t.role === 'category' || t.role === 'label' || t.role === 'meta' || t.role === 'subtitle') {
+        if (t.role === 'category' || t.role === 'meta' || t.role === 'accent') {
             // Usually single line
             ctx.font = `${weight} ${scaledFontSize}px ${fontName}`;
             ctx.fillText(content, drawX, drawY, absW); // 삐져나가지 않도록 강제 제한

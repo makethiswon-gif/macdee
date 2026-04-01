@@ -585,34 +585,10 @@ export async function renderBlogImage(input: RenderInput): Promise<Buffer> {
 
     const assets = { profileImg, officeImg, logoImg, accent, darkBg, rawBrandColor, summaryImg };
 
-    // Dynamic import of template module
-    const { renderMainTemplate } = await import("./templates-main");
-    const { renderSummaryTemplate } = await import("./templates-summary");
-    const { renderContactTemplate } = await import("./templates-contact");
-    const { renderBrandTemplate } = await import("./templates-brand");
-    const { renderCareerTemplate } = await import("./templates-career");
+    // Dynamic import of unified V5 template module
     const { renderAnyTemplate } = await import("./slot-hub");
 
-    switch (input.imageType) {
-        case "main":
-            await renderMainTemplate(ctx, input, assets, OUTPUT_SIZE);
-            break;
-        case "illustration":
-            await renderAnyTemplate("illustration", ctx, input, assets, OUTPUT_SIZE);
-            break;
-        case "summary":
-            await renderSummaryTemplate(ctx, input, assets, OUTPUT_SIZE);
-            break;
-        case "contact":
-            await renderContactTemplate(ctx, input, assets, OUTPUT_SIZE);
-            break;
-        case "brand":
-            await renderBrandTemplate(ctx, input, assets, OUTPUT_SIZE);
-            break;
-        case "career":
-            await renderCareerTemplate(ctx, input, assets, OUTPUT_SIZE);
-            break;
-    }
+    await renderAnyTemplate(input.imageType, ctx, input, assets as any, OUTPUT_SIZE);
 
     return canvas.toBuffer("image/png");
 }
@@ -624,4 +600,5 @@ export type Assets = {
     accent: string;
     darkBg: string;
     rawBrandColor: string;
+    summaryImg?: Image | null;
 };

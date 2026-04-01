@@ -21,20 +21,16 @@ export async function POST(request: NextRequest) {
 
         // Build a concise subject description for DALL-E
         const subject = title 
-            ? `The topic is: "${title}". Additional context: ${(context || "").substring(0, 300)}`
-            : `The topic is: ${(context || "").substring(0, 500)}`;
+        const prompt = `Create a single panel illustration from a high-quality, modern Korean webtoon.
+Topic context for the scene: ${subject}
 
-        // Build a highly narrative prompt targeting professional Korean editorial illustrations
-        const prompt = `Create a metaphorical, situational, and highly aesthetic editorial illustration for a Korean professional blog. 
-Topic context: ${subject}
-
-CRITICAL STYLE RULES:
-- Style: Warm, modern hand-drawn editorial illustration with bold ink outlines.
-- Subject Matter: DO NOT draw generic people staring at the camera. Draw a metaphor or scene directly relevant to the topic (e.g., a cracked smartphone for digital evidence, a stressed person looking at a huge document, two people at a distance, a hand holding a key).
-- Color Palette: Natural skin tones, sophisticated professional colors (navy, beige, olive, warm grey, charcoal). NO neon/garish colors.
-- Shading: Soft flats with subtle cel-shading. NOT vector art.
-- Avoid text: NO text, NO words, NO letters anywhere.
-- The tone should be serious, trusting, and deeply empathetic to the blog topic.`;
+CRITICAL STYLE RULES (MUST FOLLOW):
+- Style: Trendy Korean Webtoon (네이버 웹툰 스타일). Clean, confident line art with cel-shading.
+- Subject: A highly expressive, emotional, or dramatic scene directly related to the topic. (e.g., a shocked person looking at a phone, a tense confrontation, someone holding their forehead in despair, a warm comforting handshake).
+- Shading & Colors: Simple flat colors with crisp cel-shading. Use a restricted, minimal, highly atmospheric color palette (e.g., moody blues, dramatic sunset oranges, or sterile office greys). NO messy gradients or 3D rendering.
+- Background: Extremely minimal. Just a solid pastel color, a simple speed-line effect, or a very basic room corner. DO NOT draw complex backgrounds; leave plenty of empty "negative space" for text to be placed later.
+- Avoid text: NO text, NO speech bubbles, NO words, NO letters anywhere.
+- Render Quality: 4k, crisp comic book ink style. This must look like a professional, expensive webtoon panel, NOT an old newspaper cartoon or abstract painting.`;
 
         const res = await fetch("https://api.openai.com/v1/images/generations", {
             method: "POST",

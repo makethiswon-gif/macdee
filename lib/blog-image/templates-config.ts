@@ -1,29 +1,22 @@
 // =============================================================================
-// Antigravity Blog Image Template Config
-// 5 Styles × 5 Image Types = 25 Templates
+// Antigravity Blog Image Template Config V5 (Minimalist Webtoon Edition)
 // =============================================================================
 
-// ---------------------------------------------------------------------------
-// 1. 타입 정의
-// ---------------------------------------------------------------------------
-
-/** 로고에서 추출된 컬러를 기반으로 런타임에 결정되는 값 */
 export type DynamicColor = '{{logo.primary}}' | '{{logo.secondary}}' | '{{logo.accent}}';
 
-/** 프로필 데이터에서 바인딩되는 텍스트 */
 export type DynamicText =
   | '{{post.title}}'
   | '{{post.category}}'
-  | '{{post.keypoints}}'       // 핵심 포인트 배열
+  | '{{post.keypoints}}'
   | '{{profile.name}}'
-  | '{{profile.title}}'        // 직책
+  | '{{profile.title}}'
   | '{{profile.firm}}'
   | '{{profile.phone1}}'
   | '{{profile.phone2}}'
   | '{{profile.phone3}}'
   | '{{profile.address}}'
-  | '{{profile.specialties}}'  // 전문 분야 배열
-  | '{{profile.credentials}}'  // 약력 배열
+  | '{{profile.specialties}}'
+  | '{{profile.credentials}}'
   | '{{profile.slogan}}'
   | '{{profile.homepage}}';
 
@@ -38,83 +31,31 @@ export interface CanvasConfig {
 }
 
 // ---------------------------------------------------------------------------
-// 2. 스타일 프리셋 (5가지)
+// 1. 스타일 장식 및 컬러 프리셋
 // ---------------------------------------------------------------------------
-
 export interface StylePreset {
   id: StyleId;
   name: string;
   nameEn: string;
   description: string;
-
-  /** 컬러 시스템 — 로고 컬러로 오버라이드 가능한 슬롯 포함 */
   colors: {
-    bg: {
-      primary: string;
-      secondary: string;
-      gradient?: { from: string; to: string; angle: number };
-    };
-    accent: {
-      primary: string;       // 주 포인트 컬러 (골드바, 네온, 레드 등)
-      secondary?: string;    // 보조 포인트 (그래디언트 짝)
-    };
-    text: {
-      primary: string;
-      secondary: string;
-      muted: string;
-      onAccent: string;      // 악센트 배경 위 텍스트
-    };
+    bg: { primary: string; secondary: string; gradient?: { from: string; to: string; angle: number }; };
+    accent: { primary: string; secondary?: string; };
+    text: { primary: string; secondary: string; muted: string; onAccent: string; };
     border?: string;
-    overlay?: {               // 사진 위 오버레이
-      color: string;
-      opacity: number;
-    };
+    overlay?: { color: string; opacity: number; }; // V5 is heavily dependent on beautiful black/dark transparent overlays
   };
-
-  /** 타이포그래피 */
   typography: {
     titleFont: 'sans' | 'serif';
     titleWeight: 400 | 500 | 600 | 700 | 900;
     bodyFont: 'sans' | 'serif';
     bodyWeight: 400 | 500 | 700;
-    categoryLetterSpacing: number;  // em 단위
+    categoryLetterSpacing: number;
     categoryTransform: 'uppercase' | 'none';
   };
-
-  /** 장식 요소 */
   decorations: {
-    sideBar?: {
-      position: 'left' | 'top' | 'right' | 'bottom';
-      width: number;         // px
-      color: string;
-    };
-    innerFrame?: {
-      inset: number;         // px
-      borderWidth: number;
-      borderColor: string;
-      borderRadius: number;
-    };
-    scanlines?: boolean;
-    circleAccents?: {
-      count: number;
-      color: string;
-      opacity: number;
-    };
-    divider?: {
-      width: number;
-      color: string;
-      opacity: number;
-    };
-    gradientOrbs?: Array<{
-      x: number;             // % 기준
-      y: number;
-      size: number;
-      color: string;
-      opacity: number;
-    }>;
+    divider?: { width: number; color: string; opacity: number; }; // Only minimal decorations allowed in V5
   };
-
-  /** CTA 버튼 스타일 */
   cta: {
     variant: 'filled' | 'outlined';
     bgColor: string;
@@ -122,326 +63,125 @@ export interface StylePreset {
     borderRadius: number;
     borderColor?: string;
   };
-
-  /** 로고 컬러 오버라이드 정책 */
   logoColorPolicy: {
-    /** 로고 추출 컬러가 악센트를 대체하는지 */
     overrideAccent: boolean;
-    /** 대체 시 밝기 보정 범위 (다크 배경에 너무 어두운 로고컬러 방지) */
     minLuminance?: number;
     maxLuminance?: number;
   };
 }
 
+// V5 Presets: Stripped of all garbage scanlines, circles, and boxes. 
+// Pure colors, pure typography.
 export const STYLE_PRESETS: Record<StyleId, StylePreset> = {
-
-  // ─── 01. 젊고 감각적인 ───────────────────────────────────────────
   young: {
-    id: 'young',
-    name: '젊고 감각적인',
-    nameEn: 'Modern Bold',
-    description: '다크 배경 + 네온 그래디언트. 개인회생, 교통사고, 스타트업 법무 등 젊은 타겟',
+    id: 'young', name: '트렌디 다크', nameEn: 'Modern Bold', description: '다크 테마 베이스 미니멀리즘',
     colors: {
-      bg: {
-        primary: '#0D0D0D',
-        secondary: '#1A1A2E',
-        gradient: { from: '#0D0D0D', to: '#1A1A2E', angle: 135 },
-      },
-      accent: {
-        primary: '#00D2FF',
-        secondary: '#7B61FF',
-      },
-      text: {
-        primary: '#FFFFFF',
-        secondary: 'rgba(255,255,255,0.8)',
-        muted: 'rgba(255,255,255,0.45)',
-        onAccent: '#FFFFFF',
-      },
-      overlay: { color: '#0D0D0D', opacity: 0.6 },
+      bg: { primary: '#09090b', secondary: '#18181b' },
+      accent: { primary: '#3b82f6', secondary: '#60a5fa' },
+      text: { primary: '#ffffff', secondary: '#e4e4e7', muted: '#a1a1aa', onAccent: '#ffffff' },
+      overlay: { color: '#000000', opacity: 0.85 },
     },
-    typography: {
-      titleFont: 'sans',
-      titleWeight: 900,
-      bodyFont: 'sans',
-      bodyWeight: 400,
-      categoryLetterSpacing: 0.12,
-      categoryTransform: 'uppercase',
-    },
-    decorations: {
-      gradientOrbs: [
-        { x: 85, y: 10, size: 80, color: '#00D2FF', opacity: 0.5 },
-        { x: 70, y: 30, size: 40, color: '#FF6B6B', opacity: 0.35 },
-      ],
-    },
-    cta: {
-      variant: 'filled',
-      bgColor: 'linear-gradient(135deg, #00D2FF, #7B61FF)',
-      textColor: '#FFFFFF',
-      borderRadius: 8,
-    },
-    logoColorPolicy: {
-      overrideAccent: true,
-      minLuminance: 0.4,
-    },
+    typography: { titleFont: 'sans', titleWeight: 900, bodyFont: 'sans', bodyWeight: 400, categoryLetterSpacing: 0.05, categoryTransform: 'uppercase' },
+    decorations: { divider: { width: 60, color: '{{logo.accent}}', opacity: 1 } },
+    cta: { variant: 'filled', bgColor: '{{logo.accent}}', textColor: '#ffffff', borderRadius: 12 },
+    logoColorPolicy: { overrideAccent: true, minLuminance: 0.3, maxLuminance: 0.9 },
   },
-
-  // ─── 02. 중후하고 보수적인 ───────────────────────────────────────
   mature: {
-    id: 'mature',
-    name: '중후하고 보수적인',
-    nameEn: 'Authoritative Serif',
-    description: '딥 네이비 + 골드. 기업자문, 조세, 대형 로펌 등 신뢰가 핵심인 분야',
+    id: 'mature', name: '클래식 화이트', nameEn: 'Trust White', description: '화이트 공간을 극대화한 신뢰형',
     colors: {
-      bg: {
-        primary: '#1B2838',
-        secondary: '#2A3D55',
-      },
-      accent: {
-        primary: '#C9A96E',
-      },
-      text: {
-        primary: '#E8E0D0',
-        secondary: 'rgba(232,224,208,0.8)',
-        muted: 'rgba(232,224,208,0.45)',
-        onAccent: '#1B2838',
-      },
-      overlay: { color: '#1B2838', opacity: 0.5 },
+      bg: { primary: '#ffffff', secondary: '#f8fafc' },
+      accent: { primary: '#1e293b', secondary: '#334155' },
+      text: { primary: '#0f172a', secondary: '#334155', muted: '#64748b', onAccent: '#ffffff' },
+      overlay: { color: '#ffffff', opacity: 0.85 },
     },
-    typography: {
-      titleFont: 'serif',
-      titleWeight: 700,
-      bodyFont: 'sans',
-      bodyWeight: 400,
-      categoryLetterSpacing: 0.15,
-      categoryTransform: 'uppercase',
-    },
-    decorations: {
-      sideBar: {
-        position: 'left',
-        width: 4,
-        color: '#C9A96E',
-      },
-      divider: { width: 40, color: '#C9A96E', opacity: 0.5 },
-    },
-    cta: {
-      variant: 'outlined',
-      bgColor: 'transparent',
-      textColor: '#C9A96E',
-      borderRadius: 4,
-      borderColor: 'rgba(201,169,110,0.4)',
-    },
-    logoColorPolicy: {
-      overrideAccent: false,   // 골드 고정이 브랜드 무드에 맞음
-    },
+    typography: { titleFont: 'serif', titleWeight: 700, bodyFont: 'serif', bodyWeight: 400, categoryLetterSpacing: 0.02, categoryTransform: 'none' },
+    decorations: { divider: { width: 40, color: '#1e293b', opacity: 0.2 } },
+    cta: { variant: 'outlined', bgColor: 'transparent', textColor: '#1e293b', borderRadius: 4, borderColor: '#1e293b' },
+    logoColorPolicy: { overrideAccent: true, minLuminance: 0.1, maxLuminance: 0.6 },
   },
-
-  // ─── 03. 냉철한 형사 ─────────────────────────────────────────────
   criminal: {
-    id: 'criminal',
-    name: '냉철한 형사',
-    nameEn: 'Sharp Noir',
-    description: '퓨어블랙 + 크림슨. 성범죄, 마약, 음주운전 등 긴급하고 심각한 사안',
+    id: 'criminal', name: '시네마틱 블랙', nameEn: 'Deep Contrast', description: '가장 강렬한 대비의 극적 테마',
     colors: {
-      bg: {
-        primary: '#0A0A0A',
-        secondary: '#1A1A1A',
-      },
-      accent: {
-        primary: '#C62828',
-      },
-      text: {
-        primary: '#E0E0E0',
-        secondary: 'rgba(224,224,224,0.8)',
-        muted: 'rgba(224,224,224,0.4)',
-        onAccent: '#FFFFFF',
-      },
-      overlay: { color: '#0A0A0A', opacity: 0.7 },
+      bg: { primary: '#000000', secondary: '#111111' },
+      accent: { primary: '#dc2626', secondary: '#ef4444' },
+      text: { primary: '#ffffff', secondary: '#cbd5e1', muted: '#64748b', onAccent: '#ffffff' },
+      overlay: { color: '#000000', opacity: 0.90 },
     },
-    typography: {
-      titleFont: 'sans',
-      titleWeight: 700,
-      bodyFont: 'sans',
-      bodyWeight: 400,
-      categoryLetterSpacing: 0.2,
-      categoryTransform: 'uppercase',
-    },
-    decorations: {
-      sideBar: {
-        position: 'top',
-        width: 3,
-        color: '#C62828',
-      },
-      scanlines: true,
-    },
-    cta: {
-      variant: 'filled',
-      bgColor: '#C62828',
-      textColor: '#FFFFFF',
-      borderRadius: 4,
-    },
-    logoColorPolicy: {
-      overrideAccent: true,
-      minLuminance: 0.3,
-      maxLuminance: 0.6,      // 너무 밝은 컬러는 형사 무드 깨짐
-    },
+    typography: { titleFont: 'serif', titleWeight: 900, bodyFont: 'sans', bodyWeight: 400, categoryLetterSpacing: 0.1, categoryTransform: 'uppercase' },
+    decorations: { divider: { width: 80, color: '#dc2626', opacity: 0.8 } },
+    cta: { variant: 'filled', bgColor: '#dc2626', textColor: '#ffffff', borderRadius: 0 },
+    logoColorPolicy: { overrideAccent: true, minLuminance: 0.2, maxLuminance: 0.8 },
   },
-
-  // ─── 04. 따뜻한 이혼·상속 ────────────────────────────────────────
   family: {
-    id: 'family',
-    name: '따뜻한 이혼·상속',
-    nameEn: 'Warm Gentle',
-    description: '핀터레스트 웜토프(Taupe) 에디토리얼 룩. 상아색(Bone White) 바탕에 우아한 명조체 조화',
+    id: 'family', name: '파스텔 웜', nameEn: 'Warm Ivory', description: '따뜻하고 부드러운 감성 테마',
     colors: {
-      bg: {
-        primary: '#FDFCF9',
-        secondary: '#F1EFE9',
-        gradient: { from: '#FDFCF9', to: '#F1EFE9', angle: 160 },
-      },
-      accent: {
-        primary: '#A89E97',   // 차분하고 따뜻한 회갈색(Muted Taupe)
-        secondary: '#8F8680',
-      },
-      text: {
-        primary: '#3B3633',   // 너무 까맣지 않은 부드러운 에스프레소 브라운
-        secondary: 'rgba(59,54,51,0.7)',
-        muted: 'rgba(59,54,51,0.4)',
-        onAccent: '#FFFFFF',
-      },
-      overlay: { color: '#F1EFE9', opacity: 0.55 },
+      bg: { primary: '#fffbeb', secondary: '#fef3c7' },
+      accent: { primary: '#d97706', secondary: '#fbbf24' },
+      text: { primary: '#451a03', secondary: '#78350f', muted: '#b45309', onAccent: '#ffffff' },
+      overlay: { color: '#fffbeb', opacity: 0.80 },
     },
-    typography: {
-      titleFont: 'serif',
-      titleWeight: 400,       // 묵직하지 않게 우아한 두께 (가벼움)
-      bodyFont: 'sans',
-      bodyWeight: 400,
-      categoryLetterSpacing: 0.25,  // 넓은 자간으로 고급스러운 느낌 극대화
-      categoryTransform: 'uppercase', // 영문일 경우 대문자화
-    },
-    decorations: {
-      innerFrame: {
-        borderColor: 'rgba(168,158,151,0.3)',
-        borderWidth: 1,       // 극강의 얇고 섬세한 1px 단일 액자선
-        inset: 40,
-        borderRadius: 0,
-      },
-      divider: { width: 40, color: '#A89E97', opacity: 0.8 },
-    },
-    cta: {
-      variant: 'outlined',
-      bgColor: 'transparent',
-      textColor: '#A89E97',
-      borderRadius: 0,
-      borderColor: 'rgba(168,158,151,0.3)',
-    },
-    logoColorPolicy: {
-      overrideAccent: true,
-      minLuminance: 0.3,
-      maxLuminance: 0.6,
-    },
+    typography: { titleFont: 'sans', titleWeight: 600, bodyFont: 'sans', bodyWeight: 400, categoryLetterSpacing: 0.0, categoryTransform: 'none' },
+    decorations: {},
+    cta: { variant: 'filled', bgColor: '{{logo.accent}}', textColor: '#ffffff', borderRadius: 999 },
+    logoColorPolicy: { overrideAccent: true, minLuminance: 0.2, maxLuminance: 0.7 },
   },
-
-  // ─── 05. 전통적인 로펌 ───────────────────────────────────────────
   classic: {
-    id: 'classic',
-    name: '전통적인 로펌',
-    nameEn: 'Classic Balanced',
-    description: '로열블루 + 골드 중앙 정렬. 부동산, 건설, 행정 등 종합 법무법인',
+    id: 'classic', name: '스탠다드 네이비', nameEn: 'Classic Navy', description: '가장 정석적인 로펌 네이비',
     colors: {
-      bg: {
-        primary: '#0C1F3F',
-        secondary: '#162D54',
-        gradient: { from: '#0C1F3F', to: '#162D54', angle: 180 },
-      },
-      accent: {
-        primary: '#C6A96E',
-      },
-      text: {
-        primary: '#E8DFD0',
-        secondary: 'rgba(232,223,208,0.8)',
-        muted: 'rgba(232,223,208,0.45)',
-        onAccent: '#0C1F3F',
-      },
-      overlay: { color: '#0C1F3F', opacity: 0.6 },
+      bg: { primary: '#0f172a', secondary: '#1e293b' },
+      accent: { primary: '#38bdf8', secondary: '#7dd3fc' },
+      text: { primary: '#ffffff', secondary: '#e2e8f0', muted: '#94a3b8', onAccent: '#0f172a' },
+      overlay: { color: '#0f172a', opacity: 0.85 },
     },
-    typography: {
-      titleFont: 'serif',
-      titleWeight: 700,
-      bodyFont: 'sans',
-      bodyWeight: 400,
-      categoryLetterSpacing: 0.2,
-      categoryTransform: 'uppercase',
-    },
-    decorations: {
-      innerFrame: {
-        inset: 40,
-        borderWidth: 1,
-        borderColor: 'rgba(198,169,110,0.3)',
-        borderRadius: 2,
-      },
-      divider: { width: 40, color: '#C6A96E', opacity: 0.4 },
-    },
-    cta: {
-      variant: 'outlined',
-      bgColor: 'transparent',
-      textColor: '#C6A96E',
-      borderRadius: 4,
-      borderColor: 'rgba(198,169,110,0.35)',
-    },
-    logoColorPolicy: {
-      overrideAccent: false,
-    },
+    typography: { titleFont: 'serif', titleWeight: 600, bodyFont: 'sans', bodyWeight: 400, categoryLetterSpacing: 0.05, categoryTransform: 'none' },
+    decorations: { divider: { width: 50, color: '{{logo.accent}}', opacity: 0.5 } },
+    cta: { variant: 'filled', bgColor: '{{logo.accent}}', textColor: '#0f172a', borderRadius: 6 },
+    logoColorPolicy: { overrideAccent: true, minLuminance: 0.4, maxLuminance: 0.9 },
   },
 };
 
-
 // ---------------------------------------------------------------------------
-// 3. 이미지 타입별 레이아웃 템플릿 (5가지)
+// 2. 구성 요소 슬롯 (V5)
 // ---------------------------------------------------------------------------
 
-export interface Rect {
-  x: number;    // 0~1
-  y: number;    // 0~1
-  w: number;    // 0~1
-  h: number;    // 0~1
+export type ImageSourceType = 'office' | 'profile' | 'summary' | 'logo' | 'vibe';
+export interface RectConfig { x: number; y: number; w: number; h: number; }
+
+export interface PhotoSlot {
+  source: ImageSourceType;
+  rect: RectConfig;
+  shape: 'rect' | 'circle';
+  objectFit: 'cover' | 'contain';
+  objectPosition?: 'center' | 'top' | 'bottom';
+  borderRadius?: number;
+  alpha?: number;
+  overlay: 'none' | 'style-default' | 'darken-heavy' | 'lighten';
+  overlayDirection?: 'full' | 'bottom' | 'left';
+  fallback: 'solid-bg' | 'gradient-bg' | 'empty';
 }
 
 export interface TextSlot {
   bind: DynamicText | string;
-  role: 'title' | 'subtitle' | 'category' | 'body' | 'label' | 'meta';
-  rect: Rect;
+  role: 'title' | 'category' | 'body' | 'meta' | 'accent' | 'list';
+  rect: RectConfig;
   align: 'left' | 'center' | 'right';
+  fontSize: number;
   maxLines?: number;
-  fontSize: number;            // pt — 1080px 기준
-  fontOverride?: {
-    font?: 'sans' | 'serif';
-    weight?: number | string;
-  };
   colorKey: 'primary' | 'secondary' | 'muted' | 'accent' | 'onAccent';
-  styleObj?: any; // 추가적인 스타일 조정(예: 하이라이트 등)
-}
-
-export interface PhotoSlot {
-  source: 'profile' | 'office' | 'logo' | 'summary';
-  rect: Rect;
-  shape: 'rect' | 'circle';
-  objectFit: 'cover' | 'contain';
-  borderRadius?: number;       // px — 0이면 직각
-  overlay: 'style-default' | 'gradient-bottom' | 'darken-heavy' | 'lighten' | 'none';
-  overlayDirection?: 'bottom' | 'left' | 'right' | 'full';
-  fallback: 'solid-bg' | 'gradient-bg' | 'pattern';
-  alpha?: number; // fallback for basic transparency
+  lineGap?: number;
 }
 
 export interface DecoSlot {
-  type: 'sidebar' | 'frame' | 'scanlines' | 'circle' | 'orb' | 'divider' | 'underline';
-  rect?: Rect;
+  type: 'divider' | 'underline' | 'quote' | 'sidebar' | 'scanlines' | 'orb' | 'circle';
+  rect?: RectConfig;
   fromPreset?: boolean;
 }
 
 export interface CtaSlot {
-  text: string;
-  rect: Rect;
+  bind: DynamicText | string;
+  rect: RectConfig;
+  align: 'center' | 'left';
+  icon?: 'phone' | 'arrow' | 'chat';
 }
 
 export interface ImageTypeTemplate {
@@ -458,504 +198,270 @@ export interface ImageTypeTemplate {
   }>;
 }
 
+// ---------------------------------------------------------------------------
+// 3. 템플릿 레이아웃 (V5: The Minimalist Webtoon Engine)
+// ---------------------------------------------------------------------------
+// 모든 레이아웃은 DALL-E 배경이나 웹툰 삽화가 전체 1024x1024를 꽉 채우도록(w:1, h:1) 설계.
+// 텍스트는 하단이나 중앙 30~50% 영역에 집중되며, 읽기 쉽도록 강력한 하단 그라데이션 오버레이를 적용.
 
-// ---------------------------------------------------------------------------
-// 3-1. 메인 대표 (Main Thumbnail)
-// ---------------------------------------------------------------------------
+// 공통 풀 스크린 사진 슬롯 생성기
+const generateFullScreenPhoto = (source: ImageSourceType): PhotoSlot => ({
+  source, rect: { x: 0, y: 0, w: 1, h: 1 }, shape: 'rect', objectFit: 'cover',
+  overlay: 'darken-heavy', overlayDirection: 'bottom', fallback: 'solid-bg', alpha: 1.0
+});
+
+// 공통 프로필 사진 바디 컷 슬롯 (우측 하단)
+const generateMinimalProfile = (): PhotoSlot => ({
+  source: 'profile', rect: { x: 0.5, y: 0.2, w: 0.5, h: 0.8 }, shape: 'rect', objectFit: 'cover', objectPosition: 'top',
+  overlay: 'none', fallback: 'empty', alpha: 1.0
+});
 
 export const MAIN_TEMPLATE: ImageTypeTemplate = {
-  id: 'main',
-  name: '메인 대표',
-  description: '블로그 대표 썸네일. 네이버 피드 첫 노출 이미지. 제목 + 프로필 + 분야 태그',
-  requiredData: ['{{post.title}}', '{{post.category}}', '{{profile.firm}}'],
-  aspectRatio: { w: 1, h: 1 },
-
+  id: 'main', name: '메인 커버', description: 'V5 미니멀리즘: 아름다운 풀화면 아트와 하단 타이포그래피',
+  requiredData: ['{{post.title}}', '{{profile.firm}}'], aspectRatio: { w: 1, h: 1 },
   layouts: {
     young: {
-      photos: [
-        {
-          source: 'office',
-          rect: { x: 0, y: 0, w: 1, h: 1 },
-          shape: 'rect', objectFit: 'cover',
-          overlay: 'darken-heavy', overlayDirection: 'full', fallback: 'solid-bg', alpha: 0.15
-        },
-        {
-          source: 'profile',
-          rect: { x: 0.0, y: 0.25, w: 0.50, h: 0.75 },
-          shape: 'rect', objectFit: 'cover',
-          overlay: 'none',
-          fallback: 'solid-bg',
-        },
-      ],
+      photos: [generateFullScreenPhoto('office')], // vibe bg will override office
       texts: [
-        { bind: '{{post.category}}', role: 'category', rect: { x: 0.50, y: 0.68, w: 0.46, h: 0.06 }, align: 'left', fontSize: 18, colorKey: 'accent' },
-        { bind: '{{post.title}}', role: 'title', rect: { x: 0.50, y: 0.74, w: 0.46, h: 0.18 }, align: 'left', fontSize: 48, maxLines: 2, colorKey: 'primary' },
-        { bind: '{{profile.firm}}', role: 'meta', rect: { x: 0.50, y: 0.94, w: 0.46, h: 0.04 }, align: 'left', fontSize: 14, colorKey: 'muted' },
-      ],
-      decos: [
-        { type: 'orb', fromPreset: true },
-        { type: 'underline', rect: { x: 0.50, y: 0.73, w: 0.06, h: 0 } },
-      ],
+        { bind: '{{post.category}}', role: 'category', rect: { x: 0.08, y: 0.65, w: 0.84, h: 0.05 }, align: 'left', fontSize: 18, colorKey: 'accent' },
+        { bind: '{{post.title}}', role: 'title', rect: { x: 0.08, y: 0.72, w: 0.84, h: 0.16 }, align: 'left', fontSize: 52, maxLines: 2, colorKey: 'primary' },
+        { bind: '{{profile.firm}}', role: 'meta', rect: { x: 0.08, y: 0.90, w: 0.84, h: 0.05 }, align: 'left', fontSize: 16, colorKey: 'muted' },
+      ], decos: []
     },
     mature: {
-      photos: [
-        {
-          source: 'office',
-          rect: { x: 0, y: 0, w: 1, h: 1 },
-          shape: 'rect', objectFit: 'cover',
-          overlay: 'style-default', fallback: 'solid-bg', alpha: 0.2
-        },
-        {
-          source: 'profile',
-          rect: { x: 0.55, y: 0, w: 0.45, h: 1 },
-          shape: 'rect', objectFit: 'cover',
-          overlay: 'style-default',
-          fallback: 'solid-bg',
-        },
-      ],
+      photos: [generateFullScreenPhoto('office'), generateMinimalProfile()], 
       texts: [
-        { bind: '{{profile.firm}}', role: 'category', rect: { x: 0.04, y: 0.10, w: 0.46, h: 0.05 }, align: 'left', fontSize: 15, colorKey: 'accent' },
-        { bind: '{{post.title}}', role: 'title', rect: { x: 0.04, y: 0.22, w: 0.46, h: 0.30 }, align: 'left', fontSize: 44, maxLines: 3, colorKey: 'primary' },
-      ],
-      decos: [
-        { type: 'sidebar', fromPreset: true },
-        { type: 'divider', rect: { x: 0.04, y: 0.88, w: 0.08, h: 0 } },
-      ],
+        { bind: '{{post.title}}', role: 'title', rect: { x: 0.08, y: 0.68, w: 0.84, h: 0.18 }, align: 'left', fontSize: 48, maxLines: 2, colorKey: 'primary' },
+        { bind: '{{profile.firm}} | {{profile.name}}', role: 'meta', rect: { x: 0.08, y: 0.88, w: 0.84, h: 0.05 }, align: 'left', fontSize: 16, colorKey: 'accent' },
+      ], decos: []
     },
     criminal: {
-      photos: [
-        {
-          source: 'office',
-          rect: { x: 0, y: 0, w: 1, h: 1 },
-          shape: 'rect', objectFit: 'cover',
-          overlay: 'darken-heavy', overlayDirection: 'full', fallback: 'solid-bg', alpha: 0.2
-        },
-        {
-          source: 'profile',
-          rect: { x: 0.35, y: 0.0, w: 0.65, h: 1.0 },
-          shape: 'rect', objectFit: 'cover',
-          overlay: 'gradient-bottom', overlayDirection: 'bottom', fallback: 'solid-bg'
-        },
-      ],
+      photos: [generateFullScreenPhoto('office')],
       texts: [
-        { bind: '형사전문', role: 'category', rect: { x: 0.04, y: 0.74, w: 0.5, h: 0.05 }, align: 'left', fontSize: 16, colorKey: 'accent' },
-        { bind: '{{post.title}}', role: 'title', rect: { x: 0.04, y: 0.80, w: 0.92, h: 0.16 }, align: 'left', fontSize: 48, maxLines: 2, colorKey: 'primary' },
-      ],
-      decos: [
-        { type: 'sidebar', fromPreset: true },
-        { type: 'scanlines', fromPreset: true },
-      ],
+        { bind: '{{post.title}}', role: 'title', rect: { x: 0.08, y: 0.40, w: 0.84, h: 0.20 }, align: 'center', fontSize: 56, maxLines: 2, colorKey: 'primary' },
+        { bind: '{{post.category}}', role: 'category', rect: { x: 0.08, y: 0.62, w: 0.84, h: 0.05 }, align: 'center', fontSize: 18, colorKey: 'accent' },
+      ], decos: [{ type: 'divider', rect: { x: 0.45, y: 0.68, w: 0.1, h: 0 } }]
     },
     family: {
-      photos: [
-        {
-          source: 'office',
-          rect: { x: 0, y: 0, w: 1, h: 1 },
-          shape: 'rect', objectFit: 'cover',
-          overlay: 'lighten', fallback: 'gradient-bg', alpha: 0.05
-        },
-        {
-          source: 'profile',
-          rect: { x: 0.55, y: 0.45, w: 0.40, h: 0.55 },
-          shape: 'rect', objectFit: 'cover',
-          borderRadius: 200,
-          overlay: 'none', fallback: 'solid-bg',
-        },
-      ],
+      photos: [generateFullScreenPhoto('office')],
       texts: [
-        { bind: '{{post.category}}', role: 'category', rect: { x: 0.08, y: 0.14, w: 0.6, h: 0.05 }, align: 'left', fontSize: 18, colorKey: 'accent' },
-        { bind: '{{post.title}}', role: 'title', rect: { x: 0.08, y: 0.22, w: 0.6, h: 0.22 }, align: 'left', fontSize: 44, maxLines: 2, colorKey: 'primary' },
-      ],
-      decos: [
-        { type: 'underline', rect: { x: 0.08, y: 0.46, w: 0.06, h: 0 } },
-        { type: 'circle', fromPreset: true },
-      ],
+        { bind: '{{post.category}}', role: 'category', rect: { x: 0.08, y: 0.12, w: 0.84, h: 0.05 }, align: 'center', fontSize: 16, colorKey: 'muted' },
+        { bind: '{{post.title}}', role: 'title', rect: { x: 0.08, y: 0.18, w: 0.84, h: 0.16 }, align: 'center', fontSize: 44, maxLines: 2, colorKey: 'primary' },
+      ], decos: []
     },
     classic: {
-      photos: [
-        {
-          source: 'office',
-          rect: { x: 0, y: 0, w: 1, h: 1 },
-          shape: 'rect', objectFit: 'cover',
-          overlay: 'style-default', fallback: 'solid-bg', alpha: 0.15
-        },
-        {
-          source: 'profile',
-          rect: { x: 0.30, y: 0.58, w: 0.40, h: 0.42 },
-          shape: 'rect', objectFit: 'cover',
-          overlay: 'none', fallback: 'solid-bg',
-        },
-      ],
+      photos: [generateFullScreenPhoto('office')],
       texts: [
-        { bind: '{{profile.firm}}', role: 'category', rect: { x: 0.1, y: 0.20, w: 0.8, h: 0.05 }, align: 'center', fontSize: 15, colorKey: 'accent' },
-        { bind: '{{post.title}}', role: 'title', rect: { x: 0.1, y: 0.35, w: 0.8, h: 0.30 }, align: 'center', fontSize: 44, maxLines: 3, colorKey: 'primary' },
-      ],
-      decos: [
-        { type: 'frame', fromPreset: true },
-        { type: 'divider', rect: { x: 0.42, y: 0.30, w: 0.16, h: 0 } },
-      ],
-    },
-  },
-};
-
-// ---------------------------------------------------------------------------
-export const SUMMARY_TEMPLATE: ImageTypeTemplate = {
-  id: 'summary',
-  name: '요약 카드',
-  description: '핵심 포인트 정리',
-  requiredData: ['{{post.title}}', '{{post.keypoints}}'],
-  aspectRatio: { w: 1, h: 1 },
-  layouts: {
-    young: {
-      photos: [
-        { source: 'office', rect: { x: 0, y: 0, w: 1, h: 1 }, shape: 'rect', objectFit: 'cover', overlay: 'darken-heavy', fallback: 'solid-bg', alpha: 0.1 },
-        { source: 'logo', rect: { x: 0.80, y: 0.90, w: 0.15, h: 0.06 }, shape: 'rect', objectFit: 'contain', overlay: 'none', fallback: 'solid-bg' },
-      ],
-      texts: [
-        { bind: 'KEY POINTS', role: 'title', rect: { x: 0.08, y: 0.08, w: 0.9, h: 0.06 }, align: 'left', fontSize: 22, colorKey: 'accent' },
-        { bind: '{{post.keypoints}}', role: 'body', rect: { x: 0.08, y: 0.20, w: 0.84, h: 0.65 }, align: 'left', fontSize: 24, colorKey: 'secondary' },
-      ],
-      decos: [ { type: 'underline', rect: { x: 0.08, y: 0.16, w: 0.05, h: 0 } } ],
-    },
-    mature: {
-      photos: [
-        { source: 'office', rect: { x: 0, y: 0, w: 1, h: 1 }, shape: 'rect', objectFit: 'cover', overlay: 'style-default', fallback: 'solid-bg', alpha: 0.15 },
-        { source: 'logo', rect: { x: 0.08, y: 0.90, w: 0.15, h: 0.06 }, shape: 'rect', objectFit: 'contain', overlay: 'none', fallback: 'solid-bg' },
-      ],
-      texts: [
-        { bind: '핵심 쟁점 요약', role: 'title', rect: { x: 0.08, y: 0.10, w: 0.6, h: 0.06 }, align: 'left', fontSize: 28, colorKey: 'primary' },
-        { bind: '{{post.keypoints}}', role: 'body', rect: { x: 0.08, y: 0.22, w: 0.84, h: 0.65 }, align: 'left', fontSize: 24, colorKey: 'secondary' },
-      ],
-      decos: [ { type: 'sidebar', fromPreset: true }, { type: 'divider', rect: { x: 0.08, y: 0.18, w: 0.06, h: 0 } } ],
-    },
-    criminal: {
-      photos: [
-        { source: 'office', rect: { x: 0, y: 0, w: 1, h: 1 }, shape: 'rect', objectFit: 'cover', overlay: 'darken-heavy', fallback: 'solid-bg', alpha: 0.1 },
-        { source: 'logo', rect: { x: 0.82, y: 0.90, w: 0.14, h: 0.06 }, shape: 'rect', objectFit: 'contain', overlay: 'none', fallback: 'solid-bg' },
-      ],
-      texts: [
-        { bind: '핵심 쟁점 사항', role: 'title', rect: { x: 0.06, y: 0.08, w: 0.5, h: 0.06 }, align: 'left', fontSize: 32, colorKey: 'primary' },
-        { bind: '{{post.keypoints}}', role: 'body', rect: { x: 0.06, y: 0.18, w: 0.88, h: 0.70 }, align: 'left', fontSize: 24, colorKey: 'secondary' },
-      ],
-      decos: [ { type: 'sidebar', fromPreset: true }, { type: 'scanlines', fromPreset: true } ],
-    },
-    family: {
-      photos: [
-        { source: 'office', rect: { x: 0, y: 0, w: 1, h: 1 }, shape: 'rect', objectFit: 'cover', overlay: 'lighten', fallback: 'solid-bg', alpha: 0.05 },
-        { source: 'logo', rect: { x: 0.80, y: 0.90, w: 0.15, h: 0.06 }, shape: 'rect', objectFit: 'contain', overlay: 'none', fallback: 'solid-bg' },
-      ],
-      texts: [
-        { bind: '핵심 정리', role: 'title', rect: { x: 0.06, y: 0.10, w: 0.6, h: 0.06 }, align: 'left', fontSize: 30, colorKey: 'primary' },
-        { bind: '{{post.keypoints}}', role: 'body', rect: { x: 0.06, y: 0.22, w: 0.88, h: 0.65 }, align: 'left', fontSize: 24, colorKey: 'secondary' },
-      ],
-      decos: [ { type: 'underline', rect: { x: 0.06, y: 0.18, w: 0.05, h: 0 } } ],
-    },
-    classic: {
-      photos: [
-        { source: 'office', rect: { x: 0, y: 0, w: 1, h: 1 }, shape: 'rect', objectFit: 'cover', overlay: 'style-default', fallback: 'solid-bg', alpha: 0.15 },
-        { source: 'logo', rect: { x: 0.40, y: 0.90, w: 0.20, h: 0.06 }, shape: 'rect', objectFit: 'contain', overlay: 'none', fallback: 'solid-bg' },
-      ],
-      texts: [
-        { bind: '핵심 쟁점 요약', role: 'title', rect: { x: 0.1, y: 0.08, w: 0.8, h: 0.06 }, align: 'center', fontSize: 32, colorKey: 'primary' },
-        { bind: '{{post.keypoints}}', role: 'body', rect: { x: 0.08, y: 0.20, w: 0.84, h: 0.65 }, align: 'center', fontSize: 22, colorKey: 'secondary' },
-      ],
-      decos: [ { type: 'frame', fromPreset: true }, { type: 'divider', rect: { x: 0.42, y: 0.16, w: 0.16, h: 0 } } ],
-    },
-  },
-};
-
-// ---------------------------------------------------------------------------
-export const ILLUSTRATION_TEMPLATE: ImageTypeTemplate = {
-  id: 'illustration',
-  name: 'AI 일러스트',
-  description: '본문 맞춤형 커스텀 일러스트',
-  requiredData: [],
-  aspectRatio: { w: 1, h: 1 },
-  layouts: {
-    young: {
-      photos: [ { source: 'summary', rect: { x: 0.05, y: 0.05, w: 0.9, h: 0.9 }, shape: 'rect', objectFit: 'cover', borderRadius: 20, overlay: 'none', fallback: 'solid-bg' } ],
-      texts: [], decos: [ { type: 'frame', fromPreset: true } ]
-    },
-    mature: {
-      photos: [ { source: 'summary', rect: { x: 0, y: 0, w: 1, h: 1 }, shape: 'rect', objectFit: 'cover', overlay: 'none', fallback: 'solid-bg' } ],
-      texts: [], decos: [ { type: 'frame', fromPreset: true } ]
-    },
-    criminal: {
-      photos: [ { source: 'summary', rect: { x: 0, y: 0, w: 1, h: 1 }, shape: 'rect', objectFit: 'cover', overlay: 'none', fallback: 'solid-bg' } ],
-      texts: [], decos: [ { type: 'scanlines', fromPreset: true } ]
-    },
-    family: {
-      photos: [ { source: 'summary', rect: { x: 0.1, y: 0.1, w: 0.8, h: 0.8 }, shape: 'rect', objectFit: 'cover', borderRadius: 400, overlay: 'none', fallback: 'solid-bg' } ],
-      texts: [], decos: [ { type: 'circle', fromPreset: true } ]
-    },
-    classic: {
-      photos: [ { source: 'summary', rect: { x: 0.08, y: 0.08, w: 0.84, h: 0.84 }, shape: 'rect', objectFit: 'cover', overlay: 'none', fallback: 'solid-bg' } ],
-      texts: [], decos: [ { type: 'frame', fromPreset: true } ]
-    },
+        { bind: '{{post.title}}', role: 'title', rect: { x: 0.1, y: 0.70, w: 0.8, h: 0.16 }, align: 'left', fontSize: 46, maxLines: 2, colorKey: 'primary' },
+        { bind: '{{profile.firm}}', role: 'meta', rect: { x: 0.1, y: 0.88, w: 0.8, h: 0.05 }, align: 'left', fontSize: 15, colorKey: 'muted' },
+      ], decos: [{ type: 'divider', rect: { x: 0.1, y: 0.65, w: 0.1, h: 0 } }]
+    }
   }
 };
 
-// ---------------------------------------------------------------------------
+export const SUMMARY_TEMPLATE: ImageTypeTemplate = {
+  id: 'summary', name: '요약 포인트', description: '가독성 극대화된 심플 포인트 넘버링',
+  requiredData: ['{{post.keypoints}}'], aspectRatio: { w: 1, h: 1 },
+  layouts: {
+    young: {
+      photos: [generateFullScreenPhoto('office')],
+      texts: [
+        { bind: '핵심 쟁점 요약', role: 'title', rect: { x: 0.1, y: 0.12, w: 0.8, h: 0.08 }, align: 'left', fontSize: 32, colorKey: 'accent' },
+        { bind: '{{post.keypoints}}', role: 'list', rect: { x: 0.1, y: 0.25, w: 0.8, h: 0.65 }, align: 'left', fontSize: 22, lineGap: 1.8, colorKey: 'primary' },
+      ], decos: []
+    },
+    mature: {
+      photos: [generateFullScreenPhoto('office')],
+      texts: [
+        { bind: 'Key Points', role: 'category', rect: { x: 0.1, y: 0.1, w: 0.8, h: 0.05 }, align: 'center', fontSize: 16, colorKey: 'accent' },
+        { bind: '{{post.keypoints}}', role: 'list', rect: { x: 0.1, y: 0.2, w: 0.8, h: 0.7 }, align: 'center', fontSize: 24, lineGap: 2.0, colorKey: 'primary' },
+      ], decos: []
+    },
+    criminal: {
+      photos: [generateFullScreenPhoto('office')],
+      texts: [
+        { bind: '주의사항 및 핵심', role: 'title', rect: { x: 0.1, y: 0.15, w: 0.8, h: 0.08 }, align: 'left', fontSize: 36, colorKey: 'accent' },
+        { bind: '{{post.keypoints}}', role: 'list', rect: { x: 0.1, y: 0.3, w: 0.8, h: 0.6 }, align: 'left', fontSize: 22, lineGap: 1.9, colorKey: 'primary' },
+      ], decos: [{ type: 'divider', rect: { x: 0.1, y: 0.26, w: 0.2, h: 0 } }]
+    },
+    family: {
+      photos: [generateFullScreenPhoto('office')],
+      texts: [
+        { bind: '{{post.keypoints}}', role: 'list', rect: { x: 0.12, y: 0.15, w: 0.76, h: 0.7 }, align: 'left', fontSize: 22, lineGap: 1.9, colorKey: 'primary' },
+      ], decos: []
+    },
+    classic: {
+      photos: [generateFullScreenPhoto('office')],
+      texts: [
+        { bind: 'SUMMARY', role: 'category', rect: { x: 0.1, y: 0.12, w: 0.8, h: 0.05 }, align: 'left', fontSize: 18, colorKey: 'accent' },
+        { bind: '{{post.keypoints}}', role: 'list', rect: { x: 0.1, y: 0.25, w: 0.8, h: 0.65 }, align: 'left', fontSize: 22, lineGap: 1.8, colorKey: 'primary' },
+      ], decos: []
+    }
+  }
+};
+
+export const ILLUSTRATION_TEMPLATE: ImageTypeTemplate = {
+  id: 'illustration', name: '웹툰 일러스트', description: 'Full 100% Canvas Webtoon Art + Minimal Text',
+  requiredData: ['{{post.title}}'], aspectRatio: { w: 1, h: 1 },
+  layouts: {
+    young: {
+      photos: [generateFullScreenPhoto('summary')], // 'summary' source points to DALL-E illustrative art
+      texts: [
+        { bind: '{{post.title}}', role: 'title', rect: { x: 0.05, y: 0.82, w: 0.9, h: 0.12 }, align: 'center', fontSize: 40, maxLines: 2, colorKey: 'primary' },
+      ], decos: []
+    },
+    mature: {
+      photos: [generateFullScreenPhoto('summary')],
+      texts: [
+        { bind: '{{post.title}}', role: 'title', rect: { x: 0.08, y: 0.80, w: 0.84, h: 0.12 }, align: 'left', fontSize: 42, maxLines: 2, colorKey: 'primary' },
+      ], decos: []
+    },
+    criminal: {
+      photos: [generateFullScreenPhoto('summary')],
+      texts: [
+        { bind: '{{post.title}}', role: 'title', rect: { x: 0.1, y: 0.10, w: 0.8, h: 0.15 }, align: 'center', fontSize: 46, maxLines: 2, colorKey: 'primary' },
+      ], decos: []
+    },
+    family: {
+      photos: [generateFullScreenPhoto('summary')],
+      texts: [
+        { bind: '{{post.title}}', role: 'body', rect: { x: 0.1, y: 0.85, w: 0.8, h: 0.10 }, align: 'center', fontSize: 32, maxLines: 2, colorKey: 'primary' },
+      ], decos: []
+    },
+    classic: {
+      photos: [generateFullScreenPhoto('summary')],
+      texts: [
+        { bind: '{{post.title}}', role: 'title', rect: { x: 0.05, y: 0.80, w: 0.9, h: 0.12 }, align: 'center', fontSize: 42, maxLines: 2, colorKey: 'primary' },
+      ], decos: []
+    }
+  }
+};
+
 export const BRAND_TEMPLATE: ImageTypeTemplate = {
-  id: 'brand',
-  name: '브랜드',
-  description: '사무실 전경 + 로고 + 슬로건',
-  requiredData: ['{{profile.firm}}', '{{profile.slogan}}', '{{profile.specialties}}'],
-  aspectRatio: { w: 1, h: 1 },
+  id: 'brand', name: '로펌 브랜딩', description: '로고와 슬로건에 시선을 꽂는 웅장한 레이아웃',
+  requiredData: ['{{profile.firm}}'], aspectRatio: { w: 1, h: 1 },
   layouts: {
     young: {
-      photos: [
-        { source: 'office', rect: { x: 0, y: 0, w: 1, h: 1 }, shape: 'rect', objectFit: 'cover', overlay: 'gradient-bottom', overlayDirection: 'bottom', fallback: 'gradient-bg' },
-        { source: 'logo', rect: { x: 0.05, y: 0.68, w: 0.25, h: 0.10 }, shape: 'rect', objectFit: 'contain', overlay: 'none', fallback: 'solid-bg' },
-      ],
+      photos: [generateFullScreenPhoto('office')],
       texts: [
-        { bind: '{{profile.slogan}}', role: 'title', rect: { x: 0.05, y: 0.80, w: 0.90, h: 0.10 }, align: 'left', fontSize: 36, maxLines: 2, colorKey: 'primary' },
-        { bind: '{{profile.specialties}}', role: 'meta', rect: { x: 0.05, y: 0.92, w: 0.90, h: 0.05 }, align: 'left', fontSize: 16, colorKey: 'muted' },
-      ],
-      decos: [],
+        { bind: '{{profile.firm}}', role: 'title', rect: { x: 0.1, y: 0.45, w: 0.8, h: 0.1 }, align: 'center', fontSize: 56, colorKey: 'primary' },
+        { bind: '당신의 권리를 위한 최선의 선택', role: 'category', rect: { x: 0.1, y: 0.58, w: 0.8, h: 0.05 }, align: 'center', fontSize: 18, colorKey: 'muted' },
+      ], decos: []
     },
     mature: {
-      photos: [
-        { source: 'office', rect: { x: 0, y: 0, w: 0.50, h: 1 }, shape: 'rect', objectFit: 'cover', overlay: 'none', fallback: 'solid-bg' },
-        { source: 'logo', rect: { x: 0.55, y: 0.25, w: 0.26, h: 0.10 }, shape: 'rect', objectFit: 'contain', overlay: 'none', fallback: 'solid-bg' },
-      ],
+      photos: [generateFullScreenPhoto('office')],
       texts: [
-        { bind: '{{profile.slogan}}', role: 'title', rect: { x: 0.55, y: 0.42, w: 0.40, h: 0.20 }, align: 'left', fontSize: 32, maxLines: 3, colorKey: 'primary' },
-        { bind: '{{profile.firm}}', role: 'meta', rect: { x: 0.55, y: 0.72, w: 0.40, h: 0.05 }, align: 'left', fontSize: 16, colorKey: 'accent' },
-      ],
-      decos: [ { type: 'divider', rect: { x: 0.55, y: 0.66, w: 0.08, h: 0 } } ],
+        { bind: '{{profile.firm}}', role: 'title', rect: { x: 0.1, y: 0.40, w: 0.8, h: 0.15 }, align: 'center', fontSize: 48, colorKey: 'primary' },
+        { bind: 'TRUST & PROFESSIONAL', role: 'category', rect: { x: 0.1, y: 0.55, w: 0.8, h: 0.05 }, align: 'center', fontSize: 16, colorKey: 'accent' },
+      ], decos: [{ type: 'divider', rect: { x: 0.45, y: 0.35, w: 0.1, h: 0 } }]
     },
     criminal: {
-      photos: [
-        { source: 'office', rect: { x: 0, y: 0, w: 1, h: 1 }, shape: 'rect', objectFit: 'cover', overlay: 'darken-heavy', overlayDirection: 'full', fallback: 'solid-bg' },
-        { source: 'logo', rect: { x: 0.06, y: 0.08, w: 0.25, h: 0.10 }, shape: 'rect', objectFit: 'contain', overlay: 'none', fallback: 'solid-bg' },
-      ],
+      photos: [generateFullScreenPhoto('office')],
       texts: [
-        { bind: '{{profile.slogan}}', role: 'title', rect: { x: 0.06, y: 0.76, w: 0.88, h: 0.12 }, align: 'left', fontSize: 40, maxLines: 2, colorKey: 'primary' },
-        { bind: '{{profile.firm}}', role: 'meta', rect: { x: 0.06, y: 0.90, w: 0.5, h: 0.04 }, align: 'left', fontSize: 16, colorKey: 'accent' },
-      ],
-      decos: [ { type: 'sidebar', fromPreset: true }, { type: 'scanlines', fromPreset: true } ],
+        { bind: '{{profile.firm}}', role: 'title', rect: { x: 0.1, y: 0.45, w: 0.8, h: 0.1 }, align: 'center', fontSize: 62, colorKey: 'primary' },
+      ], decos: []
     },
     family: {
-      photos: [
-        { source: 'office', rect: { x: 0, y: 0, w: 1, h: 1 }, shape: 'rect', objectFit: 'cover', overlay: 'lighten', overlayDirection: 'full', fallback: 'gradient-bg' },
-        { source: 'logo', rect: { x: 0.30, y: 0.22, w: 0.40, h: 0.12 }, shape: 'rect', objectFit: 'contain', overlay: 'none', fallback: 'solid-bg' },
-      ],
+      photos: [generateFullScreenPhoto('office')],
       texts: [
-        { bind: '{{profile.slogan}}', role: 'title', rect: { x: 0.10, y: 0.42, w: 0.80, h: 0.15 }, align: 'center', fontSize: 36, maxLines: 2, colorKey: 'primary' },
-        { bind: '{{profile.specialties}}', role: 'meta', rect: { x: 0.10, y: 0.80, w: 0.80, h: 0.05 }, align: 'center', fontSize: 18, colorKey: 'accent' },
-      ],
-      decos: [ { type: 'circle', fromPreset: true } ],
+        { bind: '{{profile.firm}}', role: 'title', rect: { x: 0.1, y: 0.45, w: 0.8, h: 0.1 }, align: 'center', fontSize: 44, colorKey: 'primary' },
+      ], decos: []
     },
     classic: {
-      photos: [
-        { source: 'office', rect: { x: 0, y: 0, w: 1, h: 1 }, shape: 'rect', objectFit: 'cover', overlay: 'style-default', overlayDirection: 'full', fallback: 'gradient-bg' },
-        { source: 'logo', rect: { x: 0.30, y: 0.22, w: 0.40, h: 0.10 }, shape: 'rect', objectFit: 'contain', overlay: 'none', fallback: 'solid-bg' },
-      ],
+      photos: [generateFullScreenPhoto('office')],
       texts: [
-        { bind: '{{profile.slogan}}', role: 'title', rect: { x: 0.10, y: 0.42, w: 0.80, h: 0.15 }, align: 'center', fontSize: 36, maxLines: 2, colorKey: 'primary' },
-        { bind: '{{profile.firm}}', role: 'meta', rect: { x: 0.10, y: 0.82, w: 0.80, h: 0.05 }, align: 'center', fontSize: 16, colorKey: 'accent' },
-      ],
-      decos: [ { type: 'frame', fromPreset: true }, { type: 'divider', rect: { x: 0.42, y: 0.38, w: 0.16, h: 0 } } ],
-    },
-  },
+        { bind: '{{profile.firm}}', role: 'title', rect: { x: 0.1, y: 0.45, w: 0.8, h: 0.1 }, align: 'center', fontSize: 50, colorKey: 'primary' },
+      ], decos: []
+    }
+  }
 };
 
-// ---------------------------------------------------------------------------
 export const CAREER_TEMPLATE: ImageTypeTemplate = {
-  id: 'career',
-  name: '경력 약력',
-  description: '프로필 사진 + 이력',
-  requiredData: [ '{{profile.name}}', '{{profile.title}}', '{{profile.credentials}}', '{{profile.specialties}}' ],
-  aspectRatio: { w: 1, h: 1 },
+  id: 'career', name: '변호사 이력', description: '미니멀한 이력 나열',
+  requiredData: ['{{profile.name}}', '{{profile.credentials}}'], aspectRatio: { w: 1, h: 1 },
   layouts: {
     young: {
-      photos: [
-        { source: 'profile', rect: { x: 0, y: 0, w: 0.45, h: 1 }, shape: 'rect', objectFit: 'cover', overlay: 'none', fallback: 'gradient-bg' },
-        { source: 'office', rect: { x: 0, y: 0, w: 1, h: 1 }, shape: 'rect', objectFit: 'cover', overlay: 'darken-heavy', fallback: 'solid-bg', alpha: 0.15 },
-      ],
+      photos: [generateFullScreenPhoto('office'), generateMinimalProfile()],
       texts: [
-        { bind: '{{profile.name}}', role: 'title', rect: { x: 0.50, y: 0.12, w: 0.44, h: 0.08 }, align: 'left', fontSize: 48, colorKey: 'primary' },
-        { bind: '{{profile.title}}', role: 'subtitle', rect: { x: 0.50, y: 0.22, w: 0.44, h: 0.05 }, align: 'left', fontSize: 18, colorKey: 'accent' },
-        { bind: '{{profile.credentials}}', role: 'body', rect: { x: 0.50, y: 0.32, w: 0.46, h: 0.60 }, align: 'left', fontSize: 16, colorKey: 'muted' },
-      ],
-      decos: [ { type: 'divider', rect: { x: 0.50, y: 0.32, w: 0.10, h: 0 } } ],
+        { bind: '{{profile.name}} 변호사', role: 'title', rect: { x: 0.08, y: 0.15, w: 0.42, h: 0.1 }, align: 'left', fontSize: 32, colorKey: 'primary' },
+        { bind: '{{profile.credentials}}', role: 'body', rect: { x: 0.08, y: 0.35, w: 0.46, h: 0.60 }, align: 'left', fontSize: 16, lineGap: 1.5, colorKey: 'muted' },
+      ], decos: []
     },
     mature: {
-      photos: [
-        { source: 'office', rect: { x: 0, y: 0, w: 1, h: 1 }, shape: 'rect', objectFit: 'cover', overlay: 'style-default', fallback: 'solid-bg', alpha: 0.2 },
-        { source: 'profile', rect: { x: 0.50, y: 0, w: 0.50, h: 1 }, shape: 'rect', objectFit: 'cover', overlay: 'none', fallback: 'solid-bg' },
-      ],
+      photos: [generateFullScreenPhoto('office'), generateMinimalProfile()],
       texts: [
-        { bind: '{{profile.title}}', role: 'category', rect: { x: 0.06, y: 0.30, w: 0.40, h: 0.05 }, align: 'left', fontSize: 18, colorKey: 'accent' },
-        { bind: '{{profile.name}}', role: 'title', rect: { x: 0.06, y: 0.38, w: 0.40, h: 0.10 }, align: 'left', fontSize: 52, colorKey: 'primary' },
-        { bind: '{{profile.credentials}}', role: 'body', rect: { x: 0.06, y: 0.52, w: 0.42, h: 0.42 }, align: 'left', fontSize: 16, colorKey: 'muted' },
-      ],
-      decos: [ { type: 'sidebar', fromPreset: true }, { type: 'divider', rect: { x: 0.06, y: 0.51, w: 0.08, h: 0 } } ],
+        { bind: '{{profile.name}}', role: 'title', rect: { x: 0.08, y: 0.15, w: 0.42, h: 0.1 }, align: 'left', fontSize: 36, colorKey: 'primary' },
+        { bind: '{{profile.credentials}}', role: 'body', rect: { x: 0.08, y: 0.30, w: 0.46, h: 0.60 }, align: 'left', fontSize: 16, lineGap: 1.5, colorKey: 'muted' },
+      ], decos: []
     },
     criminal: {
-      photos: [
-        { source: 'office', rect: { x: 0, y: 0, w: 1, h: 1 }, shape: 'rect', objectFit: 'cover', overlay: 'darken-heavy', fallback: 'solid-bg', alpha: 0.2 },
-        { source: 'profile', rect: { x: 0.55, y: 0, w: 0.45, h: 1 }, shape: 'rect', objectFit: 'cover', overlay: 'gradient-bottom', overlayDirection: 'left', fallback: 'solid-bg' },
-      ],
+      photos: [generateFullScreenPhoto('office')],
       texts: [
-        { bind: 'ATTORNEY AT LAW', role: 'category', rect: { x: 0.06, y: 0.30, w: 0.50, h: 0.05 }, align: 'left', fontSize: 18, colorKey: 'accent' },
-        { bind: '{{profile.name}}', role: 'title', rect: { x: 0.06, y: 0.38, w: 0.50, h: 0.10 }, align: 'left', fontSize: 52, colorKey: 'primary' },
-        { bind: '{{profile.title}}', role: 'subtitle', rect: { x: 0.06, y: 0.50, w: 0.50, h: 0.05 }, align: 'left', fontSize: 20, colorKey: 'muted' },
-        { bind: '{{profile.credentials}}', role: 'body', rect: { x: 0.06, y: 0.58, w: 0.48, h: 0.36 }, align: 'left', fontSize: 16, colorKey: 'muted' },
-      ],
-      decos: [ { type: 'sidebar', fromPreset: true }, { type: 'scanlines', fromPreset: true }, { type: 'divider', rect: { x: 0.06, y: 0.58, w: 0.08, h: 0 } } ],
+        { bind: '대표변호사 {{profile.name}}', role: 'title', rect: { x: 0.1, y: 0.15, w: 0.8, h: 0.08 }, align: 'center', fontSize: 32, colorKey: 'primary' },
+        { bind: '{{profile.credentials}}', role: 'body', rect: { x: 0.1, y: 0.30, w: 0.8, h: 0.60 }, align: 'center', fontSize: 16, lineGap: 1.6, colorKey: 'muted' },
+      ], decos: [{ type: 'divider', rect: { x: 0.4, y: 0.25, w: 0.2, h: 0 } }]
     },
     family: {
-      photos: [
-        { source: 'office', rect: { x: 0, y: 0, w: 1, h: 1 }, shape: 'rect', objectFit: 'cover', overlay: 'lighten', fallback: 'solid-bg', alpha: 0.05 },
-        { source: 'profile', rect: { x: 0.55, y: 0.1, w: 0.45, h: 0.9 }, shape: 'rect', objectFit: 'cover', overlay: 'none', fallback: 'solid-bg' },
-      ],
+      photos: [generateFullScreenPhoto('office'), generateMinimalProfile()],
       texts: [
-        { bind: '{{profile.title}}', role: 'category', rect: { x: 0.06, y: 0.30, w: 0.48, h: 0.05 }, align: 'left', fontSize: 20, colorKey: 'accent' },
-        { bind: '{{profile.name}}', role: 'title', rect: { x: 0.06, y: 0.38, w: 0.48, h: 0.10 }, align: 'left', fontSize: 52, colorKey: 'primary' },
-        { bind: '{{profile.credentials}}', role: 'body', rect: { x: 0.06, y: 0.52, w: 0.48, h: 0.42 }, align: 'left', fontSize: 16, colorKey: 'muted' },
-      ],
-      decos: [ { type: 'circle', fromPreset: true }, { type: 'underline', rect: { x: 0.06, y: 0.51, w: 0.08, h: 0 } } ],
+        { bind: '{{profile.name}}', role: 'title', rect: { x: 0.08, y: 0.15, w: 0.42, h: 0.1 }, align: 'left', fontSize: 32, colorKey: 'primary' },
+        { bind: '{{profile.credentials}}', role: 'body', rect: { x: 0.08, y: 0.30, w: 0.46, h: 0.65 }, align: 'left', fontSize: 16, lineGap: 1.5, colorKey: 'muted' },
+      ], decos: []
     },
     classic: {
-      photos: [
-        { source: 'office', rect: { x: 0, y: 0, w: 1, h: 1 }, shape: 'rect', objectFit: 'cover', overlay: 'style-default', fallback: 'solid-bg', alpha: 0.15 },
-        { source: 'profile', rect: { x: 0.32, y: 0.10, w: 0.36, h: 0.36 }, shape: 'circle', objectFit: 'cover', overlay: 'none', fallback: 'solid-bg' },
-      ],
+      photos: [generateFullScreenPhoto('office'), generateMinimalProfile()],
       texts: [
-        { bind: '{{profile.name}}', role: 'title', rect: { x: 0.10, y: 0.50, w: 0.80, h: 0.08 }, align: 'center', fontSize: 48, colorKey: 'primary' },
-        { bind: '{{profile.title}}', role: 'subtitle', rect: { x: 0.10, y: 0.60, w: 0.80, h: 0.05 }, align: 'center', fontSize: 20, colorKey: 'accent' },
-        { bind: '{{profile.credentials}}', role: 'body', rect: { x: 0.10, y: 0.68, w: 0.80, h: 0.26 }, align: 'center', fontSize: 16, colorKey: 'muted' },
-      ],
-      decos: [ { type: 'frame', fromPreset: true }, { type: 'divider', rect: { x: 0.42, y: 0.67, w: 0.16, h: 0 } } ],
-    },
-  },
+        { bind: '{{profile.name}} 변호사', role: 'title', rect: { x: 0.08, y: 0.15, w: 0.42, h: 0.1 }, align: 'left', fontSize: 32, colorKey: 'primary' },
+        { bind: '{{profile.credentials}}', role: 'body', rect: { x: 0.08, y: 0.30, w: 0.46, h: 0.60 }, align: 'left', fontSize: 16, lineGap: 1.5, colorKey: 'muted' },
+      ], decos: []
+    }
+  }
 };
 
-// ---------------------------------------------------------------------------
 export const CONTACT_TEMPLATE: ImageTypeTemplate = {
-  id: 'contact',
-  name: '연락처·상담',
-  description: '전화번호 + 주소 + 상담',
-  requiredData: [ '{{profile.name}}', '{{profile.firm}}', '{{profile.phone1}}', '{{profile.phone2}}', '{{profile.address}}' ],
-  aspectRatio: { w: 1, h: 1 },
+  id: 'contact', name: '연락망', description: '100% Canvas with clear CTA',
+  requiredData: ['{{profile.phone1}}', '{{profile.firm}}'], aspectRatio: { w: 1, h: 1 },
   layouts: {
     young: {
-      photos: [
-        { source: 'office', rect: { x: 0, y: 0, w: 1, h: 1 }, shape: 'rect', objectFit: 'cover', overlay: 'darken-heavy', fallback: 'solid-bg', alpha: 0.1 },
-        { source: 'profile', rect: { x: 0.76, y: 0.06, w: 0.18, h: 0.18 }, shape: 'circle', objectFit: 'cover', overlay: 'none', fallback: 'solid-bg' },
-      ],
+      photos: [generateFullScreenPhoto('office')],
       texts: [
-        { bind: '{{profile.firm}} · {{profile.name}} 변호사', role: 'label', rect: { x: 0.06, y: 0.10, w: 0.68, h: 0.04 }, align: 'left', fontSize: 18, colorKey: 'muted' },
-        { bind: '{{profile.phone1}}', role: 'title', rect: { x: 0.06, y: 0.22, w: 0.90, h: 0.12 }, align: 'left', fontSize: 64, colorKey: 'primary' },
-        { bind: '{{profile.phone2}}', role: 'subtitle', rect: { x: 0.06, y: 0.36, w: 0.90, h: 0.05 }, align: 'left', fontSize: 24, colorKey: 'muted' },
-        { bind: '{{profile.address}}', role: 'meta', rect: { x: 0.06, y: 0.88, w: 0.90, h: 0.04 }, align: 'left', fontSize: 16, colorKey: 'muted' },
-      ],
-      decos: [], cta: { text: '상담 예약', rect: { x: 0.06, y: 0.70, w: 0.30, h: 0.10 } },
+        { bind: '언제든 문의하세요', role: 'category', rect: { x: 0.1, y: 0.25, w: 0.8, h: 0.05 }, align: 'center', fontSize: 18, colorKey: 'accent' },
+        { bind: '{{profile.phone1}}', role: 'title', rect: { x: 0.1, y: 0.35, w: 0.8, h: 0.15 }, align: 'center', fontSize: 60, colorKey: 'primary' },
+        { bind: '{{profile.address}}', role: 'body', rect: { x: 0.1, y: 0.55, w: 0.8, h: 0.05 }, align: 'center', fontSize: 16, colorKey: 'muted' },
+      ], decos: [],
+      cta: { bind: '지금 전화걸기', rect: { x: 0.25, y: 0.75, w: 0.5, h: 0.08 }, align: 'center', icon: 'phone' }
     },
     mature: {
-      photos: [
-        { source: 'office', rect: { x: 0, y: 0, w: 1, h: 1 }, shape: 'rect', objectFit: 'cover', overlay: 'style-default', fallback: 'solid-bg', alpha: 0.15 },
-        { source: 'profile', rect: { x: 0.74, y: 0.28, w: 0.20, h: 0.20 }, shape: 'circle', objectFit: 'cover', overlay: 'none', fallback: 'solid-bg' },
-      ],
+      photos: [generateFullScreenPhoto('office')],
       texts: [
-        { bind: '{{profile.firm}}', role: 'category', rect: { x: 0.06, y: 0.28, w: 0.60, h: 0.05 }, align: 'left', fontSize: 18, colorKey: 'accent' },
-        { bind: '{{profile.phone1}}', role: 'title', rect: { x: 0.06, y: 0.36, w: 0.60, h: 0.10 }, align: 'left', fontSize: 56, colorKey: 'primary' },
-        { bind: '직통 {{profile.phone2}}', role: 'subtitle', rect: { x: 0.06, y: 0.50, w: 0.60, h: 0.05 }, align: 'left', fontSize: 22, colorKey: 'muted' },
-        { bind: '{{profile.address}}', role: 'meta', rect: { x: 0.06, y: 0.66, w: 0.60, h: 0.04 }, align: 'left', fontSize: 16, colorKey: 'muted' },
-      ],
-      decos: [ { type: 'sidebar', fromPreset: true }, { type: 'divider', rect: { x: 0.06, y: 0.60, w: 0.08, h: 0 } } ],
-      cta: { text: '상담 예약', rect: { x: 0.06, y: 0.78, w: 0.26, h: 0.08 } },
+        { bind: '법률 상담 전화', role: 'category', rect: { x: 0.1, y: 0.30, w: 0.8, h: 0.05 }, align: 'center', fontSize: 18, colorKey: 'muted' },
+        { bind: '{{profile.phone1}}', role: 'title', rect: { x: 0.1, y: 0.40, w: 0.8, h: 0.15 }, align: 'center', fontSize: 56, colorKey: 'primary' },
+      ], decos: [],
+      cta: { bind: '상담 예약하기', rect: { x: 0.3, y: 0.65, w: 0.4, h: 0.08 }, align: 'center' }
     },
     criminal: {
-      photos: [
-        { source: 'office', rect: { x: 0, y: 0, w: 1, h: 1 }, shape: 'rect', objectFit: 'cover', overlay: 'darken-heavy', fallback: 'solid-bg', alpha: 0.1 },
-        { source: 'profile', rect: { x: 0.06, y: 0.08, w: 0.15, h: 0.15 }, shape: 'circle', objectFit: 'cover', overlay: 'none', fallback: 'solid-bg' },
-      ],
+      photos: [generateFullScreenPhoto('office')],
       texts: [
-        { bind: '{{profile.name}} 변호사 · 형사전문', role: 'label', rect: { x: 0.24, y: 0.10, w: 0.72, h: 0.04 }, align: 'left', fontSize: 18, colorKey: 'muted' },
-        { bind: '24시간 긴급 상담', role: 'subtitle', rect: { x: 0.24, y: 0.18, w: 0.72, h: 0.04 }, align: 'left', fontSize: 20, colorKey: 'accent' },
-        { bind: '{{profile.phone1}}', role: 'title', rect: { x: 0.06, y: 0.34, w: 0.90, h: 0.14 }, align: 'left', fontSize: 68, colorKey: 'primary' },
-        { bind: '직통 {{profile.phone2}}', role: 'subtitle', rect: { x: 0.06, y: 0.50, w: 0.5, h: 0.05 }, align: 'left', fontSize: 24, colorKey: 'muted' },
-        { bind: '{{profile.address}}', role: 'meta', rect: { x: 0.50, y: 0.88, w: 0.44, h: 0.04 }, align: 'right', fontSize: 14, colorKey: 'muted' },
-      ],
-      decos: [ { type: 'sidebar', fromPreset: true }, { type: 'scanlines', fromPreset: true } ],
-      cta: { text: '긴급 상담', rect: { x: 0.06, y: 0.76, w: 0.26, h: 0.10 } },
+        { bind: '긴급 상담', role: 'category', rect: { x: 0.1, y: 0.35, w: 0.8, h: 0.05 }, align: 'center', fontSize: 20, colorKey: 'accent' },
+        { bind: '{{profile.phone1}}', role: 'title', rect: { x: 0.1, y: 0.45, w: 0.8, h: 0.15 }, align: 'center', fontSize: 64, colorKey: 'primary' },
+      ], decos: [],
+      cta: { bind: '즉시 변호사 연결', rect: { x: 0.2, y: 0.70, w: 0.6, h: 0.08 }, align: 'center', icon: 'phone' }
     },
     family: {
-      photos: [
-        { source: 'office', rect: { x: 0, y: 0, w: 1, h: 1 }, shape: 'rect', objectFit: 'cover', overlay: 'lighten', fallback: 'solid-bg', alpha: 0.05 },
-        { source: 'profile', rect: { x: 0.72, y: 0.65, w: 0.22, h: 0.22 }, shape: 'circle', objectFit: 'cover', overlay: 'none', fallback: 'solid-bg' },
-      ],
+      photos: [generateFullScreenPhoto('office')],
       texts: [
-        { bind: '{{profile.name}} 변호사 · {{profile.firm}}', role: 'label', rect: { x: 0.08, y: 0.10, w: 0.84, h: 0.04 }, align: 'left', fontSize: 18, colorKey: 'accent' },
-        { bind: '{{profile.phone1}}', role: 'title', rect: { x: 0.08, y: 0.20, w: 0.84, h: 0.10 }, align: 'left', fontSize: 56, colorKey: 'primary' },
-        { bind: '직통 {{profile.phone2}}', role: 'subtitle', rect: { x: 0.08, y: 0.34, w: 0.5, h: 0.04 }, align: 'left', fontSize: 20, colorKey: 'muted' },
-        { bind: '{{profile.address}}', role: 'meta', rect: { x: 0.08, y: 0.88, w: 0.60, h: 0.04 }, align: 'left', fontSize: 16, colorKey: 'muted' },
-      ],
-      decos: [ { type: 'circle', fromPreset: true } ],
-      cta: { text: '상담 예약', rect: { x: 0.08, y: 0.70, w: 0.28, h: 0.10 } },
+        { bind: '편하게 연락주세요', role: 'category', rect: { x: 0.1, y: 0.30, w: 0.8, h: 0.05 }, align: 'center', fontSize: 18, colorKey: 'muted' },
+        { bind: '{{profile.phone1}}', role: 'title', rect: { x: 0.1, y: 0.40, w: 0.8, h: 0.15 }, align: 'center', fontSize: 52, colorKey: 'primary' },
+      ], decos: [],
+      cta: { bind: '전화 상담하기', rect: { x: 0.3, y: 0.65, w: 0.4, h: 0.08 }, align: 'center' }
     },
     classic: {
-      photos: [
-        { source: 'office', rect: { x: 0, y: 0, w: 1, h: 1 }, shape: 'rect', objectFit: 'cover', overlay: 'style-default', fallback: 'solid-bg', alpha: 0.15 },
-        { source: 'logo', rect: { x: 0.4, y: 0.75, w: 0.2, h: 0.08 }, shape: 'rect', objectFit: 'contain', overlay: 'none', fallback: 'solid-bg' },
-      ],
+      photos: [generateFullScreenPhoto('office')],
       texts: [
-        { bind: '{{profile.firm}}', role: 'category', rect: { x: 0.10, y: 0.16, w: 0.80, h: 0.05 }, align: 'center', fontSize: 18, colorKey: 'accent' },
-        { bind: '{{profile.phone1}}', role: 'title', rect: { x: 0.10, y: 0.32, w: 0.80, h: 0.12 }, align: 'center', fontSize: 60, colorKey: 'primary' },
-        { bind: '직통 {{profile.phone2}}', role: 'subtitle', rect: { x: 0.10, y: 0.46, w: 0.80, h: 0.05 }, align: 'center', fontSize: 22, colorKey: 'muted' },
-        { bind: '{{profile.address}}', role: 'meta', rect: { x: 0.10, y: 0.88, w: 0.80, h: 0.04 }, align: 'center', fontSize: 16, colorKey: 'muted' },
-      ],
-      decos: [ { type: 'frame', fromPreset: true }, { type: 'divider', rect: { x: 0.42, y: 0.26, w: 0.16, h: 0 } } ],
-      cta: { text: '상담 예약', rect: { x: 0.35, y: 0.60, w: 0.30, h: 0.08 } },
-    },
-  },
+        { bind: '법률 사무소 {{profile.firm}}', role: 'category', rect: { x: 0.1, y: 0.30, w: 0.8, h: 0.05 }, align: 'center', fontSize: 18, colorKey: 'accent' },
+        { bind: '{{profile.phone1}}', role: 'title', rect: { x: 0.1, y: 0.40, w: 0.8, h: 0.15 }, align: 'center', fontSize: 56, colorKey: 'primary' },
+      ], decos: [],
+      cta: { bind: '상담문의 연결', rect: { x: 0.25, y: 0.65, w: 0.5, h: 0.08 }, align: 'center' }
+    }
+  }
 };
-
-export const ALL_TEMPLATES: ImageTypeTemplate[] = [ MAIN_TEMPLATE, SUMMARY_TEMPLATE, ILLUSTRATION_TEMPLATE, BRAND_TEMPLATE, CAREER_TEMPLATE, CONTACT_TEMPLATE ];
-
-export const TEMPLATE_MAP: Record<ImageTypeId, ImageTypeTemplate> = {
-  main: MAIN_TEMPLATE, summary: SUMMARY_TEMPLATE, illustration: ILLUSTRATION_TEMPLATE,
-  brand: BRAND_TEMPLATE, career: CAREER_TEMPLATE, contact: CONTACT_TEMPLATE,
-};
-
-// ---------------------------------------------------------------------------
-// 9. 로고 컬러 추출 → 악센트 오버라이드 유틸
-// ---------------------------------------------------------------------------
-
-export interface ExtractedLogoColors {
-  primary: string;
-  secondary?: string;
-  luminance: number;    // 0~1
-}
-
-/**
- * 로고에서 추출된 컬러를 스타일 프리셋에 적용
- * logoColorPolicy 에 따라 조건부 오버라이드
- */
-export function applyLogoColor(
-  style: StylePreset,
-  logoColors: ExtractedLogoColors,
-): StylePreset {
-  const policy = style.logoColorPolicy;
-
-  if (!policy.overrideAccent) return style;
-
-  const lum = logoColors.luminance;
-  if (policy.minLuminance !== undefined && lum < policy.minLuminance) return style;
-  if (policy.maxLuminance !== undefined && lum > policy.maxLuminance) return style;
-
-  return {
-    ...style,
-    colors: {
-      ...style.colors,
-      accent: {
-        ...style.colors.accent,
-        primary: logoColors.primary,
-        ...(logoColors.secondary ? { secondary: logoColors.secondary } : {}),
-      },
-    },
-  };
-}
