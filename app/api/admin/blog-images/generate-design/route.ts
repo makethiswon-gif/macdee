@@ -178,15 +178,17 @@ ${hasLogo ? `4. 상단 영역에 로펌 로고: <img src="__LOGO_IMG__" style="h
         if (divStart > 0) html = html.substring(divStart);
         html = html.replace(/```[\s\S]*$/g, "").trim();
 
-        // Replace image placeholders with actual base64 data
-        if (hasProfileImg && profile.profileImages[0]) {
-            html = html.replace(/__PROFILE_IMG__/g, profile.profileImages[0]);
+        // Replace image placeholders with actual base64 data (random selection)
+        if (hasProfileImg) {
+            const idx = Math.floor(Math.random() * profile.profileImages.length);
+            html = html.replace(/__PROFILE_IMG__/g, profile.profileImages[idx]);
         }
         if (hasLogo && profile.logoImage) {
             html = html.replace(/__LOGO_IMG__/g, profile.logoImage);
         }
-        if (hasOfficeImg && profile.officeImages[0]) {
-            html = html.replace(/__OFFICE_IMG__/g, profile.officeImages[0]);
+        if (hasOfficeImg) {
+            const idx = Math.floor(Math.random() * profile.officeImages.length);
+            html = html.replace(/__OFFICE_IMG__/g, profile.officeImages[idx]);
         }
 
         const cardNames: Record<string, string> = {
