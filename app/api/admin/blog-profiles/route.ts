@@ -17,6 +17,7 @@ export interface BlogProfile {
     logoImage: string;
     brandColor: string;
     brandLines: string[];
+    designStyle: string;
     jobTitle: string;
     career: string[];
     createdAt: number;
@@ -64,6 +65,7 @@ function dbToProfile(row: Record<string, unknown>): BlogProfile {
         logoImage: (row.logo_image as string) || "",
         brandColor: (row.brand_color as string) || "",
         brandLines: (row.brand_lines as string[]) || [],
+        designStyle: (row.design_style as string) || "classic",
         createdAt: new Date(row.created_at as string).getTime(),
         updatedAt: new Date(row.updated_at as string).getTime(),
     };
@@ -136,6 +138,7 @@ export async function GET(request: NextRequest) {
             website: p.website,
             specialty: p.specialty,
             brandColor: p.brandColor,
+            designStyle: p.designStyle,
             createdAt: p.createdAt,
             updatedAt: p.updatedAt,
             profileImageCount: p.profileImages.length,
@@ -170,12 +173,14 @@ export async function POST(request: NextRequest) {
                 office_images: [],
                 logo_image: "",
                 brand_color: "",
+                design_style: body.designStyle || "classic",
             };
             if (body.brandLines) insertData.brand_lines = body.brandLines;
             let { error } = await supabase.from("blog_profiles").insert(insertData);
-            // If brand_lines column doesn't exist yet, retry without it
-            if (error && error.message?.includes("brand_lines")) {
+            // If brand_lines or design_style column doesn't exist yet, retry without it
+            if (error && (error.message?.includes("brand_lines") || error.message?.includes("design_style"))) {
                 delete insertData.brand_lines;
+                delete insertData.design_style;
                 const retry = await supabase.from("blog_profiles").insert(insertData);
                 error = retry.error;
             }
@@ -193,12 +198,14 @@ export async function POST(request: NextRequest) {
                 address: body.address,
                 website: body.website,
                 specialty: body.specialty,
+                design_style: body.designStyle || "classic",
             };
             if (body.brandLines) updateData.brand_lines = body.brandLines;
             let { error } = await supabase.from("blog_profiles").update(updateData).eq("id", body.id);
-            // If brand_lines column doesn't exist yet, retry without it
-            if (error && error.message?.includes("brand_lines")) {
+            // If brand_lines or design_style column doesn't exist yet, retry without it
+            if (error && (error.message?.includes("brand_lines") || error.message?.includes("design_style"))) {
                 delete updateData.brand_lines;
+                delete updateData.design_style;
                 const retry = await supabase.from("blog_profiles").update(updateData).eq("id", body.id);
                 error = retry.error;
             }

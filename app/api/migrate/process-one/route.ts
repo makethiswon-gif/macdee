@@ -205,6 +205,7 @@ export async function POST(request: Request) {
                     templateId: 0, 
                     imageType: "main" as const,
                     accentColor: profileObj.brandColor,
+                    designStyle: ((blogProfile.design_style as string) || "classic") as any,
                 };
                 
                 const pngBuffer = await renderBlogImage(input);

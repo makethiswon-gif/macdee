@@ -36,6 +36,9 @@ export const FONT_BLACK = "NotoSansKR-900";
 export const FONT_SERIF_REGULAR = "NotoSerifKR-400";
 export const FONT_SERIF_BOLD = "NotoSerifKR-700";
 
+// ── Shared Types ──
+export type DesignStyle = "trendy" | "classic" | "cool" | "warm" | "traditional";
+
 // ── Color Utilities ──
 export function hexToRgb(hex: string): [number, number, number] {
     if (!hex) return [43, 76, 126]; // fallback to #2B4C7E
@@ -114,6 +117,53 @@ export function ensureBrightAccent(hex: string): string {
         return lighten(hex, 0.6); // Boost brightness by 60%
     }
     return hex;
+}
+
+/** Tweak accent color specifically for different design styles */
+export function getStyleAccentColor(hex: string, style: DesignStyle): string {
+    const [r, g, b] = hexToRgb(hex);
+
+    switch (style) {
+        case "cool":
+            // More desaturated, darker, icy feel
+            return darken(hex, 0.3);
+        case "warm":
+            // Slightly softer, brighter
+            return lighten(hex, 0.3);
+        case "trendy":
+            // Vibrant! If color is dull, we want to boost it (simplified boost here: boost lightest channel)
+            const max = Math.max(r, g, b);
+            if (max < 200) return lighten(hex, 0.5);
+            return hex;
+        case "traditional":
+            // More muted, serious, maybe darker
+            return darken(hex, 0.2);
+        case "classic":
+        default:
+            return ensureBrightAccent(hex);
+    }
+}
+
+/** Get background base color for different design styles */
+export function getStyleDarkBg(hex: string, style: DesignStyle): string {
+    const rawDark = getDeepDarkColor(hex);
+    switch (style) {
+        case "cool":
+            // Deep deep blue/gray
+            return darken(rawDark, 0.7);
+        case "warm":
+            // Warmer dark (less black, more brown/purple hint depending on hue)
+            return lighten(rawDark, 0.4);
+        case "trendy":
+            // Almost pure black for max contrast
+            return "#0A0A0A";
+        case "traditional":
+            // very dark gray
+            return "#121212";
+        case "classic":
+        default:
+            return rawDark;
+    }
 }
 
 /** Extract visually dominant brand color from a logo image */
@@ -290,19 +340,22 @@ export function drawAutoShrinkText(
     initialFontSize: number,
     fontFamily: string,
     fontWeight: string,
-    opts?: { shadow?: boolean, highlightPattern?: { color: string, type: "first-line" | "all" }, minFontSize?: number }
+    opts?: { shadow?: boolean, highlightPattern?: { color: string, type: "first-line" | "all" }, minFontSize?: number, lineGap?: number, center?: boolean }
 ): { height: number; lines: string[]; fontSize: number } {
     let currentFontSize = initialFontSize;
     let lines: string[] = [];
-    let lineHeight = currentFontSize * 1.3;
+    const lineGapMultiplier = opts?.lineGap || 1.3;
+    let lineHeight = currentFontSize * lineGapMultiplier;
 
     const minFont = opts?.minFontSize || 24;
+
+    if (opts?.center) ctx.textAlign = "center";
 
     // Linear scale down until it fits
     while (currentFontSize > minFont) {
         ctx.font = `${fontWeight} ${currentFontSize}px ${fontFamily}`;
         lines = wrapText(ctx, text, maxWidth);
-        lineHeight = currentFontSize * 1.3;
+        lineHeight = currentFontSize * lineGapMultiplier;
 
         if (lines.length * lineHeight <= maxHeight) {
             break; // fits perfectly
@@ -504,6 +557,7 @@ export interface RenderInput {
     templateId: number;
     imageType: "main" | "summary" | "contact" | "brand" | "career";
     accentColor?: string;
+    designStyle: DesignStyle;
 }
 
 export async function renderBlogImage(input: RenderInput): Promise<Buffer> {
@@ -533,12 +587,13 @@ export async function renderBlogImage(input: RenderInput): Promise<Buffer> {
     // 1. EXTRACT color from the LOGO.
     const extractedAccent = extractDominantColor(logoImg, providedAccent);
     
-    // 2. Derive dark background natively from the logo color
-    const darkBg = getDeepDarkColor(extractedAccent);
-    
-    // 3. Derive visible overlay colors strictly from the LOGO color
-    const accent = ensureBrightAccent(extractedAccent);
+    // 2. Derive base colors
     const rawBrandColor = extractedAccent;
+    const style = input.designStyle || "classic";
+    
+    // 3. Apply style-specific color transformations
+    const darkBg = getStyleDarkBg(extractedAccent, style);
+    const accent = getStyleAccentColor(extractedAccent, style);
 
     const assets = { profileImg, officeImg, logoImg, accent, darkBg, rawBrandColor };
 

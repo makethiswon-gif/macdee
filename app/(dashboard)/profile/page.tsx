@@ -57,7 +57,9 @@ export default function ProfilePage() {
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
     const [uploadingImage, setUploadingImage] = useState(false);
+    const [uploadingLogo, setUploadingLogo] = useState(false);
     const imageInputRef = useRef<HTMLInputElement>(null);
+    const logoInputRef = useRef<HTMLInputElement>(null);
 
     const fetchProfile = useCallback(async () => {
         const res = await fetch("/api/profile");
@@ -117,6 +119,33 @@ export default function ProfilePage() {
             toast.error("이미지 업로드 중 오류가 발생했습니다.");
         } finally {
             setUploadingImage(false);
+        }
+    };
+
+    const handleLogoUpload = async (file: File) => {
+        if (!file.type.startsWith("image/")) {
+            toast.error("이미지 파일만 업로드 가능합니다.");
+            return;
+        }
+        if (file.size > 10 * 1024 * 1024) {
+            toast.error("10MB 이하의 이미지만 업로드 가능합니다.");
+            return;
+        }
+        setUploadingLogo(true);
+        try {
+            const formData = new FormData();
+            formData.append("file", file);
+            const res = await fetch("/api/profile/logo", { method: "POST", body: formData });
+            const data = await res.json();
+            if (res.ok && data.logo_url) {
+                update("logo_url", data.logo_url);
+            } else {
+                toast.error(data.error || "로고 업로드 실패");
+            }
+        } catch {
+            toast.error("이미지 업로드 중 오류가 발생했습니다.");
+        } finally {
+            setUploadingLogo(false);
         }
     };
 
@@ -256,27 +285,63 @@ export default function ProfilePage() {
 
                 {/* Logo */}
                 <Section title="로펜 로고" icon={<ImageIcon size={16} />}>
-                    <Field label="로고 이미지 URL">
-                        <input
-                            type="url"
-                            value={profile.logo_url || ""}
-                            onChange={(e) => update("logo_url", e.target.value)}
-                            placeholder="https://example.com/logo.png"
-                            className="input-field"
-                        />
-                    </Field>
-                    {profile.logo_url && (
-                        <div className="mt-2 p-3 rounded-lg bg-[#F9FAFB] border border-[#E4E7ED]">
-                            <p className="text-[11px] text-[#9CA3B0] mb-2">미리보기</p>
-                            <img
-                                src={profile.logo_url}
-                                alt="로펜 로고"
-                                className="h-12 object-contain"
-                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                            />
+                    <div className="flex items-center gap-6">
+                        {/* Preview */}
+                        <div className="relative group">
+                            {profile.logo_url ? (
+                                <div className="relative">
+                                    <div className="w-24 h-24 rounded-2xl bg-[#F9FAFB] border-2 border-[#E8EBF0] flex items-center justify-center overflow-hidden p-2">
+                                        <img
+                                            src={profile.logo_url}
+                                            alt="로펜 로고"
+                                            className="max-w-full max-h-full object-contain"
+                                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                        />
+                                    </div>
+                                    <button
+                                        onClick={() => update("logo_url", "")}
+                                        className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                                    >
+                                        <X size={12} />
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="w-24 h-24 rounded-2xl bg-[#F3F4F6] border-2 border-dashed border-[#D1D5DB] flex items-center justify-center">
+                                    <ImageIcon size={24} className="text-[#9CA3B0]" />
+                                </div>
+                            )}
                         </div>
-                    )}
-                    <p className="text-[11px] text-[#9CA3B0] mt-1.5">카드뉴스 하단에 로고가 표시됩니다. 투명 PNG 권장.</p>
+
+                        {/* Upload area */}
+                        <div className="flex-1">
+                            <input
+                                ref={logoInputRef}
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) handleLogoUpload(file);
+                                    e.target.value = "";
+                                }}
+                                className="hidden"
+                            />
+                            <button
+                                onClick={() => logoInputRef.current?.click()}
+                                disabled={uploadingLogo}
+                                className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-[#A855F7] bg-[#A855F7]/[0.06] rounded-xl hover:bg-[#A855F7]/[0.12] disabled:opacity-50 transition-colors"
+                            >
+                                {uploadingLogo ? (
+                                    <><Loader2 size={14} className="animate-spin" /> 처리 중...</>
+                                ) : (
+                                    <><Camera size={14} /> 로고 업로드</>
+                                )}
+                            </button>
+                            <p className="text-[11px] text-[#9CA3B0] mt-2">
+                                투명 배경의 가로형 PNG, WebP 권장 · 최대 10MB
+                            </p>
+                            <p className="text-[11px] text-[#9CA3B0] mt-0.5">카드뉴스 하단에 로고가 표시됩니다.</p>
+                        </div>
+                    </div>
                 </Section>
 
                 {/* Office */}

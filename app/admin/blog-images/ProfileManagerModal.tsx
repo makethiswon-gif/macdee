@@ -18,6 +18,7 @@ interface Profile {
     logoImage: string;
     brandColor: string;
     brandLines: string[];
+    designStyle: string;
 }
 
 interface ProfileManagerModalProps {
@@ -44,7 +45,8 @@ export default function ProfileManagerModal({ isOpen, profileId, onClose, onSucc
         specialty: "",
         career: "",
         brandLines: "",
-        brandColor: "#3563AE"
+        brandColor: "#3563AE",
+        designStyle: "classic"
     });
 
     const [images, setImages] = useState<{
@@ -75,7 +77,8 @@ export default function ProfileManagerModal({ isOpen, profileId, onClose, onSucc
                 specialty: "",
                 career: "",
                 brandLines: "",
-                brandColor: "#3563AE"
+                brandColor: "#3563AE",
+                designStyle: "classic"
             });
             setImages({ profileImages: [], officeImages: [], logoImage: "" });
         }
@@ -101,7 +104,8 @@ export default function ProfileManagerModal({ isOpen, profileId, onClose, onSucc
                     specialty: p.specialty?.join("\n") || "",
                     career: p.career?.join("\n") || "",
                     brandLines: p.brandLines?.join("\n") || "",
-                    brandColor: p.brandColor || "#3563AE"
+                    brandColor: p.brandColor || "#3563AE",
+                    designStyle: p.designStyle || "classic"
                 });
                 setImages({
                     profileImages: p.profileImages || [],
@@ -135,6 +139,7 @@ export default function ProfileManagerModal({ isOpen, profileId, onClose, onSucc
                 specialty: formData.specialty.split("\n").map(s => s.trim()).filter(Boolean),
                 career: formData.career.trim() ? formData.career.split("\n").map(s => s.trim()) : [],
                 brandLines: formData.brandLines.trim() ? formData.brandLines.split("\n").map(s => s.trim()) : [],
+                designStyle: formData.designStyle,
             };
             
             const res = await fetch("/api/admin/blog-profiles", {
@@ -307,9 +312,21 @@ export default function ProfileManagerModal({ isOpen, profileId, onClose, onSucc
                                         </div>
                                     </div>
                                     
-                                    <div>
-                                        <label className="block text-[11px] font-medium text-white/40 mb-1.5">사무실 명칭</label>
-                                        <input type="text" value={formData.officeName} onChange={e => setFormData({...formData, officeName: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-white/30" placeholder="법무법인 맥디" />
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-[11px] font-medium text-white/40 mb-1.5">사무실 명칭</label>
+                                            <input type="text" value={formData.officeName} onChange={e => setFormData({...formData, officeName: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-white/30" placeholder="법무법인 맥디" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[11px] font-medium text-white/40 mb-1.5">디자인 스타일 (이미지 톤앤매너)</label>
+                                            <select value={formData.designStyle} onChange={e => setFormData({...formData, designStyle: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-white/30">
+                                                <option value="classic">중후하고 보수적인 (기본)</option>
+                                                <option value="trendy">젊고 감각적인</option>
+                                                <option value="cool">냉철한 (형사 전문 등)</option>
+                                                <option value="warm">따뜻한 (가사/상속 전문 등)</option>
+                                                <option value="traditional">전통적인 로펌 (명조체)</option>
+                                            </select>
+                                        </div>
                                     </div>
                                     
                                     <div className="grid grid-cols-2 gap-4">
