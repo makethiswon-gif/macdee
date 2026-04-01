@@ -291,51 +291,53 @@ export const STYLE_PRESETS: Record<StyleId, StylePreset> = {
     id: 'family',
     name: '따뜻한 이혼·상속',
     nameEn: 'Warm Gentle',
-    description: '크림 베이스 + 카라멜. 이혼, 양육권, 상속 등 감정적 사안',
+    description: '핀터레스트 웜토프(Taupe) 에디토리얼 룩. 상아색(Bone White) 바탕에 우아한 명조체 조화',
     colors: {
       bg: {
-        primary: '#FFF8F0',
-        secondary: '#F5E6D3',
-        gradient: { from: '#FFF8F0', to: '#F5E6D3', angle: 160 },
+        primary: '#FDFCF9',
+        secondary: '#F1EFE9',
+        gradient: { from: '#FDFCF9', to: '#F1EFE9', angle: 160 },
       },
       accent: {
-        primary: '#D4A574',
-        secondary: '#B8896D',
+        primary: '#A89E97',   // 차분하고 따뜻한 회갈색(Muted Taupe)
+        secondary: '#8F8680',
       },
       text: {
-        primary: '#4A3728',
-        secondary: 'rgba(74,55,40,0.8)',
-        muted: 'rgba(74,55,40,0.45)',
+        primary: '#3B3633',   // 너무 까맣지 않은 부드러운 에스프레소 브라운
+        secondary: 'rgba(59,54,51,0.7)',
+        muted: 'rgba(59,54,51,0.4)',
         onAccent: '#FFFFFF',
       },
-      overlay: { color: '#FFF8F0', opacity: 0.65 },
+      overlay: { color: '#F1EFE9', opacity: 0.55 },
     },
     typography: {
-      titleFont: 'sans',
-      titleWeight: 700,
+      titleFont: 'serif',
+      titleWeight: 400,       // 묵직하지 않게 우아한 두께 (가벼움)
       bodyFont: 'sans',
       bodyWeight: 400,
-      categoryLetterSpacing: 0.06,
-      categoryTransform: 'none',
+      categoryLetterSpacing: 0.25,  // 넓은 자간으로 고급스러운 느낌 극대화
+      categoryTransform: 'uppercase', // 영문일 경우 대문자화
     },
     decorations: {
-      circleAccents: {
-        count: 2,
-        color: '#D4A574',
-        opacity: 0.2,
+      innerFrame: {
+        borderColor: 'rgba(168,158,151,0.3)',
+        borderWidth: 1,       // 극강의 얇고 섬세한 1px 단일 액자선
+        inset: 40,
+        borderRadius: 0,
       },
-      divider: { width: 24, color: '#D4A574', opacity: 0.6 },
+      divider: { width: 40, color: '#A89E97', opacity: 0.8 },
     },
     cta: {
-      variant: 'filled',
-      bgColor: '#D4A574',
-      textColor: '#FFFFFF',
-      borderRadius: 8,
+      variant: 'outlined',
+      bgColor: 'transparent',
+      textColor: '#A89E97',
+      borderRadius: 0,
+      borderColor: 'rgba(168,158,151,0.3)',
     },
     logoColorPolicy: {
       overrideAccent: true,
-      minLuminance: 0.35,
-      maxLuminance: 0.7,
+      minLuminance: 0.3,
+      maxLuminance: 0.6,
     },
   },
 
