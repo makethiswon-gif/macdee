@@ -147,7 +147,7 @@ export function drawDecorations(ctx: SKRSContext2D, decos: DecoSlot[], style: St
 
 export function drawPhotos(ctx: SKRSContext2D, photos: PhotoSlot[], assets: Record<string, any>, style: StylePreset, canvasSize: number) {
     for (const p of photos) {
-        const imgKey = p.source === 'profile' ? 'profileImg' : p.source === 'office' ? 'officeImg' : 'logoImg';
+        const imgKey = p.source === 'profile' ? 'profileImg' : p.source === 'office' ? 'officeImg' : p.source === 'logo' ? 'logoImg' : 'summaryImg';
         const img = assets[imgKey];
         const { x, y, w, h } = p.rect;
         const absX = x * canvasSize;

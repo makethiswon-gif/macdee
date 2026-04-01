@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
 
     try {
         const body = await request.json();
-        const { profileId, title, summaryPoints, templateId, imageType, accentColor } = body;
+        const { profileId, title, summaryPoints, summaryImageUrl, templateId, imageType, accentColor } = body;
 
         if (!profileId || !imageType) {
             return NextResponse.json({ error: "Missing profileId or imageType" }, { status: 400 });
@@ -74,6 +74,7 @@ export async function POST(request: NextRequest) {
             title: title || `${profile.lawyerName} 변호사 법률 칼럼`,
             summaryPoints: summaryPoints || [],
             profile,
+            summaryImageUrl,
             templateId: templateId ?? 0,
             imageType,
             accentColor: accentColor || profile.brandColor || undefined,

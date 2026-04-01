@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import ProfileManagerModal from "./ProfileManagerModal";
 
-type ImageType = "main" | "summary" | "contact" | "brand" | "career";
+type ImageType = "main" | "summary" | "illustration" | "contact" | "brand" | "career";
 
 interface Profile {
     id: string;
@@ -24,15 +24,17 @@ interface Profile {
 const IMAGE_TYPES: { id: ImageType; label: string; icon: typeof ImageIcon; desc: string }[] = [
     { id: "main", label: "메인 대표", icon: ImageIcon, desc: "블로그 썸네일 이미지" },
     { id: "summary", label: "요약 카드", icon: FileText, desc: "핵심 내용 6-8포인트" },
+    { id: "illustration", label: "AI 일러스트", icon: Sparkles, desc: "본문 맞춤 전면 아트" },
     { id: "brand", label: "브랜드", icon: Sparkles, desc: "로펌 인지도 이미지" },
     { id: "career", label: "경력 약력", icon: Sparkles, desc: "신뢰감 구축형 약력" },
     { id: "contact", label: "연락처", icon: User, desc: "상담 유도 CTA" },
 ];
 
-const TEMPLATE_COUNTS: Record<ImageType, number> = { main: 1, summary: 1, contact: 1, brand: 1, career: 1 };
+const TEMPLATE_COUNTS: Record<ImageType, number> = { main: 1, summary: 1, illustration: 1, contact: 1, brand: 1, career: 1 };
 const TEMPLATE_NAMES: Record<ImageType, string[]> = {
     main: ["대표 썸네일형"],
     summary: ["정보 강조형"],
+    illustration: ["본문 맞춤 풀화면형"],
     contact: ["마무리 설득형"],
     brand: ["사무실 브랜딩형"],
     career: ["신뢰감 구축 약력형"],
@@ -49,8 +51,10 @@ export default function BlogImagesPage() {
     const [summarizing, setSummarizing] = useState(false);
     const [generating, setGenerating] = useState<Record<string, boolean>>({});
     const [generatedImages, setGeneratedImages] = useState<Record<string, string>>({});
+    const [summaryIllustrationUrl, setSummaryIllustrationUrl] = useState<string>("");
+    const [generatingIllustration, setGeneratingIllustration] = useState(false);
     const [selectedTemplates, setSelectedTemplates] = useState<Record<ImageType, number>>({
-        main: 0, summary: 0, contact: 0, brand: 0, career: 0
+        main: 0, summary: 0, illustration: 0, contact: 0, brand: 0, career: 0
     });
     const [previewType, setPreviewType] = useState<ImageType | null>(null);
 
@@ -105,6 +109,7 @@ export default function BlogImagesPage() {
                     profileId: selectedId,
                     title: overrideTitle || postTitle,
                     summaryPoints: overridePoints || summaryPoints,
+                    summaryImageUrl: imageType === 'summary' || imageType === 'illustration' ? summaryIllustrationUrl : undefined,
                     templateId: tid,
                     imageType,
                     accentColor: overrideAccent,
@@ -174,11 +179,44 @@ export default function BlogImagesPage() {
 
             const randId = Math.floor(Math.random() * TEMPLATE_COUNTS[type.id]);
             newTemplates[type.id] = randId;
-            // Always use full postTitle for all images
             const titleToUse = postTitle;
             await handleGenerate(type.id, currentPoints, randId, variedAccent, titleToUse);
         }
         setSelectedTemplates(newTemplates);
+    };
+
+    // Auto-generate illustration using DALL-E 3
+    const handleGenerateIllustration = async () => {
+        if (!postContent.trim() && summaryPoints.length === 0) {
+            alert("먼저 블로그 본문을 입력하거나 요약을 생성해주세요.");
+            return;
+        }
+        
+        const contextText = summaryPoints.length > 0 ? summaryPoints.join(" ") : postContent.substring(0, 1000);
+        
+        setGeneratingIllustration(true);
+        try {
+            const res = await fetch("/api/admin/blog-images/illustration", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ context: contextText }),
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.url) {
+                    setSummaryIllustrationUrl(data.url);
+                } else {
+                    alert("일러스트 생성에 문제가 발생했습니다.");
+                }
+            } else {
+                const err = await res.json().catch(() => ({}));
+                alert(`API 오류: ${err.error || res.status}`);
+            }
+        } catch (e) {
+            console.error(e);
+            alert("일러스트 생성 중 오류가 발생했습니다.");
+        }
+        setGeneratingIllustration(false);
     };
 
     // Download image
@@ -311,28 +349,58 @@ export default function BlogImagesPage() {
 
                         {/* Summary Points Display */}
                         {summaryPoints.length > 0 && (
-                            <div className="mt-5 p-4 rounded-xl bg-[#0B0F1A] border border-[#1F2937]">
-                                <div className="flex items-center justify-between mb-3">
-                                    <span className="text-xs font-medium text-[#10B981] flex items-center gap-1">
-                                        <Check size={12} />{summaryPoints.length}개 핵심 포인트
-                                    </span>
-                                    <button onClick={() => setSummaryPoints([])} className="text-[#4B5563] hover:text-[#9CA3B0] transition-colors">
-                                        <X size={14} />
-                                    </button>
+                            <div className="mt-5 space-y-3">
+                                <div className="p-4 rounded-xl bg-[#0B0F1A] border border-[#1F2937]">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <span className="text-xs font-medium text-[#10B981] flex items-center gap-1">
+                                            <Check size={12} />{summaryPoints.length}개 핵심 포인트
+                                        </span>
+                                        <button onClick={() => setSummaryPoints([])} className="text-[#4B5563] hover:text-[#9CA3B0] transition-colors">
+                                            <X size={14} />
+                                        </button>
+                                    </div>
+                                    <div className="space-y-2">
+                                        {summaryPoints.map((pt, i) => (
+                                            <div key={i} className="flex gap-3 text-sm">
+                                                <span className="text-[#3563AE] font-bold text-xs mt-0.5 shrink-0">{String(i + 1).padStart(2, "0")}</span>
+                                                <input type="text" value={pt}
+                                                    onChange={e => {
+                                                        const next = [...summaryPoints];
+                                                        next[i] = e.target.value;
+                                                        setSummaryPoints(next);
+                                                    }}
+                                                    className="flex-1 bg-transparent text-[#D1D5DB] text-sm border-none outline-none" />
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
-                                <div className="space-y-2">
-                                    {summaryPoints.map((pt, i) => (
-                                        <div key={i} className="flex gap-3 text-sm">
-                                            <span className="text-[#3563AE] font-bold text-xs mt-0.5 shrink-0">{String(i + 1).padStart(2, "0")}</span>
-                                            <input type="text" value={pt}
-                                                onChange={e => {
-                                                    const next = [...summaryPoints];
-                                                    next[i] = e.target.value;
-                                                    setSummaryPoints(next);
-                                                }}
-                                                className="flex-1 bg-transparent text-[#D1D5DB] text-sm border-none outline-none" />
+                                
+                                {/* AI Illustration Box */}
+                                <div className="p-4 rounded-xl bg-gradient-to-br from-[#3563AE]/10 to-transparent border border-[#3563AE]/20 flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 rounded-lg bg-[#0B0F1A] border border-[#1F2937] overflow-hidden flex items-center justify-center shrink-0">
+                                            {summaryIllustrationUrl ? (
+                                                <img src={summaryIllustrationUrl} alt="AI Illustration" className="w-full h-full object-cover" />
+                                            ) : (
+                                                <Sparkles size={16} className="text-[#4B5563]" />
+                                            )}
                                         </div>
-                                    ))}
+                                        <div>
+                                            <p className="text-sm font-semibold text-white">요약카드용 전문 일러스트 생성</p>
+                                            <p className="text-xs text-[#9CA3B0] mt-0.5">본문 내용을 읽고 어울리는 에디토리얼 삽화를 그려냅니다.</p>
+                                        </div>
+                                    </div>
+                                    <button 
+                                        onClick={handleGenerateIllustration}
+                                        disabled={generatingIllustration}
+                                        className="px-4 py-2 bg-[#3563AE] hover:bg-[#4375CA] text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+                                    >
+                                        {generatingIllustration ? (
+                                            <><Loader2 size={16} className="animate-spin" /> 그리는 중...</>
+                                        ) : (
+                                            <><Sparkles size={16} /> AI 생성</>
+                                        )}
+                                    </button>
                                 </div>
                             </div>
                         )}
@@ -353,8 +421,8 @@ export default function BlogImagesPage() {
                             )}
                         </div>
 
-                        {/* Results Grid - now 5 columns or scrollable */}
-                        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                        {/* Results Grid - now 6 columns or scrollable */}
+                        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
                             {IMAGE_TYPES.map(type => {
                                 const key = `${type.id}-${selectedTemplates[type.id]}`;
                                 const imgUrl = generatedImages[key];

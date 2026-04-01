@@ -28,7 +28,7 @@ export type DynamicText =
   | '{{profile.homepage}}';
 
 export type StyleId = 'young' | 'mature' | 'criminal' | 'family' | 'classic';
-export type ImageTypeId = 'main' | 'summary' | 'brand' | 'career' | 'contact';
+export type ImageTypeId = 'main' | 'summary' | 'illustration' | 'brand' | 'career' | 'contact';
 
 export interface CanvasConfig {
   width: number;
@@ -422,7 +422,7 @@ export interface TextSlot {
 }
 
 export interface PhotoSlot {
-  source: 'profile' | 'office' | 'logo';
+  source: 'profile' | 'office' | 'logo' | 'summary';
   rect: Rect;
   shape: 'rect' | 'circle';
   objectFit: 'cover' | 'contain';
@@ -665,6 +665,37 @@ export const SUMMARY_TEMPLATE: ImageTypeTemplate = {
 };
 
 // ---------------------------------------------------------------------------
+export const ILLUSTRATION_TEMPLATE: ImageTypeTemplate = {
+  id: 'illustration',
+  name: 'AI 일러스트',
+  description: '본문 맞춤형 커스텀 일러스트',
+  requiredData: [],
+  aspectRatio: { w: 1, h: 1 },
+  layouts: {
+    young: {
+      photos: [ { source: 'summary', rect: { x: 0.05, y: 0.05, w: 0.9, h: 0.9 }, shape: 'rect', objectFit: 'cover', borderRadius: 20, overlay: 'none', fallback: 'solid-bg' } ],
+      texts: [], decos: [ { type: 'frame', fromPreset: true } ]
+    },
+    mature: {
+      photos: [ { source: 'summary', rect: { x: 0, y: 0, w: 1, h: 1 }, shape: 'rect', objectFit: 'cover', overlay: 'none', fallback: 'solid-bg' } ],
+      texts: [], decos: [ { type: 'frame', fromPreset: true } ]
+    },
+    criminal: {
+      photos: [ { source: 'summary', rect: { x: 0, y: 0, w: 1, h: 1 }, shape: 'rect', objectFit: 'cover', overlay: 'none', fallback: 'solid-bg' } ],
+      texts: [], decos: [ { type: 'scanlines', fromPreset: true } ]
+    },
+    family: {
+      photos: [ { source: 'summary', rect: { x: 0.1, y: 0.1, w: 0.8, h: 0.8 }, shape: 'rect', objectFit: 'cover', borderRadius: 400, overlay: 'none', fallback: 'solid-bg' } ],
+      texts: [], decos: [ { type: 'circle', fromPreset: true } ]
+    },
+    classic: {
+      photos: [ { source: 'summary', rect: { x: 0.08, y: 0.08, w: 0.84, h: 0.84 }, shape: 'rect', objectFit: 'cover', overlay: 'none', fallback: 'solid-bg' } ],
+      texts: [], decos: [ { type: 'frame', fromPreset: true } ]
+    },
+  }
+};
+
+// ---------------------------------------------------------------------------
 export const BRAND_TEMPLATE: ImageTypeTemplate = {
   id: 'brand',
   name: '브랜드',
@@ -883,11 +914,11 @@ export const CONTACT_TEMPLATE: ImageTypeTemplate = {
   },
 };
 
-export const ALL_TEMPLATES: ImageTypeTemplate[] = [ MAIN_TEMPLATE, SUMMARY_TEMPLATE, BRAND_TEMPLATE, CAREER_TEMPLATE, CONTACT_TEMPLATE ];
+export const ALL_TEMPLATES: ImageTypeTemplate[] = [ MAIN_TEMPLATE, SUMMARY_TEMPLATE, ILLUSTRATION_TEMPLATE, BRAND_TEMPLATE, CAREER_TEMPLATE, CONTACT_TEMPLATE ];
 
 export const TEMPLATE_MAP: Record<ImageTypeId, ImageTypeTemplate> = {
-  main: MAIN_TEMPLATE, summary: SUMMARY_TEMPLATE, brand: BRAND_TEMPLATE,
-  career: CAREER_TEMPLATE, contact: CONTACT_TEMPLATE,
+  main: MAIN_TEMPLATE, summary: SUMMARY_TEMPLATE, illustration: ILLUSTRATION_TEMPLATE,
+  brand: BRAND_TEMPLATE, career: CAREER_TEMPLATE, contact: CONTACT_TEMPLATE,
 };
 
 // ---------------------------------------------------------------------------

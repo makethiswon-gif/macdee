@@ -529,8 +529,9 @@ export interface RenderInput {
         brandLines: string[];
     };
     templateId: number;
-    imageType: "main" | "summary" | "contact" | "brand" | "career";
+    imageType: "main" | "summary" | "illustration" | "contact" | "brand" | "career";
     accentColor?: string;
+    summaryImageUrl?: string;
     designStyle: DesignStyle;
 }
 
@@ -556,9 +557,10 @@ export async function renderBlogImage(input: RenderInput): Promise<Buffer> {
     const logoImg = input.profile.logoImage ? await safeLoadImage(input.profile.logoImage) : null;
 
     // Calculate smart colors based on the logo if present, or fallback to the provided brand color
-    const providedAccent = input.accentColor || input.profile.brandColor || "#2B4C7E";
-    // 1. EXTRACT color from the LOGO.
-    const extractedAccent = extractDominantColor(logoImg, providedAccent);
+    const providedAccent = input.accentColor || input.profile.brandColor;
+    
+    // 1. USE provided brand color first. Only extract if absolutely missing.
+    const extractedAccent = providedAccent ? providedAccent : extractDominantColor(logoImg, "#2B4C7E");
     
     // 2. Derive base colors
     const rawBrandColor = extractedAccent;
@@ -567,8 +569,9 @@ export async function renderBlogImage(input: RenderInput): Promise<Buffer> {
     // 3. (Legacy) pass through colors
     const darkBg = getDeepDarkColor(extractedAccent);
     const accent = extractedAccent;
+    const summaryImg = input.summaryImageUrl ? await safeLoadImage(input.summaryImageUrl) : null;
 
-    const assets = { profileImg, officeImg, logoImg, accent, darkBg, rawBrandColor };
+    const assets = { profileImg, officeImg, logoImg, accent, darkBg, rawBrandColor, summaryImg };
 
     // Dynamic import of template module
     const { renderMainTemplate } = await import("./templates-main");
@@ -576,10 +579,14 @@ export async function renderBlogImage(input: RenderInput): Promise<Buffer> {
     const { renderContactTemplate } = await import("./templates-contact");
     const { renderBrandTemplate } = await import("./templates-brand");
     const { renderCareerTemplate } = await import("./templates-career");
+    const { renderAnyTemplate } = await import("./slot-hub");
 
     switch (input.imageType) {
         case "main":
             await renderMainTemplate(ctx, input, assets, OUTPUT_SIZE);
+            break;
+        case "illustration":
+            await renderAnyTemplate("illustration", ctx, input, assets, OUTPUT_SIZE);
             break;
         case "summary":
             await renderSummaryTemplate(ctx, input, assets, OUTPUT_SIZE);
