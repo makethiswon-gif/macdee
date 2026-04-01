@@ -192,7 +192,9 @@ export function drawPhotos(ctx: SKRSContext2D, photos: PhotoSlot[], assets: Reco
                 }
                 ctx.drawImage(img, dx, dy, dw, dh);
             } else {
-                drawCover(ctx, img, absX, absY, absW, absH);
+                // Profile photos: anchor to top so faces aren't cropped on full-body shots
+                const objPos = p.source === 'profile' ? 'top' : 'center';
+                drawCover(ctx, img, absX, absY, absW, absH, objPos as "center" | "top");
             }
             if (p.alpha !== undefined) ctx.globalAlpha = 1.0;
         } else {

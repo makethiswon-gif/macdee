@@ -533,6 +533,7 @@ export interface RenderInput {
     accentColor?: string;
     summaryImageUrl?: string;
     overrideProfileImgBase64?: string;
+    vibeBgImgBase64?: string;
     designStyle: DesignStyle;
 }
 
@@ -551,12 +552,19 @@ export async function renderBlogImage(input: RenderInput): Promise<Buffer> {
     
     // Randomize which photo is picked (fixes "always the same photo" issue)
     const profileUrl = profiles.length > 0 ? profiles[Math.floor(Math.random() * profiles.length)] : null;
-    const officeUrl = offices.length > 0 ? offices[Math.floor(Math.random() * offices.length)] : null;
-
+    const fallbackOfficeUrl = offices.length > 0 ? offices[Math.floor(Math.random() * offices.length)] : null;
+    
     const profileImg = input.overrideProfileImgBase64 
         ? await safeLoadImage(input.overrideProfileImgBase64) 
         : (profileUrl ? await safeLoadImage(profileUrl) : null);
-    const officeImg = officeUrl ? await safeLoadImage(officeUrl) : null;
+        
+    let officeImg: Image | null = null;
+    if (input.vibeBgImgBase64) {
+        officeImg = await safeLoadImage(input.vibeBgImgBase64); // DALL-E vibe replaces office
+    } else {
+        officeImg = fallbackOfficeUrl ? await safeLoadImage(fallbackOfficeUrl) : null;
+    }
+    
     const logoImg = input.profile.logoImage ? await safeLoadImage(input.profile.logoImage) : null;
 
     // Calculate smart colors based on the logo if present

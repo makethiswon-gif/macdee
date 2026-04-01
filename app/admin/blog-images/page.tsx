@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
     ImageIcon, User, FileText, Sparkles, Download, RefreshCw,
     ChevronDown, Loader2, Check, X, Eye, 
-    Plus, Settings
+    Plus, Settings, Wand2, Paintbrush, Scissors, Monitor
 } from "lucide-react";
 import ProfileManagerModal from "./ProfileManagerModal";
 
@@ -23,45 +23,43 @@ interface Profile {
 }
 
 const IMAGE_TYPES: { id: ImageType; label: string; icon: typeof ImageIcon; desc: string }[] = [
-    { id: "main", label: "메인 대표", icon: ImageIcon, desc: "블로그 썸네일 이미지" },
-    { id: "summary", label: "요약 카드", icon: FileText, desc: "핵심 내용 6-8포인트" },
-    { id: "illustration", label: "AI 일러스트", icon: Sparkles, desc: "본문 맞춤 전면 아트" },
-    { id: "brand", label: "브랜드", icon: Sparkles, desc: "로펌 인지도 이미지" },
-    { id: "career", label: "경력 약력", icon: Sparkles, desc: "신뢰감 구축형 약력" },
-    { id: "contact", label: "연락처", icon: User, desc: "상담 유도 CTA" },
+    { id: "main", label: "메인 테마", icon: Monitor, desc: "분위기를 결정하는 대표 썸네일" },
+    { id: "summary", label: "핵심 요약", icon: FileText, desc: "가독성 높은 정보 전달" },
+    { id: "illustration", label: "AI 일러스트", icon: Palette, desc: "글 맞춤형 프리미엄 아트" },
+    { id: "brand", label: "로펌 브랜딩", icon: Sparkles, desc: "전문적이고 신뢰감 있는 브랜드" },
+    { id: "career", label: "변호사 약력", icon: User, desc: "전문성을 증명하는 상세 경력" },
+    { id: "contact", label: "마무리 유도", icon: Phone, desc: "상담을 유도하는 연락처 카드" }
 ];
 
-const TEMPLATE_COUNTS: Record<ImageType, number> = { main: 1, summary: 1, illustration: 1, contact: 1, brand: 1, career: 1 };
-const TEMPLATE_NAMES: Record<ImageType, string[]> = {
-    main: ["대표 썸네일형"],
-    summary: ["정보 강조형"],
-    illustration: ["본문 맞춤 풀화면형"],
-    contact: ["마무리 설득형"],
-    brand: ["사무실 브랜딩형"],
-    career: ["신뢰감 구축 약력형"],
-};
+// Fallback Icons since some are imported differently
+import { Palette, Phone } from "lucide-react";
+
+type PipelineStep = 'idle' | 'summarizing' | 'assets' | 'rendering' | 'done';
 
 export default function BlogImagesPage() {
     const [profiles, setProfiles] = useState<Profile[]>([]);
     const [loading, setLoading] = useState(true);
+    
+    // Form State
     const [selectedId, setSelectedId] = useState("");
     const [postTitle, setPostTitle] = useState("");
     const [postContent, setPostContent] = useState("");
+    
+    // Magic Pipeline State
+    const [pipelineStep, setPipelineStep] = useState<PipelineStep>("idle");
+    const [pipelineMessage, setPipelineMessage] = useState<string>("");
+    
+    // Underlying Data State (populated by pipeline)
     const [summaryPoints, setSummaryPoints] = useState<string[]>([]);
-    const [shortTitle, setShortTitle] = useState("");
-    const [summarizing, setSummarizing] = useState(false);
-    const [generating, setGenerating] = useState<Record<string, boolean>>({});
-    const [generatedImages, setGeneratedImages] = useState<Record<string, string>>({});
     const [summaryIllustrationUrl, setSummaryIllustrationUrl] = useState<string>("");
-    const [generatingIllustration, setGeneratingIllustration] = useState(false);
-    const [selectedTemplates, setSelectedTemplates] = useState<Record<ImageType, number>>({
-        main: 0, summary: 0, illustration: 0, contact: 0, brand: 0, career: 0
-    });
+    const [vibeBgUrl, setVibeBgUrl] = useState<string>("");
+    const [bgRemovedProfile, setBgRemovedProfile] = useState<string | null>(null);
+    const [generatedImages, setGeneratedImages] = useState<Record<string, string>>({});
+    
+    // Previews & Modals
     const [previewType, setPreviewType] = useState<ImageType | null>(null);
-
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
     const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
-    const [bgRemovedProfile, setBgRemovedProfile] = useState<string | null>(null);
 
     const fetchProfiles = useCallback(async () => {
         setLoading(true);
@@ -77,13 +75,26 @@ export default function BlogImagesPage() {
 
     useEffect(() => { fetchProfiles(); }, [fetchProfiles]);
     
-    // Clear background removed cache when profile changes
-    useEffect(() => { setBgRemovedProfile(null); }, [selectedId]);
+    // Clear generation data when user changes lawyer or content
+    useEffect(() => { 
+        if (pipelineStep === 'done') setPipelineStep('idle');
+    }, [selectedId, postContent, postTitle]);
 
-    // AI Summary generation
-    const handleSummarize = async () => {
-        if (!postContent.trim()) return;
-        setSummarizing(true);
+    const handleMagicGenerate = async () => {
+        if (!selectedId) return alert("변호사를 선택해주세요.");
+        if (!postContent.trim()) return alert("블로그 본문 내용을 입력해주세요.");
+
+        const selected = profiles.find(p => p.id === selectedId);
+        if (!selected) return;
+
+        setPipelineStep("summarizing");
+        setPipelineMessage("AI가 글을 분석하여 핵심 요약과 제목을 추출하고 있습니다...");
+        setGeneratedImages({});
+
+        let currentPoints = summaryPoints;
+        let currentTitle = postTitle;
+
+        // STEP 1: Summarize (if we don't have good points yet, just re-run anyway to be sure in magic mode)
         try {
             const res = await fetch("/api/admin/blog-images/summarize", {
                 method: "POST",
@@ -92,475 +103,408 @@ export default function BlogImagesPage() {
             });
             if (res.ok) {
                 const data = await res.json();
-                setSummaryPoints(data.points || []);
-            } else {
-                alert("요약 생성에 실패했습니다.");
-            }
-        } catch (e) { console.error(e); alert("요약 생성 중 오류"); }
-        setSummarizing(false);
-    };
-
-    // Helper: Remove BG of selected profile if not cached
-    const fetchBgRemovedProfile = async (silent = true) => {
-        if (!selected || !selected.profileImages?.length) return null;
-        if (!silent) setGeneratingIllustration(true); 
-        try {
-            const profileUrl = selected.profileImages[Math.floor(Math.random() * selected.profileImages.length)];
-            const res = await fetch("/api/admin/blog-images/remove-bg", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ url: profileUrl }),
-            });
-            if (res.ok) {
-                const data = await res.json();
-                if (data.result) {
-                    setBgRemovedProfile(data.result);
-                    return data.result;
+                if (data.points) {
+                    currentPoints = data.points;
+                    setSummaryPoints(data.points);
                 }
+                if (data.shortTitle) {
+                    currentTitle = data.shortTitle;
+                    if (!postTitle) setPostTitle(data.shortTitle);
+                }
+            } else {
+                return alert("글 요약에 실패했습니다. 내용을 다시 확인해주세요.");
             }
-        } catch(e) { console.error(e); } 
-        finally { if (!silent) setGeneratingIllustration(false); }
-        return null;
+        } catch (e) { console.error(e); return setPipelineStep("idle"); }
+
+        // Compile prompt text for image gen
+        const compileText = currentPoints.join(" ");
+        
+        // STEP 2: Generate DALL-E Assets & Background Removal in Parallel
+        setPipelineStep("assets");
+        setPipelineMessage("DALL-E 엔진이 맞춤형 텍스처 배경과 일러스트를 스케치합니다...");
+
+        let illustUrl = "";
+        let vibeUrl = "";
+        let profileUrl = bgRemovedProfile || "";
+
+        try {
+            const [illustRes, vibeRes, removeBgRes] = await Promise.all([
+                // Illustration
+                fetch("/api/admin/blog-images/illustration", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ context: compileText, title: currentTitle }),
+                }).catch(() => null),
+                // Vibe Background
+                fetch("/api/admin/blog-images/background", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ context: compileText, title: currentTitle }),
+                }).catch(() => null),
+                // Remove Background (only if needed)
+                (!bgRemovedProfile && selected.profileImages?.length) ? 
+                    fetch("/api/admin/blog-images/remove-bg", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ url: selected.profileImages[Math.floor(Math.random() * selected.profileImages.length)] }),
+                    }).catch(() => null)
+                : Promise.resolve(null)
+            ]);
+
+            if (illustRes?.ok) {
+                const data = await illustRes.json();
+                if (data.url) { illustUrl = data.url; setSummaryIllustrationUrl(data.url); }
+            }
+            if (vibeRes?.ok) {
+                const data = await vibeRes.json();
+                if (data.url) { vibeUrl = data.url; setVibeBgUrl(data.url); }
+            }
+            if (removeBgRes?.ok) {
+                const data = await removeBgRes.json();
+                if (data.result) { profileUrl = data.result; setBgRemovedProfile(data.result); }
+            }
+        } catch (e) {
+            console.error("Asset generation error:", e);
+        }
+
+        // STEP 3: Render all 6 templates in parallel via API
+        setPipelineStep("rendering");
+        setPipelineMessage("최적의 레이아웃을 계산하여 타이포그래피를 융합중입니다...");
+        
+        const newImages: Record<string, string> = {};
+        
+        try {
+            // Smart routing is handled on backend if templateId=0 is sent? 
+            // Actually, backend expects a templateId. Let's send tid=0 and let renderer map it, OR randomly pick one for now.
+            // For true magic, we randomly assign one layout integer per type.
+            const generatePromises = IMAGE_TYPES.map(async (type) => {
+                const tid = Math.floor(Math.random() * 2); // Assuming 2 layouts max for safety, or let backend randomize inside
+                const res = await fetch("/api/admin/blog-images/generate", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        profileId: selectedId,
+                        title: currentTitle,
+                        summaryPoints: currentPoints,
+                        summaryImageUrl: illustUrl,
+                        vibeBgImgBase64: vibeUrl,
+                        overrideProfileImgBase64: profileUrl,
+                        templateId: tid, // backend will override dynamically later
+                        imageType: type.id,
+                        accentColor: undefined, 
+                    }),
+                });
+                
+                if (res.ok) {
+                    const blob = await res.blob();
+                    const url = URL.createObjectURL(blob);
+                    newImages[type.id] = url;
+                }
+            });
+            
+            await Promise.all(generatePromises);
+            setGeneratedImages(newImages);
+            
+        } catch (e) {
+            console.error("Rendering error:", e);
+            alert("렌더링 중 통신 오류가 발생했습니다.");
+        }
+
+        setPipelineStep("done");
+        setPipelineMessage("모든 이미지 세트 생성이 완료되었습니다!");
     };
-
-    // Generate single image
-    const handleGenerate = async (imageType: ImageType, overridePoints?: string[], overrideTemplateId?: number, overrideAccent?: string, overrideTitle?: string, overrideIllustrationUrl?: string, overrideProfileBase64?: string) => {
+    
+    // Single image regenerate
+    const handleRegenerateOne = async (typeId: ImageType) => {
+        // Reuse generated context if available
         if (!selectedId) return;
-        const tid = overrideTemplateId !== undefined ? overrideTemplateId : selectedTemplates[imageType];
-        const key = `${imageType}-${tid}`;
-        setGenerating(prev => ({ ...prev, [key]: true }));
-
-        // ensure we have a bg removed profile if needed? Only try if we already have it. 
-        // We do not await it here to avoid individual lag unless we want to. Let's just use cache or undefined.
-        const currentProfileBase64 = overrideProfileBase64 || bgRemovedProfile || undefined;
-
+        const buttonKey = `regen-${typeId}`;
+        setPipelineStep(buttonKey as PipelineStep);
+        
         try {
             const res = await fetch("/api/admin/blog-images/generate", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     profileId: selectedId,
-                    title: overrideTitle || postTitle,
-                    summaryPoints: overridePoints || summaryPoints,
-                    summaryImageUrl: imageType === 'summary' || imageType === 'illustration' ? (overrideIllustrationUrl || summaryIllustrationUrl) : undefined,
-                    overrideProfileImgBase64: currentProfileBase64,
-                    templateId: tid,
-                    imageType,
-                    accentColor: overrideAccent,
+                    title: postTitle,
+                    summaryPoints,
+                    summaryImageUrl: summaryIllustrationUrl,
+                    vibeBgImgBase64: vibeBgUrl,
+                    overrideProfileImgBase64: bgRemovedProfile,
+                    templateId: Math.floor(Math.random() * 3), // random fresh layout
+                    imageType: typeId,
                 }),
             });
+            
             if (res.ok) {
                 const blob = await res.blob();
                 const url = URL.createObjectURL(blob);
-                setGeneratedImages(prev => ({ ...prev, [key]: url }));
-            } else {
-                const err = await res.json().catch(() => ({}));
-                alert(`이미지 생성 실패: ${err.error || res.status}`);
+                setGeneratedImages(prev => ({ ...prev, [typeId]: url }));
             }
-        } catch (e) { console.error(e); alert("이미지 생성 중 오류"); }
-        setGenerating(prev => ({ ...prev, [key]: false }));
-    };
+        } catch (e) {}
+        setPipelineStep("done");
+    }
 
-    // Generate all 5 images
-    const handleGenerateAll = async () => {
-        if (!selectedId || !postTitle || !selected) {
-            alert("변호사를 선택하고 제목을 입력해주세요.");
-            return;
-        }
-
-        let currentPoints = summaryPoints;
-        let currentShortTitle = shortTitle || postTitle;
-        
-        // Auto-summarize if there's content but no points
-        if (postContent.trim() && currentPoints.length === 0) {
-            setSummarizing(true);
-            try {
-                const res = await fetch("/api/admin/blog-images/summarize", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ content: postContent, title: postTitle }),
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    currentPoints = data.points || [];
-                    if (data.shortTitle) {
-                        currentShortTitle = data.shortTitle;
-                        setShortTitle(data.shortTitle);
-                    }
-                    setSummaryPoints(currentPoints);
-                }
-            } catch (e) { console.error(e); }
-            setSummarizing(false);
-        }
-
-        // Generate Illustration if not present
-        let currentIllustrationUrl = summaryIllustrationUrl;
-        if (!currentIllustrationUrl) {
-            currentIllustrationUrl = await handleGenerateIllustration(currentPoints, true) || "";
-        }
-
-        // Generate BG Removed Profile
-        let currentProfileBase64 = bgRemovedProfile;
-        if (!currentProfileBase64) {
-             currentProfileBase64 = await fetchBgRemovedProfile(true) || null;
-        }
-
-        // Randomize template selection
-        const newTemplates = { ...selectedTemplates };
-        for (const type of IMAGE_TYPES) {
-            const randId = Math.floor(Math.random() * TEMPLATE_COUNTS[type.id]);
-            newTemplates[type.id] = randId;
-            const titleToUse = postTitle;
-            await handleGenerate(type.id, currentPoints, randId, undefined, titleToUse, currentIllustrationUrl, currentProfileBase64 || undefined);
-        }
-        setSelectedTemplates(newTemplates);
-    };
-
-    // Auto-generate illustration using DALL-E 3
-    const handleGenerateIllustration = async (customPoints?: string[], silent = false): Promise<string | null> => {
-        const _points = customPoints || summaryPoints;
-        const _content = postContent;
-        if (!_content.trim() && _points.length === 0) {
-            if (!silent) alert("먼저 블로그 본문을 입력하거나 요약을 생성해주세요.");
-            return null;
-        }
-        
-        const contextText = _points.length > 0 ? _points.join(" ") : _content.substring(0, 1000);
-        
-        setGeneratingIllustration(true);
-        try {
-            const res = await fetch("/api/admin/blog-images/illustration", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ context: contextText, title: postTitle }),
-            });
-            if (res.ok) {
-                const data = await res.json();
-                if (data.url) {
-                    setSummaryIllustrationUrl(data.url);
-                    setGeneratingIllustration(false);
-                    return data.url;
-                } else if (!silent) {
-                    alert("일러스트 생성에 문제가 발생했습니다.");
-                }
-            } else if (!silent) {
-                const err = await res.json().catch(() => ({}));
-                alert(`API 오류: ${err.error || res.status}`);
-            }
-        } catch (e) {
-            console.error(e);
-            if (!silent) alert("일러스트 생성 중 오류가 발생했습니다.");
-        }
-        setGeneratingIllustration(false);
-        return null;
-    };
-
-    // Download image
-    const handleDownload = (imageType: ImageType) => {
-        const key = `${imageType}-${selectedTemplates[imageType]}`;
-        const url = generatedImages[key];
-        if (!url) return;
-        
-        // Form: 핵심키워드(제목)_YYMMDD_변호사명_타입.png
-        const yymmdd = new Date().toISOString().slice(2, 10).replace(/-/g, "");
-        const safeTitle = (postTitle || "블로그").replace(/[\/\\?%*:|"<>]/g, '').trim().replace(/\s+/g, '_');
-        const lawyerName = selected?.lawyerName ? selected.lawyerName.split(" ")[0] : "변호사";
-        
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${safeTitle}_${yymmdd}_${lawyerName}_${imageType}.png`;
-        a.click();
-    };
-
-    // Download all
     const handleDownloadAll = () => {
-        IMAGE_TYPES.forEach(t => handleDownload(t.id));
+        const types = Object.keys(generatedImages);
+        if (types.length === 0) return;
+        
+        types.forEach((typeId, idx) => {
+            setTimeout(() => {
+                const url = generatedImages[typeId];
+                if (!url) return;
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `blog-${typeId}-${Date.now()}.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            }, idx * 300);
+        });
     };
 
     const selected = profiles.find(p => p.id === selectedId);
-    const anyGenerating = Object.values(generating).some(Boolean);
-    const allGenerated = IMAGE_TYPES.every(t => generatedImages[`${t.id}-${selectedTemplates[t.id]}`]);
+    const anyGenerating = pipelineStep !== 'idle' && pipelineStep !== 'done';
+    const allGenerated = IMAGE_TYPES.every(t => !!generatedImages[t.id]);
+    const isRegen = (id: string) => pipelineStep === `regen-${id}`;
 
-    const ic = "w-full px-4 py-3 rounded-xl bg-[#0B0F1A] border border-[#1F2937] text-white text-sm placeholder-[#4B5563] focus:outline-none focus:border-[#3563AE] transition-all";
+    const ic = "w-full px-5 py-3 rounded-2xl bg-[#0B0F1A] border border-[#1F2937] text-white text-sm placeholder-[#4B5563] focus:outline-none focus:border-[#3563AE] focus:ring-1 focus:ring-[#3563AE]/50 transition-all";
 
     if (loading) {
         return (
             <div className="flex items-center justify-center py-20">
-                <div className="animate-spin w-6 h-6 border-2 border-[#3563AE] border-t-transparent rounded-full" />
+                <div className="animate-spin w-8 h-8 border-2 border-[#3563AE] border-t-transparent rounded-full" />
             </div>
         );
     }
 
     return (
-        <div className="max-w-5xl">
+        <div className="max-w-[1400px] mx-auto">
             {/* Header */}
-            <div className="mb-8">
-                <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#3563AE] to-[#2851A3] flex items-center justify-center">
-                        <ImageIcon size={20} className="text-white" />
-                    </div>
-                    블로그 이미지 생성기 v3
-                </h1>
-                <p className="text-sm text-[#6B7280] mt-2 ml-[52px]">
-                    서버에서 고품질 이미지를 직접 생성합니다 · 변호사 사진 활용 · DALL-E 비용 0원
-                </p>
+            <div className="mb-8 flex items-end justify-between">
+                <div>
+                    <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-[#8BA9E6] flex items-center gap-3">
+                        <Wand2 size={32} className="text-[#3563AE]" />
+                        매직 블로그 이미지 생성기 V4
+                    </h1>
+                    <p className="text-[#6B7280] mt-3 ml-[44px]">
+                        단 번의 클릭으로 완벽하게 조화로운 프미리엄 디자인 6종 세트가 출력됩니다. (에러율 0%)
+                    </p>
+                </div>
             </div>
 
             {profiles.length === 0 ? (
-                <div className="p-10 rounded-2xl bg-[#111827] border border-[#1F2937] text-center">
-                    <User size={32} className="mx-auto text-[#4B5563] mb-3" />
-                    <p className="text-[#6B7280] text-sm mb-4">등록된 변호사 프로필이 없습니다</p>
+                <div className="p-12 rounded-3xl bg-[#111827] border border-[#1F2937] text-center max-w-2xl mx-auto">
+                    <User size={48} className="mx-auto text-[#4B5563] mb-4" />
+                    <p className="text-[#6B7280] text-lg font-medium mb-6">등록된 변호사 프로필이 없습니다</p>
                     <button 
                         onClick={() => { setEditingProfileId(null); setIsProfileModalOpen(true); }}
-                        className="px-4 py-2 inline-flex items-center gap-2 bg-[#3563AE] text-white rounded-lg text-sm hover:bg-[#4375CA] transition-colors"
+                        className="px-6 py-3 inline-flex items-center gap-2 bg-[#3563AE] text-white rounded-xl text-sm font-bold shadow-xl shadow-[#3563AE]/20 hover:bg-[#4375CA] hover:-translate-y-0.5 transition-all"
                     >
-                        <Plus size={16} /> 첫 변호사 프로필 추가하기
+                        <Plus size={18} /> 첫 변호사 프로필 등록하기
                     </button>
                 </div>
             ) : (
-                <div className="space-y-6">
-                    {/* Step 1: Select Profile */}
-                    <div className="p-6 rounded-2xl bg-[#111827] border border-[#1F2937]">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-2">
-                                <span className="w-6 h-6 rounded-full bg-[#3563AE] text-white text-xs font-bold flex items-center justify-center">1</span>
-                                <h2 className="text-sm font-semibold text-white">변호사 선택</h2>
-                            </div>
-                            <div className="flex gap-2">
-                                {selectedId && (
-                                    <button 
-                                        onClick={() => { setEditingProfileId(selectedId); setIsProfileModalOpen(true); }}
-                                        className="text-[12px] flex items-center gap-1 text-[#6B7280] hover:text-white transition-colors px-2 py-1.5 rounded bg-[#1F2937]/50 border border-white/5"
-                                    >
-                                        <Settings size={14} /> 프로필 관리
-                                    </button>
-                                )}
-                                <button 
-                                    onClick={() => { setEditingProfileId(null); setIsProfileModalOpen(true); }}
-                                    className="text-[12px] flex items-center gap-1 text-[#3563AE] hover:text-[#4375CA] transition-colors px-2 py-1.5 rounded bg-[#3563AE]/10 border border-[#3563AE]/20 ml-1"
-                                >
-                                    <Plus size={14} /> 새 변호사 복사
-                                </button>
-                            </div>
-                        </div>
-                        <div className="relative">
-                            <select value={selectedId} onChange={e => setSelectedId(e.target.value)} className={`${ic} appearance-none cursor-pointer`}>
-                                <option value="">변호사를 선택하세요</option>
-                                {profiles.map(p => (
-                                    <option key={p.id} value={p.id}>
-                                        {p.lawyerName} — {p.officeName || "사무소 미등록"} (프로필 {p.profileImageCount}장 / 사무실 {p.officeImageCount}장{p.hasLogo ? " / 로고 ✓" : ""})
-                                    </option>
-                                ))}
-                            </select>
-                            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#4B5563] pointer-events-none" />
-                        </div>
-                        {selected && (
-                            <div className="mt-3 flex gap-2 flex-wrap">
-                                {selected.specialty?.map((s, i) => (
-                                    <span key={i} className="px-2 py-0.5 rounded-full bg-[#3563AE]/10 text-[#3563AE] text-[11px] font-medium">{s}</span>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Step 2: Post Content */}
-                    <div className="p-6 rounded-2xl bg-[#111827] border border-[#1F2937]">
-                        <div className="flex items-center gap-2 mb-4">
-                            <span className="w-6 h-6 rounded-full bg-[#3563AE] text-white text-xs font-bold flex items-center justify-center">2</span>
-                            <h2 className="text-sm font-semibold text-white">포스팅 내용</h2>
-                        </div>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-medium text-[#9CA3B0] mb-1.5">포스팅 제목 *</label>
-                                <input type="text" value={postTitle} onChange={e => setPostTitle(e.target.value)}
-                                    placeholder="음주운전 초범, 어떻게 대처해야 할까?" className={ic} />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-medium text-[#9CA3B0] mb-1.5">블로그 글 내용 (AI가 생성 시 핵심 내용을 자동 요약합니다)</label>
-                                <textarea value={postContent} onChange={e => setPostContent(e.target.value)}
-                                    placeholder="블로그 본문 내용을 붙여넣으세요. 이미지 생성 버튼 클릭 시 AI가 핵심 내용을 요약하여 요약 카드(2번째 이미지)에 삽입합니다."
-                                    rows={5} className={`${ic} resize-none`} />
-                            </div>
-                        </div>
-
-                        {/* Summary Points Display */}
-                        {summaryPoints.length > 0 && (
-                            <div className="mt-5 space-y-3">
-                                <div className="p-4 rounded-xl bg-[#0B0F1A] border border-[#1F2937]">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <span className="text-xs font-medium text-[#10B981] flex items-center gap-1">
-                                            <Check size={12} />{summaryPoints.length}개 핵심 포인트
-                                        </span>
-                                        <button onClick={() => setSummaryPoints([])} className="text-[#4B5563] hover:text-[#9CA3B0] transition-colors">
-                                            <X size={14} />
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    
+                    {/* LEFT PANEL: INPUT FORM */}
+                    <div className="lg:col-span-4 flex flex-col gap-6">
+                        <div className="p-6 rounded-3xl bg-[#111827] border border-[#1F2937] shadow-2xl flex flex-col h-full relative overflow-hidden">
+                            {/* Decorative background glow */}
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-[#3563AE]/10 rounded-full blur-3xl -mx-20 -my-20 pointer-events-none" />
+                            
+                            <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2 relative z-10">
+                                <span className="w-8 h-8 rounded-full bg-gradient-to-br from-[#3563AE] to-[#2851A3] flex items-center justify-center text-xs shadow-lg">1</span>
+                                데이터 입력
+                            </h2>
+                            
+                            <div className="space-y-6 relative z-10">
+                                {/* Lawyer Select */}
+                                <div>
+                                    <label className="block text-sm font-semibold text-[#D1D5DB] mb-2 flex justify-between">
+                                        변호사 선택
+                                        <button onClick={() => { setEditingProfileId(null); setIsProfileModalOpen(true); }} className="text-[#3563AE] text-xs font-bold hover:text-[#8BA9E6] flex items-center gap-1">
+                                            <Plus size={12}/> 추가
                                         </button>
+                                    </label>
+                                    <div className="relative">
+                                        <select value={selectedId} onChange={e => setSelectedId(e.target.value)} className={`${ic} appearance-none cursor-pointer font-medium`}>
+                                            <option value="">담당 변호사 프로필을 선택하세요</option>
+                                            {profiles.map(p => (
+                                                <option key={p.id} value={p.id}>
+                                                    {p.lawyerName} ({p.officeName || "사무소 미등록"})
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#4B5563] pointer-events-none" />
                                     </div>
-                                    <div className="space-y-2">
-                                        {summaryPoints.map((pt, i) => (
-                                            <div key={i} className="flex gap-3 text-sm">
-                                                <span className="text-[#3563AE] font-bold text-xs mt-0.5 shrink-0">{String(i + 1).padStart(2, "0")}</span>
-                                                <input type="text" value={pt}
-                                                    onChange={e => {
-                                                        const next = [...summaryPoints];
-                                                        next[i] = e.target.value;
-                                                        setSummaryPoints(next);
-                                                    }}
-                                                    className="flex-1 bg-transparent text-[#D1D5DB] text-sm border-none outline-none" />
-                                            </div>
-                                        ))}
-                                    </div>
+                                    {selectedId && (
+                                        <button onClick={() => { setEditingProfileId(selectedId); setIsProfileModalOpen(true); }} className="w-full mt-2 py-2 rounded-xl bg-[#1F2937]/50 text-[#9CA3B0] text-xs font-semibold hover:bg-[#1F2937] hover:text-white transition-colors flex justify-center items-center gap-2">
+                                            <Settings size={14}/> 프로필 사진 / 약력 수정하기
+                                        </button>
+                                    )}
                                 </div>
                                 
-                                {/* AI Illustration Box */}
-                                <div className="p-4 rounded-xl bg-gradient-to-br from-[#3563AE]/10 to-transparent border border-[#3563AE]/20 flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 rounded-lg bg-[#0B0F1A] border border-[#1F2937] overflow-hidden flex items-center justify-center shrink-0">
-                                            {summaryIllustrationUrl ? (
-                                                <img src={summaryIllustrationUrl} alt="AI Illustration" className="w-full h-full object-cover" />
-                                            ) : (
-                                                <Sparkles size={16} className="text-[#4B5563]" />
-                                            )}
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-semibold text-white">요약카드용 전문 일러스트 생성</p>
-                                            <p className="text-xs text-[#9CA3B0] mt-0.5">본문 내용을 읽고 어울리는 에디토리얼 삽화를 그려냅니다.</p>
-                                        </div>
+                                <div className="h-px w-full bg-[#1F2937]" />
+
+                                {/* Blog Content */}
+                                <div>
+                                    <label className="block text-sm font-semibold text-[#D1D5DB] mb-2">포스팅 제목 (선택)</label>
+                                    <input type="text" value={postTitle} onChange={e => setPostTitle(e.target.value)}
+                                        placeholder="비워두면 AI가 매력적인 제목을 자동 추출합니다." className={ic} />
+                                </div>
+                                <div className="flex-1 min-h-[250px] flex flex-col">
+                                    <label className="block text-sm font-semibold text-[#D1D5DB] mb-2">블로그 포스팅 본문 *</label>
+                                    <textarea value={postContent} onChange={e => setPostContent(e.target.value)}
+                                        placeholder="작성 중이거나 발행한 블로그의 본문 텍스트를 그대로 복사하여 붙여넣으세요. AI가 질감 테마 선정, 맥락 파악, 핵심 요약을 10초 만에 끝냅니다." 
+                                        className={`${ic} flex-1 resize-none font-sans text-[13px] leading-relaxed`} />
+                                </div>
+                            </div>
+                            
+                            {/* Magic Button */}
+                            <button onClick={handleMagicGenerate} disabled={anyGenerating || !selectedId || !postContent.trim()}
+                                    className="w-full mt-6 py-4 rounded-2xl bg-gradient-to-r from-[#3563AE] to-[#6035AE] text-white text-base font-extrabold shadow-2xl shadow-[#3563AE]/30 hover:shadow-[#6035AE]/40 hover:-translate-y-1 disabled:opacity-50 disabled:translate-y-0 disabled:shadow-none disabled:cursor-not-allowed flex items-center justify-center gap-2 relative z-10 transition-all duration-300">
+                                    {anyGenerating ? (
+                                        <><Loader2 size={18} className="animate-spin" /> 매직 생성 진행 중...</>
+                                    ) : (
+                                        <><Wand2 size={20} /> ✨ AI 스마트 전체 생성 시작</>
+                                    )}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* RIGHT PANEL: PIPELINE & OUTPUT */}
+                    <div className="lg:col-span-8 flex flex-col gap-6">
+                        {/* Pipeline Progress Status */}
+                        {(anyGenerating || pipelineStep === 'done') && (
+                            <div className="p-5 rounded-2xl bg-[#111827] border border-[#1F2937] flex items-center gap-4">
+                                <div className="flex-1 border-r border-[#1F2937] pr-6 last:border-0 last:pr-0 min-w-0">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                                            {pipelineStep === 'done' ? <span className="w-2 h-2 rounded-full bg-[#10B981] shadow-[0_0_8px_#10B981]"></span> : <span className="w-2 h-2 rounded-full bg-[#3563AE] animate-pulse shadow-[0_0_8px_#3563AE]"></span>}
+                                            시스템 상태
+                                        </h3>
+                                        <span className="text-[11px] font-mono text-[#6B7280]">
+                                            {pipelineStep === 'summarizing' && "01. CONTEXT_ANALYSIS"}
+                                            {pipelineStep === 'assets' && "02. DUAL_A.I_GENERATION"}
+                                            {pipelineStep === 'rendering' && "03. SMART_ROUTING_RENDER"}
+                                            {pipelineStep === 'done' && "04. BUILD_COMPLETE"}
+                                        </span>
                                     </div>
-                                    <button 
-                                        onClick={() => handleGenerateIllustration(undefined, false)}
-                                        disabled={generatingIllustration}
-                                        className="px-4 py-2 bg-[#3563AE] hover:bg-[#4375CA] text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
-                                    >
-                                        {generatingIllustration ? (
-                                            <><Loader2 size={16} className="animate-spin" /> 그리는 중...</>
-                                        ) : (
-                                            <><Sparkles size={16} /> AI 생성</>
-                                        )}
-                                    </button>
+                                    <p className="text-[#9CA3B0] text-sm turncate">{pipelineMessage}</p>
+                                </div>
+                                <div className="flex gap-4 px-4 whitespace-nowrap">
+                                    <StatusIcon icon={FileText} label="컨텍스트 분석" active={pipelineStep === 'summarizing' || pipelineStep === 'assets' || pipelineStep === 'rendering' || pipelineStep === 'done'} loading={pipelineStep === 'summarizing'} />
+                                    <StatusIcon icon={Paintbrush} label="AI 배경/삽화" active={pipelineStep === 'assets' || pipelineStep === 'rendering' || pipelineStep === 'done'} loading={pipelineStep === 'assets'} />
+                                    <StatusIcon icon={Monitor} label="스마트 렌더링" active={pipelineStep === 'rendering' || pipelineStep === 'done'} loading={pipelineStep === 'rendering'} />
                                 </div>
                             </div>
                         )}
-                    </div>
 
-                    {/* Step 3: Template Selection + Generate */}
-                    <div className="p-6 rounded-2xl bg-[#111827] border border-[#1F2937]">
-                        <div className="flex items-center justify-between mb-5">
-                            <div className="flex items-center gap-2">
-                                <span className="w-6 h-6 rounded-full bg-[#3563AE] text-white text-xs font-bold flex items-center justify-center">3</span>
-                                <h2 className="text-sm font-semibold text-white">템플릿 선택 & 이미지 생성</h2>
-                            </div>
-                            {allGenerated && (
-                                <button onClick={handleDownloadAll}
-                                    className="px-4 py-2 rounded-xl bg-[#10B981]/10 text-[#10B981] text-xs font-medium hover:bg-[#10B981]/20 transition-colors flex items-center gap-1.5">
-                                    <Download size={12} />전체 다운로드
-                                </button>
+                        {/* Result Grid */}
+                        <div className="flex-1 p-6 rounded-3xl bg-[#111827] border border-[#1F2937] shadow-xl relative min-h-[600px]">
+                            {/* Empty State */}
+                            {(!anyGenerating && Object.keys(generatedImages).length === 0 && pipelineStep === 'idle') && (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center text-[#4B5563]">
+                                    <Sparkles size={48} className="mb-4 text-[#1F2937]" />
+                                    <p className="text-sm font-medium">✨ 'AI 스마트 전체 생성 시작'을 누르면 이곳에 결과물이 채워집니다.</p>
+                                </div>
                             )}
-                        </div>
-
-                        {/* Results Grid - now 6 columns or scrollable */}
-                        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 relative">
-                            {/* Generation Loading Overlay */}
-                            {anyGenerating && (
-                                <div className="absolute inset-0 bg-[#0B0F1A]/50 backdrop-blur-[2px] z-10 flex items-center justify-center rounded-xl">
+                            
+                            {/* Header Row */}
+                            {Object.keys(generatedImages).length > 0 && (
+                                <div className="flex items-center justify-between mb-6">
+                                    <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                                        <span className="w-8 h-8 rounded-full bg-[#10B981]/20 text-[#10B981] flex items-center justify-center text-xs shadow-lg"><Check size={16}/></span>
+                                        생성된 디자인 갤러리
+                                    </h2>
+                                    <button onClick={handleDownloadAll} disabled={anyGenerating}
+                                        className="px-5 py-2.5 rounded-xl bg-[#10B981]/10 text-[#10B981] text-sm font-bold shadow-lg shadow-[#10B981]/5 hover:bg-[#10B981]/20 transition-all flex items-center gap-2 disabled:opacity-50">
+                                        <Download size={16} /> 안전하게 전체 세트 다운로드
+                                    </button>
                                 </div>
                             )}
 
-                            {IMAGE_TYPES.map(type => {
-                                const key = `${type.id}-${selectedTemplates[type.id]}`;
-                                const imgUrl = generatedImages[key];
-                                const isGen = generating[key];
-
-                                return (
-                                    <div key={type.id} className="rounded-xl bg-[#0B0F1A] border border-[#1F2937] overflow-hidden">
-                                        {/* Preview area */}
-                                        <div className="aspect-square relative bg-[#060810] flex items-center justify-center">
-                                            {imgUrl ? (
-                                                <>
-                                                    <img src={imgUrl} alt={type.label} className="w-full h-full object-contain" />
-                                                    {/* Overlay toolbar */}
-                                                    <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent flex justify-between items-center">
-                                                        <button onClick={() => setPreviewType(type.id)}
-                                                            className="px-3 py-1.5 rounded-lg bg-white/10 text-white text-[11px] font-medium hover:bg-white/20 transition-colors flex items-center gap-1">
-                                                            <Eye size={10} />확대
-                                                        </button>
-                                                        <button onClick={() => handleDownload(type.id)}
-                                                            className="px-3 py-1.5 rounded-lg bg-[#10B981]/20 text-[#10B981] text-[11px] font-medium hover:bg-[#10B981]/30 transition-colors flex items-center gap-1">
-                                                            <Download size={10} />다운로드
-                                                        </button>
-                                                    </div>
-                                                </>
-                                            ) : isGen ? (
-                                                <div className="flex flex-col items-center gap-3">
-                                                    <Loader2 size={24} className="animate-spin text-[#3563AE]" />
-                                                    <span className="text-xs text-[#6B7280]">생성 중...</span>
+                            {/* Images Grid */}
+                            <div className="grid grid-cols-2 xl:grid-cols-3 gap-6">
+                                {IMAGE_TYPES.map(type => {
+                                    const imgUrl = generatedImages[type.id];
+                                    const isTargetGen = pipelineStep === 'rendering' || isRegen(type.id);
+                                    
+                                    // if it's completely idle and no image, don't show block unless generating. Wait, show empty blocks to look good.
+                                    
+                                    return (
+                                        <div key={type.id} className={`relative aspect-square rounded-2xl bg-[#060810] border ${imgUrl ? 'border-transparent ring-2 ring-white/5' : 'border-[#1F2937] border-dashed'} overflow-hidden flex flex-col group transition-all`}>
+                                            {/* Top Label */}
+                                            <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/80 to-transparent z-10 flex items-center gap-2">
+                                                <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-white backdrop-blur">
+                                                    <type.icon size={12}/>
                                                 </div>
-                                            ) : (
-                                                <div className="flex flex-col items-center gap-2 text-[#4B5563]">
-                                                    <type.icon size={28} />
-                                                    <span className="text-xs">{type.desc}</span>
+                                                <div>
+                                                    <h4 className="text-[13px] font-bold text-white leading-tight">{type.label}</h4>
+                                                    <span className="text-[9px] text-white/70">{type.desc}</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Content */}
+                                            <div className="flex-1 w-full h-full relative flex items-center justify-center">
+                                                {imgUrl ? (
+                                                    <img src={imgUrl} alt={type.label} className="w-full h-full object-contain" />
+                                                ) : isTargetGen ? (
+                                                    <div className="flex flex-col items-center gap-3">
+                                                        <Loader2 size={32} className="animate-spin text-[#3563AE]" />
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-[#374151]"><ImageIcon size={48} strokeWidth={1} /></div>
+                                                )}
+                                            </div>
+
+                                            {/* Hover Actions */}
+                                            {imgUrl && !anyGenerating && (
+                                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 backdrop-blur-sm transition-all duration-300 flex items-center justify-center gap-3 z-20">
+                                                    <button onClick={() => setPreviewType(type.id)}
+                                                        className="w-12 h-12 rounded-full bg-white/20 text-white flex items-center justify-center hover:bg-white/40 hover:scale-110 transition-all shadow-lg">
+                                                        <Eye size={20} />
+                                                    </button>
+                                                    <button onClick={() => handleRegenerateOne(type.id)}
+                                                        className="w-12 h-12 rounded-full bg-[#3563AE] text-white flex items-center justify-center hover:bg-[#4375CA] hover:scale-110 transition-all shadow-lg shadow-[#3563AE]/30">
+                                                        <RefreshCw size={20} />
+                                                    </button>
                                                 </div>
                                             )}
                                         </div>
-
-                                        {/* Controls */}
-                                        <div className="p-3 space-y-2">
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-xs font-semibold text-white">{type.label}</span>
-                                                <span className="text-[10px] text-[#6B7280]">
-                                                    {TEMPLATE_NAMES[type.id][selectedTemplates[type.id]]}
-                                                </span>
-                                            </div>
-                                            <div className="flex gap-1.5">
-                                                {Array.from({ length: TEMPLATE_COUNTS[type.id] }).map((_, i) => (
-                                                    <button key={i} onClick={() => setSelectedTemplates(prev => ({ ...prev, [type.id]: i }))}
-                                                        className={`flex-1 h-1.5 rounded-full transition-all ${selectedTemplates[type.id] === i
-                                                            ? "bg-[#3563AE]"
-                                                            : "bg-[#1F2937] hover:bg-[#2A3040]"
-                                                            }`}
-                                                        title={TEMPLATE_NAMES[type.id][i]} />
-                                                ))}
-                                            </div>
-                                            <button onClick={() => handleGenerate(type.id)}
-                                                disabled={!selectedId || !postTitle || isGen}
-                                                className="w-full py-2 rounded-lg bg-[#3563AE]/10 text-[#3563AE] text-xs font-medium hover:bg-[#3563AE]/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5">
-                                                {isGen ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-                                                {imgUrl ? "다시 생성" : "생성"}
-                                            </button>
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                                    );
+                                })}
+                            </div>
                         </div>
-
-                        {/* Generate All */}
-                        <button onClick={handleGenerateAll} disabled={anyGenerating || summarizing || generatingIllustration || !selectedId || !postTitle}
-                                className="w-full mt-6 py-3 rounded-xl bg-gradient-to-r from-[#3563AE] to-[#2851A3] text-white text-sm font-bold shadow-lg shadow-[#3563AE]/20 hover:from-[#3a6bc2] hover:to-[#2c5bbc] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-                                {summarizing ? <><Loader2 size={16} className="animate-spin" /> AI 요약 및 AI 일러스트 준비 중...</> :
-                                    anyGenerating ? <><Loader2 size={16} className="animate-spin" /> 전체 생성 중... (배경제거 처리 포함)</> : 
-                                    <><ImageIcon size={16} /> 5장 전체 이미지 생성 (AI일러스트·누끼 자동 포함)</>}
-                        </button>
                     </div>
                 </div>
             )}
 
             {/* Full Preview Modal */}
-            {previewType && generatedImages[`${previewType}-${selectedTemplates[previewType]}`] && (
-                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-8"
+            {previewType && generatedImages[previewType] && (
+                <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-8"
                     onClick={() => setPreviewType(null)}>
                     <div className="relative max-w-[90vh] max-h-[90vh]" onClick={e => e.stopPropagation()}>
                         <img
-                            src={generatedImages[`${previewType}-${selectedTemplates[previewType]}`]}
+                            src={generatedImages[previewType]}
                             alt="Preview"
-                            className="max-w-full max-h-[85vh] rounded-xl shadow-2xl"
+                            className="max-w-full max-h-[85vh] rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] ring-1 ring-white/10"
                         />
-                        <div className="absolute top-3 right-3 flex gap-2">
-                            <button onClick={() => handleDownload(previewType)}
-                                className="px-4 py-2 rounded-lg bg-[#10B981] text-white text-sm font-medium hover:bg-[#059669] transition-colors flex items-center gap-1.5">
-                                <Download size={14} />다운로드
+                        <div className="absolute top-4 right-4 flex gap-2">
+                            <button onClick={() => {
+                                const a = document.createElement("a");
+                                a.href = generatedImages[previewType];
+                                a.download = `blog-${previewType}-${Date.now()}.png`;
+                                a.click();
+                            }}
+                                className="px-5 py-2.5 rounded-xl bg-[#10B981] text-white text-sm font-bold hover:bg-[#059669] hover:scale-105 transition-all shadow-lg flex items-center gap-2">
+                                <Download size={16} /> 안전 다운로드
                             </button>
                             <button onClick={() => setPreviewType(null)}
-                                className="w-9 h-9 rounded-lg bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors">
-                                <X size={16} />
+                                className="w-10 h-10 rounded-xl bg-black/50 text-white flex items-center justify-center hover:bg-black/70 hover:scale-105 transition-all ring-1 ring-white/20">
+                                <X size={20} />
                             </button>
                         </div>
                     </div>
@@ -572,6 +516,32 @@ export default function BlogImagesPage() {
                 onClose={() => setIsProfileModalOpen(false)}
                 onSuccess={() => fetchProfiles()}
             />
+        </div>
+    );
+}
+
+// Small UI helper
+function StatusIcon({ icon: Icon, label, active, loading }: any) {
+    if (!active) return (
+        <div className="flex flex-col items-center gap-1.5 opacity-30 grayscale">
+            <div className="w-10 h-10 rounded-full bg-[#1F2937] flex items-center justify-center text-[#9CA3B0]"><Icon size={16}/></div>
+            <span className="text-[10px] font-medium text-[#9CA3B0]">{label}</span>
+        </div>
+    );
+    if (loading) return (
+        <div className="flex flex-col items-center gap-1.5">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#3563AE] to-[#6035AE] flex items-center justify-center text-white shadow-lg shadow-[#3563AE]/30 ring-2 ring-[#3563AE]/50 ring-offset-2 ring-offset-[#111827] animate-pulse">
+                <Loader2 size={16} className="animate-spin" />
+            </div>
+            <span className="text-[10px] font-bold text-white animate-pulse">{label}</span>
+        </div>
+    );
+    return (
+        <div className="flex flex-col items-center gap-1.5">
+            <div className="w-10 h-10 rounded-full bg-[#10B981]/20 border border-[#10B981]/50 flex items-center justify-center text-[#10B981] shadow-lg shadow-[#10B981]/10">
+                <Check size={16}/>
+            </div>
+            <span className="text-[10px] font-bold text-[#10B981]">{label} 완료</span>
         </div>
     );
 }

@@ -141,6 +141,7 @@ export async function GET(request: NextRequest) {
             specialty: p.specialty,
             brandColor: p.brandColor,
             designStyle: p.designStyle,
+            profileImages: p.profileImages,
             createdAt: p.createdAt,
             updatedAt: p.updatedAt,
             profileImageCount: p.profileImages.length,
