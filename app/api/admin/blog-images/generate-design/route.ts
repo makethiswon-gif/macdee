@@ -56,7 +56,7 @@ Output ONLY valid JSON matching this schema:
     ...
   ]
 }
-Do not include any explanation. Output pure JSON.
+Do not include any explanation. Output pure JSON. Keep the HTML/CSS structure as minimal, dense, and clean as possible to prioritize fast generation over unnecessary complexity.
 `;
 
         const userMessage = `

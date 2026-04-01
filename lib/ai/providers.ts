@@ -44,18 +44,21 @@ async function fetchWithRetry(
     let lastError: Error | null = null;
 
     for (let attempt = 0; attempt <= retryOpts.maxRetries; attempt++) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 240000); // 4 minutes timeout for long generation
         try {
-            const res = await fetch(url, init);
+            const res = await fetch(url, { ...init, signal: controller.signal });
+            clearTimeout(timeoutId);
 
             if (res.ok) return res;
 
-            // Non-retryable error (e.g., 400 Bad Request, 401 Unauthorized)
             if (!isRetryableStatus(res.status)) {
                 const err = await res.text();
-                throw new Error(`${providerName} API error: ${res.status} ${err}`);
+                lastError = new Error(`${providerName} API error: ${res.status} ${err}`);
+                break; // Break completely out of the retry loop for 400/401/404 errors
             }
 
-            // Retryable error
+            // Retryable error (429, 500, etc.)
             const errBody = await res.text();
             lastError = new Error(`${providerName} API error: ${res.status} ${errBody}`);
 
@@ -78,6 +81,7 @@ async function fetchWithRetry(
                 await new Promise((resolve) => setTimeout(resolve, finalDelay));
             }
         } catch (err) {
+            clearTimeout(timeoutId);
             // Network-level errors (timeout, DNS failure, etc.)
             if (err instanceof Error && err.message.includes("API error:")) {
                 // Already a formatted API error from above
@@ -149,7 +153,7 @@ export class ClaudeProvider implements AIProvider {
     private apiKey: string;
     private model: string;
 
-    constructor(model = "claude-sonnet-4-6") {
+    constructor(model = "claude-3-5-sonnet-20241022") {
         this.apiKey = process.env.ANTHROPIC_API_KEY || "";
         this.model = model;
     }
@@ -197,7 +201,7 @@ export function getPreprocessor(): AIProvider {
         // Fallback to OpenAI if Claude key not set
         return new OpenAIProvider("gpt-4o-mini");
     }
-    return new ClaudeProvider("claude-sonnet-4-6");
+    return new ClaudeProvider("claude-3-5-sonnet-20241022");
 }
 
 // 콘텐츠 생성: Claude Sonnet 4.6 (최고 글쓰기 품질)
@@ -206,5 +210,5 @@ export function getContentGenerator(): AIProvider {
         console.error("[AI] ANTHROPIC_API_KEY not set! Claude is required for content generation.");
         throw new Error("ANTHROPIC_API_KEY is required for content generation. Claude produces the best quality content.");
     }
-    return new ClaudeProvider("claude-sonnet-4-6");
+    return new ClaudeProvider("claude-3-5-sonnet-20241022");
 }
