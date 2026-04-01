@@ -32,17 +32,36 @@ export function renderAnyTemplate(typeId: ImageTypeId, ctx: SKRSContext2D, input
 
     const style = getResolvedStyle(preset, logoExtracted);
     
-    // Draw Background First
+    // 1. Draw Textures or Vibe Background FIRST
+    if (assets.officeImg) {
+        ctx.save();
+        // Cover calculation for 1024x1024
+        const imgRatio = assets.officeImg.width / assets.officeImg.height;
+        let dw = canvasSize, dh = canvasSize, dx = 0, dy = 0;
+        if (imgRatio > 1) { dw = canvasSize * imgRatio; dx = (canvasSize - dw) / 2; }
+        else { dh = canvasSize / imgRatio; dy = (canvasSize - dh) / 2; }
+        ctx.drawImage(assets.officeImg, dx, dy, dw, dh);
+        ctx.restore();
+    } else {
+        // Fallback if no image
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvasSize, canvasSize);
+    }
+
+    // 2. Tint it heavily with the template's core brand color
+    // If no vibe bg, make it 100% solid. If vibe bg exists, make it 85% solid so texture barely shows through
+    ctx.globalAlpha = assets.officeImg ? 0.85 : 1.0;
+    
     if (style.colors.bg.gradient) {
         const grad = ctx.createLinearGradient(0, 0, SIZE, SIZE);
         grad.addColorStop(0, style.colors.bg.gradient.from);
         grad.addColorStop(1, style.colors.bg.gradient.to);
         ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, canvasSize, canvasSize);
     } else {
         ctx.fillStyle = style.colors.bg.primary;
-        ctx.fillRect(0, 0, canvasSize, canvasSize);
     }
+    ctx.fillRect(0, 0, canvasSize, canvasSize);
+    ctx.globalAlpha = 1.0;
 
     const tpl = getTemplate(typeId);
     if (!tpl) return;

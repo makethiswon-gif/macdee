@@ -24,21 +24,17 @@ export async function POST(request: NextRequest) {
             ? `The topic is: "${title}". Additional context: ${(context || "").substring(0, 300)}`
             : `The topic is: ${(context || "").substring(0, 500)}`;
 
-        // Prompt precisely matched to the user's reference illustration style:
-        // Warm hand-drawn character art with bold ink outlines, natural skin tones,
-        // soft watercolor-like flat coloring, editorial magazine quality.
-        const prompt = `A single full-body character illustration in a warm, modern Korean editorial style for the following subject: ${subject}
+        // Build a highly narrative prompt targeting professional Korean editorial illustrations
+        const prompt = `Create a metaphorical, situational, and highly aesthetic editorial illustration for a Korean professional blog. 
+Topic context: ${subject}
 
-CRITICAL STYLE (must follow exactly):
-- Bold, thick black ink outlines (like a comic or manhwa) around every shape
-- Warm, natural color palette: realistic skin tones, navy/charcoal clothing, warm beige/cream background
-- Soft, flat coloring with subtle cel-shading (NOT vector art, NOT geometric, NOT cubist)
-- The character should look like a stylish, modern Korean professional (lawyer, office worker, or professional relevant to the topic)
-- Character should be doing an action clearly related to the topic (e.g., reading documents for a legal topic, holding a gavel for court topics, comforting someone for family law)
-- Realistic human proportions (NOT chibi, NOT cartoon), fashionable casual-professional outfit
-- Clean, simple background with at most one accent color blob (like a blue or warm-toned shape behind the character)
-- NO text, NO words, NO letters anywhere in the image
-- The overall feel should be like a premium Korean magazine editorial illustration`;
+CRITICAL STYLE RULES:
+- Style: Warm, modern hand-drawn editorial illustration with bold ink outlines.
+- Subject Matter: DO NOT draw generic people staring at the camera. Draw a metaphor or scene directly relevant to the topic (e.g., a cracked smartphone for digital evidence, a stressed person looking at a huge document, two people at a distance, a hand holding a key).
+- Color Palette: Natural skin tones, sophisticated professional colors (navy, beige, olive, warm grey, charcoal). NO neon/garish colors.
+- Shading: Soft flats with subtle cel-shading. NOT vector art.
+- Avoid text: NO text, NO words, NO letters anywhere.
+- The tone should be serious, trusting, and deeply empathetic to the blog topic.`;
 
         const res = await fetch("https://api.openai.com/v1/images/generations", {
             method: "POST",

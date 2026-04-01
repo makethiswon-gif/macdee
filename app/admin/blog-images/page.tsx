@@ -133,13 +133,13 @@ export default function BlogImagesPage() {
                 fetch("/api/admin/blog-images/illustration", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ context: compileText, title: currentTitle }),
+                    body: JSON.stringify({ context: postContent, title: currentTitle }),
                 }).catch(() => null),
                 // Vibe Background
                 fetch("/api/admin/blog-images/background", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ context: compileText, title: currentTitle }),
+                    body: JSON.stringify({ context: postContent, title: currentTitle }),
                 }).catch(() => null),
                 // Remove Background (only if needed)
                 (!bgRemovedProfile && selected.profileImages?.length) ? 
