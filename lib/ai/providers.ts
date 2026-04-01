@@ -197,18 +197,18 @@ export class ClaudeProvider implements AIProvider {
 // ─── Provider Factory ───
 // 전처리: Claude Sonnet 4.6 (법률 텍스트는 복잡해서 Sonnet이 정확 - 요약/분류/PII 마스킹)
 export function getPreprocessor(): AIProvider {
-    if (!process.env.ANTHROPIC_API_KEY) {
-        // Fallback to OpenAI if Claude key not set
-        return new OpenAIProvider("gpt-4o-mini");
+    // Return OpenAI GPT-4o instead due to Anthropic account restrictions (404 all Claude models)
+    if (!process.env.OPENAI_API_KEY) {
+        console.warn("[AI] OPENAI_API_KEY not set. Using fallback logic.");
     }
-    return new ClaudeProvider("claude-3-sonnet-20240229");
+    return new OpenAIProvider("gpt-4o");
 }
 
 // 콘텐츠 생성: Claude Sonnet 4.6 (최고 글쓰기 품질)
 export function getContentGenerator(): AIProvider {
-    if (!process.env.ANTHROPIC_API_KEY) {
-        console.error("[AI] ANTHROPIC_API_KEY not set! Claude is required for content generation.");
-        throw new Error("ANTHROPIC_API_KEY is required for content generation. Claude produces the best quality content.");
+    // Return OpenAI GPT-4o instead due to Anthropic account restrictions (404 all Claude models)
+    if (!process.env.OPENAI_API_KEY) {
+        throw new Error("OPENAI_API_KEY is required for content generation.");
     }
-    return new ClaudeProvider("claude-3-sonnet-20240229");
+    return new OpenAIProvider("gpt-4o");
 }
