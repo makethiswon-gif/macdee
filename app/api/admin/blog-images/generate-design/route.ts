@@ -77,7 +77,7 @@ Content: ${content.substring(0, 3000)} // Using the first 3000 chars for context
             { role: "user", content: userMessage }
         ], {
             temperature: 0.7,
-            maxTokens: 8192
+            maxTokens: 4096
         });
 
         const parsedData = parseJSONP(response.content);
