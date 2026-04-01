@@ -20,7 +20,7 @@ export async function POST(req: Request) {
         const hasProfileImg = !!(profile.profileImages?.length);
         const hasLogo = !!profile.logoImage;
         const hasOfficeImg = !!(profile.officeImages?.length);
-        const career = (profile.career || []).filter((c: string) => c.trim()).slice(0, 5);
+        const allCareer = (profile.career || []).filter((c: string) => c.trim());
         const specialties = (profile.specialty || []).join(", ") || "전문분야 없음";
 
         const imgInstructions = `
@@ -28,19 +28,38 @@ ${hasProfileImg ? 'Use <img src="__PROFILE_IMG__" /> for the lawyer photo.' : 'N
 ${hasLogo ? 'Use <img src="__LOGO_IMG__" /> for the firm logo.' : ''}
 ${hasOfficeImg ? 'Use <img src="__OFFICE_IMG__" /> for the office photo.' : ''}`;
 
+        // Build career list string for prompt
+        const careerList = allCareer.length > 0
+            ? allCareer.map((c: string, i: number) => `${i + 1}. ${c}`).join('\n')
+            : '경력 정보 없음';
+
         const cardPrompts: Record<string, string> = {
-            thumbnail: `Main poster card. Large title text, lawyer name "${profile.lawyerName}" at bottom.${hasProfileImg ? ' Include circular profile photo (200px, border-radius:50%).' : ''} Gradient background using ${brandColor}.`,
+            thumbnail: `Main poster card. Large title text, lawyer name "${profile.lawyerName}" at bottom.${hasProfileImg ? ' Include circular profile photo (200px, border-radius:50%).' : ''} Background: gradient using ${brandColor} as dominant color.`,
             
-            profile_intro: `Lawyer intro card. Name: ${profile.lawyerName}, Title: ${profile.jobTitle || "대표변호사"}, Firm: ${profile.officeName}. Specialties: ${specialties}.${hasProfileImg ? ' Large profile photo (280x350px, border-radius:16px) on the left side.' : ''}${hasLogo ? ' Small firm logo (height:40px) at top.' : ''}`,
+            profile_intro: `Lawyer intro card. Name: ${profile.lawyerName}, Title: ${profile.jobTitle || "대표변호사"}, Firm: ${profile.officeName}. Specialties: ${specialties}.${hasProfileImg ? ' Large profile photo (280x350px, border-radius:16px) on the left side.' : ''}${hasLogo ? ' Firm logo (height:40px) at top.' : ''}`,
             
-            summary: `3-point summary of blog content. Numbered list with key takeaways. Title at top. Use ${brandColor} for numbers.`,
+            summary: `3-point summary of blog content. Numbered list with key takeaways. Title at top. Use ${brandColor} for number circles.`,
             
-            career: `Career card. ${profile.lawyerName} ${profile.jobTitle || "대표변호사"}, ${profile.officeName}. ${career.length ? 'Career: ' + career.join(' / ') : 'Show specialties: ' + specialties}.${hasProfileImg ? ' Small circular photo (100px).' : ''}${hasLogo ? ' Firm logo.' : ''}`,
+            career: `Career/credentials card. ${profile.lawyerName} ${profile.jobTitle || "대표변호사"}, ${profile.officeName}.
+Show ALL career items as a vertical list with clean formatting:
+${careerList}
+${hasProfileImg ? 'Small circular photo (100px) at top.' : ''}${hasLogo ? ' Firm logo at top.' : ''}`,
             
-            contact: `Contact CTA card. ${profile.lawyerName} - ${profile.officeName}. ${profile.phone ? 'Tel: ' + profile.phone : ''} ${profile.address ? 'Addr: ' + profile.address : ''}.${hasProfileImg ? ' Circular photo.' : ''}${hasLogo ? ' Firm logo (height:50px).' : ''} CTA: "지금 상담 예약하세요"`,
+            contact: `Contact card. Show ALL of this info clearly:
+- Name: ${profile.lawyerName} ${profile.jobTitle || "변호사"}
+- Firm: ${profile.officeName}
+${profile.phone ? '- 대표번호: ' + profile.phone : ''}
+${profile.address ? '- 주소: ' + profile.address : ''}
+${profile.website ? '- 홈페이지: ' + profile.website : ''}
+- 전문분야: ${specialties}
+${hasProfileImg ? '- Include circular profile photo (150px).' : ''}
+${hasLogo ? '- Include firm logo prominently (height:50px).' : ''}
+- Bottom CTA button: "지금 상담 예약하세요" styled with ${brandColor} background.`,
         };
 
-        const systemPrompt = `Generate 1 HTML card. 800x800px div with inline CSS only. Dark theme (#0B0F1A), accent ${brandColor}. Font: Pretendard,Noto Sans KR,sans-serif. Use flexbox. Keep HTML SHORT and simple.
+        const systemPrompt = `Generate 1 HTML card (800x800px div, inline CSS only).
+COLOR SCHEME: Use ${brandColor} as the PRIMARY/MAIN color. Background should be gradient featuring ${brandColor}. Text: white. Do NOT use dark navy or #0B0F1A as main color. The card should FEEL like ${brandColor} is the brand's signature color.
+Font: Pretendard,Noto Sans KR,sans-serif. Flexbox layout. Keep HTML short.
 ${imgInstructions}
 Card: ${cardPrompts[cardType] || cardPrompts.thumbnail}
 Blog title: ${title || '제목 없음'}
