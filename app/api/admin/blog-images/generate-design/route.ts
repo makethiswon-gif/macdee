@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getContentGenerator } from "@/lib/ai/providers";
 
+export const maxDuration = 300; // Allow up to 5 minutes on Vercel for AI generation
+
 // Helper to strip markdown json wrapper if present
 function parseJSONP(str: string) {
     let clean = str.trim();
