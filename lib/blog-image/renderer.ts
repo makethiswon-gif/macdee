@@ -363,9 +363,9 @@ export function drawAutoShrinkText(
     // Actually draw text
     for (let i = 0; i < lines.length; i++) {
         if (opts?.shadow) {
-            drawTextWithShadow(ctx, lines[i], x, y + i * lineHeight);
+            drawTextWithShadow(ctx, lines[i], Math.round(x), Math.round(y + i * lineHeight));
         } else {
-            ctx.fillText(lines[i], x, y + i * lineHeight);
+            ctx.fillText(lines[i], Math.round(x), Math.round(y + i * lineHeight));
         }
     }
 
@@ -541,9 +541,6 @@ export async function renderBlogImage(input: RenderInput): Promise<Buffer> {
     const canvas = createCanvas(OUTPUT_SIZE, OUTPUT_SIZE);
     const ctx = canvas.getContext("2d");
 
-    // 기본 시각은 1024px로 잡고, 출력은 2000px에 맞게 전체 벡터 스케일업
-    ctx.scale(OUTPUT_SIZE / SIZE, OUTPUT_SIZE / SIZE);
-
     // 기본 렌더링 품질을 높은 해상도 벡터 수준으로 유지하기 위해 전역 안티앨리어싱 스킵
 
     // Load images
@@ -582,19 +579,19 @@ export async function renderBlogImage(input: RenderInput): Promise<Buffer> {
 
     switch (input.imageType) {
         case "main":
-            await renderMainTemplate(ctx, input, assets);
+            await renderMainTemplate(ctx, input, assets, OUTPUT_SIZE);
             break;
         case "summary":
-            await renderSummaryTemplate(ctx, input, assets);
+            await renderSummaryTemplate(ctx, input, assets, OUTPUT_SIZE);
             break;
         case "contact":
-            await renderContactTemplate(ctx, input, assets);
+            await renderContactTemplate(ctx, input, assets, OUTPUT_SIZE);
             break;
         case "brand":
-            await renderBrandTemplate(ctx, input, assets);
+            await renderBrandTemplate(ctx, input, assets, OUTPUT_SIZE);
             break;
         case "career":
-            await renderCareerTemplate(ctx, input, assets);
+            await renderCareerTemplate(ctx, input, assets, OUTPUT_SIZE);
             break;
     }
 

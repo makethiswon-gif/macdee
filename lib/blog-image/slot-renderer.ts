@@ -61,24 +61,25 @@ export function bindText(rawText: string, dataObj: Record<string, string | strin
 
 // === Render Slots ===
 export function drawDecorations(ctx: SKRSContext2D, decos: DecoSlot[], style: StylePreset, canvasSize: number) {
+    const scaleRatio = canvasSize / 1024;
     for (const deco of decos) {
         if (deco.fromPreset) {
             if (deco.type === 'sidebar' && style.decorations.sideBar) {
                 const s = style.decorations.sideBar;
                 ctx.fillStyle = s.color;
-                if (s.position === 'left') ctx.fillRect(0, 0, s.width, canvasSize);
-                if (s.position === 'top') ctx.fillRect(0, 0, canvasSize, s.width);
-                if (s.position === 'right') ctx.fillRect(canvasSize - s.width, 0, s.width, canvasSize);
-                if (s.position === 'bottom') ctx.fillRect(0, canvasSize - s.width, canvasSize, s.width);
+                if (s.position === 'left') ctx.fillRect(0, 0, Math.round(s.width * scaleRatio), canvasSize);
+                if (s.position === 'top') ctx.fillRect(0, 0, canvasSize, Math.round(s.width * scaleRatio));
+                if (s.position === 'right') ctx.fillRect(canvasSize - Math.round(s.width * scaleRatio), 0, Math.round(s.width * scaleRatio), canvasSize);
+                if (s.position === 'bottom') ctx.fillRect(0, canvasSize - Math.round(s.width * scaleRatio), canvasSize, Math.round(s.width * scaleRatio));
             }
             if (deco.type === 'frame' && style.decorations.innerFrame) {
                 const f = style.decorations.innerFrame;
                 ctx.strokeStyle = f.borderColor;
-                ctx.lineWidth = f.borderWidth;
-                const inset = f.inset;
+                ctx.lineWidth = Math.max(1, Math.round(f.borderWidth * scaleRatio));
+                const inset = Math.round(f.inset * scaleRatio);
                 if (f.borderRadius && f.borderRadius > 0) {
                     ctx.beginPath();
-                    roundRect(ctx, inset, inset, canvasSize - inset * 2, canvasSize - inset * 2, f.borderRadius);
+                    roundRect(ctx, inset, inset, canvasSize - inset * 2, canvasSize - inset * 2, Math.round(f.borderRadius * scaleRatio));
                     ctx.stroke();
                 } else {
                     ctx.strokeRect(inset, inset, canvasSize - inset * 2, canvasSize - inset * 2);
@@ -95,11 +96,11 @@ export function drawDecorations(ctx: SKRSContext2D, decos: DecoSlot[], style: St
                 ctx.fillStyle = c.color;
                 ctx.globalAlpha = c.opacity;
                 ctx.beginPath();
-                ctx.arc(canvasSize * 0.8, canvasSize * 0.1, 150, 0, Math.PI * 2);
+                ctx.arc(canvasSize * 0.8, canvasSize * 0.1, Math.round(150 * scaleRatio), 0, Math.PI * 2);
                 ctx.fill();
                 if (c.count > 1) {
                     ctx.beginPath();
-                    ctx.arc(canvasSize * 0.2, canvasSize * 0.9, 80, 0, Math.PI * 2);
+                    ctx.arc(canvasSize * 0.2, canvasSize * 0.9, Math.round(80 * scaleRatio), 0, Math.PI * 2);
                     ctx.fill();
                 }
                 ctx.globalAlpha = 1.0;
@@ -108,7 +109,7 @@ export function drawDecorations(ctx: SKRSContext2D, decos: DecoSlot[], style: St
                 for (const orb of style.decorations.gradientOrbs) {
                     const cx = (orb.x / 100) * canvasSize;
                     const cy = (orb.y / 100) * canvasSize;
-                    const r = orb.size * 3; 
+                    const r = Math.round(orb.size * 3 * scaleRatio); 
                     const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
                     grad.addColorStop(0, orb.color);
                     grad.addColorStop(1, "transparent");
@@ -121,24 +122,24 @@ export function drawDecorations(ctx: SKRSContext2D, decos: DecoSlot[], style: St
                 ctx.globalAlpha = 1.0;
             }
         } else if (deco.rect) {
-            const rx = deco.rect.x * canvasSize;
-            const ry = deco.rect.y * canvasSize;
-            const rw = deco.rect.w * canvasSize;
-            const rh = deco.rect.h * canvasSize;
+            const rx = Math.round(deco.rect.x * canvasSize);
+            const ry = Math.round(deco.rect.y * canvasSize);
+            const rw = Math.round(deco.rect.w * canvasSize);
+            const rh = Math.round(deco.rect.h * canvasSize);
             
             if (deco.type === 'divider') {
                 const color = style.decorations.divider?.color || style.colors.accent.primary;
                 const opacity = style.decorations.divider?.opacity || 1;
                 ctx.fillStyle = color;
                 ctx.globalAlpha = opacity;
-                const realW = rw > 0 ? rw : style.decorations.divider?.width || 40;
-                const realH = rh > 0 ? rh : 2;
+                const realW = rw > 0 ? rw : Math.round((style.decorations.divider?.width || 40) * scaleRatio);
+                const realH = rh > 0 ? rh : Math.max(1, Math.round(2 * scaleRatio));
                 ctx.fillRect(rx, ry, realW, realH);
                 ctx.globalAlpha = 1.0;
             }
             if (deco.type === 'underline') {
                 ctx.fillStyle = style.colors.accent.primary;
-                ctx.fillRect(rx, ry, rw > 0 ? rw : 40, rh > 0 ? rh : 3);
+                ctx.fillRect(rx, ry, rw > 0 ? rw : Math.round(40 * scaleRatio), rh > 0 ? rh : Math.max(1, Math.round(3 * scaleRatio)));
             }
         }
     }
@@ -160,7 +161,7 @@ export function drawPhotos(ctx: SKRSContext2D, photos: PhotoSlot[], assets: Reco
             const radius = Math.min(absW, absH) / 2;
             ctx.arc(absX + radius, absY + radius, radius, 0, Math.PI * 2);
         } else if (p.borderRadius && p.borderRadius > 0) {
-            roundRect(ctx, absX, absY, absW, absH, p.borderRadius);
+            roundRect(ctx, absX, absY, absW, absH, Math.round(p.borderRadius * (canvasSize / 1024)));
         } else {
             ctx.rect(absX, absY, absW, absH);
         }
@@ -249,6 +250,7 @@ export function drawPhotos(ctx: SKRSContext2D, photos: PhotoSlot[], assets: Reco
 }
 
 export function drawTexts(ctx: SKRSContext2D, texts: TextSlot[], dataObj: Record<string, any>, style: StylePreset, canvasSize: number) {
+    const scaleRatio = canvasSize / 1024;
     for (const t of texts) {
         let content = bindText(t.bind, dataObj);
         if (!content) continue;
@@ -278,33 +280,35 @@ export function drawTexts(ctx: SKRSContext2D, texts: TextSlot[], dataObj: Record
 
         const fontName = resolveFont(family, weight);
         const color = resolveColor(t.colorKey, style);
+        
+        const scaledFontSize = Math.round(t.fontSize * scaleRatio);
 
         ctx.fillStyle = color;
         ctx.textAlign = t.align;
         ctx.textBaseline = "top";
         
-        let drawX = absX;
-        let drawY = absY;
-        if (t.align === 'center') drawX += absW / 2;
-        if (t.align === 'right') drawX += absW;
+        let drawX = Math.round(absX);
+        let drawY = Math.round(absY);
+        if (t.align === 'center') drawX += Math.round(absW / 2);
+        if (t.align === 'right') drawX += Math.round(absW);
 
         if (t.role === 'category' || t.role === 'label' || t.role === 'meta' || t.role === 'subtitle') {
             // Usually single line
-            ctx.font = `${weight} ${t.fontSize}px ${fontName}`;
+            ctx.font = `${weight} ${scaledFontSize}px ${fontName}`;
             ctx.fillText(content, drawX, drawY, absW); // 삐져나가지 않도록 강제 제한
         } else if (t.role === 'body') {
-            drawAutoShrinkText(ctx, content, drawX, drawY, absW, absH, t.fontSize, fontName, String(weight), { 
+            drawAutoShrinkText(ctx, content, drawX, drawY, absW, absH, scaledFontSize, fontName, String(weight), { 
                 center: t.align === 'center', 
                 lineGap: 1.6, 
-                minFontSize: 14,
+                minFontSize: Math.round(14 * scaleRatio),
                 maxLines: t.maxLines
             });
         } else {
             // title
-            drawAutoShrinkText(ctx, content, drawX, drawY, absW, absH, t.fontSize, fontName, String(weight), { 
+            drawAutoShrinkText(ctx, content, drawX, drawY, absW, absH, scaledFontSize, fontName, String(weight), { 
                 center: t.align === 'center', 
                 lineGap: 1.3, 
-                minFontSize: t.fontSize * 0.5,
+                minFontSize: Math.round(scaledFontSize * 0.5),
                 maxLines: t.maxLines
             });
         }

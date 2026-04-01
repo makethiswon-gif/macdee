@@ -13,7 +13,7 @@ function getTemplate(id: ImageTypeId) {
     }
 }
 
-export function renderAnyTemplate(typeId: ImageTypeId, ctx: SKRSContext2D, input: RenderInput, assets: Assets) {
+export function renderAnyTemplate(typeId: ImageTypeId, ctx: SKRSContext2D, input: RenderInput, assets: Assets, canvasSize: number) {
     let styleId = input.designStyle as string;
     // 하위 호환성 (Legacy 맵핑)
     if (styleId === 'trendy') styleId = 'young';
@@ -37,10 +37,10 @@ export function renderAnyTemplate(typeId: ImageTypeId, ctx: SKRSContext2D, input
         grad.addColorStop(0, style.colors.bg.gradient.from);
         grad.addColorStop(1, style.colors.bg.gradient.to);
         ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, SIZE, SIZE);
+        ctx.fillRect(0, 0, canvasSize, canvasSize);
     } else {
         ctx.fillStyle = style.colors.bg.primary;
-        ctx.fillRect(0, 0, SIZE, SIZE);
+        ctx.fillRect(0, 0, canvasSize, canvasSize);
     }
 
     const tpl = getTemplate(typeId);
@@ -64,7 +64,7 @@ export function renderAnyTemplate(typeId: ImageTypeId, ctx: SKRSContext2D, input
         'profile.slogan': input.profile.brandLines?.[0] || `${input.profile.officeName || ''} 대표변호사 ${input.profile.lawyerName || ''}`,
     };
 
-    drawPhotos(ctx, layout.photos, assets, style, SIZE);
-    drawDecorations(ctx, layout.decos, style, SIZE);
-    drawTexts(ctx, layout.texts, dataObj, style, SIZE);
+    drawPhotos(ctx, layout.photos, assets, style, canvasSize);
+    drawDecorations(ctx, layout.decos, style, canvasSize);
+    drawTexts(ctx, layout.texts, dataObj, style, canvasSize);
 }
