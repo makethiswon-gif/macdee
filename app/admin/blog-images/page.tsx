@@ -232,7 +232,7 @@ export default function BlogImagesPage() {
             const res = await fetch("/api/admin/blog-images/illustration", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ context: contextText }),
+                body: JSON.stringify({ context: contextText, title: postTitle }),
             });
             if (res.ok) {
                 const data = await res.json();

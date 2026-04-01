@@ -305,8 +305,8 @@ export function drawTexts(ctx: SKRSContext2D, texts: TextSlot[], dataObj: Record
         } else if (t.role === 'body') {
             drawAutoShrinkText(ctx, content, drawX, drawY, absW, absH, scaledFontSize, fontName, String(weight), { 
                 center: t.align === 'center', 
-                lineGap: 1.6, 
-                minFontSize: Math.round(11 * scaleRatio),
+                lineGap: 1.45, 
+                minFontSize: Math.round(9 * scaleRatio),
                 maxLines: t.maxLines
             });
         } else {

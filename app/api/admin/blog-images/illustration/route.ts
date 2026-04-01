@@ -8,10 +8,10 @@ export async function POST(request: NextRequest) {
         if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const body = await request.json();
-        const { context } = body; // e.g., the summary points text joined
+        const { context, title } = body;
 
-        if (!context) {
-            return NextResponse.json({ error: "Context text is required" }, { status: 400 });
+        if (!context && !title) {
+            return NextResponse.json({ error: "Context or title is required" }, { status: 400 });
         }
 
         const openaiKey = process.env.OPENAI_API_KEY;
@@ -19,16 +19,26 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "OPENAI_API_KEY missing" }, { status: 500 });
         }
 
-        // The specialized prompt reverse-engineered from the user's uploaded style, adapted to fit the context
-        const prompt = `A trendy, minimalist 2D flat vector illustration that clearly represents the core subject matter of the following text: "${context}"
+        // Build a concise subject description for DALL-E
+        const subject = title 
+            ? `The topic is: "${title}". Additional context: ${(context || "").substring(0, 300)}`
+            : `The topic is: ${(context || "").substring(0, 500)}`;
 
-Strict visual style constraints: 
-1. Very bold, thick, continuous black ink outlines defining all shapes. 
-2. Absolutely NO gradients, NO complex shading, NO 3D rendering. Only flat solid block colors. 
-3. Limited and earthy muted color palette: olive green, warm brown, beige, pure black, and white.
-4. If characters are included, they should have minimal facial features (just dots for eyes, simple line for mouth).
-5. The illustration must strongly and directly depict the legal or business subject matter provided above, maintaining the trendy graphic aesthetic. Do NOT just draw a random casual character doing nothing.
-6. The background must be pure off-white or cream. Absolutely NO TEXT OR WORDS in the image.`;
+        // Prompt precisely matched to the user's reference illustration style:
+        // Warm hand-drawn character art with bold ink outlines, natural skin tones,
+        // soft watercolor-like flat coloring, editorial magazine quality.
+        const prompt = `A single full-body character illustration in a warm, modern Korean editorial style for the following subject: ${subject}
+
+CRITICAL STYLE (must follow exactly):
+- Bold, thick black ink outlines (like a comic or manhwa) around every shape
+- Warm, natural color palette: realistic skin tones, navy/charcoal clothing, warm beige/cream background
+- Soft, flat coloring with subtle cel-shading (NOT vector art, NOT geometric, NOT cubist)
+- The character should look like a stylish, modern Korean professional (lawyer, office worker, or professional relevant to the topic)
+- Character should be doing an action clearly related to the topic (e.g., reading documents for a legal topic, holding a gavel for court topics, comforting someone for family law)
+- Realistic human proportions (NOT chibi, NOT cartoon), fashionable casual-professional outfit
+- Clean, simple background with at most one accent color blob (like a blue or warm-toned shape behind the character)
+- NO text, NO words, NO letters anywhere in the image
+- The overall feel should be like a premium Korean magazine editorial illustration`;
 
         const res = await fetch("https://api.openai.com/v1/images/generations", {
             method: "POST",
@@ -41,7 +51,7 @@ Strict visual style constraints:
                 prompt,
                 n: 1,
                 size: "1024x1024",
-                style: "vivid", // Vivid generally works better for punchy graphic styles
+                style: "natural", // Natural produces warm, hand-drawn editorial style matching reference
                 response_format: "b64_json"
             }),
         });

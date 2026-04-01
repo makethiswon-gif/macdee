@@ -777,7 +777,7 @@ export const CAREER_TEMPLATE: ImageTypeTemplate = {
       texts: [
         { bind: '{{profile.name}}', role: 'title', rect: { x: 0.50, y: 0.12, w: 0.44, h: 0.08 }, align: 'left', fontSize: 48, colorKey: 'primary' },
         { bind: '{{profile.title}}', role: 'subtitle', rect: { x: 0.50, y: 0.22, w: 0.44, h: 0.05 }, align: 'left', fontSize: 18, colorKey: 'accent' },
-        { bind: '{{profile.credentials}}', role: 'body', rect: { x: 0.50, y: 0.38, w: 0.44, h: 0.50 }, align: 'left', fontSize: 20, colorKey: 'muted' },
+        { bind: '{{profile.credentials}}', role: 'body', rect: { x: 0.50, y: 0.32, w: 0.46, h: 0.60 }, align: 'left', fontSize: 16, colorKey: 'muted' },
       ],
       decos: [ { type: 'divider', rect: { x: 0.50, y: 0.32, w: 0.10, h: 0 } } ],
     },
@@ -789,7 +789,7 @@ export const CAREER_TEMPLATE: ImageTypeTemplate = {
       texts: [
         { bind: '{{profile.title}}', role: 'category', rect: { x: 0.06, y: 0.30, w: 0.40, h: 0.05 }, align: 'left', fontSize: 18, colorKey: 'accent' },
         { bind: '{{profile.name}}', role: 'title', rect: { x: 0.06, y: 0.38, w: 0.40, h: 0.10 }, align: 'left', fontSize: 52, colorKey: 'primary' },
-        { bind: '{{profile.credentials}}', role: 'body', rect: { x: 0.06, y: 0.56, w: 0.40, h: 0.35 }, align: 'left', fontSize: 20, colorKey: 'muted' },
+        { bind: '{{profile.credentials}}', role: 'body', rect: { x: 0.06, y: 0.52, w: 0.42, h: 0.42 }, align: 'left', fontSize: 16, colorKey: 'muted' },
       ],
       decos: [ { type: 'sidebar', fromPreset: true }, { type: 'divider', rect: { x: 0.06, y: 0.51, w: 0.08, h: 0 } } ],
     },
@@ -802,7 +802,7 @@ export const CAREER_TEMPLATE: ImageTypeTemplate = {
         { bind: 'ATTORNEY AT LAW', role: 'category', rect: { x: 0.06, y: 0.30, w: 0.50, h: 0.05 }, align: 'left', fontSize: 18, colorKey: 'accent' },
         { bind: '{{profile.name}}', role: 'title', rect: { x: 0.06, y: 0.38, w: 0.50, h: 0.10 }, align: 'left', fontSize: 52, colorKey: 'primary' },
         { bind: '{{profile.title}}', role: 'subtitle', rect: { x: 0.06, y: 0.50, w: 0.50, h: 0.05 }, align: 'left', fontSize: 20, colorKey: 'muted' },
-        { bind: '{{profile.credentials}}', role: 'body', rect: { x: 0.06, y: 0.64, w: 0.48, h: 0.30 }, align: 'left', fontSize: 20, colorKey: 'muted' },
+        { bind: '{{profile.credentials}}', role: 'body', rect: { x: 0.06, y: 0.58, w: 0.48, h: 0.36 }, align: 'left', fontSize: 16, colorKey: 'muted' },
       ],
       decos: [ { type: 'sidebar', fromPreset: true }, { type: 'scanlines', fromPreset: true }, { type: 'divider', rect: { x: 0.06, y: 0.58, w: 0.08, h: 0 } } ],
     },
@@ -814,7 +814,7 @@ export const CAREER_TEMPLATE: ImageTypeTemplate = {
       texts: [
         { bind: '{{profile.title}}', role: 'category', rect: { x: 0.06, y: 0.30, w: 0.48, h: 0.05 }, align: 'left', fontSize: 20, colorKey: 'accent' },
         { bind: '{{profile.name}}', role: 'title', rect: { x: 0.06, y: 0.38, w: 0.48, h: 0.10 }, align: 'left', fontSize: 52, colorKey: 'primary' },
-        { bind: '{{profile.credentials}}', role: 'body', rect: { x: 0.06, y: 0.56, w: 0.46, h: 0.34 }, align: 'left', fontSize: 22, colorKey: 'muted' },
+        { bind: '{{profile.credentials}}', role: 'body', rect: { x: 0.06, y: 0.52, w: 0.48, h: 0.42 }, align: 'left', fontSize: 16, colorKey: 'muted' },
       ],
       decos: [ { type: 'circle', fromPreset: true }, { type: 'underline', rect: { x: 0.06, y: 0.51, w: 0.08, h: 0 } } ],
     },
@@ -826,7 +826,7 @@ export const CAREER_TEMPLATE: ImageTypeTemplate = {
       texts: [
         { bind: '{{profile.name}}', role: 'title', rect: { x: 0.10, y: 0.50, w: 0.80, h: 0.08 }, align: 'center', fontSize: 48, colorKey: 'primary' },
         { bind: '{{profile.title}}', role: 'subtitle', rect: { x: 0.10, y: 0.60, w: 0.80, h: 0.05 }, align: 'center', fontSize: 20, colorKey: 'accent' },
-        { bind: '{{profile.credentials}}', role: 'body', rect: { x: 0.10, y: 0.72, w: 0.80, h: 0.22 }, align: 'center', fontSize: 20, colorKey: 'muted' },
+        { bind: '{{profile.credentials}}', role: 'body', rect: { x: 0.10, y: 0.68, w: 0.80, h: 0.26 }, align: 'center', fontSize: 16, colorKey: 'muted' },
       ],
       decos: [ { type: 'frame', fromPreset: true }, { type: 'divider', rect: { x: 0.42, y: 0.67, w: 0.16, h: 0 } } ],
     },
