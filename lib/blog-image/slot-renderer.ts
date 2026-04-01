@@ -27,14 +27,16 @@ export function resolveColor(key: string, style: StylePreset): string {
 
 export function resolveFont(fontFamily: 'sans' | 'serif', weight: number | string): string {
     const w = Number(weight) || 400;
+    let base = "";
     if (fontFamily === 'serif') {
-        if (w >= 700) return FONT_SERIF_BOLD;
-        return FONT_SERIF_REGULAR;
+        if (w >= 700) base = FONT_SERIF_BOLD;
+        else base = FONT_SERIF_REGULAR;
     } else {
-        if (w >= 900) return FONT_BLACK;
-        if (w >= 600) return FONT_BOLD;
-        return FONT_REGULAR;
+        if (w >= 900) base = FONT_BLACK;
+        else if (w >= 600) base = FONT_BOLD;
+        else base = FONT_REGULAR;
     }
+    return `"${base}", "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans CJK KR", sans-serif`;
 }
 
 // === Data Binder ===
@@ -300,7 +302,7 @@ export function drawTexts(ctx: SKRSContext2D, texts: TextSlot[], dataObj: Record
             drawAutoShrinkText(ctx, content, drawX, drawY, absW, absH, scaledFontSize, fontName, String(weight), { 
                 center: t.align === 'center', 
                 lineGap: 1.6, 
-                minFontSize: Math.round(14 * scaleRatio),
+                minFontSize: Math.round(11 * scaleRatio),
                 maxLines: t.maxLines
             });
         } else {

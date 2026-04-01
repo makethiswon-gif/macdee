@@ -1,12 +1,13 @@
 import type { SKRSContext2D } from "@napi-rs/canvas";
 import { type RenderInput, type Assets, SIZE } from "./renderer";
 import { getResolvedStyle, drawPhotos, drawTexts, drawDecorations } from "./slot-renderer";
-import { STYLE_PRESETS, MAIN_TEMPLATE, SUMMARY_TEMPLATE, BRAND_TEMPLATE, CAREER_TEMPLATE, CONTACT_TEMPLATE, type ImageTypeId } from "./templates-config";
+import { STYLE_PRESETS, MAIN_TEMPLATE, SUMMARY_TEMPLATE, BRAND_TEMPLATE, CAREER_TEMPLATE, CONTACT_TEMPLATE, ILLUSTRATION_TEMPLATE, type ImageTypeId } from "./templates-config";
 
 function getTemplate(id: ImageTypeId) {
     switch (id) {
         case 'main': return MAIN_TEMPLATE;
         case 'summary': return SUMMARY_TEMPLATE;
+        case 'illustration': return ILLUSTRATION_TEMPLATE;
         case 'brand': return BRAND_TEMPLATE;
         case 'career': return CAREER_TEMPLATE;
         case 'contact': return CONTACT_TEMPLATE;
