@@ -37,7 +37,7 @@ export const FONT_SERIF_REGULAR = "NotoSerifKR-400";
 export const FONT_SERIF_BOLD = "NotoSerifKR-700";
 
 // ── Shared Types ──
-export type DesignStyle = "trendy" | "classic" | "cool" | "warm" | "traditional";
+export type DesignStyle = "young" | "mature" | "criminal" | "family" | "classic";
 
 // ── Color Utilities ──
 export function hexToRgb(hex: string): [number, number, number] {
@@ -119,52 +119,7 @@ export function ensureBrightAccent(hex: string): string {
     return hex;
 }
 
-/** Tweak accent color specifically for different design styles */
-export function getStyleAccentColor(hex: string, style: DesignStyle): string {
-    const [r, g, b] = hexToRgb(hex);
-
-    switch (style) {
-        case "cool":
-            // More desaturated, darker, icy feel
-            return darken(hex, 0.3);
-        case "warm":
-            // Slightly softer, brighter
-            return lighten(hex, 0.3);
-        case "trendy":
-            // Vibrant! If color is dull, we want to boost it (simplified boost here: boost lightest channel)
-            const max = Math.max(r, g, b);
-            if (max < 200) return lighten(hex, 0.5);
-            return hex;
-        case "traditional":
-            // More muted, serious, maybe darker
-            return darken(hex, 0.2);
-        case "classic":
-        default:
-            return ensureBrightAccent(hex);
-    }
-}
-
-/** Get background base color for different design styles */
-export function getStyleDarkBg(hex: string, style: DesignStyle): string {
-    const rawDark = getDeepDarkColor(hex);
-    switch (style) {
-        case "cool":
-            // Deep deep blue/gray
-            return darken(rawDark, 0.7);
-        case "warm":
-            // Warmer dark (less black, more brown/purple hint depending on hue)
-            return lighten(rawDark, 0.4);
-        case "trendy":
-            // Almost pure black for max contrast
-            return "#0A0A0A";
-        case "traditional":
-            // very dark gray
-            return "#121212";
-        case "classic":
-        default:
-            return rawDark;
-    }
-}
+// Legacy color functions removed to fix DesignStyle TS mismatch
 
 /** Extract visually dominant brand color from a logo image */
 export function extractDominantColor(img: Image | null, fallback: string): string {
@@ -538,6 +493,7 @@ export async function drawFilmGrain(ctx: SKRSContext2D, opacity = 0.05) {
 
 export interface RenderInput {
     title: string;
+    category?: string;
     summaryPoints: string[];
     profile: {
         lawyerName: string;
@@ -591,9 +547,9 @@ export async function renderBlogImage(input: RenderInput): Promise<Buffer> {
     const rawBrandColor = extractedAccent;
     const style = input.designStyle || "classic";
     
-    // 3. Apply style-specific color transformations
-    const darkBg = getStyleDarkBg(extractedAccent, style);
-    const accent = getStyleAccentColor(extractedAccent, style);
+    // 3. (Legacy) pass through colors
+    const darkBg = getDeepDarkColor(extractedAccent);
+    const accent = extractedAccent;
 
     const assets = { profileImg, officeImg, logoImg, accent, darkBg, rawBrandColor };
 

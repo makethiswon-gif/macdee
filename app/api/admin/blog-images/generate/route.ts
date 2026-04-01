@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
             templateId: templateId ?? 0,
             imageType,
             accentColor: accentColor || profile.brandColor || undefined,
-            designStyle: ((row.design_style as string) || "classic") as "trendy" | "classic" | "cool" | "warm" | "traditional",
+            designStyle: ((row.design_style as string) || "classic") as "young" | "mature" | "criminal" | "family" | "classic",
         };
 
         const pngBuffer = await renderBlogImage(input);
