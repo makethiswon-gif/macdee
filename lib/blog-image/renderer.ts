@@ -540,9 +540,7 @@ export async function renderBlogImage(input: RenderInput): Promise<Buffer> {
     const canvas = createCanvas(SIZE, SIZE);
     const ctx = canvas.getContext("2d");
 
-    // Set highest quality interpolation to prevent pixelation on image downscaling
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = "high";
+    // 기본 렌더링 품질을 높은 해상도 벡터 수준으로 유지하기 위해 전역 안티앨리어싱 스킵
 
     // Load images
     const profiles = input.profile.profileImages || [];

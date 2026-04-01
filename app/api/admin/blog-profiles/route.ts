@@ -231,7 +231,8 @@ export async function POST(request: NextRequest) {
             }
 
             const isProfile = imageType === "profile";
-            const compressed = await compressImage(body.base64, isProfile ? 400 : 900, isProfile ? 500 : 600);
+            // 화질 저하의 주범: 400x500 썸네일 압축 사이즈를 1200px 급으로 해제
+            const compressed = await compressImage(body.base64, isProfile ? 1024 : 1200, isProfile ? 1280 : 800);
             const images = isProfile ? [...(row.profile_images || []), compressed] : [...(row.office_images || []), compressed];
             const updateField = isProfile ? { profile_images: images } : { office_images: images };
             const { error } = await supabase.from("blog_profiles").update(updateField).eq("id", body.profileId);
