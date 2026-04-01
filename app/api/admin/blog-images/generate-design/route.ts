@@ -21,10 +21,13 @@ export async function POST(req: Request) {
         const allCareer = (profile.career || []).filter((c: string) => c.trim());
         const specialties = (profile.specialty || []).join(", ") || "전문분야 없음";
 
+        const hasOfficeImg = !!(profile.officeImages?.length);
+
         // Image placeholder instructions
         const imgInfo = `이미지 플레이스홀더:
 ${hasProfileImg ? '- 변호사 프로필 사진: <img src="__PROFILE_IMG__" />' : '- 프로필 사진 없음'}
-${hasLogo ? '- 로펌 로고: <img src="__LOGO_IMG__" />' : '- 로고 없음'}`;
+${hasLogo ? '- 로펌 로고: <img src="__LOGO_IMG__" />' : '- 로고 없음'}
+${hasOfficeImg ? '- 사무실 사진: <img src="__OFFICE_IMG__" />' : '- 사무실 사진 없음'}`;
 
         // Profile context (common across all cards)
         const profileContext = `변호사 정보:
@@ -55,14 +58,15 @@ ${content.substring(0, 1000)}
 
 지시사항:
 1. 블로그 본문을 읽고 핵심을 담은 매력적인 한국어 제목을 20자 이내로 직접 작성해서 카드에 넣어.
-2. 800x800px 카드. inline CSS만 사용. 루트 div에 overflow:hidden 필수.
-3. background: linear-gradient(135deg, ${brandColor}dd 0%, ${brandColor}88 50%, #0a0a0a 100%) 같은 형태로 ${brandColor}를 배경 그라데이션의 주인공으로 사용.
-4. 제목을 크고 굵게 (font-size:38~44px, font-weight:800) 중앙 배치.
-5. 하단에 "${profile.lawyerName} ${profile.jobTitle || '변호사'}" 이름 작게.
-${hasLogo ? `6. 상단에 로펌 로고 <img src="__LOGO_IMG__" style="height:50px;object-fit:contain;" />` : ''}
-${hasProfileImg ? `7. 하단 이름 옆에 작은 원형 프로필 사진 <img src="__PROFILE_IMG__" style="width:48px;height:48px;border-radius:50%;object-fit:cover;" />` : ''}
-8. 제목+이름+로고만 넣을 것. 전문분야, 요약, 카테고리 라벨 넣지 말 것.
-9. font-family:'Pretendard','Noto Sans KR',sans-serif
+2. 800x800px 카드. inline CSS만 사용. 루트 div에 position:relative;overflow:hidden 필수.
+${hasOfficeImg ? `3. 배경: 사무실 사진을 전체 배경으로 깔기 — <img src="__OFFICE_IMG__" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;" /> 그 위에 어두운 오버레이 div: <div style="position:absolute;top:0;left:0;width:100%;height:100%;background:linear-gradient(180deg,${brandColor}cc 0%,rgba(0,0,0,0.85) 100%);"></div>` : `3. background: linear-gradient(135deg, ${brandColor}dd 0%, ${brandColor}88 50%, #0a0a0a 100%)`}
+4. 모든 텍스트/콘텐츠는 position:relative;z-index:1 로 오버레이 위에 표시.
+5. 제목을 크고 굵게 (font-size:38~44px, font-weight:800) 중앙 배치.
+6. 하단에 "${profile.lawyerName} ${profile.jobTitle || '변호사'}" 이름 작게.
+${hasLogo ? `7. 상단에 로펌 로고 <img src="__LOGO_IMG__" style="height:50px;object-fit:contain;position:relative;z-index:1;" />` : ''}
+${hasProfileImg ? `8. 하단 이름 옆에 작은 원형 프로필 사진 <img src="__PROFILE_IMG__" style="width:48px;height:48px;border-radius:50%;object-fit:cover;position:relative;z-index:1;" />` : ''}
+9. 제목+이름+로고만 넣을 것. 전문분야, 요약, 카테고리 라벨 넣지 말 것.
+10. font-family:'Pretendard','Noto Sans KR',sans-serif
 
 <div style="..."> 로 시작하는 HTML만 출력. 설명 금지.`,
 
@@ -79,13 +83,14 @@ ${content.substring(0, 1500)}
 지시사항:
 1. 블로그 본문을 읽고 핵심 포인트를 정확히 3개 뽑아서 카드에 넣어. 반드시 3개, 2개도 4개도 안 됨.
 2. 각 포인트는 한국어 1~2문장(40자 이내)으로 간결하게.
-3. 800x800px 카드. inline CSS만 사용. 루트 div에 overflow:hidden 필수.
-4. 상단에 "핵심 요약" 라벨(${brandColor} 색상) + 블로그 주제를 15자 이내로 요약한 부제목.
-5. 3개 포인트를 세로로 나열. 각 포인트 앞에 ${brandColor} 색상 원형 bullet(width:8px, height:8px, border-radius:50%).
-6. 각 포인트 사이에 충분한 간격(gap:24px).
-${hasLogo ? `7. 하단에 로펌 로고 <img src="__LOGO_IMG__" style="height:40px;object-fit:contain;" />` : ''}
-8. 다크 배경. 흰색 텍스트.
-9. font-family:'Pretendard','Noto Sans KR',sans-serif
+3. 800x800px 카드. inline CSS만 사용. 루트 div에 position:relative;overflow:hidden 필수.
+${hasOfficeImg ? `4. 배경: 사무실 사진을 블러 처리하여 배경으로 — <img src="__OFFICE_IMG__" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;filter:blur(8px);transform:scale(1.1);" /> 그 위에 반투명 어두운 오버레이: <div style="position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);"></div>` : '4. 다크 배경(#0c0c14).'}
+5. 모든 텍스트/콘텐츠는 position:relative;z-index:1 로 오버레이 위에 표시.
+6. 상단에 "핵심 요약" 라벨(${brandColor} 색상) + 블로그 주제를 15자 이내로 요약한 부제목.
+7. 3개 포인트를 세로로 나열. 각 포인트 앞에 ${brandColor} 색상 원형 bullet(width:8px, height:8px, border-radius:50%).
+8. 각 포인트 사이에 충분한 간격(gap:24px).
+${hasLogo ? `9. 하단에 로펌 로고 <img src="__LOGO_IMG__" style="height:40px;object-fit:contain;position:relative;z-index:1;" />` : ''}
+10. font-family:'Pretendard','Noto Sans KR',sans-serif
 
 <div style="..."> 로 시작하는 HTML만 출력. 설명 금지.`,
 
@@ -177,6 +182,9 @@ ${hasLogo ? `4. 상단 영역에 로펌 로고: <img src="__LOGO_IMG__" style="h
         }
         if (hasLogo && profile.logoImage) {
             html = html.replace(/__LOGO_IMG__/g, profile.logoImage);
+        }
+        if (hasOfficeImg && profile.officeImages[0]) {
+            html = html.replace(/__OFFICE_IMG__/g, profile.officeImages[0]);
         }
 
         const cardNames: Record<string, string> = {
