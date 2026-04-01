@@ -96,7 +96,7 @@ export default function BlogImagesPage() {
     };
 
     // Generate single image
-    const handleGenerate = async (imageType: ImageType, overridePoints?: string[], overrideTemplateId?: number, overrideAccent?: string, overrideTitle?: string) => {
+    const handleGenerate = async (imageType: ImageType, overridePoints?: string[], overrideTemplateId?: number, overrideAccent?: string, overrideTitle?: string, overrideIllustrationUrl?: string) => {
         if (!selectedId) return;
         const tid = overrideTemplateId !== undefined ? overrideTemplateId : selectedTemplates[imageType];
         const key = `${imageType}-${tid}`;
@@ -109,7 +109,7 @@ export default function BlogImagesPage() {
                     profileId: selectedId,
                     title: overrideTitle || postTitle,
                     summaryPoints: overridePoints || summaryPoints,
-                    summaryImageUrl: imageType === 'summary' || imageType === 'illustration' ? summaryIllustrationUrl : undefined,
+                    summaryImageUrl: imageType === 'summary' || imageType === 'illustration' ? (overrideIllustrationUrl || summaryIllustrationUrl) : undefined,
                     templateId: tid,
                     imageType,
                     accentColor: overrideAccent,
@@ -159,13 +159,19 @@ export default function BlogImagesPage() {
             setSummarizing(false);
         }
 
+        // Generate Illustration if not present
+        let currentIllustrationUrl = summaryIllustrationUrl;
+        if (!currentIllustrationUrl) {
+            currentIllustrationUrl = await handleGenerateIllustration(currentPoints, true) || "";
+        }
+
         // Randomize template selection
         const newTemplates = { ...selectedTemplates };
         // Slightly vary the brand color for a unique touch
         const baseColor = selected.brandColor || "#3563AE";
 
         for (const type of IMAGE_TYPES) {
-            const num = parseInt(baseColor.replace("#", ""), 16);
+            const num = parseInt(baseColor.replace("#", ""), 16) || 0;
             let r = (num >> 16) & 255;
             let g = (num >> 8) & 255;
             let b = num & 255;
@@ -180,19 +186,21 @@ export default function BlogImagesPage() {
             const randId = Math.floor(Math.random() * TEMPLATE_COUNTS[type.id]);
             newTemplates[type.id] = randId;
             const titleToUse = postTitle;
-            await handleGenerate(type.id, currentPoints, randId, variedAccent, titleToUse);
+            await handleGenerate(type.id, currentPoints, randId, variedAccent, titleToUse, currentIllustrationUrl);
         }
         setSelectedTemplates(newTemplates);
     };
 
     // Auto-generate illustration using DALL-E 3
-    const handleGenerateIllustration = async () => {
-        if (!postContent.trim() && summaryPoints.length === 0) {
-            alert("먼저 블로그 본문을 입력하거나 요약을 생성해주세요.");
-            return;
+    const handleGenerateIllustration = async (customPoints?: string[], silent = false): Promise<string | null> => {
+        const _points = customPoints || summaryPoints;
+        const _content = postContent;
+        if (!_content.trim() && _points.length === 0) {
+            if (!silent) alert("먼저 블로그 본문을 입력하거나 요약을 생성해주세요.");
+            return null;
         }
         
-        const contextText = summaryPoints.length > 0 ? summaryPoints.join(" ") : postContent.substring(0, 1000);
+        const contextText = _points.length > 0 ? _points.join(" ") : _content.substring(0, 1000);
         
         setGeneratingIllustration(true);
         try {
@@ -205,18 +213,21 @@ export default function BlogImagesPage() {
                 const data = await res.json();
                 if (data.url) {
                     setSummaryIllustrationUrl(data.url);
-                } else {
+                    setGeneratingIllustration(false);
+                    return data.url;
+                } else if (!silent) {
                     alert("일러스트 생성에 문제가 발생했습니다.");
                 }
-            } else {
+            } else if (!silent) {
                 const err = await res.json().catch(() => ({}));
                 alert(`API 오류: ${err.error || res.status}`);
             }
         } catch (e) {
             console.error(e);
-            alert("일러스트 생성 중 오류가 발생했습니다.");
+            if (!silent) alert("일러스트 생성 중 오류가 발생했습니다.");
         }
         setGeneratingIllustration(false);
+        return null;
     };
 
     // Download image
@@ -391,7 +402,7 @@ export default function BlogImagesPage() {
                                         </div>
                                     </div>
                                     <button 
-                                        onClick={handleGenerateIllustration}
+                                        onClick={() => handleGenerateIllustration(undefined, false)}
                                         disabled={generatingIllustration}
                                         className="px-4 py-2 bg-[#3563AE] hover:bg-[#4375CA] text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
                                     >

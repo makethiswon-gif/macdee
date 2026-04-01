@@ -556,11 +556,12 @@ export async function renderBlogImage(input: RenderInput): Promise<Buffer> {
     const officeImg = officeUrl ? await safeLoadImage(officeUrl) : null;
     const logoImg = input.profile.logoImage ? await safeLoadImage(input.profile.logoImage) : null;
 
-    // Calculate smart colors based on the logo if present, or fallback to the provided brand color
-    const providedAccent = input.accentColor || input.profile.brandColor;
+    // Calculate smart colors based on the logo if present
+    const providedAccent = input.accentColor || input.profile.brandColor || "#2B4C7E";
     
-    // 1. USE provided brand color first. Only extract if absolutely missing.
-    const extractedAccent = providedAccent ? providedAccent : extractDominantColor(logoImg, "#2B4C7E");
+    // 1. MUST try to extract the color from the logo FIRST, as the user requested.
+    // If it fails (no color found except bw/trans), it returns the fallback.
+    const extractedAccent = logoImg ? extractDominantColor(logoImg, providedAccent) : providedAccent;
     
     // 2. Derive base colors
     const rawBrandColor = extractedAccent;
