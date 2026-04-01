@@ -63,9 +63,9 @@ ${hasOfficeImg ? `3. 배경: 사무실 사진을 전체 배경으로 깔기 — 
 4. 모든 텍스트/콘텐츠는 position:relative;z-index:1 로 오버레이 위에 표시.
 5. 제목을 크고 굵게 (font-size:38~44px, font-weight:800) 중앙 배치.
 6. 하단에 "${profile.lawyerName} ${profile.jobTitle || '변호사'}" 이름 작게.
-${hasLogo ? `7. 상단에 로펌 로고 <img src="__LOGO_IMG__" style="height:50px;object-fit:contain;position:relative;z-index:1;" />` : ''}
-${hasProfileImg ? `8. 하단 이름 옆에 작은 원형 프로필 사진 <img src="__PROFILE_IMG__" style="width:48px;height:48px;border-radius:50%;object-fit:cover;position:relative;z-index:1;" />` : ''}
-9. 제목+이름+로고만 넣을 것. 전문분야, 요약, 카테고리 라벨 넣지 말 것.
+${hasLogo ? `7. 상단에 로펌 로고 <img src="__LOGO_IMG__" style="height:50px;object-fit:contain;position:relative;z-index:1;" /> (로고에 이미 로펌명이 포함되어 있으므로 텍스트로 로펌명을 따로 쓰지 말 것)` : ''}
+${hasProfileImg ? `8. 하단에 프로필 사진을 크게 원형으로: <img src="__PROFILE_IMG__" style="width:150px;height:150px;border-radius:50%;object-fit:cover;position:relative;z-index:1;border:3px solid rgba(255,255,255,0.3);" />` : ''}
+9. 제목+이름+로고+프로필사진만. 전문분야, 요약, 카테고리 라벨 넣지 말 것.
 10. font-family:'Pretendard','Noto Sans KR',sans-serif
 
 <div style="..."> 로 시작하는 HTML만 출력. 설명 금지.`,
@@ -108,39 +108,51 @@ ${(profile.brandLines || []).length > 0 ? '브랜드 메시지/슬로건:\n' + (
 1. 800x800px 카드. inline CSS만 사용. 루트 div에 position:relative;overflow:hidden 필수.
 ${hasOfficeImg ? `2. 배경: 사무실 사진을 전체 배경으로 — <img src="__OFFICE_IMG__" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;" /> 그 위에 ${brandColor} 계열 그라데이션 오버레이: <div style="position:absolute;top:0;left:0;width:100%;height:100%;background:linear-gradient(180deg,${brandColor}ee 0%,rgba(0,0,0,0.7) 100%);"></div>` : `2. background: linear-gradient(135deg, ${brandColor} 0%, #0a0a0a 100%)`}
 3. 모든 콘텐츠는 position:relative;z-index:1 로 오버레이 위에.
-${hasLogo ? `4. 로펌 로고를 크고 중앙에: <img src="__LOGO_IMG__" style="height:100px;object-fit:contain;position:relative;z-index:1;" />` : ''}
-5. 로펌명을 크게(font-size:36px, font-weight:800) 표시.
+${hasLogo ? `4. 로펌 로고를 크고 중앙에 한 번만: <img src="__LOGO_IMG__" style="height:120px;object-fit:contain;position:relative;z-index:1;" /> (로고에 이미 로펌명이 포함되어 있으므로 텍스트로 로펌명을 따로 쓰지 말 것)` : ''}
+5. 로고 아래에 슬로건/브랜드 메시지만 표시. 로펌명 텍스트는 쓰지 말 것.
 ${(profile.brandLines || []).length > 0 ? '6. 브랜드 메시지/슬로건을 세련되게 표시 (font-size:18~20px, 약간 투명한 흰색).' : '6. 전문분야를 세련되게 나열.'}
 7. 전체적으로 고급스러운 브랜드 이미지 느낌.
 8. font-family:'Pretendard','Noto Sans KR',sans-serif
 
 <div style="..."> 로 시작하는 HTML만 출력. 설명 금지.`,
 
-            contact: `역할: 변호사 명함 스타일 문의 안내 이미지를 HTML로 코딩해.
+            contact: (() => {
+                // Parse phone numbers into separate lines
+                const phoneRaw = profile.phone || '';
+                const phoneLines = phoneRaw.split(/[,，]/).map((p: string) => p.trim()).filter((p: string) => p);
+                const phoneLinesText = phoneLines.length > 0 
+                    ? phoneLines.map((p: string) => `   • ${p}`).join('\n') 
+                    : '   • 미등록';
+                
+                return `역할: 변호사 명함 스타일 문의 안내 이미지를 HTML로 코딩해.
 
-${profileContext}
 ${imgInfo}
 
 필수 규칙: 영어 단어 절대 사용 금지. 모든 텍스트 한국어만.
 
-지시사항 - 명함(비즈니스 카드) 디자인:
+지시사항 - 명함 디자인:
 1. 800x800px 카드. inline CSS만 사용. 루트 div에 overflow:hidden 필수.
 2. 명함처럼 깔끔하고 정돈된 레이아웃:
-   - 상단 40%: ${brandColor} 계열 그라데이션 배경 영역에 로펌명, 로고, 변호사 이름+직함을 크게.
-   - 하단 60%: 어두운 배경에 연락처 정보를 정돈되게 나열.
-${hasProfileImg ? `3. 프로필 사진을 상단과 하단 경계에 걸치게 원형으로 크게 배치: <img src="__PROFILE_IMG__" style="width:130px;height:130px;border-radius:50%;object-fit:cover;border:4px solid white;" />` : ''}
-${hasLogo ? `4. 상단 영역에 로펌 로고: <img src="__LOGO_IMG__" style="height:50px;object-fit:contain;" />` : ''}
-5. 전화번호를 모두 각각 한 줄씩 표시 (하나도 빠뜨리지 말 것):
-   ${profile.phone || '미등록'}
-   위 전화번호에 쉼표(,)로 구분된 번호가 여러 개 있으면 각각 별도 줄로 나누어 표시해.
-   예: "대표번호 02-XXX", "사무장직통 010-XXX", "변호사직통 010-XXX" → 3줄로 표시.
-6. 홈페이지: ${profile.website || '미등록'} — 눈에 잘 띄게 표시.
-7. 주소: ${profile.address || '미등록'}
-8. 전문분야: ${specialties}
-9. 맨 하단에 "지금 상담 예약하세요" 버튼 (background:${brandColor}, color:white, padding:12px 36px, border-radius:10px, font-weight:700).
-10. font-family:'Pretendard','Noto Sans KR',sans-serif
+   - 상단 35%: ${brandColor} 계열 그라데이션 배경에 로고와 변호사 이름+직함.
+   - 하단 65%: 어두운 배경에 연락처 정보.
+${hasProfileImg ? `3. 프로필 사진 원형: <img src="__PROFILE_IMG__" style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:4px solid white;" />` : ''}
+${hasLogo ? `4. 로펌 로고 한 번만: <img src="__LOGO_IMG__" style="height:50px;object-fit:contain;" /> (로고에 이미 로펌명 포함. 텍스트로 로펌명 따로 쓰지 말 것)` : ''}
+5. 변호사: ${profile.lawyerName} ${profile.jobTitle || '변호사'}
+6. 하단 연락처에 반드시 아래 내용을 빠짐없이 전부 표시해:
 
-<div style="..."> 로 시작하는 HTML만 출력. 설명 금지.`,
+전화번호 (각각 별도 줄로):
+${phoneLinesText}
+
+홈페이지: ${profile.website || '미등록'}
+주소: ${profile.address || '미등록'}
+전문분야: ${specialties}
+
+7. 위 연락처 정보가 카드에서 반드시 보여야 함. 빠뜨리면 안 됨.
+8. 맨 하단에 "지금 상담 예약하세요" 버튼 (background:${brandColor}, color:white, padding:12px 36px, border-radius:10px, font-weight:700).
+9. font-family:'Pretendard','Noto Sans KR',sans-serif
+
+<div style="..."> 로 시작하는 HTML만 출력. 설명 금지.`;
+            })(),
         };
 
         const prompt = cardPrompts[cardType];
