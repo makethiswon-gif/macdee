@@ -319,12 +319,12 @@ export default function ProfileManagerModal({ isOpen, profileId, onClose, onSucc
                                         </div>
                                         <div>
                                             <label className="block text-[11px] font-medium text-white/40 mb-1.5">디자인 스타일 (이미지 톤앤매너)</label>
-                                            <select value={formData.designStyle} onChange={e => setFormData({...formData, designStyle: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-white/30">
-                                                <option value="classic">중후하고 보수적인 (기본)</option>
-                                                <option value="trendy">젊고 감각적인</option>
-                                                <option value="cool">냉철한 (형사 전문 등)</option>
-                                                <option value="warm">따뜻한 (가사/상속 전문 등)</option>
-                                                <option value="traditional">전통적인 로펌 (명조체)</option>
+                                            <select value={formData.designStyle} onChange={e => setFormData({...formData, designStyle: e.target.value})} className="w-full bg-[#1a1a1a] border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-white/30" style={{colorScheme: 'dark'}}>
+                                                <option value="classic" className="bg-[#1a1a1a] text-white">중후하고 보수적인 (기본)</option>
+                                                <option value="trendy" className="bg-[#1a1a1a] text-white">젊고 감각적인</option>
+                                                <option value="cool" className="bg-[#1a1a1a] text-white">냉철한 (형사 전문 등)</option>
+                                                <option value="warm" className="bg-[#1a1a1a] text-white">따뜻한 (가사/상속 전문 등)</option>
+                                                <option value="traditional" className="bg-[#1a1a1a] text-white">전통적인 로펌 (명조체)</option>
                                             </select>
                                         </div>
                                     </div>
