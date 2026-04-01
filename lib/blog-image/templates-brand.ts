@@ -1,6 +1,6 @@
 import type { SKRSContext2D } from "@napi-rs/canvas";
 import {
-    SIZE, FONT_BOLD, FONT_BLACK, FONT_REGULAR, FONT_SERIF_BOLD, FONT_SERIF_REGULAR,
+    SIZE, FONT_BOLD, FONT_BLACK, FONT_REGULAR,
     drawCover, drawAutoShrinkText, rgba, drawFilmGrain, roundRect,
     type RenderInput, type Assets, hexToRgb
 } from "./renderer";
@@ -59,13 +59,13 @@ function renderBrandClassic(ctx: SKRSContext2D, input: RenderInput, assets: Asse
 
     ctx.save();
     ctx.globalAlpha = 0;
-    const met = drawAutoShrinkText(ctx, tagline, S / 2, 0, S - pad * 2, 360, 64, FONT_SERIF_BOLD, "700", { shadow: false });
+    const met = drawAutoShrinkText(ctx, tagline, S / 2, 0, S - pad * 2, 360, 64, FONT_BOLD, "700", { shadow: false });
     ctx.restore();
 
     const startY = (S / 2) - (met.height / 2) - 40;
 
     ctx.fillStyle = "#FFFFFF";
-    drawAutoShrinkText(ctx, tagline, S / 2, startY, S - pad * 2, 360, 64, FONT_SERIF_BOLD, "700", { shadow: false });
+    drawAutoShrinkText(ctx, tagline, S / 2, startY, S - pad * 2, 360, 64, FONT_BOLD, "700", { shadow: false });
 
     ctx.fillStyle = accent;
     ctx.fillRect(S / 2 - 20, startY + met.height + 40, 40, 2);
@@ -265,12 +265,12 @@ function renderBrandTraditional(ctx: SKRSContext2D, input: RenderInput, assets: 
     ctx.fillStyle = rgba(accent, 0.5);
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
-    ctx.font = `400 24px ${FONT_SERIF_REGULAR}`;
+    ctx.font = `400 24px ${FONT_REGULAR}`;
     ctx.fillText("—", S / 2, S / 2 - 180);
 
     // Tagline — serif, centered
     ctx.fillStyle = "#FFFFFF";
-    drawAutoShrinkText(ctx, tagline, S / 2, S / 2 - 140, S - pad * 2, 280, 56, FONT_SERIF_BOLD, "700", { center: true, lineGap: 1.6 });
+    drawAutoShrinkText(ctx, tagline, S / 2, S / 2 - 140, S - pad * 2, 280, 56, FONT_BOLD, "700", { center: true, lineGap: 1.6 });
 
     // Accent divider
     ctx.fillStyle = rgba(accent, 0.3);
@@ -278,6 +278,6 @@ function renderBrandTraditional(ctx: SKRSContext2D, input: RenderInput, assets: 
 
     // Name — serif
     ctx.fillStyle = "rgba(255,255,255,0.55)";
-    ctx.font = `400 18px ${FONT_SERIF_REGULAR}`;
+    ctx.font = `400 18px ${FONT_REGULAR}`;
     ctx.fillText(`${officeName || "법무법인"} | ${lawyerName} 변호사`, S / 2, S / 2 + 200);
 }

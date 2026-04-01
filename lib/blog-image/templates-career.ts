@@ -1,6 +1,6 @@
 import type { SKRSContext2D } from "@napi-rs/canvas";
 import {
-    SIZE, FONT_BOLD, FONT_BLACK, FONT_REGULAR, FONT_SERIF_BOLD, FONT_SERIF_REGULAR,
+    SIZE, FONT_BOLD, FONT_BLACK, FONT_REGULAR,
     drawCover, drawFilmGrain, drawWrappedText, drawAutoShrinkText,
     type RenderInput, type Assets, hasTransparency, rgba, roundRect, hexToRgb
 } from "./renderer";
@@ -368,17 +368,17 @@ function renderCareerTraditional(ctx: SKRSContext2D, input: RenderInput, assets:
 
     // Label — serif
     ctx.fillStyle = rgba(accent, 0.6);
-    ctx.font = `400 16px ${FONT_SERIF_REGULAR}`;
+    ctx.font = `400 16px ${FONT_REGULAR}`;
     ctx.fillText(`— ${officeName || "법률사무소"}`, pad, pad);
 
     // Name — serif
     ctx.fillStyle = "#FFFFFF";
-    ctx.font = `700 64px ${FONT_SERIF_BOLD}`;
+    ctx.font = `700 64px ${FONT_BOLD}`;
     ctx.fillText(lawyerName, pad, pad + 35);
 
     // Title
     ctx.fillStyle = "rgba(255,255,255,0.5)";
-    ctx.font = `400 18px ${FONT_SERIF_REGULAR}`;
+    ctx.font = `400 18px ${FONT_REGULAR}`;
     ctx.fillText(jobTitle || "대표변호사", pad, pad + 115);
 
     // Separator
@@ -389,5 +389,5 @@ function renderCareerTraditional(ctx: SKRSContext2D, input: RenderInput, assets:
     const careerText = prepareCareerText(career);
     const listY = pad + 185;
     ctx.fillStyle = "rgba(255,255,255,0.8)";
-    drawAutoShrinkText(ctx, careerText, pad, listY, S * 0.45, S - listY - pad, 18, FONT_SERIF_REGULAR, "400", { minFontSize: 12, lineGap: 1.7 });
+    drawAutoShrinkText(ctx, careerText, pad, listY, S * 0.45, S - listY - pad, 18, FONT_REGULAR, "400", { minFontSize: 12, lineGap: 1.7 });
 }

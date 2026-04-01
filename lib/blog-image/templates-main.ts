@@ -1,6 +1,6 @@
 import type { SKRSContext2D } from "@napi-rs/canvas";
 import {
-    SIZE, FONT_BOLD, FONT_BLACK, FONT_REGULAR, FONT_SERIF_BOLD, FONT_SERIF_REGULAR,
+    SIZE, FONT_BOLD, FONT_BLACK, FONT_REGULAR,
     drawCover, drawAutoShrinkText, rgba, hasTransparency, roundRect, drawFilmGrain,
     drawGradientOverlay, drawVignette,
     type RenderInput, type Assets, hexToRgb
@@ -403,18 +403,18 @@ function renderMainTraditional(ctx: SKRSContext2D, input: RenderInput, assets: A
     ctx.textBaseline = "top";
     ctx.textAlign = "left";
     ctx.fillStyle = rgba(accent, 0.8);
-    ctx.font = `400 16px ${FONT_SERIF_REGULAR}`;
+    ctx.font = `400 16px ${FONT_REGULAR}`;
     const spec = input.profile.specialty?.[0] || "법률정보";
     ctx.fillText(`— ${spec}`, pad, S / 2 - 240);
 
     // 7. Title — serif, white
     ctx.fillStyle = "#FFFFFF";
-    drawAutoShrinkText(ctx, title, pad, S / 2 - 200, S * 0.52, S * 0.42, 72, FONT_SERIF_BOLD, "700", { lineGap: 1.5 });
+    drawAutoShrinkText(ctx, title, pad, S / 2 - 200, S * 0.52, S * 0.42, 72, FONT_BOLD, "700", { lineGap: 1.5 });
 
     // 8. Accent thin divider + name
     ctx.fillStyle = rgba(accent, 0.4);
     ctx.fillRect(pad, S - pad - 50, 50, 1);
     ctx.fillStyle = "rgba(255,255,255,0.6)";
-    ctx.font = `400 16px ${FONT_SERIF_REGULAR}`;
+    ctx.font = `400 16px ${FONT_REGULAR}`;
     ctx.fillText(`${lawyerName} 변호사`, pad, S - pad - 30);
 }

@@ -1,6 +1,6 @@
 import type { SKRSContext2D } from "@napi-rs/canvas";
 import {
-    SIZE, FONT_BOLD, FONT_BLACK, FONT_REGULAR, FONT_SERIF_BOLD, FONT_SERIF_REGULAR,
+    SIZE, FONT_BOLD, FONT_BLACK, FONT_REGULAR,
     drawCover, drawAutoShrinkText, drawFilmGrain, rgba, roundRect,
     type RenderInput, type Assets, hexToRgb
 } from "./renderer";
@@ -272,7 +272,7 @@ function renderSummaryTraditional(ctx: SKRSContext2D, input: RenderInput, assets
 
     // Label — serif with em-dash
     ctx.fillStyle = rgba(accent, 0.7);
-    ctx.font = `400 16px ${FONT_SERIF_REGULAR}`;
+    ctx.font = `400 16px ${FONT_REGULAR}`;
     ctx.fillText("— 주요 쟁점 사항", pad, pad);
 
     // Points — serif, ample spacing
@@ -298,6 +298,6 @@ function renderSummaryTraditional(ctx: SKRSContext2D, input: RenderInput, assets
 
         // Text — serif
         ctx.fillStyle = "rgba(255,255,255,0.85)";
-        drawAutoShrinkText(ctx, pt, pad + 30, y + 10, S - pad * 2 - 30, rowH - 20, 28, FONT_SERIF_REGULAR, "400", { lineGap: 1.6 });
+        drawAutoShrinkText(ctx, pt, pad + 30, y + 10, S - pad * 2 - 30, rowH - 20, 28, FONT_REGULAR, "400", { lineGap: 1.6 });
     });
 }

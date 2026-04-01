@@ -1,6 +1,6 @@
 import type { SKRSContext2D } from "@napi-rs/canvas";
 import {
-    SIZE, FONT_BOLD, FONT_BLACK, FONT_REGULAR, FONT_SERIF_BOLD, FONT_SERIF_REGULAR,
+    SIZE, FONT_BOLD, FONT_BLACK, FONT_REGULAR,
     drawCover, drawAutoShrinkText, drawFilmGrain, rgba, roundRect,
     type RenderInput, type Assets, hexToRgb, hasTransparency
 } from "./renderer";
@@ -394,13 +394,13 @@ function renderContactTraditional(ctx: SKRSContext2D, input: RenderInput, assets
 
     // Name — serif
     ctx.fillStyle = "#FFFFFF";
-    ctx.font = `700 48px ${FONT_SERIF_BOLD}`;
+    ctx.font = `700 48px ${FONT_BOLD}`;
     ctx.fillText(lawyerName, S / 2, currY);
     currY += 50;
 
     // Office — serif
     ctx.fillStyle = "rgba(255,255,255,0.55)";
-    ctx.font = `400 20px ${FONT_SERIF_REGULAR}`;
+    ctx.font = `400 20px ${FONT_REGULAR}`;
     ctx.fillText(`${officeName || "법무법인"} 대표변호사`, S / 2, currY);
     currY += 60;
 
@@ -413,13 +413,13 @@ function renderContactTraditional(ctx: SKRSContext2D, input: RenderInput, assets
     const phones = getPhones(phone);
     if (phones[0]) {
         ctx.fillStyle = rgba(accent, 0.9);
-        ctx.font = `700 48px ${FONT_SERIF_BOLD}`;
+        ctx.font = `700 48px ${FONT_BOLD}`;
         ctx.fillText(phones[0], S / 2, currY);
         currY += 55;
     }
     if (phones[1]) {
         ctx.fillStyle = "rgba(255,255,255,0.6)";
-        ctx.font = `400 28px ${FONT_SERIF_REGULAR}`;
+        ctx.font = `400 28px ${FONT_REGULAR}`;
         ctx.fillText(phones[1], S / 2, currY);
         currY += 60;
     } else currY += 30;
@@ -428,13 +428,13 @@ function renderContactTraditional(ctx: SKRSContext2D, input: RenderInput, assets
     if (address) {
         ctx.fillStyle = "rgba(255,255,255,0.4)";
         ctx.textBaseline = "top";
-        drawAutoShrinkText(ctx, address, S / 2, currY, S - 200, 80, 18, FONT_SERIF_REGULAR, "400", { center: true });
+        drawAutoShrinkText(ctx, address, S / 2, currY, S - 200, 80, 18, FONT_REGULAR, "400", { center: true });
     }
 
     // Website
     if (website) {
         ctx.fillStyle = "rgba(255,255,255,0.3)";
-        ctx.font = `400 16px ${FONT_SERIF_REGULAR}`;
+        ctx.font = `400 16px ${FONT_REGULAR}`;
         ctx.textBaseline = "middle";
         ctx.fillText(website, S / 2, S - 100);
     }

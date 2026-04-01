@@ -1,0 +1,14 @@
+lib/blog-image/templates-brand.ts(1,1): error TS1490: File appears to be binary.
+lib/blog-image/templates-brand.ts(75,102): error TS1002: Unterminated string literal.
+lib/blog-image/templates-brand.ts(77,5): error TS1005: '}' expected.
+lib/blog-image/templates-brand.ts(77,29): error TS1005: ')' expected.
+lib/blog-image/templates-brand.ts(129,89): error TS1002: Unterminated string literal.
+lib/blog-image/templates-brand.ts(156,67): error TS1005: ',' expected.
+lib/blog-image/templates-brand.ts(156,70): error TS1109: Expression expected.
+lib/blog-image/templates-brand.ts(282,1): error TS1005: ')' expected.
+lib/blog-image/templates-career.ts(371,59): error TS1002: Unterminated string literal.
+lib/blog-image/templates-career.ts(374,5): error TS1005: '}' expected.
+lib/blog-image/templates-career.ts(374,30): error TS1005: ')' expected.
+lib/blog-image/templates-contact.ts(1,1): error TS1490: File appears to be binary.
+lib/blog-image/templates-contact.ts(77,61): error TS1109: Expression expected.
+lib/blog-image/templates-contact.ts(440,1): error TS1005: ')' expected.
