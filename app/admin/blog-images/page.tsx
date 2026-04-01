@@ -13,12 +13,21 @@ interface Profile {
     id: string;
     lawyerName: string;
     officeName: string;
-    profileImages?: string[];
-    profileImageCount?: number;
-    officeImageCount?: number;
+    phone: string;
+    address: string;
+    website: string;
+    jobTitle: string;
+    career: string[];
+    profileImages: string[];
+    officeImages: string[];
+    logoImage: string;
     hasLogo: boolean;
     specialty: string[];
     brandColor: string;
+    brandLines: string[];
+    designStyle: string;
+    profileImageCount?: number;
+    officeImageCount?: number;
 }
 
 interface AICard {
@@ -67,30 +76,53 @@ export default function BlogImagesPage() {
         if (!selectedId) return alert("변호사를 선택해주세요.");
         if (!postContent.trim()) return alert("블로그 본문 내용을 입력해주세요.");
 
-        const selected = profiles.find(p => p.id === selectedId);
-        if (!selected) return;
-
         setIsGenerating(true);
         setCards([]);
+        setGenerationMessage("변호사 프로필 상세 정보를 불러오는 중...");
+
+        // Fetch full profile detail (includes images, logo, career, etc.)
+        let fullProfile: Profile | null = null;
+        try {
+            const profileRes = await fetch(`/api/admin/blog-profiles?id=${selectedId}`);
+            if (profileRes.ok) {
+                const profileData = await profileRes.json();
+                fullProfile = profileData.profile;
+            }
+        } catch (e) {
+            console.error("Profile fetch error:", e);
+        }
+
+        if (!fullProfile) {
+            // Fallback to list data
+            fullProfile = profiles.find(p => p.id === selectedId) || null;
+        }
+        if (!fullProfile) {
+            alert("프로필을 불러올 수 없습니다.");
+            setIsGenerating(false);
+            return;
+        }
 
         const cardTypes = [
             { type: "thumbnail", label: "메인 썸네일" },
+            { type: "profile_intro", label: "변호사 프로필 소개" },
             { type: "summary", label: "핵심 요약" },
+            { type: "career", label: "경력 소개" },
             { type: "contact", label: "문의 안내" },
         ];
 
         const generatedCards: AICard[] = [];
+        const total = cardTypes.length;
 
         for (let i = 0; i < cardTypes.length; i++) {
             const ct = cardTypes[i];
-            setGenerationMessage(`AI가 ${ct.label} 카드를 디자인하고 있습니다... (${i + 1}/3)`);
+            setGenerationMessage(`AI가 ${ct.label} 카드를 디자인하고 있습니다... (${i + 1}/${total})`);
 
             try {
                 const res = await fetch("/api/admin/blog-images/generate-design", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        profile: selected,
+                        profile: fullProfile,
                         title: postTitle,
                         content: postContent,
                         cardType: ct.type,
@@ -119,7 +151,7 @@ export default function BlogImagesPage() {
         }
 
         if (generatedCards.length > 0) {
-            setGenerationMessage(`디자인 생성 완료! (${generatedCards.length}/3 카드)`);
+            setGenerationMessage(`디자인 생성 완료! (${generatedCards.length}/${total} 카드)`);
         } else {
             setGenerationMessage("카드 생성에 실패했습니다. 다시 시도해주세요.");
         }
