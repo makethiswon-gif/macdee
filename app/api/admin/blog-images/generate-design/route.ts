@@ -149,7 +149,8 @@ ${phoneLinesText}
 
 7. 위 연락처 정보가 카드에서 반드시 보여야 함. 빠뜨리면 안 됨.
 8. 맨 하단에 "지금 상담 예약하세요" 버튼 (background:${brandColor}, color:white, padding:12px 36px, border-radius:10px, font-weight:700).
-9. font-family:'Pretendard','Noto Sans KR',sans-serif
+9. HTML을 최대한 간결하게 작성. 꾸밈용 빈 div나 장식 요소 넣지 말 것. 정보 전달에 집중.
+10. font-family:'Pretendard','Noto Sans KR',sans-serif
 
 <div style="..."> 로 시작하는 HTML만 출력. 설명 금지.`;
             })(),
@@ -160,7 +161,7 @@ ${phoneLinesText}
             return NextResponse.json({ error: `Unknown card type: ${cardType}` }, { status: 400 });
         }
 
-        const maxTokens = cardType === "career" ? 1800 : 1200;
+        const maxTokens = (cardType === "career" || cardType === "contact") ? 1800 : 1200;
 
         const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
             method: "POST",
