@@ -537,8 +537,12 @@ export interface RenderInput {
 export async function renderBlogImage(input: RenderInput): Promise<Buffer> {
     ensureFonts();
 
-    const canvas = createCanvas(SIZE, SIZE);
+    const OUTPUT_SIZE = 2000;
+    const canvas = createCanvas(OUTPUT_SIZE, OUTPUT_SIZE);
     const ctx = canvas.getContext("2d");
+
+    // 기본 시각은 1024px로 잡고, 출력은 2000px에 맞게 전체 벡터 스케일업
+    ctx.scale(OUTPUT_SIZE / SIZE, OUTPUT_SIZE / SIZE);
 
     // 기본 렌더링 품질을 높은 해상도 벡터 수준으로 유지하기 위해 전역 안티앨리어싱 스킵
 

@@ -77,7 +77,8 @@ async function compressImage(base64: string, maxW: number, maxH: number): Promis
         const match = base64.match(/^data:image\/\w+;base64,(.+)$/);
         if (!match) return base64;
         const buf = Buffer.from(match[1], "base64");
-        const resized = await sharp(buf).resize(maxW, maxH, { fit: "cover" }).webp({ quality: 75 }).toBuffer();
+        // 최고 스케일인 2000px 이미지를 커버하기 위해 webp 품질을 90으로 상향
+        const resized = await sharp(buf).resize(maxW, maxH, { fit: "cover" }).webp({ quality: 90 }).toBuffer();
         return `data:image/webp;base64,${resized.toString("base64")}`;
     } catch {
         return base64;
@@ -90,7 +91,8 @@ async function compressLogo(base64: string): Promise<string> {
         const match = base64.match(/^data:image\/\w+;base64,(.+)$/);
         if (!match) return base64;
         const buf = Buffer.from(match[1], "base64");
-        const resized = await sharp(buf).resize(400, 160, { fit: "inside" }).png({ quality: 90 }).toBuffer();
+        // 로고 역시 2000px 출력 캔버스에 붙일 때 뭉개지지 않도록 해상도 상향 (1000x400)
+        const resized = await sharp(buf).resize(1000, 400, { fit: "inside" }).png({ quality: 90 }).toBuffer();
         return `data:image/png;base64,${resized.toString("base64")}`;
     } catch {
         return base64;
@@ -231,8 +233,8 @@ export async function POST(request: NextRequest) {
             }
 
             const isProfile = imageType === "profile";
-            // 화질 저하의 주범: 400x500 썸네일 압축 사이즈를 1200px 급으로 해제
-            const compressed = await compressImage(body.base64, isProfile ? 1024 : 1200, isProfile ? 1280 : 800);
+            // 화질 저하의 주범: 400x500 썸네일 압축 사이즈를 2000px 결과물에 맞는 해상도로 상향
+            const compressed = await compressImage(body.base64, isProfile ? 1400 : 2000, isProfile ? 1800 : 1600);
             const images = isProfile ? [...(row.profile_images || []), compressed] : [...(row.office_images || []), compressed];
             const updateField = isProfile ? { profile_images: images } : { office_images: images };
             const { error } = await supabase.from("blog_profiles").update(updateField).eq("id", body.profileId);
