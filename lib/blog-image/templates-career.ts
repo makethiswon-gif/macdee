@@ -19,7 +19,7 @@ export function renderCareerTemplate(ctx: SKRSContext2D, input: RenderInput, ass
     }
 }
 
-// ── Shared Helpers ──
+// ── Shared: format career text ──
 function prepareCareerText(career: string[] | undefined): string {
     if (!career || career.length === 0) return "등록된 약력이 없습니다.";
     return career.map(item => {
@@ -30,8 +30,38 @@ function prepareCareerText(career: string[] | undefined): string {
     }).join("\n");
 }
 
+// ── Shared: draw profile photo fading from right ──
+function drawFadingProfileRight(ctx: SKRSContext2D, profileImg: any, shadowGrad: any) {
+    if (!profileImg) return;
+    const isCutout = hasTransparency(profileImg);
+    if (isCutout) {
+        const targetH = S * 0.9;
+        let scale = targetH / profileImg.height;
+        let targetW = profileImg.width * scale;
+        if (targetW > S * 0.65) {
+            scale = (S * 0.65) / profileImg.width;
+            targetW = profileImg.width * scale;
+        }
+        ctx.drawImage(profileImg, S - targetW - 20, S - profileImg.height * scale, targetW, profileImg.height * scale);
+    } else {
+        const w = S * 0.55;
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(S - w, 0, w, S);
+        ctx.clip();
+        ctx.globalAlpha = 0.7;
+        drawCover(ctx, profileImg, S - w, 0, w, S);
+        ctx.restore();
+        // Re-apply left shadow to fade photo edge
+        if (shadowGrad) {
+            ctx.fillStyle = shadowGrad;
+            ctx.fillRect(0, 0, S, S);
+        }
+    }
+}
+
 // ==========================================
-// 1. CLASSIC (기존: 깊은 스튜디오 음영)
+// 1. CLASSIC (기존) — 유지
 // ==========================================
 function renderCareerClassic(ctx: SKRSContext2D, input: RenderInput, assets: Assets) {
     const { lawyerName, jobTitle, officeName, career } = input.profile;
@@ -61,36 +91,14 @@ function renderCareerClassic(ctx: SKRSContext2D, input: RenderInput, assets: Ass
 
     drawFilmGrain(ctx, 0.04);
 
-    const watermarkText = officeName ? officeName.toUpperCase() : "ATTORNEY PROFILE";
+    // Watermark
     ctx.font = `900 160px ${FONT_BLACK}`;
     ctx.fillStyle = "rgba(255, 255, 255, 0.04)";
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
-    ctx.fillText(watermarkText, 30, 0);
+    ctx.fillText((officeName || "ATTORNEY").toUpperCase(), 30, 0);
 
-    if (profileImg) {
-        if (hasTransparency(profileImg)) {
-            const targetH = S * 0.9;
-            let scale = targetH / profileImg.height;
-            let targetW = profileImg.width * scale;
-            const maxW = S * 0.65;
-            if (targetW > maxW) {
-                scale = maxW / profileImg.width;
-                targetW = profileImg.width * scale;
-            }
-            ctx.drawImage(profileImg, S - targetW - 20, S - profileImg.height * scale, targetW, profileImg.height * scale);
-        } else {
-            ctx.save();
-            const w = S * 0.6;
-            ctx.rect(S - w, 0, w, S);
-            ctx.clip();
-            ctx.globalAlpha = 0.8;
-            drawCover(ctx, profileImg, S - w, 0, w, S);
-            ctx.restore();
-            ctx.fillStyle = shadowGrad;
-            ctx.fillRect(0, 0, S, S);
-        }
-    }
+    drawFadingProfileRight(ctx, profileImg, shadowGrad);
 
     const padX = 100;
     const contentMaxW = S * 0.55;
@@ -110,11 +118,10 @@ function renderCareerClassic(ctx: SKRSContext2D, input: RenderInput, assets: Ass
     ctx.fillStyle = "#FFFFFF";
     const nameMet = ctx.measureText(lawyerName);
     ctx.fillText(lawyerName, padX, currY);
-    
+
     ctx.font = `400 22px ${FONT_REGULAR}`;
     ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
     drawWrappedText(ctx, `${officeName}\n${jobTitle}`, padX + nameMet.width + 24, currY + 22, contentMaxW - nameMet.width - 24, 30);
-    
     currY += 160;
 
     ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
@@ -124,241 +131,263 @@ function renderCareerClassic(ctx: SKRSContext2D, input: RenderInput, assets: Ass
 }
 
 // ==========================================
-// 2. TRENDY (젊고 감각적인 디자인)
+// 2. TRENDY — 다크 + 볼드 이름 + 깔끔한 리스트
 // ==========================================
 function renderCareerTrendy(ctx: SKRSContext2D, input: RenderInput, assets: Assets) {
-    const { lawyerName, jobTitle, career } = input.profile;
-    const { accent, darkBg, profileImg } = assets;
+    const { lawyerName, jobTitle, officeName, career } = input.profile;
+    const { accent, profileImg, officeImg } = assets;
+    const pad = 100;
 
-    ctx.fillStyle = darkBg;
+    ctx.fillStyle = "#0C0C0C";
     ctx.fillRect(0, 0, S, S);
 
-    // Thick geometric frames
-    ctx.strokeStyle = accent;
-    ctx.lineWidth = 16;
-    ctx.strokeRect(40, 40, S - 80, S - 80);
-
-    ctx.fillStyle = accent;
-    ctx.fillRect(40, S - 200, S - 80, 160);
-
-    if (profileImg) {
-        if (hasTransparency(profileImg)) {
-            let scale = (S * 0.85) / profileImg.height;
-            let targetW = profileImg.width * scale;
-            ctx.drawImage(profileImg, S - targetW - 60, S - profileImg.height * scale - 160, targetW, profileImg.height * scale);
-        } else {
-            ctx.save();
-            ctx.beginPath();
-            ctx.moveTo(S * 0.5, 40);
-            ctx.lineTo(S - 40, 40);
-            ctx.lineTo(S - 40, S - 200);
-            ctx.lineTo(S * 0.8, S - 200);
-            ctx.clip();
-            drawCover(ctx, profileImg, S * 0.5, 40, S * 0.5, S - 240);
-            ctx.restore();
-        }
+    if (officeImg) {
+        ctx.save();
+        ctx.globalAlpha = 0.1;
+        ctx.filter = "grayscale(100%) contrast(1.4)";
+        drawCover(ctx, officeImg, 0, 0, S, S);
+        ctx.restore();
     }
 
-    ctx.fillStyle = "#FFFFFF";
-    ctx.textAlign = "left";
-    ctx.textBaseline = "top";
-    
-    ctx.font = `900 64px ${FONT_BLACK}`;
-    ctx.fillText("PROFILE", 100, 100);
+    const grad = ctx.createLinearGradient(0, 0, S * 0.6, 0);
+    grad.addColorStop(0, "rgba(12,12,12,1)");
+    grad.addColorStop(1, "rgba(12,12,12,0)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, S, S);
 
-    ctx.font = `700 80px ${FONT_BOLD}`;
-    ctx.fillText(lawyerName, 100, 180);
+    drawFilmGrain(ctx, 0.02);
+    drawFadingProfileRight(ctx, profileImg, grad);
+
+    ctx.textBaseline = "top";
+    ctx.textAlign = "left";
+
+    // Small label
+    ctx.fillStyle = accent;
+    ctx.font = `700 16px ${FONT_BOLD}`;
+    ctx.fillText("PROFILE", pad, pad);
+
+    // Accent bar
+    ctx.fillStyle = accent;
+    ctx.fillRect(pad, pad + 30, 40, 3);
+
+    // Name
+    ctx.fillStyle = "#FFFFFF";
+    ctx.font = `900 72px ${FONT_BLACK}`;
+    ctx.fillText(lawyerName, pad, pad + 55);
+
+    // Job title
+    ctx.fillStyle = "rgba(255,255,255,0.5)";
+    ctx.font = `400 20px ${FONT_REGULAR}`;
+    ctx.fillText(`${officeName || ""} ${jobTitle || "대표변호사"}`, pad, pad + 140);
 
     // Career list
     const careerText = prepareCareerText(career);
-    drawAutoShrinkText(ctx, careerText, 100, 300, S * 0.6, S - 540, 22, FONT_REGULAR, "700", { lineGap: 1.6 });
-
-    // Bottom banner text
-    ctx.fillStyle = darkBg;
-    ctx.font = `900 48px ${FONT_BLACK}`;
-    ctx.fillText(`${jobTitle}의 확신과 비전`, 100, S - 150);
+    const listY = pad + 200;
+    ctx.fillStyle = "rgba(255,255,255,0.8)";
+    drawAutoShrinkText(ctx, careerText, pad, listY, S * 0.48, S - listY - pad, 18, FONT_REGULAR, "400", { minFontSize: 12, lineGap: 1.7 });
 }
 
 // ==========================================
-// 3. COOL (냉철한 형사전문: 타임라인 그리드)
+// 3. COOL — 모노크롬 + 타임라인 느낌
 // ==========================================
 function renderCareerCool(ctx: SKRSContext2D, input: RenderInput, assets: Assets) {
-    const { lawyerName, jobTitle, career } = input.profile;
-    const { accent, darkBg, profileImg } = assets;
+    const { lawyerName, jobTitle, officeName, career } = input.profile;
+    const { accent, profileImg, officeImg } = assets;
+    const pad = 100;
 
-    ctx.fillStyle = darkBg;
+    ctx.fillStyle = "#111114";
     ctx.fillRect(0, 0, S, S);
 
-    ctx.strokeStyle = "rgba(255,255,255,0.05)";
-    for (let i = 1; i < 5; i++) {
-        ctx.strokeRect(S * 0.2 * i, 0, 1, S);
+    if (officeImg) {
+        ctx.save();
+        ctx.globalAlpha = 0.12;
+        ctx.filter = "grayscale(100%) contrast(1.3)";
+        drawCover(ctx, officeImg, 0, 0, S, S);
+        ctx.restore();
     }
 
-    if (profileImg) {
-        if (hasTransparency(profileImg)) {
-            const th = S * 0.95;
-            const tw = profileImg.width * (th / profileImg.height);
-            ctx.drawImage(profileImg, S - tw, S - th, tw, th);
-            ctx.fillStyle = "rgba(0,0,0,0.4)"; // overlay slightly to merge
-            ctx.fillRect(S - tw, S - th, tw, th);
-        } else {
-            ctx.save();
-            ctx.globalAlpha = 0.5;
-            ctx.filter = "grayscale(100%)";
-            drawCover(ctx, profileImg, S * 0.5, 0, S * 0.5, S);
-            ctx.restore();
-            ctx.fillStyle = "rgba(0,0,0,0.5)";
-            ctx.fillRect(S * 0.5, 0, S * 0.5, S);
-        }
-    }
-
-    ctx.fillStyle = "#FFFFFF";
-    ctx.font = `400 24px ${FONT_REGULAR}`;
-    ctx.textAlign = "left";
-    ctx.textBaseline = "top";
-    ctx.fillText("ATTORNEY AT LAW", 100, 100);
-
-    ctx.fillStyle = accent;
-    ctx.fillRect(100, 140, 40, 4);
-
-    ctx.fillStyle = "#FFFFFF";
-    ctx.font = `700 80px ${FONT_BOLD}`;
-    ctx.fillText(lawyerName, 100, 180);
-
-    ctx.font = `400 24px ${FONT_REGULAR}`;
-    ctx.fillStyle = "rgba(255,255,255,0.6)";
-    ctx.fillText(jobTitle || "대표변호사", 100, 270);
-
-    // Timeline line
-    const startY = 360;
-    const endY = S - 100;
-    ctx.fillStyle = rgba(accent, 0.3);
-    ctx.fillRect(105, startY, 2, endY - startY);
-
-    const points = career ? career.filter(Boolean).slice(0, 6) : [];
-    const step = (endY - startY) / Math.max(points.length, 1);
-    
-    ctx.font = `500 20px ${FONT_REGULAR}`;
-    points.forEach((pt, i) => {
-        const y = startY + (i * step);
-        ctx.fillStyle = accent;
-        ctx.beginPath();
-        ctx.arc(106, y + 10, 6, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = "#FFFFFF";
-        drawWrappedText(ctx, pt.replace(/^[-·]\s*/, ""), 130, y, S * 0.5, 28);
-    });
-}
-
-// ==========================================
-// 4. WARM (따뜻한: 베이지 바탕, 둥근 프레임)
-// ==========================================
-function renderCareerWarm(ctx: SKRSContext2D, input: RenderInput, assets: Assets) {
-    const { lawyerName, jobTitle, career } = input.profile;
-    const { accent, profileImg } = assets;
-
-    ctx.fillStyle = "#FDFBF7";
-    ctx.fillRect(0, 0, S, S);
-
-    const [r, g, b] = hexToRgb(accent);
-    const grad = ctx.createLinearGradient(0, S, S, 0);
-    grad.addColorStop(0, `rgba(${r},${g},${b}, 0.1)`);
+    const grad = ctx.createLinearGradient(0, 0, S * 0.6, 0);
+    grad.addColorStop(0, "rgba(17,17,20,0.98)");
     grad.addColorStop(1, "transparent");
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, S, S);
 
+    drawFilmGrain(ctx, 0.04);
+
     if (profileImg) {
         ctx.save();
-        ctx.beginPath();
-        roundRect(ctx, Math.max(S * 0.6, S - 400), 100, 320, 400, 160);
-        ctx.clip();
-        drawCover(ctx, profileImg, Math.max(S * 0.6, S - 400), 100, 320, 400);
+        ctx.filter = "grayscale(90%) contrast(1.15)";
+        drawFadingProfileRight(ctx, profileImg, grad);
         ctx.restore();
     }
 
+    // Vertical accent line
     ctx.fillStyle = accent;
-    ctx.font = `700 24px ${FONT_BOLD}`;
-    ctx.textAlign = "left";
+    ctx.fillRect(pad - 16, pad, 3, S - pad * 2);
+
     ctx.textBaseline = "top";
-    ctx.fillText(jobTitle, 100, 140);
+    ctx.textAlign = "left";
 
-    ctx.fillStyle = "#332D2B";
-    ctx.font = `900 72px ${FONT_BLACK}`;
-    ctx.fillText(`${lawyerName} 변호사`, 100, 180);
+    // Label
+    ctx.fillStyle = "rgba(255,255,255,0.3)";
+    ctx.font = `400 14px ${FONT_REGULAR}`;
+    ctx.fillText("ATTORNEY AT LAW", pad, pad);
 
-    ctx.fillStyle = "rgba(51, 45, 43, 0.1)";
-    ctx.fillRect(100, 280, S * 0.45, 2);
+    // Name
+    ctx.fillStyle = "#FFFFFF";
+    ctx.font = `700 64px ${FONT_BOLD}`;
+    ctx.fillText(lawyerName, pad, pad + 30);
 
-    ctx.fillStyle = "#665E5C";
+    // Title
+    ctx.fillStyle = "rgba(255,255,255,0.45)";
+    ctx.font = `400 18px ${FONT_REGULAR}`;
+    ctx.fillText(`${officeName || ""} ${jobTitle || ""}`, pad, pad + 110);
+
+    // Career list
     const careerText = prepareCareerText(career);
-    drawAutoShrinkText(ctx, careerText, 100, 320, S * 0.45, S - 400, 22, FONT_REGULAR, "500", { lineGap: 1.8 });
-
-    // Floating shape accent
-    ctx.fillStyle = accent;
-    ctx.beginPath();
-    ctx.arc(S - 100, S - 150, 60, 0, Math.PI * 2);
-    ctx.fill();
+    const listY = pad + 170;
+    ctx.fillStyle = "rgba(255,255,255,0.75)";
+    drawAutoShrinkText(ctx, careerText, pad, listY, S * 0.48, S - listY - pad, 18, FONT_REGULAR, "400", { minFontSize: 12, lineGap: 1.7 });
 }
 
 // ==========================================
-// 5. TRADITIONAL (전통적: 세리프, 클래식 리스트)
+// 4. WARM — 밝은 크림 톤 약력
 // ==========================================
-function renderCareerTraditional(ctx: SKRSContext2D, input: RenderInput, assets: Assets) {
-    const { lawyerName, officeName, career } = input.profile;
-    const { accent, darkBg, profileImg } = assets;
+function renderCareerWarm(ctx: SKRSContext2D, input: RenderInput, assets: Assets) {
+    const { lawyerName, jobTitle, officeName, career } = input.profile;
+    const { accent, profileImg, officeImg } = assets;
+    const pad = 100;
+    const [r, g, b] = hexToRgb(accent);
 
-    ctx.fillStyle = darkBg;
+    // Cream base
+    ctx.fillStyle = "#FAF8F5";
     ctx.fillRect(0, 0, S, S);
 
-    ctx.strokeStyle = accent;
-    ctx.lineWidth = 1;
-    ctx.strokeRect(60, 60, S - 120, S - 120);
+    if (officeImg) {
+        ctx.save();
+        ctx.globalAlpha = 0.06;
+        ctx.filter = "sepia(0.3) blur(4px)";
+        drawCover(ctx, officeImg, -8, -8, S + 16, S + 16);
+        ctx.restore();
+    }
 
+    // Profile — rounded rect on right
     if (profileImg) {
-        if (hasTransparency(profileImg)) {
-            let scale = (S * 0.8) / profileImg.height;
+        const isCutout = hasTransparency(profileImg);
+        if (isCutout) {
+            const targetH = S * 0.8;
+            let scale = targetH / profileImg.height;
             let targetW = profileImg.width * scale;
-            ctx.drawImage(profileImg, S - targetW - 80, S - profileImg.height * scale - 60, targetW, profileImg.height * scale);
+            if (targetW > S * 0.5) {
+                scale = (S * 0.5) / profileImg.width;
+                targetW = profileImg.width * scale;
+            }
+            ctx.drawImage(profileImg, S - targetW - 50, S - profileImg.height * scale, targetW, profileImg.height * scale);
         } else {
+            const fw = 340, fh = 480;
+            const fx = S - pad - fw, fy = (S - fh) / 2;
             ctx.save();
             ctx.beginPath();
-            ctx.rect(S - 420, 100, 320, S - 200);
+            roundRect(ctx, fx, fy, fw, fh, 30);
             ctx.clip();
-            drawCover(ctx, profileImg, S - 420, 100, 320, S - 200);
+            drawCover(ctx, profileImg, fx, fy, fw, fh);
             ctx.restore();
-            ctx.strokeStyle = "rgba(255,255,255,0.5)";
-            ctx.strokeRect(S - 430, 90, 340, S - 180);
         }
     }
 
-    ctx.fillStyle = accent;
-    ctx.font = `700 24px ${FONT_SERIF_BOLD}`;
-    ctx.textAlign = "left";
     ctx.textBaseline = "top";
-    ctx.fillText(`— ${officeName || "법률사무소"} ⏤`, 120, 120);
+    ctx.textAlign = "left";
 
+    // Accent bar + label
+    ctx.fillStyle = accent;
+    ctx.fillRect(pad, pad, 3, 40);
+    ctx.fillStyle = accent;
+    ctx.font = `700 16px ${FONT_BOLD}`;
+    ctx.fillText(jobTitle || "대표변호사", pad + 16, pad);
+
+    // Name
+    ctx.fillStyle = "#2C2520";
+    ctx.font = `900 64px ${FONT_BLACK}`;
+    ctx.fillText(lawyerName, pad, pad + 50);
+
+    // Office
+    ctx.fillStyle = "#6B5E56";
+    ctx.font = `400 18px ${FONT_REGULAR}`;
+    ctx.fillText(officeName || "", pad, pad + 130);
+
+    // Separator
+    ctx.fillStyle = `rgba(${r},${g},${b},0.15)`;
+    ctx.fillRect(pad, pad + 170, S * 0.4, 1);
+
+    // Career list
+    const careerText = prepareCareerText(career);
+    const listY = pad + 200;
+    ctx.fillStyle = "#4A403A";
+    drawAutoShrinkText(ctx, careerText, pad, listY, S * 0.42, S - listY - pad, 18, FONT_REGULAR, "400", { minFontSize: 12, lineGap: 1.7 });
+}
+
+// ==========================================
+// 5. TRADITIONAL — 명조체 약력
+// ==========================================
+function renderCareerTraditional(ctx: SKRSContext2D, input: RenderInput, assets: Assets) {
+    const { lawyerName, jobTitle, officeName, career } = input.profile;
+    const { accent, profileImg, officeImg } = assets;
+    const pad = 100;
+
+    ctx.fillStyle = "#0E0E10";
+    ctx.fillRect(0, 0, S, S);
+
+    if (officeImg) {
+        ctx.save();
+        ctx.globalAlpha = 0.12;
+        ctx.filter = "grayscale(50%) contrast(1.1)";
+        drawCover(ctx, officeImg, 0, 0, S, S);
+        ctx.restore();
+    }
+
+    const grad = ctx.createLinearGradient(0, 0, S * 0.6, 0);
+    grad.addColorStop(0, "rgba(14,14,16,0.97)");
+    grad.addColorStop(1, "transparent");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, S, S);
+
+    drawFilmGrain(ctx, 0.03);
+
+    // Border
+    ctx.strokeStyle = rgba(accent, 0.25);
+    ctx.lineWidth = 1;
+    ctx.strokeRect(50, 50, S - 100, S - 100);
+
+    // Profile
+    if (profileImg) {
+        drawFadingProfileRight(ctx, profileImg, grad);
+    }
+
+    ctx.textBaseline = "top";
+    ctx.textAlign = "left";
+
+    // Label — serif
+    ctx.fillStyle = rgba(accent, 0.6);
+    ctx.font = `400 16px ${FONT_SERIF_REGULAR}`;
+    ctx.fillText(`— ${officeName || "법률사무소"}`, pad, pad);
+
+    // Name — serif
     ctx.fillStyle = "#FFFFFF";
-    ctx.font = `700 80px ${FONT_SERIF_BOLD}`;
-    ctx.fillText(lawyerName, 120, 180);
+    ctx.font = `700 64px ${FONT_SERIF_BOLD}`;
+    ctx.fillText(lawyerName, pad, pad + 35);
 
-    // A classic list with serif font
-    const points = career ? career.filter(Boolean) : [];
-    
-    let y = 320;
-    const availableH = S - y - 100;
-    const rowH = Math.min(40, availableH / Math.max(points.length, 1));
+    // Title
+    ctx.fillStyle = "rgba(255,255,255,0.5)";
+    ctx.font = `400 18px ${FONT_SERIF_REGULAR}`;
+    ctx.fillText(jobTitle || "대표변호사", pad, pad + 115);
 
-    points.forEach(pt => {
-        ctx.fillStyle = accent;
-        ctx.font = `400 20px ${FONT_SERIF_REGULAR}`;
-        ctx.fillText("✦", 120, y);
+    // Separator
+    ctx.fillStyle = rgba(accent, 0.2);
+    ctx.fillRect(pad, pad + 155, S * 0.4, 1);
 
-        ctx.fillStyle = "rgba(255,255,255,0.85)";
-        drawWrappedText(ctx, pt.replace(/^[-·]\s*/, ""), 150, y, S * 0.4, 30);
-        
-        // Increase Y by number of lines wrapped
-        const tempCtxCount = Math.ceil(ctx.measureText(pt).width / (S * 0.4));
-        y += Math.max(rowH, rowH * tempCtxCount);
-    });
+    // Career list — serif
+    const careerText = prepareCareerText(career);
+    const listY = pad + 185;
+    ctx.fillStyle = "rgba(255,255,255,0.8)";
+    drawAutoShrinkText(ctx, careerText, pad, listY, S * 0.45, S - listY - pad, 18, FONT_SERIF_REGULAR, "400", { minFontSize: 12, lineGap: 1.7 });
 }
