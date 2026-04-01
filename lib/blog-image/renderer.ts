@@ -532,6 +532,7 @@ export interface RenderInput {
     imageType: "main" | "summary" | "illustration" | "contact" | "brand" | "career";
     accentColor?: string;
     summaryImageUrl?: string;
+    overrideProfileImgBase64?: string;
     designStyle: DesignStyle;
 }
 
@@ -552,7 +553,9 @@ export async function renderBlogImage(input: RenderInput): Promise<Buffer> {
     const profileUrl = profiles.length > 0 ? profiles[Math.floor(Math.random() * profiles.length)] : null;
     const officeUrl = offices.length > 0 ? offices[Math.floor(Math.random() * offices.length)] : null;
 
-    const profileImg = profileUrl ? await safeLoadImage(profileUrl) : null;
+    const profileImg = input.overrideProfileImgBase64 
+        ? await safeLoadImage(input.overrideProfileImgBase64) 
+        : (profileUrl ? await safeLoadImage(profileUrl) : null);
     const officeImg = officeUrl ? await safeLoadImage(officeUrl) : null;
     const logoImg = input.profile.logoImage ? await safeLoadImage(input.profile.logoImage) : null;
 

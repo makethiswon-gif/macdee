@@ -19,15 +19,16 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "OPENAI_API_KEY missing" }, { status: 500 });
         }
 
-        // The specialized prompt reverse-engineered from the user's uploaded style
-        const prompt = `A trendy, minimalist 2D flat vector character illustration on a pure off-white cream background.
+        // The specialized prompt reverse-engineered from the user's uploaded style, adapted to fit the context
+        const prompt = `A trendy, minimalist 2D flat vector illustration that clearly represents the core subject matter of the following text: "${context}"
+
 Strict visual style constraints: 
 1. Very bold, thick, continuous black ink outlines defining all shapes. 
-2. Absolutely NO gradients, NO complex shading, NO 3D rendering. Only flat solid block colors. Use bold pure black for deep shadows.
-3. Limited and earthy muted color palette: olive green, brown, beige, warm tan, pure black, and white.
-4. The character should have hipster/cafe streetwear fashion (e.g. beanie, oversized t-shirt or sweater, baggy shorts or dark pants, chunky white sneakers).
-5. Minimal facial features (just dots for eyes, simple line for mouth, relaxed expression).
-Action/Theme based on this context: A casual character doing an action related to: ${context}`;
+2. Absolutely NO gradients, NO complex shading, NO 3D rendering. Only flat solid block colors. 
+3. Limited and earthy muted color palette: olive green, warm brown, beige, pure black, and white.
+4. If characters are included, they should have minimal facial features (just dots for eyes, simple line for mouth).
+5. The illustration must strongly and directly depict the legal or business subject matter provided above, maintaining the trendy graphic aesthetic. Do NOT just draw a random casual character doing nothing.
+6. The background must be pure off-white or cream. Absolutely NO TEXT OR WORDS in the image.`;
 
         const res = await fetch("https://api.openai.com/v1/images/generations", {
             method: "POST",

@@ -42,6 +42,10 @@ export function resolveFont(fontFamily: 'sans' | 'serif', weight: number | strin
 // === Data Binder ===
 export function bindText(rawText: string, dataObj: Record<string, string | string[]>): string {
     let result = rawText;
+    // HACK: Strip Hanja characters to prevent rendering broken boxes [][][] on server
+    result = result.replace(/[\u4e00-\u9faf\u3400-\u4DBF]/g, '');
+    result = result.replace(/\(\s*\)/g, ''); // cleanup empty parens if hanja was inside
+
     const matches = rawText.match(/{{[^}]+}}/g);
     if (!matches) return rawText;
 

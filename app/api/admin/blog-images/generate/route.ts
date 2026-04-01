@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
 
     try {
         const body = await request.json();
-        const { profileId, title, summaryPoints, summaryImageUrl, templateId, imageType, accentColor } = body;
+        const { profileId, title, summaryPoints, summaryImageUrl, templateId, imageType, accentColor, overrideProfileImgBase64 } = body;
 
         if (!profileId || !imageType) {
             return NextResponse.json({ error: "Missing profileId or imageType" }, { status: 400 });
@@ -77,6 +77,7 @@ export async function POST(request: NextRequest) {
             summaryImageUrl,
             templateId: templateId ?? 0,
             imageType,
+            overrideProfileImgBase64,
             accentColor: accentColor || profile.brandColor || undefined,
             designStyle: ((row.design_style as string) || "classic") as "young" | "mature" | "criminal" | "family" | "classic",
         };

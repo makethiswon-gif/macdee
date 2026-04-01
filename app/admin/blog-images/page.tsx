@@ -14,8 +14,9 @@ interface Profile {
     id: string;
     lawyerName: string;
     officeName: string;
-    profileImageCount: number;
-    officeImageCount: number;
+    profileImages?: string[];
+    profileImageCount?: number;
+    officeImageCount?: number;
     hasLogo: boolean;
     specialty: string[];
     brandColor: string;
@@ -60,6 +61,7 @@ export default function BlogImagesPage() {
 
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
     const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
+    const [bgRemovedProfile, setBgRemovedProfile] = useState<string | null>(null);
 
     const fetchProfiles = useCallback(async () => {
         setLoading(true);
@@ -74,6 +76,9 @@ export default function BlogImagesPage() {
     }, []);
 
     useEffect(() => { fetchProfiles(); }, [fetchProfiles]);
+    
+    // Clear background removed cache when profile changes
+    useEffect(() => { setBgRemovedProfile(null); }, [selectedId]);
 
     // AI Summary generation
     const handleSummarize = async () => {
@@ -95,12 +100,40 @@ export default function BlogImagesPage() {
         setSummarizing(false);
     };
 
+    // Helper: Remove BG of selected profile if not cached
+    const fetchBgRemovedProfile = async (silent = true) => {
+        if (!selected || !selected.profileImages?.length) return null;
+        if (!silent) setGeneratingIllustration(true); 
+        try {
+            const profileUrl = selected.profileImages[Math.floor(Math.random() * selected.profileImages.length)];
+            const res = await fetch("/api/admin/blog-images/remove-bg", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ url: profileUrl }),
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.result) {
+                    setBgRemovedProfile(data.result);
+                    return data.result;
+                }
+            }
+        } catch(e) { console.error(e); } 
+        finally { if (!silent) setGeneratingIllustration(false); }
+        return null;
+    };
+
     // Generate single image
-    const handleGenerate = async (imageType: ImageType, overridePoints?: string[], overrideTemplateId?: number, overrideAccent?: string, overrideTitle?: string, overrideIllustrationUrl?: string) => {
+    const handleGenerate = async (imageType: ImageType, overridePoints?: string[], overrideTemplateId?: number, overrideAccent?: string, overrideTitle?: string, overrideIllustrationUrl?: string, overrideProfileBase64?: string) => {
         if (!selectedId) return;
         const tid = overrideTemplateId !== undefined ? overrideTemplateId : selectedTemplates[imageType];
         const key = `${imageType}-${tid}`;
         setGenerating(prev => ({ ...prev, [key]: true }));
+
+        // ensure we have a bg removed profile if needed? Only try if we already have it. 
+        // We do not await it here to avoid individual lag unless we want to. Let's just use cache or undefined.
+        const currentProfileBase64 = overrideProfileBase64 || bgRemovedProfile || undefined;
+
         try {
             const res = await fetch("/api/admin/blog-images/generate", {
                 method: "POST",
@@ -110,6 +143,7 @@ export default function BlogImagesPage() {
                     title: overrideTitle || postTitle,
                     summaryPoints: overridePoints || summaryPoints,
                     summaryImageUrl: imageType === 'summary' || imageType === 'illustration' ? (overrideIllustrationUrl || summaryIllustrationUrl) : undefined,
+                    overrideProfileImgBase64: currentProfileBase64,
                     templateId: tid,
                     imageType,
                     accentColor: overrideAccent,
@@ -165,28 +199,19 @@ export default function BlogImagesPage() {
             currentIllustrationUrl = await handleGenerateIllustration(currentPoints, true) || "";
         }
 
+        // Generate BG Removed Profile
+        let currentProfileBase64 = bgRemovedProfile;
+        if (!currentProfileBase64) {
+             currentProfileBase64 = await fetchBgRemovedProfile(true) || null;
+        }
+
         // Randomize template selection
         const newTemplates = { ...selectedTemplates };
-        // Slightly vary the brand color for a unique touch
-        const baseColor = selected.brandColor || "#3563AE";
-
         for (const type of IMAGE_TYPES) {
-            const num = parseInt(baseColor.replace("#", ""), 16) || 0;
-            let r = (num >> 16) & 255;
-            let g = (num >> 8) & 255;
-            let b = num & 255;
-            
-            // Generate a random lightness offset (-30 to +40) and small hue offset (-15 to +15)
-            const adjustBright = Math.floor(Math.random() * 71) - 30; 
-            const r2 = Math.min(255, Math.max(0, r + adjustBright + (Math.floor(Math.random() * 31) - 15)));
-            const g2 = Math.min(255, Math.max(0, g + adjustBright + (Math.floor(Math.random() * 31) - 15)));
-            const b2 = Math.min(255, Math.max(0, b + adjustBright + (Math.floor(Math.random() * 31) - 15)));
-            const variedAccent = `#${(r2 << 16 | g2 << 8 | b2).toString(16).padStart(6, "0")}`;
-
             const randId = Math.floor(Math.random() * TEMPLATE_COUNTS[type.id]);
             newTemplates[type.id] = randId;
             const titleToUse = postTitle;
-            await handleGenerate(type.id, currentPoints, randId, variedAccent, titleToUse, currentIllustrationUrl);
+            await handleGenerate(type.id, currentPoints, randId, undefined, titleToUse, currentIllustrationUrl, currentProfileBase64 || undefined);
         }
         setSelectedTemplates(newTemplates);
     };
@@ -433,7 +458,13 @@ export default function BlogImagesPage() {
                         </div>
 
                         {/* Results Grid - now 6 columns or scrollable */}
-                        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+                        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 relative">
+                            {/* Generation Loading Overlay */}
+                            {anyGenerating && (
+                                <div className="absolute inset-0 bg-[#0B0F1A]/50 backdrop-blur-[2px] z-10 flex items-center justify-center rounded-xl">
+                                </div>
+                            )}
+
                             {IMAGE_TYPES.map(type => {
                                 const key = `${type.id}-${selectedTemplates[type.id]}`;
                                 const imgUrl = generatedImages[key];
@@ -502,11 +533,11 @@ export default function BlogImagesPage() {
                         </div>
 
                         {/* Generate All */}
-                        <button onClick={handleGenerateAll} disabled={anyGenerating || summarizing || !selectedId || !postTitle}
+                        <button onClick={handleGenerateAll} disabled={anyGenerating || summarizing || generatingIllustration || !selectedId || !postTitle}
                                 className="w-full mt-6 py-3 rounded-xl bg-gradient-to-r from-[#3563AE] to-[#2851A3] text-white text-sm font-bold shadow-lg shadow-[#3563AE]/20 hover:from-[#3a6bc2] hover:to-[#2c5bbc] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-                                {summarizing ? <><Loader2 size={16} className="animate-spin" /> AI 요약 분석 및 이미지 텍스트 생성 중...</> :
-                                    anyGenerating ? <><Loader2 size={16} className="animate-spin" /> 5장 전체 생성 중...</> : 
-                                    <><ImageIcon size={16} /> 5장 전체 생성 (AI 포함)</>}
+                                {summarizing ? <><Loader2 size={16} className="animate-spin" /> AI 요약 및 AI 일러스트 준비 중...</> :
+                                    anyGenerating ? <><Loader2 size={16} className="animate-spin" /> 전체 생성 중... (배경제거 처리 포함)</> : 
+                                    <><ImageIcon size={16} /> 5장 전체 이미지 생성 (AI일러스트·누끼 자동 포함)</>}
                         </button>
                     </div>
                 </div>
