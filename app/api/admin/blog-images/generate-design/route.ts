@@ -91,46 +91,47 @@ ${hasLogo ? `7. 하단에 로펌 로고 <img src="__LOGO_IMG__" style="height:40
 
             career: `역할: 변호사 경력 소개 이미지를 HTML로 코딩해.
 
-${profileContext}
+변호사: ${profile.lawyerName} ${profile.jobTitle || "대표변호사"} | ${profile.officeName}
 ${imgInfo}
 ${careerText}
 
-필수 규칙: 영어 단어 절대 사용 금지. 모든 텍스트 한국어만.
+필수 규칙: 영어 단어 절대 사용 금지. 모든 텍스트 한국어만. 연락처/전화번호/주소 넣지 말 것. 경력 정보만.
 
 지시사항:
 1. 800x800px 카드. inline CSS만 사용. 루트 div에 overflow:hidden 필수.
-2. 상단에 변호사 이름, 직함, 로펌명 표시.
-${hasProfileImg ? `3. 프로필 사진 원형: <img src="__PROFILE_IMG__" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid ${brandColor};" />` : ''}
-${hasLogo ? `4. 로펌 로고: <img src="__LOGO_IMG__" style="height:45px;object-fit:contain;" />` : ''}
-5. 경력사항을 빠짐없이 전부 세로 리스트로 표시.
-6. 텍스트가 넘치지 않도록: font-size:12~13px, line-height:1.5, word-break:keep-all, 모든 텍스트 컨테이너에 overflow:hidden.
-7. ${brandColor}를 bullet/라벨 색상으로 사용.
-8. 다크 배경. 흰색 텍스트.
-9. font-family:'Pretendard','Noto Sans KR',sans-serif
+2. 상단 영역을 작게: 이름+직함+로펌명 한 줄로.
+${hasProfileImg ? `3. 프로필 사진 원형 작게: <img src="__PROFILE_IMG__" style="width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid ${brandColor};" />` : ''}
+${hasLogo ? `4. 로펌 로고 작게: <img src="__LOGO_IMG__" style="height:35px;object-fit:contain;" />` : ''}
+5. "주요 경력" 라벨(${brandColor} 색상) 후 구분선.
+6. 핵심: 경력사항을 한 줄도 빠짐없이 전부 표시. 경력이 많으니 font-size:11px, line-height:1.4로 최대한 빽빽하게 넣어.
+7. 각 경력 앞에 작은 ${brandColor} bullet(•).
+8. word-break:keep-all. 텍스트가 넘치면 안 됨.
+9. 다크 배경. 흰색 텍스트.
+10. font-family:'Pretendard','Noto Sans KR',sans-serif
 
 <div style="..."> 로 시작하는 HTML만 출력. 설명 금지.`,
 
-            contact: `역할: 변호사 문의 안내 이미지를 HTML로 코딩해.
+            contact: `역할: 변호사 명함 스타일 문의 안내 이미지를 HTML로 코딩해.
 
 ${profileContext}
 ${imgInfo}
 
-필수 규칙: 영어 단어 절대 사용 금지 (Legal Consultation, Contact 등). 모든 텍스트 한국어만.
+필수 규칙: 영어 단어 절대 사용 금지. 모든 텍스트 한국어만.
 
-지시사항:
+지시사항 - 명함(비즈니스 카드) 디자인:
 1. 800x800px 카드. inline CSS만 사용. 루트 div에 overflow:hidden 필수.
-2. 상단에 변호사 이름 크게(font-size:32px), 직함, 로펌명.
-${hasProfileImg ? `3. 프로필 사진 원형: <img src="__PROFILE_IMG__" style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid ${brandColor};" />` : ''}
-${hasLogo ? `4. 로펌 로고 크게: <img src="__LOGO_IMG__" style="height:60px;object-fit:contain;" />` : ''}
-5. 아래 연락처 정보를 빠짐없이 모두 카드에 표시해 (라벨은 ${brandColor} 색상, 값은 흰색):
+2. 명함처럼 깔끔하고 정돈된 레이아웃:
+   - 상단 40%: ${brandColor} 계열 그라데이션 배경 영역에 로펌명, 로고, 변호사 이름+직함을 크게.
+   - 하단 60%: 어두운 배경에 연락처 정보를 정돈되게 나열.
+${hasProfileImg ? `3. 프로필 사진을 상단과 하단 경계에 걸치게 원형으로 크게 배치: <img src="__PROFILE_IMG__" style="width:130px;height:130px;border-radius:50%;object-fit:cover;border:4px solid white;" />` : ''}
+${hasLogo ? `4. 상단 영역에 로펌 로고: <img src="__LOGO_IMG__" style="height:50px;object-fit:contain;" />` : ''}
+5. 하단에 연락처 정보를 아이콘 없이 라벨+값으로 깔끔하게:
    대표번호: ${profile.phone || '미등록'}
    주소: ${profile.address || '미등록'}
    홈페이지: ${profile.website || '미등록'}
    전문분야: ${specialties}
-6. 하단에 "지금 상담 예약하세요" CTA 버튼 (background:${brandColor}, color:white, padding:14px 40px, border-radius:12px, font-weight:700).
-7. 다크 배경. 흰색 텍스트.
-8. 블로그 내용이나 핵심요약 절대 넣지 말 것. 위의 연락처 정보만 넣을 것.
-9. font-family:'Pretendard','Noto Sans KR',sans-serif
+6. 맨 하단에 "지금 상담 예약하세요" 버튼 (background:${brandColor}, color:white, padding:12px 36px, border-radius:10px, font-weight:700).
+7. font-family:'Pretendard','Noto Sans KR',sans-serif
 
 <div style="..."> 로 시작하는 HTML만 출력. 설명 금지.`,
         };
@@ -140,7 +141,7 @@ ${hasLogo ? `4. 로펌 로고 크게: <img src="__LOGO_IMG__" style="height:60px
             return NextResponse.json({ error: `Unknown card type: ${cardType}` }, { status: 400 });
         }
 
-        const maxTokens = cardType === "career" ? 1500 : 1200;
+        const maxTokens = cardType === "career" ? 1800 : 1200;
 
         const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
             method: "POST",
