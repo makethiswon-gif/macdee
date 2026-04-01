@@ -96,7 +96,12 @@ export default function BlogImagesPage() {
                     alert("올바르지 않은 응답이 반환되었습니다.");
                 }
             } else {
-                alert("디자인 생성에 실패했습니다. " + res.status);
+                try {
+                    const errData = await res.json();
+                    alert("디자인 생성에 실패했습니다. " + res.status + " - " + errData.error);
+                } catch {
+                    alert("디자인 생성에 실패했습니다. " + res.status);
+                }
             }
         } catch (e: unknown) {
             console.error(e);

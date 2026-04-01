@@ -1,15 +1,16 @@
 import { NextResponse } from "next/server";
 import { getContentGenerator } from "@/lib/ai/providers";
 
-export const maxDuration = 300; // Allow up to 5 minutes on Vercel for AI generation
+export const maxDuration = 60; // Max allowed for Vercel Hobby plan, safe fallback
 
 // Helper to strip markdown json wrapper if present
 function parseJSONP(str: string) {
     let clean = str.trim();
-    if (clean.startsWith('```json')) {
-        clean = clean.replace(/^```json/, '').replace(/```$/, '').trim();
-    } else if (clean.startsWith('```')) {
-        clean = clean.replace(/^```/, '').replace(/```$/, '').trim();
+    // Try to extract JSON object from between { and }
+    const firstBrace = clean.indexOf('{');
+    const lastBrace = clean.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace >= firstBrace) {
+        clean = clean.substring(firstBrace, lastBrace + 1);
     }
     return JSON.parse(clean);
 }
