@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import ProfileManagerModal from "./ProfileManagerModal";
 import * as htmlToImage from "html-to-image";
+import JSZip from "jszip";
 
 interface Profile {
     id: string;
@@ -180,9 +181,58 @@ export default function BlogImagesPage() {
     };
 
     const handleDownloadAll = async () => {
-        for (const card of cards) {
-            await handleDownloadOne(card);
-            await new Promise(res => setTimeout(res, 300));
+        try {
+            setGenerationMessage('ZIP 파일 생성 중...');
+            const zip = new JSZip();
+            const selected = profiles.find(p => p.id === selectedId);
+            
+            // Generate keyword from title or first card content
+            const keyword = postTitle?.trim() 
+                ? postTitle.trim().replace(/[^가-힣a-zA-Z0-9]/g, '').substring(0, 10)
+                : (selected?.lawyerName || 'blog');
+            
+            // Date string: YYYYMMDD
+            const now = new Date();
+            const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+            
+            const cardNameMap: Record<string, string> = {
+                thumbnail: '메인썸네일',
+                summary: '핵심요약',
+                career: '로펌브랜드',
+                contact: '문의안내',
+            };
+
+            for (let i = 0; i < cards.length; i++) {
+                const card = cards[i];
+                const node = cardsRef.current[card.type];
+                if (!node) continue;
+                
+                setGenerationMessage(`이미지 변환 중... (${i + 1}/${cards.length})`);
+                const dataUrl = await htmlToImage.toPng(node, {
+                    quality: 1.0,
+                    pixelRatio: 2,
+                    style: { transform: 'none' },
+                    width: 800,
+                    height: 800,
+                });
+                
+                // Convert data URL to blob
+                const base64 = dataUrl.split(',')[1];
+                const fileName = `${cardNameMap[card.type] || card.type}_${keyword}.png`;
+                zip.file(fileName, base64, { base64: true });
+            }
+
+            const blob = await zip.generateAsync({ type: 'blob' });
+            const link = document.createElement('a');
+            link.download = `${keyword}_${dateStr}.zip`;
+            link.href = URL.createObjectURL(blob);
+            link.click();
+            URL.revokeObjectURL(link.href);
+            
+            setGenerationMessage(`ZIP 다운로드 완료! (${cards.length}장)`);
+        } catch (err) {
+            console.error('ZIP download error:', err);
+            alert('ZIP 파일 생성 중 오류가 발생했습니다.');
         }
     };
 
