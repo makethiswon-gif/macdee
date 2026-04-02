@@ -57,7 +57,7 @@ ${content.substring(0, 1000)}
 필수 규칙: 영어 단어 절대 사용 금지 (Legal, Insight, Criminal 등). 모든 텍스트 한국어만.
 
 지시사항:
-1. 블로그 본문을 읽고 핵심을 담은 매력적인 한국어 제목을 20자 이내로 직접 작성해서 카드에 넣어.
+${title?.trim() ? `1. 카드 제목으로 반드시 다음 텍스트를 그대로 사용해. 한 글자도 바꾸지 말 것: "${title.trim()}"` : '1. 블로그 본문을 읽고 핵심을 담은 매력적인 한국어 제목을 20자 이내로 직접 작성해서 카드에 넣어.'}
 2. 800x800px 카드. inline CSS만 사용. 루트 div에 position:relative;overflow:hidden 필수.
 ${hasOfficeImg ? `3. 배경: 사무실 사진을 전체 배경으로 깔기 — <img src="__OFFICE_IMG__" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;" /> 그 위에 어두운 오버레이 div: <div style="position:absolute;top:0;left:0;width:100%;height:100%;background:linear-gradient(180deg,${brandColor}cc 0%,rgba(0,0,0,0.85) 100%);"></div>` : `3. background: linear-gradient(135deg, ${brandColor}dd 0%, ${brandColor}88 50%, #0a0a0a 100%)`}
 4. 모든 텍스트/콘텐츠는 position:relative;z-index:1 로 오버레이 위에 표시.

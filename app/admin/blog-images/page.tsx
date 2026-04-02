@@ -185,16 +185,16 @@ export default function BlogImagesPage() {
             setGenerationMessage('ZIP 파일 생성 중...');
             const zip = new JSZip();
             const selected = profiles.find(p => p.id === selectedId);
-            
+
             // Generate keyword from title or first card content
-            const keyword = postTitle?.trim() 
+            const keyword = postTitle?.trim()
                 ? postTitle.trim().replace(/[^가-힣a-zA-Z0-9]/g, '').substring(0, 10)
                 : (selected?.lawyerName || 'blog');
-            
+
             // Date string: YYYYMMDD
             const now = new Date();
             const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-            
+
             const cardNameMap: Record<string, string> = {
                 thumbnail: '메인썸네일',
                 summary: '핵심요약',
@@ -206,7 +206,7 @@ export default function BlogImagesPage() {
                 const card = cards[i];
                 const node = cardsRef.current[card.type];
                 if (!node) continue;
-                
+
                 setGenerationMessage(`이미지 변환 중... (${i + 1}/${cards.length})`);
                 const dataUrl = await htmlToImage.toPng(node, {
                     quality: 1.0,
@@ -215,7 +215,7 @@ export default function BlogImagesPage() {
                     width: 800,
                     height: 800,
                 });
-                
+
                 // Convert data URL to blob
                 const base64 = dataUrl.split(',')[1];
                 const fileName = `${cardNameMap[card.type] || card.type}_${keyword}.png`;
@@ -228,7 +228,7 @@ export default function BlogImagesPage() {
             link.href = URL.createObjectURL(blob);
             link.click();
             URL.revokeObjectURL(link.href);
-            
+
             setGenerationMessage(`ZIP 다운로드 완료! (${cards.length}장)`);
         } catch (err) {
             console.error('ZIP download error:', err);
@@ -314,9 +314,9 @@ export default function BlogImagesPage() {
                                 <div className="h-px w-full bg-[#1F2937]" />
 
                                 <div>
-                                    <label className="block text-sm font-semibold text-[#D1D5DB] mb-2">포스팅 제목 (선택)</label>
+                                    <label className="block text-sm font-semibold text-[#D1D5DB] mb-2">메인 썸네일 제목</label>
                                     <input type="text" value={postTitle} onChange={e => setPostTitle(e.target.value)}
-                                        placeholder="글의 톤앤매너와 분위기를 파악하는 데 도움을 줍니다." className={ic} />
+                                        placeholder="입력하면 그대로 썸네일에 표시 · 비우면 AI가 자동 생성" className={ic} />
                                 </div>
                                 <div className="flex flex-col">
                                     <label className="block text-sm font-semibold text-[#D1D5DB] mb-2">블로그 본문 텍스트 *</label>
@@ -335,7 +335,7 @@ export default function BlogImagesPage() {
                                     <><Wand2 size={20} /> ✨ 생성형 UI 카드 만들기</>
                                 )}
                             </button>
-                            
+
                             {isGenerating && generationMessage && (
                                 <p className="text-center text-xs text-[#9CA3B0] mt-4 animate-pulse">{generationMessage}</p>
                             )}
@@ -383,7 +383,7 @@ export default function BlogImagesPage() {
                                                     <h3 className="text-sm font-bold text-white">{card.name}</h3>
                                                     <span className="text-[10px] uppercase font-mono bg-[#1F2937] text-[#9CA3B0] px-2 py-1 rounded">{card.type}</span>
                                                 </div>
-                                                
+
                                                 {/* Preview Container: Visually scaled down so 800px fits nicely */}
                                                 <div className="relative w-full aspect-square rounded-2xl bg-[#060810] border border-[#1F2937] overflow-hidden group">
                                                     {/* We use an arbitrary scaling mechanism based on container size vs 800px.
@@ -392,7 +392,7 @@ export default function BlogImagesPage() {
                                                         Actually, tailwind CSS container isn't always reliable. Let's force a fixed scale for preview. */}
                                                     <div className="absolute top-0 left-0 w-[800px] h-[800px] transform origin-top-left scale-[0.3] sm:scale-[0.35] md:scale-[0.35] lg:scale-[0.27] xl:scale-[0.32] 2xl:scale-[0.38] pointer-events-none">
                                                         {/* This inner div is what gets captured by htmlToImage */}
-                                                        <div 
+                                                        <div
                                                             ref={el => { cardsRef.current[card.type] = el; }}
                                                             className="w-full h-full bg-white flex flex-col font-sans"
                                                             dangerouslySetInnerHTML={{ __html: card.html }}
@@ -426,16 +426,16 @@ export default function BlogImagesPage() {
                 <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex flex-col items-center justify-center z-50 p-8"
                     onClick={() => setPreviewCard(null)}>
                     {/* Raw actual size but capped by max-height of viewport */}
-                    <div className="relative overflow-auto max-h-full max-w-full rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] bg-white" 
-                         onClick={e => e.stopPropagation()}>
-                         <div 
+                    <div className="relative overflow-auto max-h-full max-w-full rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] bg-white"
+                        onClick={e => e.stopPropagation()}>
+                        <div
                             style={{ width: '800px', height: '800px', transform: 'scale(1)', transformOrigin: 'center' }}
                             // On small screens we'd shrink it, but for a simple preview we just use max-w-full.
                             className="max-w-[90vw] sm:max-w-none ml-auto mr-auto"
-                            dangerouslySetInnerHTML={{ __html: previewCard.html }} 
-                         />
+                            dangerouslySetInnerHTML={{ __html: previewCard.html }}
+                        />
                     </div>
-                    
+
                     <div className="absolute top-4 right-4 flex gap-2">
                         <button onClick={async (e) => {
                             e.stopPropagation();
