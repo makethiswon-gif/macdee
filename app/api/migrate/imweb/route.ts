@@ -63,7 +63,7 @@ export async function GET(request: Request) {
             const { data, error } = await supabase.from('magazines').upsert({
                 slug: idx, // Crucial for 301 match
                 title: title,
-                content: contentHtml,
+                body: contentHtml,
                 excerpt: excerpt || title,
                 category: '칼럼',
                 status: 'published',
