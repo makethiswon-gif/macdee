@@ -30,48 +30,48 @@ const DEFAULT_PORTFOLIO = [
   {
     id: 1,
     title: '법무법인 율빛',
-    category: 'Website',
-    description: '홈페이지 제작',
+    category: 'Marketing',
+    description: '',
     image: '',
     color: '#0a2d6e'
   },
   {
     id: 2,
     title: '법무법인 해밀',
-    category: 'Video',
-    description: '홍보 영상 제작',
+    category: 'Marketing',
+    description: '',
     image: '',
     color: '#1a1050'
   },
   {
     id: 3,
     title: '법무법인 안세',
-    category: 'Blog Design',
-    description: '블로그 디자인',
+    category: 'Marketing',
+    description: '',
     image: '',
     color: '#0a3048'
   },
   {
     id: 4,
     title: '카라 법률사무소',
-    category: 'Blog Management',
-    description: '브랜드 블로그 관리',
+    category: 'Marketing',
+    description: '',
     image: '',
     color: '#2a1838'
   },
   {
     id: 5,
     title: '법무법인 그날',
-    category: 'Consulting',
-    description: '마케팅 컨설팅',
+    category: 'Marketing',
+    description: '',
     image: '',
     color: '#0c2450'
   },
   {
     id: 6,
     title: '법무법인 류현',
-    category: 'Website',
-    description: '홈페이지 제작',
+    category: 'Marketing',
+    description: '',
     image: '',
     color: '#182050'
   }
