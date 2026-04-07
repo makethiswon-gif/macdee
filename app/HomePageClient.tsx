@@ -56,10 +56,10 @@ function Header() {
             </a>
 
             <nav className="hidden md:flex items-center gap-10">
-              {["서비스", "프로세스", "가격", "소개", "매거진"].map((t) => (
+              {["서비스", "프로세스", "가격", "메이크디스원", "소개", "매거진"].map((t) => (
                 <a
                   key={t}
-                  href={t === "매거진" ? "/magazine" : t === "소개" ? "/about" : `#${t === "서비스" ? "features" : t === "프로세스" ? "process" : "pricing"}`}
+                  href={t === "매거진" ? "/magazine" : t === "소개" ? "/about" : t === "메이크디스원" ? "/makethisone" : `#${t === "서비스" ? "features" : t === "프로세스" ? "process" : "pricing"}`}
                   className="text-[13px] text-white/70 hover:text-white transition-colors tracking-wide"
                 >
                   {t}
@@ -85,7 +85,7 @@ function Header() {
               transition={{ duration: 0.2 }}
               className="md:hidden pb-8 flex flex-col gap-5 border-t border-white/[0.08] pt-6"
             >
-              {[["서비스", "#features"], ["프로세스", "#process"], ["가격", "#pricing"], ["소개", "/about"], ["매거진", "/magazine"], ["시작하기", "/signup"]].map(([l, h]) => (
+              {[["서비스", "#features"], ["프로세스", "#process"], ["가격", "#pricing"], ["메이크디스원", "/makethisone"], ["소개", "/about"], ["매거진", "/magazine"], ["시작하기", "/signup"]].map(([l, h]) => (
                 <a key={l} href={h} className="text-base text-white/70 hover:text-white transition-colors" onClick={() => setOpen(false)}>
                   {l}
                 </a>
