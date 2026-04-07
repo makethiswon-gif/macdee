@@ -10,6 +10,34 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      {
+        source: "/COLUMN",
+        has: [
+          {
+            type: "query",
+            key: "idx",
+            value: "(?<idx>.*)",
+          },
+        ],
+        destination: "/magazine/:idx", // Redirect to new magazine route
+        permanent: true, // 301 Permanent Redirect
+      },
+      {
+        source: "/COLUMN/",
+        has: [
+          {
+            type: "query",
+            key: "idx",
+            value: "(?<idx>.*)",
+          },
+        ],
+        destination: "/magazine/:idx",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

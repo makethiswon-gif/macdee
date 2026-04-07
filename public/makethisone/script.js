@@ -149,23 +149,58 @@ function adjustColor(hex, amount) {
 }
 
 // ---- RENDER COLUMNS ----
-function renderColumns() {
+async function renderColumns() {
   const list = document.getElementById('columnList');
   if (!list) return;
-  const items = getData(STORAGE_KEYS.COLUMNS, DEFAULT_COLUMNS);
 
-  list.innerHTML = items.map((item, i) => `
-    <div class="column-item reveal reveal-delay-${(i % 3) + 1}">
-      <span class="col-number">${String(i + 1).padStart(2, '0')}</span>
-      <div class="col-content">
-        <h3 class="col-title">${item.title}</h3>
-        <p class="col-excerpt">${item.excerpt || ''}</p>
+  try {
+    const res = await fetch('/api/magazine?page=1&category=');
+    if (!res.ok) throw new Error('Fetch failed');
+    const data = await res.json();
+    let items = data.magazines || [];
+
+    if (items.length === 0) {
+      // Fallback
+      items = getData(STORAGE_KEYS.COLUMNS, DEFAULT_COLUMNS).slice(0, 3);
+      list.innerHTML = items.map((item, i) => `
+        <div class="column-item reveal reveal-delay-${(i % 3) + 1}">
+          <span class="col-number">${String(i + 1).padStart(2, '0')}</span>
+          <div class="col-content">
+            <h3 class="col-title">${item.title}</h3>
+            <p class="col-excerpt">${item.excerpt || ''}</p>
+          </div>
+          <span class="col-arrow">→</span>
+        </div>
+      `).join('');
+    } else {
+      items = items.slice(0, 3); // top 3
+      list.innerHTML = items.map((item, i) => `
+        <a href="${item.slug ? `/magazine/${item.slug}` : '#'}" class="column-item reveal reveal-delay-${(i % 3) + 1}" style="text-decoration:none;">
+          <span class="col-number">${String(i + 1).padStart(2, '0')}</span>
+          <div class="col-content">
+            <h3 class="col-title">${item.title}</h3>
+            <p class="col-excerpt">${item.excerpt || ''}</p>
+          </div>
+          <span class="col-arrow">→</span>
+        </a>
+      `).join('');
+    }
+    observeElements();
+  } catch (err) {
+    console.error('Error fetching columns:', err);
+    const items = getData(STORAGE_KEYS.COLUMNS, DEFAULT_COLUMNS).slice(0, 3);
+    list.innerHTML = items.map((item, i) => `
+      <div class="column-item reveal reveal-delay-${(i % 3) + 1}">
+        <span class="col-number">${String(i + 1).padStart(2, '0')}</span>
+        <div class="col-content">
+          <h3 class="col-title">${item.title}</h3>
+          <p class="col-excerpt">${item.excerpt || ''}</p>
+        </div>
+        <span class="col-arrow">→</span>
       </div>
-      <span class="col-arrow">→</span>
-    </div>
-  `).join('');
-
-  observeElements();
+    `).join('');
+    observeElements();
+  }
 }
 
 // ---- MENU ----
