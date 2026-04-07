@@ -105,8 +105,9 @@ const jsonLd = {
       legalName: "메이크디스원",
       url: BASE_URL,
       description:
-        "변호사 광고 및 로펌 마케팅 전문 AI 자동화 플랫폼. 법무법인 광고, 변호사 블로그 마케팅, 인스타그램 카드뉴스 자동 생성.",
-      foundingDate: "2024",
+        "2019년부터 변호사 법무법인 광고 트렌드를 선도하는 메이크디스원의 AI 법률 마케팅 자동화 플랫폼. 변호사 광고, 로펌 마케팅, 법무법인 광고 콘텐츠를 AI가 자동 생성합니다.",
+      foundingDate: "2019",
+      slogan: "2019년부터 변호사 법무법인 광고 트렌드를 선도하는 메이크디스원",
       areaServed: { "@type": "Country", name: "KR" },
       knowsAbout: [
         "변호사 광고",

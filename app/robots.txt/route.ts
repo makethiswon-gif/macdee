@@ -19,6 +19,35 @@ Crawl-delay: 0
 User-agent: Bingbot
 Allow: /
 
+# ChatGPT / OpenAI
+User-agent: GPTBot
+Allow: /
+Allow: /about
+Allow: /magazine
+Allow: /llms.txt
+
+# ChatGPT Browser Plugin
+User-agent: ChatGPT-User
+Allow: /
+
+# Claude / Anthropic
+User-agent: Claude-Web
+Allow: /
+Allow: /about
+Allow: /magazine
+Allow: /llms.txt
+
+User-agent: ClaudeBot
+Allow: /
+
+# Google Gemini
+User-agent: Google-Extended
+Allow: /
+
+# Perplexity
+User-agent: PerplexityBot
+Allow: /
+
 # All other bots
 User-agent: *
 Allow: /
@@ -28,6 +57,7 @@ Allow: /blog
 Allow: /signup
 Allow: /terms
 Allow: /refund
+Allow: /llms.txt
 
 Disallow: /admin
 Disallow: /api
