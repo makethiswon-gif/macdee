@@ -112,7 +112,38 @@ export default async function MagazineArticlePage({
         .replace(/\n\n/g, '</p><p class="text-white/60 leading-relaxed mb-4">')
         .replace(/\n/g, "<br/>");
 
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
+    const canonicalUrl = `${baseUrl}/magazine/${magazine.slug}`;
+
+    const articleJsonLd = {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        headline: magazine.title,
+        description: magazine.meta_description || magazine.excerpt,
+        datePublished: magazine.published_at,
+        author: {
+            "@type": "Person",
+            name: magazine.author || "macdee 에디터",
+        },
+        publisher: {
+            "@type": "Organization",
+            name: "macdee",
+            url: baseUrl,
+        },
+        mainEntityOfPage: {
+            "@type": "WebPage",
+            "@id": canonicalUrl,
+        },
+        ...(magazine.cover_image_url ? { image: magazine.cover_image_url } : {}),
+        keywords: (magazine.tags || []).join(", "),
+    };
+
     return (
+        <>
+        <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+        />
         <div className="min-h-screen bg-[#0A0A0A]">
             {/* Header */}
             <header className="bg-[#0A0A0A] border-b border-white/[0.06] sticky top-0 z-10">
@@ -200,9 +231,10 @@ export default async function MagazineArticlePage({
             {/* Footer */}
             <footer className="bg-[#0A0A0A] border-t border-white/[0.06] text-white/20 py-8">
                 <div className="max-w-4xl mx-auto px-6 text-center text-sm">
-                    © {new Date().getFullYear()} macdee. All Rights Reserved.
+                    <p>© {new Date().getFullYear()} <Link href="/" className="hover:text-white/40 transition-colors">macdee</Link>. 변호사 마케팅 · 로펌 마케팅 AI 자동화 플랫폼</p>
                 </div>
             </footer>
         </div>
+        </>
     );
 }

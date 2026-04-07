@@ -42,6 +42,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
             type: "article",
             url: canonicalUrl,
             authors: [lawyer.name],
+            images: ["/og-image.png"],
         },
     };
 }
@@ -125,11 +126,60 @@ export default async function PostPage({ params }: Props) {
         } catch { /* keep original */ }
     }
 
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
+    const canonicalUrl = `${baseUrl}/blog/${slug}/${postSlug}`;
+
+    // Server-side JSON-LD: Article schema (Googlebot reads this without JS)
+    const articleJsonLd = {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        headline: parsedTitle,
+        description: parsedMeta || parsedTitle,
+        datePublished: post.created_at,
+        dateModified: post.updated_at || post.created_at,
+        author: {
+            "@type": "Person",
+            name: lawyer.name,
+            jobTitle: "변호사",
+            url: `${baseUrl}/blog/${slug}`,
+        },
+        publisher: {
+            "@type": "Organization",
+            name: "macdee",
+            url: baseUrl,
+        },
+        mainEntityOfPage: {
+            "@type": "WebPage",
+            "@id": canonicalUrl,
+        },
+        keywords: (post.tags || []).join(", "),
+        ...(lawyer.profile_image_url ? { image: lawyer.profile_image_url } : {}),
+    };
+
     return (
-        <PostPageClient
-            lawyer={{ id: lawyer.id, name: lawyer.name, slug: lawyer.slug, specialty: lawyer.specialty || [], region: lawyer.region || "", bio: lawyer.bio || "", brand_color: lawyer.brand_color || "#3563AE", office_name: lawyer.office_name || "", experience_years: lawyer.experience_years || 0, profile_image_url: lawyer.profile_image_url || "", phone: lawyer.phone || null, website_url: (lawyer as Record<string, unknown>).website_url as string || null }}
-            post={{ id: post.id, title: parsedTitle, slug: post.id, body: parsedBody, meta_description: parsedMeta, tags: post.tags || [], schema_markup: post.schema_markup, created_at: post.created_at, card_news_slides: cardNewsSlides.length > 0 ? cardNewsSlides : undefined, card_news_cover_image: cardNewsCoverImage }}
-            isOwner={isOwner}
-        />
+        <>
+            {/* Server-rendered JSON-LD for Googlebot */}
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+            />
+            {post.schema_markup && (
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{
+                        __html: JSON.stringify({
+                            "@context": "https://schema.org",
+                            "@type": "FAQPage",
+                            ...(post.schema_markup as object),
+                        }),
+                    }}
+                />
+            )}
+            <PostPageClient
+                lawyer={{ id: lawyer.id, name: lawyer.name, slug: lawyer.slug, specialty: lawyer.specialty || [], region: lawyer.region || "", bio: lawyer.bio || "", brand_color: lawyer.brand_color || "#3563AE", office_name: lawyer.office_name || "", experience_years: lawyer.experience_years || 0, profile_image_url: lawyer.profile_image_url || "", phone: lawyer.phone || null, website_url: (lawyer as Record<string, unknown>).website_url as string || null }}
+                post={{ id: post.id, title: parsedTitle, slug: post.id, body: parsedBody, meta_description: parsedMeta, tags: post.tags || [], schema_markup: post.schema_markup, created_at: post.created_at, card_news_slides: cardNewsSlides.length > 0 ? cardNewsSlides : undefined, card_news_cover_image: cardNewsCoverImage }}
+                isOwner={isOwner}
+            />
+        </>
     );
 }

@@ -69,9 +69,7 @@ export default async function BlogPage({ params, searchParams }: Props) {
         );
     }
 
-    console.log(`[Blog Page] Querying posts for lawyer_id=${lawyer.id}, slug=${slug}, page=${page}`);
-
-    const { data: posts, error: postsError, count } = await supabase
+    const { data: posts, count } = await supabase
         .from("contents")
         .select("id, title, body, meta_description, tags, channel, created_at, status", { count: "exact" })
         .eq("lawyer_id", lawyer.id)
@@ -81,19 +79,6 @@ export default async function BlogPage({ params, searchParams }: Props) {
         .range(start, end);
 
     const totalPages = count ? Math.ceil(count / limit) : 1;
-
-    console.log(`[Blog Page] Posts query result: ${posts?.length || 0} posts, error: ${postsError?.message || 'none'}, totalCount: ${count}`);
-    if (posts && posts.length > 0) {
-        console.log(`[Blog Page] First post: id=${posts[0].id}, title=${posts[0].title}, status=${posts[0].status}`);
-    }
-
-    // Also check ALL contents for this lawyer to debug
-    const { data: allContents } = await supabase
-        .from("contents")
-        .select("id, channel, status, title")
-        .eq("lawyer_id", lawyer.id);
-    console.log(`[Blog Page] All contents for lawyer: ${allContents?.length || 0}`);
-    allContents?.forEach(c => console.log(`  - ${c.id}: channel=${c.channel}, status=${c.status}, title=${c.title?.substring(0, 30)}`));
 
     // Helper: strip markdown syntax for plain text excerpts
     function stripMarkdown(text: string): string {
