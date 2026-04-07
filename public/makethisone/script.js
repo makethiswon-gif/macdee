@@ -231,40 +231,42 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
 });
 
 // ---- CONTACT FORM ----
-function handleContactSubmit(e) {
+async function handleContactSubmit(e) {
   e.preventDefault();
   const form = e.target;
   const data = new FormData(form);
   const entries = Object.fromEntries(data);
+  const submitBtn = form.querySelector('.btn-submit');
+  
+  if (submitBtn) {
+    submitBtn.textContent = '전송 중...';
+    submitBtn.disabled = true;
+  }
 
-  // Save to localStorage for admin dashboard
-  const INQUIRY_KEY = 'makethis1_inquiries';
-  let inquiries = [];
   try {
-    const stored = localStorage.getItem(INQUIRY_KEY);
-    if (stored) inquiries = JSON.parse(stored);
-  } catch (err) { /* ignore */ }
+    const response = await fetch('/api/inquiries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(entries)
+    });
 
-  const now = new Date();
-  const inquiry = {
-    id: Date.now(),
-    name: entries.name || '',
-    firm: entries.firm || '',
-    phone: entries.phone || '',
-    email: entries.email || '',
-    subject: entries.subject || '',
-    message: entries.message || '',
-    date: `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')}`,
-    time: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`,
-    read: false
-  };
+    const result = await response.json();
 
-  inquiries.push(inquiry);
-  localStorage.setItem(INQUIRY_KEY, JSON.stringify(inquiries));
-
-  // Show success message
-  showContactToast('문의가 접수되었습니다. 빠른 시일 내에 연락드리겠습니다.');
-  form.reset();
+    if (response.ok) {
+      showContactToast('문의가 접수되었습니다. 빠른 시일 내에 연락드리겠습니다.');
+      form.reset();
+    } else {
+      showContactToast('접수 중 오류가 발생했습니다: ' + (result.error || '다시 시도해주세요.'));
+    }
+  } catch (error) {
+    console.error('Contact Submit Error:', error);
+    showContactToast('네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+  } finally {
+    if (submitBtn) {
+      submitBtn.textContent = '무료 상담 문의하기';
+      submitBtn.disabled = false;
+    }
+  }
 }
 
 // Simple toast for main site

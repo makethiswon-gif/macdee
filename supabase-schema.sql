@@ -95,6 +95,20 @@ CREATE TABLE subscriptions (
   cancelled_at TIMESTAMPTZ
 );
 
+-- inquiries 테이블
+CREATE TABLE inquiries (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  firm TEXT,
+  phone TEXT NOT NULL,
+  email TEXT,
+  subject TEXT,
+  message TEXT NOT NULL,
+  status TEXT DEFAULT 'unread' CHECK (status IN ('unread', 'replied')),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- ============================================================
 -- Row Level Security (RLS)
 -- ============================================================
@@ -105,6 +119,7 @@ ALTER TABLE contents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE publications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE analytics ENABLE ROW LEVEL SECURITY;
 ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE inquiries ENABLE ROW LEVEL SECURITY;
 
 -- Own data policies
 CREATE POLICY "lawyers_own" ON lawyers
@@ -131,6 +146,9 @@ CREATE POLICY "lawyers_public_read" ON lawyers
 
 CREATE POLICY "contents_public_read" ON contents
   FOR SELECT USING (status = 'published' AND channel = 'macdee');
+
+CREATE POLICY "inquiries_public_insert" ON inquiries
+  FOR INSERT WITH CHECK (true);
 
 -- ============================================================
 -- Slug auto-generation trigger
@@ -168,4 +186,8 @@ CREATE TRIGGER set_lawyers_updated_at
 
 CREATE TRIGGER set_contents_updated_at
   BEFORE UPDATE ON contents
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+CREATE TRIGGER set_inquiries_updated_at
+  BEFORE UPDATE ON inquiries
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
