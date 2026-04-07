@@ -129,9 +129,9 @@ const jsonLd = {
       address: {
         "@type": "PostalAddress",
         addressCountry: "KR",
-        addressRegion: "경기도",
-        addressLocality: "용인시",
-        streetAddress: "한일로21번길 31",
+        addressRegion: "서울특별시",
+        addressLocality: "동대문구",
+        streetAddress: "왕산로5길 13",
       },
     },
     {
@@ -215,6 +215,8 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

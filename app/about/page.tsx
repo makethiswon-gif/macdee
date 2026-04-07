@@ -5,11 +5,18 @@ export const metadata: Metadata = {
     title: "변호사 광고 · 로펌 마케팅 · 법무법인 광고 | MACDEE(맥디) AI 법률 마케팅 플랫폼",
     description: "MACDEE(맥디)는 변호사 광고, 로펌 마케팅, 법무법인 광고를 위한 AI 자동화 플랫폼입니다. 판결문/상담 자료 업로드 → 네이버 블로그, 인스타그램, 구글 SEO 콘텐츠 자동 생성. 변호사 마케팅 월 49,000원부터.",
     keywords: ["변호사 광고", "로펌 마케팅", "법무법인 광고", "변호사 마케팅", "변호사 광고 대행", "변호사 마케팅 회사", "법률 마케팅", "변호사 블로그 마케팅", "변호사 온라인 마케팅", "법률 사무소 광고", "로펌 광고", "변호사 SNS 마케팅", "AI 법률 마케팅", "맥디", "MACDEE"],
+    alternates: {
+        canonical: "https://www.makethis1.com/about",
+    },
+    robots: {
+        index: true,
+        follow: true,
+    },
     openGraph: {
         title: "MACDEE(맥디) - AI 법률 마케팅 플랫폼",
         description: "변호사를 위한 AI 콘텐츠 자동화. 판결문 업로드 → 블로그, 카드뉴스, SEO 콘텐츠 자동 생성.",
         type: "website",
-        url: "https://makethis1.com/about",
+        url: "https://www.makethis1.com/about",
     },
 };
 
@@ -19,10 +26,10 @@ export default function AboutPage() {
         "@type": "Organization",
         "name": "MACDEE(맥디)",
         "alternateName": ["맥디", "MACDEE", "macdee"],
-        "url": "https://makethis1.com",
+        "url": "https://www.makethis1.com",
         "description": "MACDEE(맥디)는 변호사를 위한 AI 법률 마케팅 플랫폼입니다. 판결문, 상담 녹취, 메모 등을 업로드하면 네이버 블로그, 인스타그램 카드뉴스, 구글 SEO 기사, AI 검색 최적화 콘텐츠를 자동으로 생성합니다.",
         "foundingDate": "2024",
-        "sameAs": ["https://makethis1.com"],
+        "sameAs": ["https://www.makethis1.com"],
         "knowsAbout": ["변호사 광고", "로펌 마케팅", "법무법인 광고", "변호사 마케팅", "변호사 광고 대행", "변호사 블로그 마케팅", "법률 콘텐츠 마케팅", "변호사 온라인 마케팅", "변호사 SNS 마케팅", "법률 사무소 광고", "로펌 광고 대행"],
         "areaServed": { "@type": "Country", "name": "KR" },
         "serviceType": ["변호사 광고 대행", "로펌 마케팅 자동화", "법무법인 광고 콘텐츠", "변호사 블로그 운영", "인스타그램 카드뉴스 제작", "구글 SEO 최적화", "변호사 온라인 마케팅"],
