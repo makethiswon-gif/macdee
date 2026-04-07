@@ -30,9 +30,14 @@ const TITLES_MAP: Record<string, string> = {
 
 export async function GET(request: Request) {
     const supabase = await createAdminClient();
+    const { searchParams } = new URL(request.url);
+    const queryIdx = searchParams.get('idx');
+    
+    // If user provides a specific idx via ?idx=123, migrate only that one. Otherwise, run the default list.
+    const targetArticles = queryIdx ? [queryIdx] : [...ARTICLES, "13516167"]; // also added 13516167 to default list
     const results = [];
 
-    for (const idx of ARTICLES) {
+    for (const idx of targetArticles) {
         try {
             const url = `https://macdee.imweb.me/COLUMN/?bmode=view&idx=${idx}`;
             // Use Chrome User-Agent to avoid generic blocks
@@ -44,11 +49,18 @@ export async function GET(request: Request) {
             
             let contentHtml = '<p>마이그레이션 중인 문서입니다.</p>';
             let excerpt = '';
+            let parsedTitle = `복원된 칼럼 (${idx})`;
             
             if (res.ok) {
                 const html = await res.text();
                 const $ = cheerio.load(html);
                 
+                // Parse dynamic title if not in map
+                const titleMatch = html.match(/<title>([^<]+)/);
+                if (titleMatch) {
+                   parsedTitle = titleMatch[1].split(':')[0].trim();
+                }
+
                 // Imweb viewer structures
                 // Prefer board_txt_area to avoid picking up the 'COLUMN' header widget
                 const extractedHtml = $('.board_txt_area.fr-view').html() || $('.post-content').html();
@@ -58,14 +70,14 @@ export async function GET(request: Request) {
                 }
             }
 
-            const title = TITLES_MAP[idx] || `복원된 칼럼 (${idx})`;
+            const title = TITLES_MAP[idx] || parsedTitle;
 
             // Insert into Supabase
             const { data, error } = await supabase.from('magazines').upsert({
                 slug: idx, // Crucial for 301 match
                 title: title,
                 body: contentHtml,
-                excerpt: excerpt || title,
+                excerpt: excerpt || title.substring(0, 50),
                 category: '칼럼',
                 status: 'published',
                 author: '메이크디스원'
@@ -78,7 +90,9 @@ export async function GET(request: Request) {
         }
         
         // Rate limiting prevent IP ban
-        await new Promise(r => setTimeout(r, 1000));
+        if(targetArticles.length > 1) {
+            await new Promise(r => setTimeout(r, 1000));
+        }
     }
     
     return NextResponse.json({ success: true, results });
