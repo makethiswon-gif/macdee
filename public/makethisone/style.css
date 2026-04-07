@@ -789,9 +789,77 @@ section.auto-height {
   background: var(--color-bg);
 }
 
+/* ---- Founder Spotlight (CEO) ---- */
+.founder-spotlight {
+  display: flex;
+  gap: 48px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 24px;
+  align-items: center;
+}
+
+.founder-image {
+  flex: 0 0 320px;
+  height: 100%;
+}
+
+.founder-image img {
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  object-fit: cover;
+  display: block;
+}
+
+.founder-info {
+  flex: 1;
+  padding: 48px;
+}
+
+.founder-role {
+  font-family: var(--font-en);
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 0.15em;
+  color: var(--color-accent-light);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.founder-name {
+  font-size: 2.2rem;
+  font-weight: 900;
+  margin-bottom: 24px;
+  letter-spacing: -0.02em;
+}
+
+.founder-career {
+  list-style: none;
+  padding: 0;
+}
+
+.founder-career li {
+  position: relative;
+  padding-left: 16px;
+  margin-bottom: 12px;
+  font-size: 1.05rem;
+  color: var(--color-text-dim);
+  font-weight: 400;
+}
+
+.founder-career li::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: var(--color-accent-light);
+}
+
 .team-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
 }
 
@@ -1899,4 +1967,22 @@ section.auto-height {
 .contact-toast span {
   color: #22C55E;
   font-size: 1.2rem;
+}
+
+@media (max-width: 900px) {
+  .founder-spotlight {
+    flex-direction: column;
+    gap: 0;
+  }
+  .founder-image {
+    width: 100%;
+    flex: none;
+    height: auto;
+  }
+  .founder-image img {
+    min-height: auto;
+  }
+  .founder-info {
+    padding: 32px 24px;
+  }
 }
