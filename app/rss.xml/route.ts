@@ -10,13 +10,12 @@ export async function GET(request: NextRequest) {
         const proto = request.headers.get("x-forwarded-proto") || "https";
         const baseUrl = `${proto}://${host}`;
 
-        // Get published blog posts
+        // Get published blog posts with lawyer info for correct URLs
         const { data: blogPosts } = await supabase
             .from("contents")
-            .select("slug, title, body, updated_at, published_at")
+            .select("id, slug, title, body, updated_at, published_at, lawyers!inner(slug)")
             .eq("status", "published")
-            .in("channel", ["blog", "google"])
-            .not("slug", "is", null)
+            .in("channel", ["google", "macdee"])
             .order("published_at", { ascending: false })
             .limit(50);
 
@@ -33,14 +32,17 @@ export async function GET(request: NextRequest) {
         let items = "";
 
         for (const post of blogPosts || []) {
-            if (!post.slug) continue;
+            const lawyerData = post.lawyers as unknown as { slug: string } | null;
+            const lawyerSlug = lawyerData?.slug;
+            if (!lawyerSlug) continue;
             const desc = (post.body || "").replace(/<[^>]*>/g, "").slice(0, 300);
             const pubDate = new Date(post.published_at || post.updated_at).toUTCString();
+            const postUrl = encodeURI(`${baseUrl}/blog/${lawyerSlug}/${post.id}`);
             items += `
     <item>
       <title><![CDATA[${post.title || ""}]]></title>
-      <link>${baseUrl}/blog/${post.slug}</link>
-      <guid isPermaLink="true">${baseUrl}/blog/${post.slug}</guid>
+      <link>${postUrl}</link>
+      <guid isPermaLink="true">${postUrl}</guid>
       <description><![CDATA[${desc}]]></description>
       <pubDate>${pubDate}</pubDate>
     </item>`;
@@ -51,8 +53,8 @@ export async function GET(request: NextRequest) {
             items += `
     <item>
       <title><![CDATA[${mag.title || ""}]]></title>
-      <link>${baseUrl}/magazine/${mag.slug}</link>
-      <guid isPermaLink="true">${baseUrl}/magazine/${mag.slug}</guid>
+      <link>${encodeURI(`${baseUrl}/magazine/${mag.slug}`)}</link>
+      <guid isPermaLink="true">${encodeURI(`${baseUrl}/magazine/${mag.slug}`)}</guid>
       <description><![CDATA[${mag.excerpt || ""}]]></description>
       <pubDate>${pubDate}</pubDate>
     </item>`;

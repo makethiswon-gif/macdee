@@ -54,14 +54,25 @@ export async function generateMetadata({
     const magazine = await getMagazine(slug);
     if (!magazine) return { title: "기사를 찾을 수 없습니다" };
 
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
+    const canonicalUrl = `${baseUrl}/magazine/${magazine.slug}`;
+
     return {
         title: magazine.meta_title || magazine.title,
         description: magazine.meta_description || magazine.excerpt,
+        alternates: {
+            canonical: canonicalUrl,
+        },
+        robots: {
+            index: true,
+            follow: true,
+        },
         openGraph: {
             title: magazine.meta_title || magazine.title,
             description: magazine.meta_description || magazine.excerpt,
             images: magazine.cover_image_url ? [magazine.cover_image_url] : [],
             type: "article",
+            url: canonicalUrl,
         },
     };
 }

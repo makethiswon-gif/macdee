@@ -22,14 +22,25 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
     if (!post) return { title: "포스트를 찾을 수 없습니다" };
 
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
+    const canonicalUrl = `${baseUrl}/blog/${slug}/${postSlug}`;
+
     return {
         title: `${post.title} | ${lawyer.name} 변호사`,
         description: post.meta_description || post.title,
         keywords: (post.tags || []).join(", "),
+        alternates: {
+            canonical: canonicalUrl,
+        },
+        robots: {
+            index: true,
+            follow: true,
+        },
         openGraph: {
             title: post.title,
             description: post.meta_description || post.title,
             type: "article",
+            url: canonicalUrl,
             authors: [lawyer.name],
         },
     };

@@ -20,14 +20,23 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
     if (!lawyer) return { title: "블로그를 찾을 수 없습니다" };
 
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
     const specialties = (lawyer.specialty || []).join(", ");
     return {
         title: `${lawyer.name} 변호사 블로그 | ${specialties}`,
         description: lawyer.bio || `${lawyer.name} 변호사의 법률 칼럼 블로그. ${specialties} 전문.`,
+        alternates: {
+            canonical: `${baseUrl}/blog/${slug}`,
+        },
+        robots: {
+            index: true,
+            follow: true,
+        },
         openGraph: {
             title: `${lawyer.name} 변호사 블로그`,
             description: lawyer.bio || `${specialties} 전문 변호사`,
             type: "website",
+            url: `${baseUrl}/blog/${slug}`,
         },
     };
 }

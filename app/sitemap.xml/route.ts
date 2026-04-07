@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 
+// Encode URL for sitemap (handle Korean characters)
+function sitemapUrl(url: string): string {
+    // encodeURI handles Korean chars but preserves /:?#[]@!$&'()*+,;=
+    return encodeURI(url).replace(/&/g, "&amp;").replace(/'/g, "&apos;");
+}
+
 // Dynamic sitemap for SEO — Google + Naver
 export async function GET() {
     try {
@@ -8,13 +14,13 @@ export async function GET() {
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
         const now = new Date().toISOString();
 
-        // Get published blog posts
+        // Get published blog posts WITH lawyer slug for correct URL pattern
+        // Blog pages use channels "google" and "macdee" — match that here
         const { data: blogPosts } = await supabase
             .from("contents")
-            .select("slug, updated_at, published_at")
+            .select("id, slug, updated_at, published_at, lawyer_id, lawyers!inner(slug)")
             .eq("status", "published")
-            .in("channel", ["blog", "google"])
-            .not("slug", "is", null)
+            .in("channel", ["google", "macdee"])
             .order("published_at", { ascending: false });
 
         // Get published magazine articles
@@ -24,7 +30,7 @@ export async function GET() {
             .eq("status", "published")
             .order("published_at", { ascending: false });
 
-        // Get lawyer profiles
+        // Get lawyer profiles (also used for blog listing pages)
         const { data: lawyers } = await supabase
             .from("lawyers")
             .select("slug, updated_at")
@@ -76,12 +82,26 @@ export async function GET() {
         <priority>0.3</priority>
     </url>`;
 
-        // Blog posts
-        for (const post of blogPosts || []) {
-            if (!post.slug) continue;
+        // Lawyer blog listing pages (/blog/[lawyer-slug]) — high priority entry points
+        for (const lawyer of lawyers || []) {
+            if (!lawyer.slug) continue;
             xml += `
     <url>
-        <loc>${baseUrl}/blog/${post.slug}</loc>
+        <loc>${sitemapUrl(`${baseUrl}/blog/${lawyer.slug}`)}</loc>
+        <lastmod>${new Date(lawyer.updated_at).toISOString()}</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>`;
+        }
+
+        // Individual blog posts — URL pattern: /blog/[lawyer-slug]/[post-id]
+        for (const post of blogPosts || []) {
+            const lawyerData = post.lawyers as unknown as { slug: string } | null;
+            const lawyerSlug = lawyerData?.slug;
+            if (!lawyerSlug) continue;
+            xml += `
+    <url>
+        <loc>${sitemapUrl(`${baseUrl}/blog/${lawyerSlug}/${post.id}`)}</loc>
         <lastmod>${new Date(post.updated_at || post.published_at).toISOString()}</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.7</priority>
@@ -92,19 +112,19 @@ export async function GET() {
         for (const mag of magazines || []) {
             xml += `
     <url>
-        <loc>${baseUrl}/magazine/${mag.slug}</loc>
+        <loc>${sitemapUrl(`${baseUrl}/magazine/${mag.slug}`)}</loc>
         <lastmod>${new Date(mag.updated_at || mag.published_at).toISOString()}</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>
     </url>`;
         }
 
-        // Lawyer profiles
+        // Lawyer profile pages (/lawyer/[slug])
         for (const lawyer of lawyers || []) {
             if (!lawyer.slug) continue;
             xml += `
     <url>
-        <loc>${baseUrl}/lawyer/${lawyer.slug}</loc>
+        <loc>${sitemapUrl(`${baseUrl}/lawyer/${lawyer.slug}`)}</loc>
         <lastmod>${new Date(lawyer.updated_at).toISOString()}</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.6</priority>
