@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     template: "%s | macdee - 변호사 마케팅 자동화",
   },
   description:
-    "변호사 광고, 로펌 마케팅, 법무법인 광고를 AI가 자동으로. 판결문 PDF 올리면 네이버 블로그, 인스타그램, 구글 SEO 콘텐츠를 3분 만에 생성·발행합니다. 변호사 마케팅 월 49,000원부터.",
+    "2019년부터 변호사 법무법인 광고 트렌드를 선도하는 메이크디스원",
   keywords: [
     "변호사 광고",
     "로펌 마케팅",
@@ -55,7 +55,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "macdee | 변호사 광고 · 로펌 마케팅 자동화 플랫폼",
     description:
-      "변호사 광고 · 로펌 마케팅을 AI가 자동으로. 판결문 올리면 3분 만에 4개 채널 자동 발행. 월 49,000원부터.",
+      "2019년부터 변호사 법무법인 광고 트렌드를 선도하는 메이크디스원",
     type: "website",
     locale: "ko_KR",
     url: BASE_URL,
@@ -73,7 +73,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "macdee | 변호사 광고 · 로펌 마케팅 자동화",
     description:
-      "변호사 광고, 법무법인 광고를 AI가 자동으로. 판결문 올리면 3분 만에 4개 채널 발행.",
+      "2019년부터 변호사 법무법인 광고 트렌드를 선도하는 메이크디스원",
     images: ["/og-image.png"],
   },
 };
@@ -89,7 +89,7 @@ const jsonLd = {
       name: "macdee - 변호사 마케팅 자동화 플랫폼",
       alternateName: ["맥디", "MACDEE", "macdee"],
       description:
-        "변호사 광고, 로펌 마케팅, 법무법인 광고를 AI가 자동화합니다. 판결문 업로드 → 네이버 블로그, 인스타그램, 구글 SEO, AI 검색 최적화 콘텐츠 자동 생성.",
+        "2019년부터 변호사 법무법인 광고 트렌드를 선도하는 메이크디스원. 변호사 광고, 로펌 마케팅, 법무법인 광고를 AI가 자동화합니다.",
       inLanguage: "ko-KR",
       publisher: { "@id": `${BASE_URL}/#organization` },
       potentialAction: {
