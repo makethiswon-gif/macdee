@@ -50,7 +50,8 @@ export async function GET(request: Request) {
                 const $ = cheerio.load(html);
                 
                 // Imweb viewer structures
-                const extractedHtml = $('.fr-view, .board_txt_area, .post-content').html();
+                // Prefer board_txt_area to avoid picking up the 'COLUMN' header widget
+                const extractedHtml = $('.board_txt_area.fr-view').html() || $('.post-content').html();
                 if (extractedHtml) {
                     contentHtml = extractedHtml;
                     excerpt = $(extractedHtml).text().substring(0, 150) + '...';
