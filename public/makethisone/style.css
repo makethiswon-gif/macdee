@@ -832,8 +832,28 @@ section.auto-height {
 .founder-name {
   font-size: 2.2rem;
   font-weight: 900;
-  margin-bottom: 24px;
+  margin-bottom: 32px;
   letter-spacing: -0.02em;
+}
+
+.founder-career-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 16px;
+  position: relative;
+  display: inline-block;
+}
+
+.founder-career-title::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -4px;
+  width: 100%;
+  height: 2px;
+  background: var(--color-accent-light);
+  opacity: 0.5;
 }
 
 .founder-career {
