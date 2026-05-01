@@ -44,9 +44,57 @@ ${profile.website ? '- 홈페이지: ' + profile.website : ''}`;
             ? '경력사항:\n' + allCareer.map((c: string) => `- ${c}`).join('\n')
             : '';
 
+        // ── Design Variation System ──
+        // Each generation randomly picks a unique combination of style traits
+        const layoutStyles = [
+            '제목을 왼쪽 정렬하고 오른쪽에 여백을 넓게 두는 비대칭 레이아웃',
+            '모든 요소를 중앙 정렬하는 클래식 대칭 레이아웃',
+            '대각선 분할(clip-path: polygon) 배경을 사용한 역동적 레이아웃',
+            '상단 2/3에 비주얼, 하단 1/3에 텍스트를 배치하는 매거진 레이아웃',
+            '좌측에 세로 컬러바(width:6px)를 넣고 텍스트를 우측에 배치하는 에디토리얼 레이아웃',
+            '원형 프레임과 곡선 장식 요소를 활용한 유기적 레이아웃',
+            '그리드 기반으로 섹션을 나누고 각 섹션에 다른 배경 투명도를 적용하는 모던 레이아웃',
+            '전체 카드를 둥근 내부 패널(border-radius:24px, margin:20px)로 감싸는 카드-인-카드 레이아웃',
+        ];
+        const typographyMoods = [
+            '제목 font-size:48px font-weight:900 자간 letter-spacing:-2px 모던 타이트',
+            '제목 font-size:36px font-weight:300 자간 letter-spacing:4px 우아하고 가벼운',
+            '제목 font-size:42px font-weight:800 세리프 느낌 클래식',
+            '제목 font-size:32px font-weight:700 대문자 느낌 강렬한 블록체',
+            '제목을 두 줄로 나누어 첫 줄 font-size:28px 두번째 줄 font-size:44px font-weight:900 강약 대비',
+            '제목 font-size:38px font-weight:600 둥근 느낌 부드러운 톤',
+        ];
+        const decorativeElements = [
+            '모서리에 가는 선(1px solid rgba(255,255,255,0.15)) 프레임 장식',
+            '배경에 큰 원형 그라데이션 블러 bokeh 2~3개 (width:300px, height:300px, border-radius:50%, filter:blur(80px), opacity:0.3)',
+            '하단에 가로로 가는 그라데이션 라인 악센트 (height:2px)',
+            '배경에 미세한 도트 패턴 (radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px) 20px 20px)',
+            '텍스트 뒤에 브랜드컬러의 큰 숫자나 한자를 반투명(opacity:0.06, font-size:300px)으로 배치',
+            '상단과 하단에 대비되는 색상 밴드를 넣어 투톤 분위기',
+            '장식 없이 미니멀하게 — 여백과 타이포그래피만으로 승부',
+            '배경에 사선 스트라이프 패턴 (repeating-linear-gradient, 45deg, rgba(255,255,255,0.03))',
+        ];
+        const colorVariations = [
+            `메인 ${brandColor}를 기본으로 사용`,
+            `${brandColor}를 약간 어둡게 변형하여 사용`,
+            `${brandColor}를 베이스로 하되 따뜻한 톤(골드 악센트 #D4A853)을 보조색으로`,
+            `${brandColor}를 베이스로 하되 차가운 실버(#C0C0C0) 악센트 추가`,
+            `${brandColor}와 검정 위주의 모노크롬 느낌`,
+        ];
+
+        const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
+        const variationDirective = `
+★ 디자인 변주 지시 (반드시 반영) ★
+- 레이아웃: ${pick(layoutStyles)}
+- 타이포: ${pick(typographyMoods)}
+- 장식: ${pick(decorativeElements)}
+- 색감: ${pick(colorVariations)}
+이전 생성과 완전히 다른 새로운 시각적 인상을 만들어. 같은 구도를 반복하지 말 것.
+`;
+
         // Card-specific prompts with example HTML reference
         const cardPrompts: Record<string, string> = {
-            thumbnail: `역할: 법률 블로그 메인 썸네일 이미지를 HTML로 코딩해.
+            thumbnail: `역할: 너는 법률 블로그 썸네일을 매번 완전히 새로운 스타일로 디자인하는 크리에이티브 디렉터야. 절대 이전과 같은 구도를 반복하지 마.
 
 ${profileContext}
 ${imgInfo}
@@ -56,17 +104,23 @@ ${content.substring(0, 1000)}
 
 필수 규칙: 영어 단어 절대 사용 금지 (Legal, Insight, Criminal 등). 모든 텍스트 한국어만.
 
-지시사항:
-${title?.trim() ? `1. 카드 제목으로 반드시 다음 텍스트를 그대로 사용해. 한 글자도 바꾸지 말 것: "${title.trim()}"` : '1. 블로그 본문을 읽고 핵심을 담은 매력적인 한국어 제목을 20자 이내로 직접 작성해서 카드에 넣어.'}
-2. 800x800px 카드. inline CSS만 사용. 루트 div에 position:relative;overflow:hidden 필수.
-${hasOfficeImg ? `3. 배경: 사무실 사진을 전체 배경으로 깔기 — <img src="__OFFICE_IMG__" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;" /> 그 위에 어두운 오버레이 div: <div style="position:absolute;top:0;left:0;width:100%;height:100%;background:linear-gradient(180deg,${brandColor}cc 0%,rgba(0,0,0,0.85) 100%);"></div>` : `3. background: linear-gradient(135deg, ${brandColor}dd 0%, ${brandColor}88 50%, #0a0a0a 100%)`}
-4. 모든 텍스트/콘텐츠는 position:relative;z-index:1 로 오버레이 위에 표시.
-5. 제목을 크고 굵게 (font-size:38~44px, font-weight:800) 중앙 배치.
-6. 하단에 "${profile.lawyerName} ${profile.jobTitle || '변호사'}" 이름 작게.
-${hasLogo ? `7. 상단에 로펌 로고 <img src="__LOGO_IMG__" style="height:50px;object-fit:contain;position:relative;z-index:1;" /> (로고에 이미 로펌명이 포함되어 있으므로 텍스트로 로펌명을 따로 쓰지 말 것)` : ''}
-${hasProfileImg ? `8. 하단에 프로필 사진을 크게 원형으로: <img src="__PROFILE_IMG__" style="width:150px;height:150px;border-radius:50%;object-fit:cover;position:relative;z-index:1;border:3px solid rgba(255,255,255,0.3);" />` : ''}
-9. 제목+이름+로고+프로필사진만. 전문분야, 요약, 카테고리 라벨 넣지 말 것.
-10. font-family:'Pretendard','Noto Sans KR',sans-serif
+기술 제약 (반드시 지킬 것):
+- 800x800px 카드. inline CSS만 사용.
+- 루트 div에 position:relative;overflow:hidden;width:800px;height:800px 필수.
+- 모든 텍스트/콘텐츠는 position:relative;z-index:1.
+- font-family:'Pretendard','Noto Sans KR',sans-serif
+${hasOfficeImg ? `- 사무실 사진 사용 가능: <img src="__OFFICE_IMG__" /> (배경, 부분 배경, 반만 쓰기 등 자유롭게)` : ''}
+${hasLogo ? `- 로펌 로고 사용 가능: <img src="__LOGO_IMG__" /> (로고에 이미 로펌명 포함. 텍스트로 로펌명 따로 쓰지 말 것). 위치/크기는 자유.` : ''}
+${hasProfileImg ? `- 프로필 사진 사용 가능: <img src="__PROFILE_IMG__" /> 원형/사각/반원 등 형태 자유. 크기와 위치도 자유.` : ''}
+
+콘텐츠 규칙:
+${title?.trim() ? `- 카드 제목으로 반드시 다음 텍스트를 그대로 사용해. 한 글자도 바꾸지 말 것: "${title.trim()}"` : '- 블로그 본문을 읽고 핵심을 담은 매력적인 한국어 제목을 20자 이내로 직접 작성해서 카드에 넣어.'}
+- "${profile.lawyerName} ${profile.jobTitle || '변호사'}" 이름을 어딘가에 표시 (위치/크기 자유).
+- 제목+이름+로고+프로필사진만. 전문분야, 요약, 카테고리 라벨 넣지 말 것.
+
+★★★ 핵심 디자인 지시 (이것이 이번 생성의 스타일을 결정함) ★★★
+${variationDirective}
+위 디자인 지시를 최우선으로 반영해서, 제목 위치, 사진 위치, 배경 처리, 여백, 색상 배치를 전부 이 지시에 맞게 새롭게 구성해. 브랜드컬러 ${brandColor}를 기반으로 하되, 매번 다른 그라데이션 각도와 색상 조합을 시도해.
 
 <div style="..."> 로 시작하는 HTML만 출력. 설명 금지.`,
 
@@ -92,6 +146,7 @@ ${hasOfficeImg ? `4. 배경: 사무실 사진을 블러 처리하여 배경으�
 ${hasLogo ? `9. 하단에 로펌 로고 <img src="__LOGO_IMG__" style="height:40px;object-fit:contain;position:relative;z-index:1;" />` : ''}
 10. font-family:'Pretendard','Noto Sans KR',sans-serif
 
+${variationDirective}
 <div style="..."> 로 시작하는 HTML만 출력. 설명 금지.`,
 
             career: `역할: 로펌 브랜드 이미지를 HTML로 코딩해.
@@ -114,6 +169,7 @@ ${(profile.brandLines || []).length > 0 ? '6. 브랜드 메시지/슬로건을 �
 7. 전체적으로 고급스러운 브랜드 이미지 느낌.
 8. font-family:'Pretendard','Noto Sans KR',sans-serif
 
+${variationDirective}
 <div style="..."> 로 시작하는 HTML만 출력. 설명 금지.`,
 
             contact: (() => {
@@ -148,10 +204,10 @@ ${phoneLinesText}
 전문분야: ${specialties}
 
 7. 위 연락처 정보가 카드에서 반드시 보여야 함. 빠뜨리면 안 됨.
-8. 맨 하단에 "지금 상담 예약하세요" 버튼 (background:${brandColor}, color:white, padding:12px 36px, border-radius:10px, font-weight:700).
-9. HTML을 최대한 간결하게 작성. 꾸밈용 빈 div나 장식 요소 넣지 말 것. 정보 전달에 집중.
-10. font-family:'Pretendard','Noto Sans KR',sans-serif
+8. HTML을 최대한 간결하게 작성. 꾸밈용 빈 div나 장식 요소 넣지 말 것. 정보 전달에 집중.
+9. font-family:'Pretendard','Noto Sans KR',sans-serif
 
+${variationDirective}
 <div style="..."> 로 시작하는 HTML만 출력. 설명 금지.`;
             })(),
         };
@@ -173,7 +229,7 @@ ${phoneLinesText}
             body: JSON.stringify({
                 model: "claude-sonnet-4-6",
                 max_tokens: maxTokens,
-                temperature: 0.6,
+                temperature: 0.9,
                 messages: [{ role: "user", content: prompt }],
             }),
         });

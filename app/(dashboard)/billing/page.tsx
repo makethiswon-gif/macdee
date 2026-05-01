@@ -250,7 +250,7 @@ export default function BillingPage() {
             </div>
 
             <p className="mt-6 text-center text-[11px] text-[#9CA3B0]">
-                부가세 별도 · 언제든 해지 가능 · 테스트 카드: 4330-0000-0443-0000
+                부가세 별도 · 언제든 해지 가능
             </p>
 
             {/* Cancel modal */}

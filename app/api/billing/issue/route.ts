@@ -90,6 +90,7 @@ export async function POST(request: Request) {
                 amount: planInfo.price,
                 orderId: `macdee_${lawyer.id}_${Date.now()}`,
                 orderName: `macdee ${planInfo.name}`,
+                customerEmail: user.email,
             }),
         });
 
