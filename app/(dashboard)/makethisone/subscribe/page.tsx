@@ -61,8 +61,16 @@ export default function MakeThisOnePage() {
     const [agreed, setAgreed] = useState(false);
     const [cardNumber, setCardNumber] = useState("");
     const [expiry, setExpiry] = useState("");
-    const [cvc, setCvc] = useState("");
     const [isProcessing, setIsProcessing] = useState(false);
+    const [tossPaymentsSDK, setTossPaymentsSDK] = useState<any>(null);
+
+    // Preload Toss Payments SDK to prevent popup blockers
+    useState(() => {
+        const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY;
+        if (clientKey) {
+            loadTossPayments(clientKey).then(sdk => setTossPaymentsSDK(sdk)).catch(console.error);
+        }
+    });
 
     const handleSubscribe = (planId: string) => {
         setSelectedPlan(planId);
@@ -86,17 +94,15 @@ export default function MakeThisOnePage() {
         if (!agreed) return;
         setIsProcessing(true);
         try {
-            const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY;
-            if (!clientKey) {
-                toast.error("결제 설정이 되어있지 않습니다.");
+            if (!tossPaymentsSDK) {
+                toast.error("결제 모듈을 불러오는 중입니다. 잠시 후 다시 시도해주세요.");
                 setIsProcessing(false);
                 return;
             }
 
-            const tossPayments = await loadTossPayments(clientKey);
             const customerKey = `mto_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
-            tossPayments.requestBillingAuth("카드", {
+            tossPaymentsSDK.requestBillingAuth("카드", {
                 customerKey,
                 successUrl: `${window.location.origin}/makethisone/subscribe/success?plan=${selectedPlan}&customerKey=${customerKey}`,
                 failUrl: `${window.location.origin}/makethisone/subscribe/fail`,
