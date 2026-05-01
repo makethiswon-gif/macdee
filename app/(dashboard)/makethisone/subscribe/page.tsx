@@ -103,9 +103,9 @@ export default function MakeThisOnePage() {
                 successUrl: `${window.location.origin}/makethisone/subscribe/success?plan=${selectedPlan}&customerKey=${customerKey}`,
                 failUrl: `${window.location.origin}/makethisone/subscribe/fail`,
             });
-        } catch (err) {
+        } catch (err: any) {
             console.error("Payment init error:", err);
-            toast.error("결제 초기화 중 오류가 발생했습니다.");
+            toast.error(`결제 초기화 중 오류가 발생했습니다: ${err.message || "알 수 없는 오류"}`);
             setIsProcessing(false);
         }
     };
