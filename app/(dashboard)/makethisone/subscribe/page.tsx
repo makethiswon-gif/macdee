@@ -100,6 +100,11 @@ export default function MakeThisOnePage() {
                 customerKey,
                 successUrl: `${window.location.origin}/makethisone/subscribe/success?plan=${selectedPlan}&customerKey=${customerKey}`,
                 failUrl: `${window.location.origin}/makethisone/subscribe/fail`,
+            }).catch((err: any) => {
+                console.error("Payment init error:", err);
+                const errStr = typeof err === 'object' ? JSON.stringify(err, Object.getOwnPropertyNames(err)) : String(err);
+                toast.error(`오류 상세: ${errStr}`);
+                setIsProcessing(false);
             });
         } catch (err: any) {
             console.error("Payment init error:", err);
