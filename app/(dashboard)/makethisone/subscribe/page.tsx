@@ -61,6 +61,7 @@ export default function MakeThisOnePage() {
     const [agreed, setAgreed] = useState(false);
     const [cardNumber, setCardNumber] = useState("");
     const [expiry, setExpiry] = useState("");
+    const [cvc, setCvc] = useState("");
     const [isProcessing, setIsProcessing] = useState(false);
     const [tossPaymentsSDK, setTossPaymentsSDK] = useState<any>(null);
 
