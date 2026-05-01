@@ -108,10 +108,14 @@ export default function MakeThisOnePage() {
                 successUrl: `${window.location.origin}/makethisone/subscribe/success?plan=${selectedPlan}&customerKey=${customerKey}`,
                 failUrl: `${window.location.origin}/makethisone/subscribe/fail`,
             }).catch((err: any) => {
-                console.error("Payment init error:", err);
-                const errStr = typeof err === 'object' ? JSON.stringify(err, Object.getOwnPropertyNames(err)) : String(err);
-                toast.error(`오류 상세: ${errStr}`);
                 setIsProcessing(false);
+                if (err.code === "USER_CANCEL") {
+                    toast.info("결제가 취소되었습니다.");
+                } else {
+                    console.error("Payment init error:", err);
+                    const errStr = typeof err === 'object' ? JSON.stringify(err, Object.getOwnPropertyNames(err)) : String(err);
+                    toast.error(`오류 상세: ${errStr}`);
+                }
             });
         } catch (err: any) {
             console.error("Payment init error:", err);
