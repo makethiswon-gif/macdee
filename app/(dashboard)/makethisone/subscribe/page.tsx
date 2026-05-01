@@ -66,7 +66,7 @@ export default function MakeThisOnePage() {
 
     // Preload Toss Payments SDK to prevent popup blockers
     useState(() => {
-        const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY;
+        const clientKey = "live_ck_XZYkKL4MrjBIZBwnlYnWr0zJwIEW"; // 강제 지정 (환경변수 캐싱 방지)
         if (clientKey) {
             loadTossPayments(clientKey).then(sdk => setTossPaymentsSDK(sdk)).catch(console.error);
         }
