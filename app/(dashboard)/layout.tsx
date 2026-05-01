@@ -55,7 +55,7 @@ const NAV_GROUPS = [
     {
         title: "설정 및 관리",
         items: [
-            { href: "/makethisone", label: "메이크디스원", icon: Briefcase },
+            { href: "/makethisone/subscribe", label: "메이크디스원", icon: Briefcase },
             { href: "/billing", label: "결제 관리", icon: CreditCard },
             { href: "/profile", label: "프로필", icon: User },
             { href: "/guide", label: "사용 가이드", icon: BookOpen },

@@ -100,8 +100,8 @@ export default function MakeThisOnePage() {
             const payment = (tossPayments as any).payment({ customerKey });
             await payment.requestBillingAuth({
                 method: "CARD",
-                successUrl: `${window.location.origin}/makethisone/success?plan=${selectedPlan}&customerKey=${customerKey}`,
-                failUrl: `${window.location.origin}/makethisone/fail`,
+                successUrl: `${window.location.origin}/makethisone/subscribe/success?plan=${selectedPlan}&customerKey=${customerKey}`,
+                failUrl: `${window.location.origin}/makethisone/subscribe/fail`,
             });
         } catch (err) {
             console.error("Payment init error:", err);

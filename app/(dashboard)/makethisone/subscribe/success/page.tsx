@@ -79,7 +79,7 @@ function SuccessContent() {
                     <h2 className="text-2xl font-bold text-white mb-3">결제 실패</h2>
                     <p className="text-[#9CA3B0] mb-8">{errorMsg}</p>
                     <button
-                        onClick={() => router.push("/makethisone")}
+                        onClick={() => router.push("/makethisone/subscribe")}
                         className="px-8 py-3 bg-[#3563AE] text-white font-bold rounded-xl hover:bg-[#2A4F8A] transition-colors"
                     >
                         다시 시도하기
