@@ -105,7 +105,8 @@ export default function MakeThisOnePage() {
             });
         } catch (err: any) {
             console.error("Payment init error:", err);
-            toast.error(`결제 초기화 중 오류가 발생했습니다: ${err.message || "알 수 없는 오류"}`);
+            const errStr = typeof err === 'object' ? JSON.stringify(err, Object.getOwnPropertyNames(err)) : String(err);
+            toast.error(`오류 상세: ${errStr}`);
             setIsProcessing(false);
         }
     };
