@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Check, X, CreditCard, Sparkles, CheckCircle2, FileText, ArrowRight, Loader2 } from "lucide-react";
 import Image from "next/image";
-import { loadTossPayments } from "@tosspayments/tosspayments-sdk";
+import { loadTossPayments } from "@tosspayments/payment-sdk";
 import { toast } from "sonner";
 
 // 요금제 데이터
@@ -96,10 +96,8 @@ export default function MakeThisOnePage() {
             const tossPayments = await loadTossPayments(clientKey);
             const customerKey = `mto_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const payment = (tossPayments as any).payment({ customerKey });
-            await payment.requestBillingAuth({
-                method: "CARD",
+            tossPayments.requestBillingAuth("카드", {
+                customerKey,
                 successUrl: `${window.location.origin}/makethisone/subscribe/success?plan=${selectedPlan}&customerKey=${customerKey}`,
                 failUrl: `${window.location.origin}/makethisone/subscribe/fail`,
             });
