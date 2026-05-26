@@ -165,15 +165,17 @@ export default function BlogImagesPage() {
         try {
             const dataUrl = await htmlToImage.toPng(node, {
                 quality: 1.0,
-                pixelRatio: 2, // Retina scale
+                pixelRatio: 2,
                 style: { transform: 'none' },
                 width: 800,
-                height: 800
+                height: 800,
             });
             const link = document.createElement('a');
             link.download = `blog-${card.type}-${Date.now()}.png`;
             link.href = dataUrl;
+            document.body.appendChild(link);
             link.click();
+            document.body.removeChild(link);
         } catch (err) {
             console.error('Download error:', err);
             alert('이미지 저장 중 오류가 발생했습니다.');
@@ -223,11 +225,14 @@ export default function BlogImagesPage() {
             }
 
             const blob = await zip.generateAsync({ type: 'blob' });
+            const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.download = `${keyword}_${dateStr}.zip`;
-            link.href = URL.createObjectURL(blob);
+            link.href = url;
+            document.body.appendChild(link);
             link.click();
-            URL.revokeObjectURL(link.href);
+            document.body.removeChild(link);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
 
             setGenerationMessage(`ZIP 다운로드 완료! (${cards.length}장)`);
         } catch (err) {
