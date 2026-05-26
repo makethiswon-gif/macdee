@@ -315,38 +315,8 @@ export async function generateBlogCardBackground(
 
     console.log(`[BlogCardBG] ${cardType} prompt: ${scenePrompt.substring(0, 120)}...`);
 
-    // 1순위: Imagen 4.0 (보통 ~5초, 하드 타임아웃 18초)
-    const geminiKey = process.env.GEMINI_API_KEY;
-    if (geminiKey) {
-        try {
-            const res = await fetchWithTimeout(
-                `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-preview-06-06:predict?key=${geminiKey}`,
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        instances: [{ prompt: finalPrompt }],
-                        parameters: { sampleCount: 1, aspectRatio: "1:1" },
-                    }),
-                },
-                18000
-            );
-            if (res.ok) {
-                const data = await res.json();
-                const b64 = data.predictions?.[0]?.bytesBase64Encoded;
-                if (b64) {
-                    console.log(`[BlogCardBG] Imagen 4.0 success`);
-                    return { imageBase64: b64 };
-                }
-            } else {
-                console.error(`[BlogCardBG] Imagen 4.0 error (${res.status}):`, (await res.text()).substring(0, 200));
-            }
-        } catch (err) {
-            console.error("[BlogCardBG] Imagen 4.0 failed/timeout:", err instanceof Error ? err.message : err);
-        }
-    }
-
-    // 2순위: GPT-Image-2 폴백 (보통 ~12초, 하드 타임아웃 25초)
+    // GPT-Image-2 단일 경로 (보통 ~12초, 하드 타임아웃 35초).
+    // Imagen은 응답 불안정/품질 편차로 제외. 실패 시 라우트에서 그라데이션 배경으로 폴백.
     const openaiKey = process.env.OPENAI_API_KEY;
     if (openaiKey) {
         try {
@@ -361,11 +331,11 @@ export async function generateBlogCardBackground(
                     quality: "high",
                     output_format: "png",
                 }),
-            }, 25000);
+            }, 35000);
             if (res.ok) {
                 const data = await res.json();
                 if (data.data?.[0]?.b64_json) {
-                    console.log(`[BlogCardBG] GPT-Image-2 fallback success`);
+                    console.log(`[BlogCardBG] GPT-Image-2 success`);
                     return { imageBase64: data.data[0].b64_json };
                 }
             } else {
@@ -376,9 +346,7 @@ export async function generateBlogCardBackground(
         }
     }
 
-    // DALL-E 3는 너무 느려서 (15~25초) 블로그 카드 경로에선 제외.
-    // 두 모델 다 실패하면 null 반환 → 라우트에서 그라데이션 배경으로 자동 폴백.
-    console.error("[BlogCardBG] All image generators failed, route will fall back to gradient");
+    console.error("[BlogCardBG] GPT-Image-2 failed, route will fall back to gradient");
     return null;
 }
 

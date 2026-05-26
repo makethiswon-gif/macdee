@@ -373,7 +373,7 @@ export default function BlogImagesPage() {
                                         <Code size={24} className="animate-pulse" />
                                     </div>
                                     <h3 className="text-xl font-bold text-white mb-2">프리미엄 렌더링 진행 중</h3>
-                                    <p className="text-[#9CA3B0] text-sm">Claude Sonnet 4.6 + Imagen 4.0이 4장을 동시에 코딩 중...</p>
+                                    <p className="text-[#9CA3B0] text-sm">Claude Sonnet 4.6 + GPT-Image-2가 4장을 동시에 코딩 중...</p>
                                 </div>
                             )}
 
