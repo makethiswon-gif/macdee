@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/server";
 import BlogPageClient from "./BlogPageClient";
 
-export const revalidate = 1800;
+export const dynamic = "force-dynamic";
 
 type Props = { 
     params: Promise<{ slug: string }>;
@@ -68,7 +68,6 @@ export default async function BlogPage({ params, searchParams }: Props) {
         .eq("lawyer_id", lawyer.id)
         .in("channel", ["google", "macdee"])
         .eq("status", "published")
-        .order("published_at", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false })
         .range(start, end);
 
