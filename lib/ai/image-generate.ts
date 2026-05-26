@@ -306,37 +306,7 @@ export async function generateBlogCardBackground(
 
     console.log(`[BlogCardBG] ${cardType} prompt: ${scenePrompt.substring(0, 120)}...`);
 
-    // 1순위: GPT-Image-2
-    const openaiKey = process.env.OPENAI_API_KEY;
-    if (openaiKey) {
-        try {
-            const res = await fetch("https://api.openai.com/v1/images/generations", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${openaiKey}` },
-                body: JSON.stringify({
-                    model: "gpt-image-2",
-                    prompt: finalPrompt,
-                    n: 1,
-                    size: "1024x1024",
-                    quality: "high",
-                    output_format: "png",
-                }),
-            });
-            if (res.ok) {
-                const data = await res.json();
-                if (data.data?.[0]?.b64_json) {
-                    console.log(`[BlogCardBG] GPT-Image-2 success`);
-                    return { imageBase64: data.data[0].b64_json };
-                }
-            } else {
-                console.error(`[BlogCardBG] GPT-Image-2 error (${res.status}):`, (await res.text()).substring(0, 200));
-            }
-        } catch (err) {
-            console.error("[BlogCardBG] GPT-Image-2 failed:", err);
-        }
-    }
-
-    // 2순위: Imagen 4.0
+    // 1순위: Imagen 4.0 — 분위기 배경에서 GPT-Image-2보다 빠르고 저렴 (보통 ~5초, GPT는 ~12초)
     const geminiKey = process.env.GEMINI_API_KEY;
     if (geminiKey) {
         try {
@@ -355,7 +325,7 @@ export async function generateBlogCardBackground(
                 const data = await res.json();
                 const b64 = data.predictions?.[0]?.bytesBase64Encoded;
                 if (b64) {
-                    console.log(`[BlogCardBG] Imagen 4.0 fallback success`);
+                    console.log(`[BlogCardBG] Imagen 4.0 success`);
                     return { imageBase64: b64 };
                 }
             } else {
@@ -363,6 +333,36 @@ export async function generateBlogCardBackground(
             }
         } catch (err) {
             console.error("[BlogCardBG] Imagen 4.0 failed:", err);
+        }
+    }
+
+    // 2순위: GPT-Image-2 폴백
+    const openaiKey = process.env.OPENAI_API_KEY;
+    if (openaiKey) {
+        try {
+            const res = await fetch("https://api.openai.com/v1/images/generations", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${openaiKey}` },
+                body: JSON.stringify({
+                    model: "gpt-image-2",
+                    prompt: finalPrompt,
+                    n: 1,
+                    size: "1024x1024",
+                    quality: "high",
+                    output_format: "png",
+                }),
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.data?.[0]?.b64_json) {
+                    console.log(`[BlogCardBG] GPT-Image-2 fallback success`);
+                    return { imageBase64: data.data[0].b64_json };
+                }
+            } else {
+                console.error(`[BlogCardBG] GPT-Image-2 error (${res.status}):`, (await res.text()).substring(0, 200));
+            }
+        } catch (err) {
+            console.error("[BlogCardBG] GPT-Image-2 failed:", err);
         }
     }
 

@@ -110,56 +110,60 @@ export default function BlogImagesPage() {
             { type: "contact", label: "문의 안내" },
         ];
 
-        const generatedCards: AICard[] = [];
         const total = cardTypes.length;
+        setGenerationMessage(`AI가 ${total}장 카드를 동시 생성하는 중... (~15초)`);
 
-        for (let i = 0; i < cardTypes.length; i++) {
-            const ct = cardTypes[i];
-            const isAiCard = ct.type === "thumbnail" || ct.type === "career";
-            setGenerationMessage(
-                isAiCard
-                    ? `AI가 ${ct.label} 배경 이미지를 생성하고 디자인을 코딩하는 중... (${i + 1}/${total}, ~15초)`
-                    : `AI가 ${ct.label} 디자인을 코딩하는 중... (${i + 1}/${total})`
-            );
+        // 4장을 병렬로 생성 — 가장 느린 카드 시간만큼만 걸림.
+        const results = await Promise.all(
+            cardTypes.map(async (ct) => {
+                try {
+                    const res = await fetch("/api/admin/blog-images/generate-design", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            profile: fullProfile,
+                            title: postTitle,
+                            content: postContent,
+                            cardType: ct.type,
+                        }),
+                    });
 
-            try {
-                const res = await fetch("/api/admin/blog-images/generate-design", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        profile: fullProfile,
-                        title: postTitle,
-                        content: postContent,
-                        cardType: ct.type,
-                    }),
-                });
+                    if (!res.ok) {
+                        let errMsg = `${res.status}`;
+                        try {
+                            const errData = await res.json();
+                            errMsg += " - " + errData.error;
+                        } catch { /* ignore */ }
+                        return { ok: false as const, label: ct.label, error: errMsg };
+                    }
 
-                if (!res.ok) {
-                    let errMsg = `${res.status}`;
-                    try {
-                        const errData = await res.json();
-                        errMsg += " - " + errData.error;
-                    } catch { /* ignore */ }
-                    alert(`${ct.label} 카드 생성 실패: ${errMsg}`);
-                    continue;
+                    const data = await res.json();
+                    if (data.card) {
+                        return { ok: true as const, card: data.card };
+                    }
+                    return { ok: false as const, label: ct.label, error: "no card returned" };
+                } catch (e) {
+                    console.error(`Error generating ${ct.type}:`, e);
+                    return { ok: false as const, label: ct.label, error: "network error" };
                 }
+            })
+        );
 
-                const data = await res.json();
-                if (data.card) {
-                    generatedCards.push(data.card);
-                    setCards([...generatedCards]);
-                }
-            } catch (e) {
-                console.error(`Error generating ${ct.type}:`, e);
-                alert(`${ct.label} 카드 생성 중 네트워크 오류가 발생했습니다.`);
-            }
+        const generatedCards: AICard[] = results
+            .filter((r): r is { ok: true; card: AICard } => r.ok)
+            .map(r => r.card);
+        const failures = results.filter(r => !r.ok);
+        setCards(generatedCards);
+
+        if (failures.length > 0) {
+            alert(`일부 카드 생성 실패:\n${failures.map(f => `- ${("label" in f) ? f.label : ""}: ${("error" in f) ? f.error : ""}`).join("\n")}`);
         }
 
-        if (generatedCards.length > 0) {
-            setGenerationMessage(`디자인 생성 완료! (${generatedCards.length}/${total} 카드)`);
-        } else {
-            setGenerationMessage("카드 생성에 실패했습니다. 다시 시도해주세요.");
-        }
+        setGenerationMessage(
+            generatedCards.length > 0
+                ? `디자인 생성 완료! (${generatedCards.length}/${total} 카드)`
+                : "카드 생성에 실패했습니다. 다시 시도해주세요."
+        );
 
         setIsGenerating(false);
     };
@@ -369,7 +373,7 @@ export default function BlogImagesPage() {
                                         <Code size={24} className="animate-pulse" />
                                     </div>
                                     <h3 className="text-xl font-bold text-white mb-2">프리미엄 렌더링 진행 중</h3>
-                                    <p className="text-[#9CA3B0] text-sm">Claude Opus 4.7이 한 줄 한 줄 디자인 코드를 작성 중입니다...</p>
+                                    <p className="text-[#9CA3B0] text-sm">Claude Sonnet 4.6 + Imagen 4.0이 4장을 동시에 코딩 중...</p>
                                 </div>
                             )}
 
