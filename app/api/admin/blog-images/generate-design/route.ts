@@ -92,22 +92,27 @@ export async function POST(req: Request) {
         // ── Card prompts ──
         const cardPrompts: Record<string, string> = {
 
-            thumbnail: `법률 블로그 메인 썸네일을 디자인해.
+            thumbnail: `법률 블로그 메인 썸네일을 디자인해. 매거진 표지/Apple 제품 페이지 같은 editorial 미감.
 
 ${aiBgDataUrl ? `[AI 생성 배경 이미지 — 전체 배경으로 사용 필수]: <img src="__AI_BG__" /> (object-fit:cover로 전체 깔고, 어두운 그라데이션 오버레이 후 그 위에 텍스트)` : hasOfficeImg ? `사무실 배경 사진: <img src="__OFFICE_IMG__" />` : ""}
-${hasLogo ? `로펌 로고: <img src="__LOGO_IMG__" /> (로고에 로펌명 포함. 텍스트로 로펌명 따로 쓰지 말 것)` : ""}
-${hasProfileImg && !aiBgDataUrl ? `변호사 프로필 사진: <img src="__PROFILE_IMG__" />` : ""}
+${hasLogo ? `로펌 로고: <img src="__LOGO_IMG__" /> (작게, 하단 코너에. 로고에 로펌명 포함되어 있으므로 텍스트로 로펌명 따로 쓰지 말 것)` : ""}
+
+[절대 금지 — 매우 중요]
+- 변호사 인물 사진/프로필 사진/포트레이트 절대 넣지 말 것
+- <img> 태그로 사람 얼굴 이미지를 합성하지 말 것
+- __PROFILE_IMG__ 같은 placeholder 절대 사용 금지
+- 누끼 딴 인물 사진을 배경 위에 얹는 것은 디자인 품질을 망침. 우리는 매거진 표지 미감을 원함.
 
 카드에 들어갈 텍스트: 딱 2가지만.
 1. 제목: ${title?.trim() ? `"${title.trim()}"` : "블로그 본문을 읽고 20자 이내 핵심 제목 1개 직접 작성"}
-2. 이름: "${profile.lawyerName} ${profile.jobTitle || "변호사"}"
+2. 이름: "${profile.lawyerName} ${profile.jobTitle || "변호사"}" (작게, 제목 아래 또는 코너에)
 
 콘텐츠 참고 (제목 생성용으로만):
 ${content.substring(0, 600)}
 
 ${variationDirective}
 
-위 디자인 지시를 정확히 따라서 제목과 이름 딱 2개만 넣어. 다른 텍스트 추가 금지.${aiBgDataUrl ? "\n\n[중요] __AI_BG__는 이미 시네마틱한 분위기를 담은 textless 배경이다. 추가 배경 그라데이션·사무실 사진 코드 작성하지 말 것. __AI_BG__ + 어두운 오버레이 + 텍스트만." : ""}`,
+위 디자인 지시를 정확히 따라서 제목과 이름 딱 2개만 넣어. 다른 텍스트 추가 금지.${aiBgDataUrl ? "\n\n[중요] __AI_BG__는 이미 시네마틱한 분위기를 담은 textless 배경이다. 추가 배경 그라데이션·사무실 사진·인물 사진 코드 작성하지 말 것. __AI_BG__ + 어두운 오버레이 + 텍스트만." : ""}`,
 
             summary: `법률 블로그 핵심 요약 카드를 디자인해.
 
@@ -208,6 +213,13 @@ font-family:'Noto Sans KR',sans-serif
             : divStart;
         if (cutStart > 0) html = html.substring(cutStart);
         html = html.replace(/```[\s\S]*$/g, "").trim();
+
+        // 썸네일/career 카드에서는 변호사 인물 사진 절대 금지.
+        // Claude가 지시 무시하고 <img src="__PROFILE_IMG__" />를 넣었다면 통째로 제거.
+        if (cardType === "thumbnail" || cardType === "career") {
+            html = html.replace(/<img[^>]*__PROFILE_IMG__[^>]*\/?>/gi, "");
+            html = html.replace(/<img[^>]*__PROFILE_IMG__[^>]*><\/img>/gi, "");
+        }
 
         // Replace image placeholders
         if (aiBgDataUrl) {
