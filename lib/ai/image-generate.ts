@@ -220,9 +220,18 @@ export async function generateCoverImage(
 
 // ─── 블로그 이미지 카드 배경 생성 ───
 // 블로그 본문을 분석하여 분위기 있는 textless 배경을 생성. HTML 카드의 배경으로 사용.
-// generateCoverImage()의 폴백 체인을 동일하게 재사용하되, 프롬프트만 다름:
-//  - 인물·텍스트·구체적 사건 장면 금지
-//  - 추상·건축·자연광 중심의 럭셔리 브랜드 무드
+// 직렬 폴백 체인이 너무 길어지면 Vercel 함수 타임아웃(60~90s)을 초과하므로
+// 각 API 호출에 하드 타임아웃을 걸어 빨리 실패하고 다음 단계로 넘어가게 한다.
+
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        return await fetch(url, { ...init, signal: controller.signal });
+    } finally {
+        clearTimeout(timer);
+    }
+}
 
 async function generateBlogBackgroundPromptWithClaude(
     blogContent: string,
@@ -261,7 +270,7 @@ ${moodDirective}
 Output ONLY the English prompt. No explanation, no quotes.`;
 
     try {
-        const res = await fetch("https://api.anthropic.com/v1/messages", {
+        const res = await fetchWithTimeout("https://api.anthropic.com/v1/messages", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -274,7 +283,7 @@ Output ONLY the English prompt. No explanation, no quotes.`;
                 system: systemPrompt,
                 messages: [{ role: "user", content: blogContent.substring(0, 1500) }],
             }),
-        });
+        }, 6000);
 
         if (!res.ok) {
             console.error("[BlogCardBG] Claude prompt gen failed:", await res.text());
@@ -285,7 +294,7 @@ Output ONLY the English prompt. No explanation, no quotes.`;
         const prompt = data.content?.[0]?.text?.trim() || "";
         return prompt || fallback;
     } catch (err) {
-        console.error("[BlogCardBG] Claude prompt gen error:", err);
+        console.error("[BlogCardBG] Claude prompt gen error/timeout, using template:", err instanceof Error ? err.message : err);
         return fallback;
     }
 }
@@ -306,11 +315,11 @@ export async function generateBlogCardBackground(
 
     console.log(`[BlogCardBG] ${cardType} prompt: ${scenePrompt.substring(0, 120)}...`);
 
-    // 1순위: Imagen 4.0 — 분위기 배경에서 GPT-Image-2보다 빠르고 저렴 (보통 ~5초, GPT는 ~12초)
+    // 1순위: Imagen 4.0 (보통 ~5초, 하드 타임아웃 18초)
     const geminiKey = process.env.GEMINI_API_KEY;
     if (geminiKey) {
         try {
-            const res = await fetch(
+            const res = await fetchWithTimeout(
                 `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-preview-06-06:predict?key=${geminiKey}`,
                 {
                     method: "POST",
@@ -319,7 +328,8 @@ export async function generateBlogCardBackground(
                         instances: [{ prompt: finalPrompt }],
                         parameters: { sampleCount: 1, aspectRatio: "1:1" },
                     }),
-                }
+                },
+                18000
             );
             if (res.ok) {
                 const data = await res.json();
@@ -332,15 +342,15 @@ export async function generateBlogCardBackground(
                 console.error(`[BlogCardBG] Imagen 4.0 error (${res.status}):`, (await res.text()).substring(0, 200));
             }
         } catch (err) {
-            console.error("[BlogCardBG] Imagen 4.0 failed:", err);
+            console.error("[BlogCardBG] Imagen 4.0 failed/timeout:", err instanceof Error ? err.message : err);
         }
     }
 
-    // 2순위: GPT-Image-2 폴백
+    // 2순위: GPT-Image-2 폴백 (보통 ~12초, 하드 타임아웃 25초)
     const openaiKey = process.env.OPENAI_API_KEY;
     if (openaiKey) {
         try {
-            const res = await fetch("https://api.openai.com/v1/images/generations", {
+            const res = await fetchWithTimeout("https://api.openai.com/v1/images/generations", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${openaiKey}` },
                 body: JSON.stringify({
@@ -351,7 +361,7 @@ export async function generateBlogCardBackground(
                     quality: "high",
                     output_format: "png",
                 }),
-            });
+            }, 25000);
             if (res.ok) {
                 const data = await res.json();
                 if (data.data?.[0]?.b64_json) {
@@ -362,38 +372,13 @@ export async function generateBlogCardBackground(
                 console.error(`[BlogCardBG] GPT-Image-2 error (${res.status}):`, (await res.text()).substring(0, 200));
             }
         } catch (err) {
-            console.error("[BlogCardBG] GPT-Image-2 failed:", err);
+            console.error("[BlogCardBG] GPT-Image-2 failed/timeout:", err instanceof Error ? err.message : err);
         }
     }
 
-    // 3순위: DALL-E 3
-    if (openaiKey) {
-        try {
-            const res = await fetch("https://api.openai.com/v1/images/generations", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${openaiKey}` },
-                body: JSON.stringify({
-                    model: "dall-e-3",
-                    prompt: finalPrompt,
-                    n: 1,
-                    size: "1024x1024",
-                    quality: "hd",
-                    response_format: "b64_json",
-                }),
-            });
-            if (res.ok) {
-                const data = await res.json();
-                if (data.data?.[0]?.b64_json) {
-                    console.log(`[BlogCardBG] DALL-E 3 final fallback success`);
-                    return { imageBase64: data.data[0].b64_json };
-                }
-            }
-        } catch (err) {
-            console.error("[BlogCardBG] DALL-E 3 failed:", err);
-        }
-    }
-
-    console.error("[BlogCardBG] All image generators failed");
+    // DALL-E 3는 너무 느려서 (15~25초) 블로그 카드 경로에선 제외.
+    // 두 모델 다 실패하면 null 반환 → 라우트에서 그라데이션 배경으로 자동 폴백.
+    console.error("[BlogCardBG] All image generators failed, route will fall back to gradient");
     return null;
 }
 
