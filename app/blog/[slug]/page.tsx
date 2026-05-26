@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/server";
 import BlogPageClient from "./BlogPageClient";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 1800;
 
 type Props = { 
     params: Promise<{ slug: string }>;
@@ -64,14 +64,38 @@ export default async function BlogPage({ params, searchParams }: Props) {
 
     const { data: posts, count } = await supabase
         .from("contents")
-        .select("id, title, body, meta_description, tags, channel, created_at, status", { count: "exact" })
+        .select("id, title, body, meta_description, tags, channel, created_at, published_at, status", { count: "exact" })
         .eq("lawyer_id", lawyer.id)
         .in("channel", ["google", "macdee"])
         .eq("status", "published")
-        .order("created_at", { ascending: false })
+        .order("published_at", { ascending: false })
         .range(start, end);
 
     const totalPages = count ? Math.ceil(count / limit) : 1;
+
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
+
+    // Lawyer blog JSON-LD: Person + Blog listing
+    const blogJsonLd = {
+        "@context": "https://schema.org",
+        "@type": "Blog",
+        name: `${lawyer.name} 변호사 블로그`,
+        description: lawyer.bio || `${lawyer.name} 변호사의 법률 칼럼`,
+        url: `${baseUrl}/blog/${slug}`,
+        author: {
+            "@type": "Person",
+            name: lawyer.name,
+            jobTitle: "변호사",
+            worksFor: lawyer.office_name ? { "@type": "LegalService", name: lawyer.office_name } : undefined,
+            knowsAbout: lawyer.specialty || [],
+        },
+        blogPost: (posts || []).slice(0, 10).map(p => ({
+            "@type": "BlogPosting",
+            headline: p.title,
+            url: `${baseUrl}/blog/${slug}/${p.id}`,
+            datePublished: p.published_at || p.created_at,
+        })),
+    };
 
     // Helper: strip markdown syntax for plain text excerpts
     function stripMarkdown(text: string): string {
@@ -92,7 +116,7 @@ export default async function BlogPage({ params, searchParams }: Props) {
     }
 
     // Helper: parse post body (handles raw JSON or markdown)
-    function parsePost(p: { id: string; title: string; body: string; meta_description: string | null; tags: string[] | null; channel: string; created_at: string; status: string }) {
+    function parsePost(p: { id: string; title: string; body: string; meta_description: string | null; tags: string[] | null; channel: string; created_at: string; published_at: string | null; status: string }) {
         let title = p.title;
         let body = p.body || "";
         let excerpt = p.meta_description || "";
@@ -120,10 +144,15 @@ export default async function BlogPage({ params, searchParams }: Props) {
         // Remove channel suffix from title (e.g. "제목 - google")
         title = title.replace(/\s*-\s*(google|macdee|blog|instagram)\s*$/i, "").trim();
 
-        return { id: p.id, title, slug: p.id, excerpt, tags: p.tags || [], channel: p.channel, created_at: p.created_at };
+        return { id: p.id, title, slug: p.id, excerpt, tags: p.tags || [], channel: p.channel, created_at: p.published_at || p.created_at };
     }
 
     return (
+        <>
+        <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(blogJsonLd) }}
+        />
         <BlogPageClient
             lawyer={{
                 id: lawyer.id,
@@ -142,5 +171,6 @@ export default async function BlogPage({ params, searchParams }: Props) {
             totalPages={totalPages}
             totalCount={count || 0}
         />
+        </>
     );
 }

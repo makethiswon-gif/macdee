@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import BlogSplash from "@/components/BlogSplash";
 import BlogTracker from "@/components/BlogTracker";
+import { createClient } from "@/lib/supabase/client";
 
 interface LawyerInfo {
     id: string;
@@ -33,6 +34,13 @@ interface PostData {
     created_at: string;
     card_news_slides?: { slide: number; text: string }[];
     card_news_cover_image?: string | null;
+}
+
+interface RelatedPost {
+    id: string;
+    title: string;
+    slug: string;
+    created_at: string;
 }
 
 function escapeHtml(text: string): string {
@@ -183,12 +191,22 @@ function renderBody(rawBody: string, brandColor: string) {
     return elements;
 }
 
-export default function PostPageClient({ lawyer, post, isOwner = false }: { lawyer: LawyerInfo; post: PostData; isOwner?: boolean }) {
+export default function PostPageClient({ lawyer, post, relatedPosts = [] }: { lawyer: LawyerInfo; post: PostData; relatedPosts?: RelatedPost[] }) {
     const router = useRouter();
+    const [isOwner, setIsOwner] = useState(false);
     const [shared, setShared] = useState(false);
     const [cardSlide, setCardSlide] = useState(0);
     const [showPhone, setShowPhone] = useState(false);
     const [deleting, setDeleting] = useState(false);
+
+    useEffect(() => {
+        const supabase = createClient();
+        supabase.auth.getUser().then(({ data: { user } }) => {
+            if (!user) return;
+            supabase.from("lawyers").select("id").eq("user_id", user.id).single()
+                .then(({ data }) => { if (data?.id === lawyer.id) setIsOwner(true); });
+        });
+    }, [lawyer.id]);
     const hasCardNews = post.card_news_slides && post.card_news_slides.length > 0;
     const hasPhone = !!lawyer.phone;
     const hasWebsite = !!lawyer.website_url;
@@ -469,6 +487,31 @@ export default function PostPageClient({ lawyer, post, isOwner = false }: { lawy
                             </div>
                         </div>
                     </motion.div>
+                )}
+
+                {/* Related posts — internal linking */}
+                {relatedPosts.length > 0 && (
+                    <div className="max-w-[720px] mx-auto px-6 pt-10 pb-4">
+                        <p className="text-[11px] font-semibold text-white/20 uppercase tracking-widest mb-5">
+                            {lawyer.name} 변호사의 다른 글
+                        </p>
+                        <div className="flex flex-col">
+                            {relatedPosts.map(p => (
+                                <Link
+                                    key={p.id}
+                                    href={`/blog/${lawyer.slug}/${p.slug}`}
+                                    className="group flex items-center justify-between py-3.5 border-b border-white/[0.04] last:border-0 hover:border-white/[0.08] transition-colors"
+                                >
+                                    <p className="text-[14px] text-white/50 group-hover:text-white/75 transition-colors leading-snug line-clamp-1 flex-1 mr-4">
+                                        {p.title}
+                                    </p>
+                                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-white/15 group-hover:text-white/40 transition-colors">
+                                        <path d="M5 3L9 7L5 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
                 )}
 
                 {/* Divider */}

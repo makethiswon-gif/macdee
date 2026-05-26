@@ -101,7 +101,7 @@ export async function GET() {
             if (!lawyerSlug) continue;
             xml += `
     <url>
-        <loc>${sitemapUrl(`${baseUrl}/blog/${lawyerSlug}/${post.id}`)}</loc>
+        <loc>${sitemapUrl(`${baseUrl}/blog/${lawyerSlug}/${post.slug || post.id}`)}</loc>
         <lastmod>${new Date(post.updated_at || post.published_at).toISOString()}</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.7</priority>

@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
             const desc = (post.body || "").replace(/<[^>]*>/g, "").slice(0, 300);
             const fullBody = (post.body || "").replace(/\]\]/g, "]]]]><![CDATA[");
             const pubDate = new Date(post.published_at || post.updated_at).toUTCString();
-            const postUrl = encodeURI(`${baseUrl}/blog/${lawyerSlug}/${post.id}`);
+            const postUrl = encodeURI(`${baseUrl}/blog/${lawyerSlug}/${post.slug || post.id}`);
             items += `
     <item>
       <title><![CDATA[${post.title || ""}]]></title>
