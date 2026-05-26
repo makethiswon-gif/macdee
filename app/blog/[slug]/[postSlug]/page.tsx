@@ -17,8 +17,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     try {
         const apiRes = await fetch(`${baseUrl}/api/blog/${slug}/${postSlug}`);
         if (!apiRes.ok) {
-            // eslint-disable-next-line no-console
-            console.error("generateMetadata api fetch failed", { status: apiRes.status });
             return { title: "포스트를 찾을 수 없습니다" };
         }
         const json = await apiRes.json();
@@ -44,8 +42,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
                 images: ["/og-image.png"],
             },
         };
-    } catch (err) {
-        try { console.error("generateMetadata fetch error", err); } catch {}
+    } catch {
         return { title: "포스트를 찾을 수 없습니다" };
     }
 
