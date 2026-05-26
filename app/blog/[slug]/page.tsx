@@ -68,7 +68,8 @@ export default async function BlogPage({ params, searchParams }: Props) {
         .eq("lawyer_id", lawyer.id)
         .in("channel", ["google", "macdee"])
         .eq("status", "published")
-        .order("published_at", { ascending: false })
+        .order("published_at", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false })
         .range(start, end);
 
     const totalPages = count ? Math.ceil(count / limit) : 1;
