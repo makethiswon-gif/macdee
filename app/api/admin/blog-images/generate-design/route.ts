@@ -44,8 +44,10 @@ export async function POST(req: Request) {
         // ── thumbnail / illustration: AI 이미지 단독 (텍스트 오버레이·HTML 코딩 단계 없음) ──
         if (cardType === "thumbnail" || cardType === "illustration") {
             const style = cardType === "thumbnail" ? "realistic" : "webtoon";
+            // 프로필 사진 첫 번째 장 사용 (없으면 undefined)
+            const profileImageUrl = profile.profileImages?.[0] ?? undefined;
             try {
-                const img = await generateBlogContentImage(content, title || "", style);
+                const img = await generateBlogContentImage(content, title || "", style, profileImageUrl);
                 const dataUrl = `data:image/png;base64,${img.imageBase64}`;
                 const html = `<div style="width:800px;height:800px;position:relative;overflow:hidden;background:#000;"><img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover;display:block;" /></div>`;
                 return NextResponse.json({
