@@ -218,6 +218,177 @@ export async function generateCoverImage(
     return await generateCoverImageDallE(caseType, hookText);
 }
 
+// ─── 블로그 이미지 카드 배경 생성 ───
+// 블로그 본문을 분석하여 분위기 있는 textless 배경을 생성. HTML 카드의 배경으로 사용.
+// generateCoverImage()의 폴백 체인을 동일하게 재사용하되, 프롬프트만 다름:
+//  - 인물·텍스트·구체적 사건 장면 금지
+//  - 추상·건축·자연광 중심의 럭셔리 브랜드 무드
+
+async function generateBlogBackgroundPromptWithClaude(
+    blogContent: string,
+    cardType: "thumbnail" | "career",
+    brandColor: string,
+): Promise<string> {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    const fallback = cardType === "career"
+        ? `Architectural photography of a luxury Korean law office interior at golden hour, marble and walnut wood textures, soft warm dramatic lighting through tall windows, no people, no text, no letters, premium brand atmosphere, editorial composition, cinematic depth, ultra high quality 1:1.`
+        : `Editorial photography, minimal premium law firm brand mood, abstract atmospheric composition with soft natural light, subtle ${brandColor} accent tones, no people, no text, no letters, no documents with writing, cinematic depth of field, ultra high quality 1:1.`;
+
+    if (!apiKey) return fallback;
+
+    const systemPrompt = `You are an art director for a luxury Korean law firm's editorial brand imagery.
+Given a Korean legal blog post, output ONE detailed English image-generation prompt for a textless atmospheric BACKGROUND image.
+
+[STRICT RULES]
+- NO people, NO faces, NO body parts in the scene
+- NO text, NO letters, NO numbers, NO logos, NO signs (the image must be 100% text-free — text will be overlaid later by HTML)
+- NO depiction of specific case events (no courtroom drama, no crash sites, no document close-ups with readable text)
+- Focus on MOOD and ATMOSPHERE only: architecture, interiors, natural elements, abstract textures, soft light
+- Korean luxury aesthetic — think Bottega Veneta editorial, Apple product pages, large law firm annual reports
+- Mention specific lighting (golden hour, soft diffused, dramatic chiaroscuro)
+- Mention specific materials (marble, walnut, brushed brass, raw concrete, linen, glass)
+- Brand color accent: ${brandColor} (use sparingly as subtle ambient tone, not as flat fill)
+- ${cardType === "career"
+        ? "Card type is 'career/brand' — depict a luxurious empty law office interior or architectural detail"
+        : "Card type is 'thumbnail' — depict an abstract atmospheric composition subtly evoking the blog topic without showing case-specific events"}
+
+Output ONLY the English prompt. No explanation, no quotes.`;
+
+    try {
+        const res = await fetch("https://api.anthropic.com/v1/messages", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "x-api-key": apiKey,
+                "anthropic-version": "2023-06-01",
+            },
+            body: JSON.stringify({
+                model: "claude-haiku-4-5",
+                max_tokens: 400,
+                system: systemPrompt,
+                messages: [{ role: "user", content: blogContent.substring(0, 1500) }],
+            }),
+        });
+
+        if (!res.ok) {
+            console.error("[BlogCardBG] Claude prompt gen failed:", await res.text());
+            return fallback;
+        }
+
+        const data = await res.json();
+        const prompt = data.content?.[0]?.text?.trim() || "";
+        return prompt || fallback;
+    } catch (err) {
+        console.error("[BlogCardBG] Claude prompt gen error:", err);
+        return fallback;
+    }
+}
+
+/**
+ * 블로그 이미지 카드용 textless 배경 이미지 생성.
+ * thumbnail / career 카드 배경에 사용. 폴백 체인은 generateCoverImage와 동일.
+ */
+export async function generateBlogCardBackground(
+    blogContent: string,
+    cardType: "thumbnail" | "career",
+    brandColor: string,
+): Promise<{ imageBase64: string } | null> {
+    const scenePrompt = await generateBlogBackgroundPromptWithClaude(blogContent, cardType, brandColor);
+    const finalPrompt = `${scenePrompt}\n\nABSOLUTE: Zero text, zero letters, zero numbers, zero people. Square 1:1.`;
+
+    console.log(`[BlogCardBG] ${cardType} prompt: ${scenePrompt.substring(0, 120)}...`);
+
+    // 1순위: GPT-Image-2
+    const openaiKey = process.env.OPENAI_API_KEY;
+    if (openaiKey) {
+        try {
+            const res = await fetch("https://api.openai.com/v1/images/generations", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${openaiKey}` },
+                body: JSON.stringify({
+                    model: "gpt-image-2",
+                    prompt: finalPrompt,
+                    n: 1,
+                    size: "1024x1024",
+                    quality: "high",
+                    output_format: "png",
+                }),
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.data?.[0]?.b64_json) {
+                    console.log(`[BlogCardBG] GPT-Image-2 success`);
+                    return { imageBase64: data.data[0].b64_json };
+                }
+            } else {
+                console.error(`[BlogCardBG] GPT-Image-2 error (${res.status}):`, (await res.text()).substring(0, 200));
+            }
+        } catch (err) {
+            console.error("[BlogCardBG] GPT-Image-2 failed:", err);
+        }
+    }
+
+    // 2순위: Imagen 4.0
+    const geminiKey = process.env.GEMINI_API_KEY;
+    if (geminiKey) {
+        try {
+            const res = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-preview-06-06:predict?key=${geminiKey}`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        instances: [{ prompt: finalPrompt }],
+                        parameters: { sampleCount: 1, aspectRatio: "1:1" },
+                    }),
+                }
+            );
+            if (res.ok) {
+                const data = await res.json();
+                const b64 = data.predictions?.[0]?.bytesBase64Encoded;
+                if (b64) {
+                    console.log(`[BlogCardBG] Imagen 4.0 fallback success`);
+                    return { imageBase64: b64 };
+                }
+            } else {
+                console.error(`[BlogCardBG] Imagen 4.0 error (${res.status}):`, (await res.text()).substring(0, 200));
+            }
+        } catch (err) {
+            console.error("[BlogCardBG] Imagen 4.0 failed:", err);
+        }
+    }
+
+    // 3순위: DALL-E 3
+    if (openaiKey) {
+        try {
+            const res = await fetch("https://api.openai.com/v1/images/generations", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${openaiKey}` },
+                body: JSON.stringify({
+                    model: "dall-e-3",
+                    prompt: finalPrompt,
+                    n: 1,
+                    size: "1024x1024",
+                    quality: "hd",
+                    response_format: "b64_json",
+                }),
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.data?.[0]?.b64_json) {
+                    console.log(`[BlogCardBG] DALL-E 3 final fallback success`);
+                    return { imageBase64: data.data[0].b64_json };
+                }
+            }
+        } catch (err) {
+            console.error("[BlogCardBG] DALL-E 3 failed:", err);
+        }
+    }
+
+    console.error("[BlogCardBG] All image generators failed");
+    return null;
+}
+
 /**
  * DALL-E 3 폴백
  */

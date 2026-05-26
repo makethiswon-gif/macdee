@@ -115,7 +115,12 @@ export default function BlogImagesPage() {
 
         for (let i = 0; i < cardTypes.length; i++) {
             const ct = cardTypes[i];
-            setGenerationMessage(`AI가 ${ct.label} 카드를 디자인하고 있습니다... (${i + 1}/${total})`);
+            const isAiCard = ct.type === "thumbnail" || ct.type === "career";
+            setGenerationMessage(
+                isAiCard
+                    ? `AI가 ${ct.label} 배경 이미지를 생성하고 디자인을 코딩하는 중... (${i + 1}/${total}, ~15초)`
+                    : `AI가 ${ct.label} 디자인을 코딩하는 중... (${i + 1}/${total})`
+            );
 
             try {
                 const res = await fetch("/api/admin/blog-images/generate-design", {

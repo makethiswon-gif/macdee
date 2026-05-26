@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
+import { generateBlogCardBackground } from "@/lib/ai/image-generate";
 
-export const maxDuration = 60;
+export const maxDuration = 90;
 
 export async function POST(req: Request) {
     try {
@@ -55,9 +56,25 @@ export async function POST(req: Request) {
             `장식 없음 — 순수 여백과 타이포로만`,
         ];
 
+        // ── AI 배경 이미지 생성 (thumbnail / career 카드만) ──
+        // 텍스트가 전혀 없는 시네마틱 분위기 배경. data URL로 HTML에 직접 임베드.
+        let aiBgDataUrl: string | null = null;
+        if (cardType === "thumbnail" || cardType === "career") {
+            try {
+                const bg = await generateBlogCardBackground(content, cardType, brandColor);
+                if (bg?.imageBase64) {
+                    aiBgDataUrl = `data:image/png;base64,${bg.imageBase64}`;
+                }
+            } catch (err) {
+                console.error("[generate-design] AI background failed, will fall back to office photo/gradient:", err);
+            }
+        }
+
         const layoutChoice = pick(layouts);
         const typoChoice = pick(typographies);
-        const bgChoice = hasOfficeImg ? pick(backgrounds) : pick(backgrounds.filter(b => !b.includes("사무실")));
+        const bgChoice = aiBgDataUrl
+            ? `배경: AI 생성 시네마틱 배경 이미지를 전체에 깔고 (object-fit:cover, z-index:0), 그 위에 linear-gradient(to bottom, rgba(0,0,0,0.1) 30%, rgba(0,0,0,0.85) 100%) 오버레이로 텍스트 가독성 확보`
+            : hasOfficeImg ? pick(backgrounds) : pick(backgrounds.filter(b => !b.includes("사무실")));
         const accentChoice = pick(accents);
 
         const variationDirective = `
@@ -87,6 +104,13 @@ export async function POST(req: Request) {
 - 루트 div: position:relative;overflow:hidden;width:800px;height:800px 필수
 - 모든 콘텐츠: position:relative;z-index:1 이상
 
+[__AI_BG__ 슬롯 사용 규칙 — 매우 중요]
+- 사용자가 프롬프트에서 __AI_BG__ 를 제공하면, 그것은 AI가 생성한 시네마틱 textless 배경 이미지(data URL)다.
+- 사용 방법: <img src="__AI_BG__" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0;" />
+- 그 위에 <div style="position:absolute; inset:0; background:linear-gradient(to bottom, rgba(0,0,0,0.1) 30%, rgba(0,0,0,0.85) 100%); z-index:1;"></div> 으로 어두운 그라데이션 오버레이 필수.
+- 모든 텍스트·로고는 z-index:2 이상에 배치. 흰색 또는 거의 흰색 컬러로.
+- __AI_BG__ 가 있으면 다른 배경 그라데이션·사무실 사진 코드를 추가하지 말 것. AI 배경이 최우선.
+
 출력: <style>...</style>로 시작하는 순수 HTML+인라인CSS만. 설명 없이.`;
 
         // ── Card prompts ──
@@ -94,9 +118,9 @@ export async function POST(req: Request) {
 
             thumbnail: `법률 블로그 메인 썸네일을 디자인해.
 
-${hasOfficeImg ? `사무실 배경 사진: <img src="__OFFICE_IMG__" />` : ""}
+${aiBgDataUrl ? `[AI 생성 배경 이미지 — 전체 배경으로 사용 필수]: <img src="__AI_BG__" /> (object-fit:cover로 전체 깔고, 어두운 그라데이션 오버레이 후 그 위에 텍스트)` : hasOfficeImg ? `사무실 배경 사진: <img src="__OFFICE_IMG__" />` : ""}
 ${hasLogo ? `로펌 로고: <img src="__LOGO_IMG__" /> (로고에 로펌명 포함. 텍스트로 로펌명 따로 쓰지 말 것)` : ""}
-${hasProfileImg ? `변호사 프로필 사진: <img src="__PROFILE_IMG__" />` : ""}
+${hasProfileImg && !aiBgDataUrl ? `변호사 프로필 사진: <img src="__PROFILE_IMG__" />` : ""}
 
 카드에 들어갈 텍스트: 딱 2가지만.
 1. 제목: ${title?.trim() ? `"${title.trim()}"` : "블로그 본문을 읽고 20자 이내 핵심 제목 1개 직접 작성"}
@@ -107,7 +131,7 @@ ${content.substring(0, 600)}
 
 ${variationDirective}
 
-위 디자인 지시를 정확히 따라서 제목과 이름 딱 2개만 넣어. 다른 텍스트 추가 금지.`,
+위 디자인 지시를 정확히 따라서 제목과 이름 딱 2개만 넣어. 다른 텍스트 추가 금지.${aiBgDataUrl ? "\n\n[중요] __AI_BG__는 이미 시네마틱한 분위기를 담은 textless 배경이다. 추가 배경 그라데이션·사무실 사진 코드 작성하지 말 것. __AI_BG__ + 어두운 오버레이 + 텍스트만." : ""}`,
 
             summary: `법률 블로그 핵심 요약 카드를 디자인해.
 
@@ -131,7 +155,7 @@ ${variationDirective}
 
             career: `로펌 브랜드 이미지 카드를 디자인해.
 
-${hasOfficeImg ? `배경용 사무실 사진: <img src="__OFFICE_IMG__" />` : ""}
+${aiBgDataUrl ? `[AI 생성 배경 이미지 — 전체 배경으로 사용 필수]: <img src="__AI_BG__" /> (object-fit:cover로 전체 깔고, 어두운 그라데이션 오버레이 후 그 위에 로고/슬로건)` : hasOfficeImg ? `배경용 사무실 사진: <img src="__OFFICE_IMG__" />` : ""}
 ${hasLogo ? `로펌 로고 (크게, 중심): <img src="__LOGO_IMG__" />` : `로펌명: ${profile.officeName}`}
 브랜드컬러: ${brandColor}
 ${tagline ? `슬로건/브랜드메시지: "${tagline}"` : specialties ? `전문분야: ${specialties}` : ""}
@@ -145,7 +169,7 @@ ${tagline
     : specialties ? `- 전문분야 1줄: "${specialties}" (font-size:16px, 투명도 낮게)` : ""}
 
 로고 외 텍스트는 슬로건/전문분야 1줄만. 그 이상 절대 금지.
-사무실 사진이 있으면 전체 배경으로 강하게 사용. 브랜드 화보 느낌.
+${aiBgDataUrl ? "__AI_BG__를 전체 배경으로 강하게 사용. 럭셔리 브랜드 화보 느낌. 추가 배경 코드 작성 금지." : "사무실 사진이 있으면 전체 배경으로 강하게 사용. 브랜드 화보 느낌."}
 
 ${variationDirective}`,
 
@@ -210,6 +234,9 @@ font-family:'Noto Sans KR',sans-serif
         html = html.replace(/```[\s\S]*$/g, "").trim();
 
         // Replace image placeholders
+        if (aiBgDataUrl) {
+            html = html.replace(/__AI_BG__/g, aiBgDataUrl);
+        }
         if (hasProfileImg) {
             const idx = Math.floor(Math.random() * profile.profileImages.length);
             html = html.replace(/__PROFILE_IMG__/g, profile.profileImages[idx]);
