@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import { permanentRedirect } from "next/navigation";
-import { createAdminClient } from "@/lib/supabase/server";
+import { createAdminClient, createServiceClient } from "@/lib/supabase/server";
 import PostPageClient from "./PostPageClient";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +12,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { slug, postSlug } = await params;
     const isUuid = UUID_RE.test(postSlug);
-    const supabase = await createAdminClient();
+    const supabase = createServiceClient();
 
     let postData: any = null;
     let lawyerName = "";
