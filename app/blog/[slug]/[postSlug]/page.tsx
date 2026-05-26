@@ -14,6 +14,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const isUuid = UUID_RE.test(postSlug);
     const supabase = createServiceClient();
 
+    // Log env presence for debugging in production (do not log secrets)
+    try {
+        // eslint-disable-next-line no-console
+        console.log("generateMetadata env:", {
+            hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+            hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+        });
+    } catch {
+        /* ignore */
+    }
+
     let postData: any = null;
     let lawyerName = "";
 
@@ -53,7 +64,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         postData = bySlug ?? null;
     }
 
-    if (!postData) return { title: "포스트를 찾을 수 없습니다" };
+    if (!postData) {
+        try {
+            // eslint-disable-next-line no-console
+            console.error("generateMetadata: postData null", { slug, postSlug, isUuid });
+        } catch {}
+        return { title: "포스트를 찾을 수 없습니다" };
+    }
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
     const canonicalSlug = postData.slug || postData.id || postSlug;
