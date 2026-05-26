@@ -5,6 +5,19 @@ import { getContentGenerator, type AIMessage } from "@/lib/ai/providers";
 
 export const maxDuration = 300; // 5분 — 여러 URL 처리에 충분한 시간
 
+function cleanSeoTitle(raw: string, fallback: string): string {
+    let t = raw.replace(/\*\*/g, "").trim();
+    t = t.replace(/전문\s*변호사|전문변호사/g, "변호사");
+    t = t.replace(/AI\s*추천[^\s]*/gi, "");
+    t = t.replace(/완벽\s*가이드|총정리|한방에\s*정리/g, "정리");
+    t = t.replace(/\s\|\s.*/g, "").replace(/\s-\s.*/g, "");
+    t = t.replace(/[^\S\n]+/g, " ").trim();
+    if (Array.from(t).length > 30) {
+        t = Array.from(t).slice(0, 30).join("").replace(/[\s,·]+$/, "");
+    }
+    return t || fallback;
+}
+
 // ─── 마이그레이션 전용 윤문 프롬프트 ───
 
 const PII_ENFORCEMENT = `
@@ -31,7 +44,7 @@ ${PII_ENFORCEMENT}
   · 정보형: "~란 무엇인가", "~의 기준은"
   · 사례형: "~실제 사례", "~판결 결과"
   · 행동형: "~변호사 선택 기준", "~대처 방법"
-- 제목: 25자 이내, 핵심 법률 검색어 + 실제 결과/경험 포함 (예: "위자료 3천만원 받은 불륜 소송 실제 사례")
+- 제목: 30자 이내, 핵심 법률 검색어 + 실제 결과/경험 포함 (예: "위자료 3천만원 받은 불륜 이혼소송 대응 전략")
 - H2 소제목 8~10개, H3 소제목 적극 활용
 - 분량: 4,000~5,000자 (경쟁 키워드 상위 노출 기준)
 - 핵심 키워드 + LSI 연관 키워드 자연스럽게 분산
@@ -47,7 +60,8 @@ ${PII_ENFORCEMENT}
 
 [글 구조 — 반드시 이 순서와 깊이로 작성]
 
-[제목 — 25자 이내, 실제 결과 포함]
+[제목 — 30자 이내, 실제 결과 포함, 아래 금지 표현 절대 사용 금지]
+금지: "전문 변호사", "AI 추천", "완벽 가이드", "총정리", " | ", " - ", 변호사 이름, 로펌명, 영문 단어
 
 ## 목차
 (본문의 H2 소제목 전체 목록을 번호와 함께 나열)
@@ -83,7 +97,7 @@ ${PII_ENFORCEMENT}
 
 출력: JSON
 {
-    "title": "25자 이내 제목",
+    "title": "30자 이내 구글 SEO 제목 (금지어 제외)",
     "meta_description": "메타 디스크립션 155자 이내, 핵심 결과 + CTA 포함",
     "body": "마크다운 본문 (목차 포함, 4,000~5,000자)",
     "keywords": ["핵심키워드1", "LSI키워드2", "연관키워드3", ...최소 8개],
@@ -113,7 +127,7 @@ ${PII_ENFORCEMENT}
 
 출력: JSON
 {
-    "title": "콘텐츠 제목",
+    "title": "30자 이내 구글 SEO 최적화 제목 — 핵심 법률 키워드 앞에, 금지어(전문 변호사·AI 추천·| 구분자·변호사 이름·로펌명) 절대 포함 금지",
     "body": "구조화된 텍스트",
     "schema_markup": { "@type": "Attorney", "name": "", "knowsAbout": [], ... }
 }
@@ -284,7 +298,7 @@ export async function POST(request: Request) {
                             upload_id: upload.id,
                             lawyer_id: lawyer.id,
                             channel: "google",
-                            title: (seoParsed.title || scraped.title).replace(/\*\*/g, ""),
+                            title: cleanSeoTitle(seoParsed.title || scraped.title, scraped.title),
                             body: seoParsed.body || seoContent,
                             meta_description: seoParsed.meta_description || "",
                             tags: seoParsed.keywords || [],
@@ -343,7 +357,7 @@ export async function POST(request: Request) {
                             upload_id: upload.id,
                             lawyer_id: lawyer.id,
                             channel: "macdee",
-                            title: aiParsed.title || `${scraped.title} - AI`,
+                            title: cleanSeoTitle(aiParsed.title || scraped.title, scraped.title),
                             body: aiParsed.body || aiContent,
                             schema_markup: aiParsed.schema_markup || null,
                             status: "review",
