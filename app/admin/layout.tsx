@@ -16,6 +16,7 @@ import {
     ImageIcon,
     Sparkles,
     BarChart3,
+    Search,
 } from "lucide-react";
 
 const ADMIN_NAV = [
@@ -28,6 +29,7 @@ const ADMIN_NAV = [
     { href: "/admin/magazines", label: "매거진 관리", icon: BookOpen },
     { href: "/admin/blog-analytics", label: "블로그 분석", icon: BarChart3 },
     { href: "/admin/blog-polish", label: "블로그 윤문", icon: Sparkles },
+    { href: "/admin/seo-titles", label: "SEO 제목 일괄수정", icon: Search },
 ];
 
 export default function AdminLayout({
