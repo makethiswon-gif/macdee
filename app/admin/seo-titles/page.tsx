@@ -140,6 +140,15 @@ export default function SeoTitlesPage() {
         setSelectedIds(new Set(rows.filter(r => r.needsChange).map(r => r.id)));
     };
 
+    const selectNext50 = () => {
+        const pending = rows.filter(r => r.needsChange && !selectedIds.has(r.id)).slice(0, 50);
+        if (pending.length === 0) {
+            toast.info("수정 필요한 항목이 모두 선택됐습니다.");
+            return;
+        }
+        setSelectedIds(new Set([...selectedIds, ...pending.map(r => r.id)]));
+    };
+
     const titleLen = (s: string) => Array.from(s).length;
 
     return (
@@ -201,6 +210,9 @@ export default function SeoTitlesPage() {
                         <div className="flex items-center gap-2">
                             <button onClick={toggleNeedsChangeOnly} className="px-3 py-2 rounded-lg bg-[#1F2937] text-[#D1D5DB] text-xs font-bold hover:bg-[#2A3441]">
                                 수정 필요한 것만
+                            </button>
+                            <button onClick={selectNext50} className="px-3 py-2 rounded-lg bg-[#1F2937] text-[#D1D5DB] text-xs font-bold hover:bg-[#2A3441]">
+                                다음 50개 추가
                             </button>
                             <button onClick={toggleAll} className="px-3 py-2 rounded-lg bg-[#1F2937] text-[#D1D5DB] text-xs font-bold hover:bg-[#2A3441]">
                                 {selectedIds.size === rows.length ? "전체 해제" : "전체 선택"}
