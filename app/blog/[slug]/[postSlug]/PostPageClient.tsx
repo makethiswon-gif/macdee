@@ -101,7 +101,7 @@ function renderBody(rawBody: string, brandColor: string) {
         return cells;
     };
 
-    const isTableSeparator = (row: string) => /^\s*\|?\s*[:\-\s]+\|?\s*$/.test(row);
+    const isTableSeparator = (row: string) => /^\s*\|(\s*:?-+:?\s*\|)+\s*$/.test(row);
 
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];

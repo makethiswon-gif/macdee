@@ -3,7 +3,7 @@ import { permanentRedirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/server";
 import PostPageClient from "./PostPageClient";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ slug: string; postSlug: string }> };
 
