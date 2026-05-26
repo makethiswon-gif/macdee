@@ -57,16 +57,16 @@ export async function POST(request: Request) {
 
         console.log(`[Publish] Status updated to published for content ${content_id}`);
 
-        // Get lawyer slug for blog URL
+        // Get lawyer slug for blog URL — always use content_id (UUID) to match actual route
         let publishedUrl: string | null = null;
         if (content.channel === "google" || content.channel === "macdee") {
-            const { data: lawyer } = await adminSupabase
+            const { data: lawyerForUrl } = await adminSupabase
                 .from("lawyers")
                 .select("slug")
                 .eq("id", content.lawyer_id)
                 .single();
-            if (lawyer?.slug) {
-                publishedUrl = `/blog/${lawyer.slug}/${content.slug || content_id}`;
+            if (lawyerForUrl?.slug) {
+                publishedUrl = `/blog/${lawyerForUrl.slug}/${content_id}`;
             }
         }
 

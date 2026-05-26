@@ -119,18 +119,6 @@ export async function GET() {
     </url>`;
         }
 
-        // Lawyer profile pages (/lawyer/[slug])
-        for (const lawyer of lawyers || []) {
-            if (!lawyer.slug) continue;
-            xml += `
-    <url>
-        <loc>${sitemapUrl(`${baseUrl}/lawyer/${lawyer.slug}`)}</loc>
-        <lastmod>${new Date(lawyer.updated_at).toISOString()}</lastmod>
-        <changefreq>monthly</changefreq>
-        <priority>0.6</priority>
-    </url>`;
-        }
-
         xml += "\n</urlset>";
 
         return new NextResponse(xml, {
