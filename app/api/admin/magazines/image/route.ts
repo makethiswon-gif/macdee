@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-// Allow enough time for image generation (gpt-image-2 can take 30-60s)
+// Allow enough time for image generation (gpt-image-1.5 can take 30-60s)
 export const maxDuration = 120;
 
 // POST: Generate cover image for magazine using GPT Image 2 → DALL-E 3 fallback
@@ -68,7 +68,7 @@ CRITICAL REQUIREMENTS:
 6. Use trendy, modern aesthetic choices (good composition, lighting, and color grading).`;
 
 
-        // 1순위: GPT Image 2
+        // 1순위: GPT Image 1.5
         let b64: string | null = null;
         const res = await fetch("https://api.openai.com/v1/images/generations", {
             method: "POST",
@@ -77,7 +77,7 @@ CRITICAL REQUIREMENTS:
                 Authorization: `Bearer ${openaiKey}`,
             },
             body: JSON.stringify({
-                model: "gpt-image-2",
+                model: "gpt-image-1.5",
                 prompt,
                 n: 1,
                 size: "1024x1024",

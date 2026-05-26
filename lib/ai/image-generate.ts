@@ -326,7 +326,7 @@ export async function generateBlogContentImage(
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${openaiKey}` },
             body: JSON.stringify({
-                model: "gpt-image-2",
+                model: "gpt-image-1.5",
                 prompt: finalPrompt,
                 n: 1,
                 size: "1024x1024",
