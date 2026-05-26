@@ -12,47 +12,45 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { slug, postSlug } = await params;
     const isUuid = UUID_RE.test(postSlug);
+    const supabase = await createAdminClient();
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-    const headers = {
-        "apikey": serviceKey,
-        "Authorization": `Bearer ${serviceKey}`,
-        "Content-Type": "application/json",
-    };
-
-    let postData: { title: string; meta_description: string | null; tags: string[] | null; slug: string | null; id: string; lawyer_id: string } | null = null;
+    let postData: any = null;
     let lawyerName = "";
 
     if (isUuid) {
-        const res = await fetch(
-            `${supabaseUrl}/rest/v1/contents?id=eq.${encodeURIComponent(postSlug)}&select=title,meta_description,tags,slug,id,lawyer_id&limit=1`,
-            { headers, cache: "no-store" }
-        );
-        const rows = res.ok ? await res.json() : [];
-        postData = rows[0] ?? null;
-        if (postData) {
-            const lRes = await fetch(
-                `${supabaseUrl}/rest/v1/lawyers?id=eq.${encodeURIComponent(postData.lawyer_id)}&select=name&limit=1`,
-                { headers, cache: "no-store" }
-            );
-            const lRows = lRes.ok ? await lRes.json() : [];
-            lawyerName = lRows[0]?.name || "";
+        const { data: byId } = await supabase
+            .from("contents")
+            .select("title,meta_description,tags,slug,id,lawyer_id")
+            .eq("id", postSlug)
+            .limit(1)
+            .maybeSingle();
+        postData = byId ?? null;
+        if (postData && postData.lawyer_id) {
+            const { data: lRows } = await supabase
+                .from("lawyers")
+                .select("name")
+                .eq("id", postData.lawyer_id)
+                .limit(1)
+                .maybeSingle();
+            lawyerName = lRows?.name || "";
         }
     } else {
-        const lRes = await fetch(
-            `${supabaseUrl}/rest/v1/lawyers?slug=eq.${encodeURIComponent(slug)}&select=id,name&limit=1`,
-            { headers, cache: "no-store" }
-        );
-        const lRows = lRes.ok ? await lRes.json() : [];
-        if (!lRows[0]) return { title: "포스트를 찾을 수 없습니다" };
-        lawyerName = lRows[0].name;
-        const res = await fetch(
-            `${supabaseUrl}/rest/v1/contents?lawyer_id=eq.${encodeURIComponent(lRows[0].id)}&slug=eq.${encodeURIComponent(postSlug)}&select=title,meta_description,tags,slug,id,lawyer_id&limit=1`,
-            { headers, cache: "no-store" }
-        );
-        const rows = res.ok ? await res.json() : [];
-        postData = rows[0] ?? null;
+        const { data: lawyer } = await supabase
+            .from("lawyers")
+            .select("id,name")
+            .eq("slug", slug)
+            .limit(1)
+            .maybeSingle();
+        if (!lawyer) return { title: "포스트를 찾을 수 없습니다" };
+        lawyerName = lawyer.name;
+        const { data: bySlug } = await supabase
+            .from("contents")
+            .select("title,meta_description,tags,slug,id,lawyer_id")
+            .eq("lawyer_id", lawyer.id)
+            .eq("slug", postSlug)
+            .limit(1)
+            .maybeSingle();
+        postData = bySlug ?? null;
     }
 
     if (!postData) return { title: "포스트를 찾을 수 없습니다" };
