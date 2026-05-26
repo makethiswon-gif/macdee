@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
         // Get published magazine articles
         const { data: magazines } = await supabase
             .from("magazines")
-            .select("slug, title, excerpt, updated_at, published_at")
+            .select("slug, title, excerpt, body, cover_image_url, author, updated_at, published_at")
             .eq("status", "published")
             .order("published_at", { ascending: false })
             .limit(50);
@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
             const lawyerSlug = lawyerData?.slug;
             if (!lawyerSlug) continue;
             const desc = (post.body || "").replace(/<[^>]*>/g, "").slice(0, 300);
+            const fullBody = (post.body || "").replace(/\]\]/g, "]]]]><![CDATA[");
             const pubDate = new Date(post.published_at || post.updated_at).toUTCString();
             const postUrl = encodeURI(`${baseUrl}/blog/${lawyerSlug}/${post.id}`);
             items += `
@@ -44,24 +45,39 @@ export async function GET(request: NextRequest) {
       <link>${postUrl}</link>
       <guid isPermaLink="true">${postUrl}</guid>
       <description><![CDATA[${desc}]]></description>
+      <content:encoded><![CDATA[${fullBody}]]></content:encoded>
       <pubDate>${pubDate}</pubDate>
     </item>`;
         }
 
         for (const mag of magazines || []) {
             const pubDate = new Date(mag.published_at || mag.updated_at).toUTCString();
+            const magUrl = encodeURI(`${baseUrl}/magazine/${mag.slug}`);
+            // Convert markdown body to minimal HTML for content:encoded
+            const magBodyHtml = (mag.body || "")
+                .replace(/^## (.+)$/gm, "<h2>$1</h2>")
+                .replace(/^### (.+)$/gm, "<h3>$1</h3>")
+                .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+                .replace(/^- (.+)$/gm, "<li>$1</li>")
+                .replace(/\n\n/g, "</p><p>")
+                .replace(/\]\]/g, "]]]]><![CDATA[");
+            const coverImg = mag.cover_image_url
+                ? `<img src="${mag.cover_image_url}" alt="${mag.title}" />`
+                : "";
             items += `
     <item>
       <title><![CDATA[${mag.title || ""}]]></title>
-      <link>${encodeURI(`${baseUrl}/magazine/${mag.slug}`)}</link>
-      <guid isPermaLink="true">${encodeURI(`${baseUrl}/magazine/${mag.slug}`)}</guid>
+      <link>${magUrl}</link>
+      <guid isPermaLink="true">${magUrl}</guid>
       <description><![CDATA[${mag.excerpt || ""}]]></description>
+      <content:encoded><![CDATA[${coverImg}<p>${magBodyHtml}</p>]]></content:encoded>
+      <author>editorial@makethis1.com (${mag.author || "macdee 에디터"})</author>
       <pubDate>${pubDate}</pubDate>
     </item>`;
         }
 
         const rss = `<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/modules/content/">
   <channel>
     <title>macdee - 변호사 마케팅 자동화 플랫폼</title>
     <link>${baseUrl}</link>

@@ -115,12 +115,22 @@ export default async function MagazineArticlePage({
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
     const canonicalUrl = `${baseUrl}/magazine/${magazine.slug}`;
 
+    // wordCount: strip markdown syntax and count words
+    const plainText = magazine.body
+        .replace(/```[\s\S]*?```/g, "")
+        .replace(/[#*`_~>[\]()!]/g, "")
+        .replace(/https?:\/\/\S+/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+    const wordCount = plainText.split(/\s+/).filter(Boolean).length;
+
     const articleJsonLd = {
         "@context": "https://schema.org",
         "@type": "Article",
         headline: magazine.title,
         description: magazine.meta_description || magazine.excerpt,
         datePublished: magazine.published_at,
+        wordCount,
         author: {
             "@type": "Person",
             name: magazine.author || "macdee 에디터",
@@ -138,11 +148,25 @@ export default async function MagazineArticlePage({
         keywords: (magazine.tags || []).join(", "),
     };
 
+    const breadcrumbJsonLd = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: [
+            { "@type": "ListItem", position: 1, name: "홈", item: baseUrl },
+            { "@type": "ListItem", position: 2, name: "매거진", item: `${baseUrl}/magazine` },
+            { "@type": "ListItem", position: 3, name: magazine.title, item: canonicalUrl },
+        ],
+    };
+
     return (
         <>
         <script
             type="application/ld+json"
             dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+        />
+        <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
         />
         <div className="min-h-screen bg-[#0A0A0A]">
             {/* Header */}

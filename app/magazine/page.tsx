@@ -3,6 +3,8 @@ import MagazinePageClient from "./MagazinePageClient";
 
 export const dynamic = "force-dynamic";
 
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
+
 /* ─── Types ─── */
 interface Magazine {
     id: string;
@@ -29,5 +31,35 @@ export default async function MagazinePage() {
 
     const magazines: Magazine[] = data || [];
 
-    return <MagazinePageClient magazines={magazines} />;
+    const collectionJsonLd = {
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        name: "법률 마케팅 인사이트 매거진 | macdee insights",
+        description: "변호사 광고, 로펌 마케팅, 법무법인 광고 트렌드와 전략을 다루는 macdee insights 매거진.",
+        url: `${BASE_URL}/magazine`,
+        publisher: {
+            "@type": "Organization",
+            name: "macdee",
+            url: BASE_URL,
+        },
+        hasPart: magazines.map((m) => ({
+            "@type": "Article",
+            headline: m.title,
+            description: m.excerpt,
+            url: `${BASE_URL}/magazine/${m.slug}`,
+            datePublished: m.published_at,
+            author: { "@type": "Person", name: m.author || "macdee 에디터" },
+            ...(m.cover_image_url ? { image: m.cover_image_url } : {}),
+        })),
+    };
+
+    return (
+        <>
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionJsonLd) }}
+            />
+            <MagazinePageClient magazines={magazines} />
+        </>
+    );
 }
