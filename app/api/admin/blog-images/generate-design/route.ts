@@ -5,6 +5,37 @@ import { extractLogoColor } from "@/lib/blog-images/logo-color";
 
 export const maxDuration = 90;
 
+async function generateShortTitle(content: string, existingTitle: string, apiKey: string): Promise<string> {
+    // 기존 제목이 이미 15자 이하면 그대로 사용
+    if (existingTitle && Array.from(existingTitle).length <= 15) return existingTitle;
+
+    const source = existingTitle
+        ? `제목: ${existingTitle}\n\n본문: ${content.substring(0, 400)}`
+        : content.substring(0, 500);
+
+    try {
+        const res = await fetch("https://api.anthropic.com/v1/messages", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "x-api-key": apiKey,
+                "anthropic-version": "2023-06-01",
+            },
+            body: JSON.stringify({
+                model: "claude-haiku-4-5",
+                max_tokens: 40,
+                messages: [{ role: "user", content: `다음 블로그 글의 핵심을 10~15자 이내 임팩트 있는 한글 제목으로 만드세요. 제목만 출력. 따옴표·번호 없이.\n\n${source}` }],
+            }),
+        });
+        if (!res.ok) return existingTitle || "";
+        const data = await res.json();
+        const t = (data.content?.[0]?.text || "").trim().replace(/^["'"'`]+|["'"'`]+$/g, "");
+        return Array.from(t).slice(0, 15).join("") || existingTitle || "";
+    } catch {
+        return existingTitle || "";
+    }
+}
+
 export async function POST(req: Request) {
     try {
         const { profile, content, title, cardType } = await req.json();
@@ -41,15 +72,35 @@ export async function POST(req: Request) {
             contact: "문의 안내",
         };
 
-        // ── thumbnail / illustration: AI 이미지 단독 (텍스트 오버레이·HTML 코딩 단계 없음) ──
+        // ── thumbnail / illustration: AI 이미지 단독 ──
         if (cardType === "thumbnail" || cardType === "illustration") {
             const style = cardType === "thumbnail" ? "realistic" : "webtoon";
-            // 프로필 사진 첫 번째 장 사용 (없으면 undefined)
             const profileImageUrl = profile.profileImages?.[0] ?? undefined;
             try {
-                const img = await generateBlogContentImage(content, title || "", style, profileImageUrl);
+                // 썸네일 전용: 이미지 생성과 제목 생성 병렬 실행
+                const [img, shortTitle] = await Promise.all([
+                    generateBlogContentImage(content, title || "", style, profileImageUrl),
+                    cardType === "thumbnail"
+                        ? generateShortTitle(content, title || "", apiKey)
+                        : Promise.resolve(""),
+                ]);
+
                 const dataUrl = `data:image/png;base64,${img.imageBase64}`;
-                const html = `<div style="width:800px;height:800px;position:relative;overflow:hidden;background:#000;"><img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover;display:block;" /></div>`;
+
+                let html: string;
+                if (cardType === "thumbnail" && shortTitle) {
+                    const len = Array.from(shortTitle).length;
+                    const fontSize = len <= 10 ? 64 : len <= 12 ? 56 : 48;
+                    html = `<style>@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@900&display=swap');</style>
+<div style="width:800px;height:800px;position:relative;overflow:hidden;background:#000;">
+  <img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover;display:block;" />
+  <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.80) 0%,rgba(0,0,0,0.30) 45%,transparent 100%);"></div>
+  <div style="position:absolute;bottom:56px;left:0;right:0;padding:0 52px;font-family:'Noto Sans KR',sans-serif;font-weight:900;font-size:${fontSize}px;color:#fff;line-height:1.15;letter-spacing:-2px;text-shadow:0 3px 24px rgba(0,0,0,0.6);">${shortTitle}</div>
+</div>`;
+                } else {
+                    html = `<div style="width:800px;height:800px;position:relative;overflow:hidden;background:#000;"><img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover;display:block;" /></div>`;
+                }
+
                 return NextResponse.json({
                     card: { type: cardType, name: cardNames[cardType], html },
                 });
