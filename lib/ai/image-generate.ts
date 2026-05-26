@@ -309,43 +309,50 @@ export async function generateBlogContentImage(
     blogContent: string,
     title: string,
     style: "realistic" | "webtoon",
-): Promise<{ imageBase64: string } | null> {
+): Promise<{ imageBase64: string }> {
     const scenePrompt = await generateBlogScenePromptWithClaude(blogContent, title, style);
     const finalPrompt = `${scenePrompt}\n\nABSOLUTE: Zero text, zero letters, zero numbers, zero speech bubbles. Square 1:1.`;
 
     console.log(`[BlogContentImg] ${style} prompt: ${scenePrompt.substring(0, 120)}...`);
 
     const openaiKey = process.env.OPENAI_API_KEY;
-    if (openaiKey) {
-        try {
-            const res = await fetchWithTimeout("https://api.openai.com/v1/images/generations", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${openaiKey}` },
-                body: JSON.stringify({
-                    model: "gpt-image-2",
-                    prompt: finalPrompt,
-                    n: 1,
-                    size: "1024x1024",
-                    quality: "high",
-                    output_format: "png",
-                }),
-            }, 35000);
-            if (res.ok) {
-                const data = await res.json();
-                if (data.data?.[0]?.b64_json) {
-                    console.log(`[BlogContentImg] GPT-Image-2 ${style} success`);
-                    return { imageBase64: data.data[0].b64_json };
-                }
-            } else {
-                console.error(`[BlogContentImg] GPT-Image-2 error (${res.status}):`, (await res.text()).substring(0, 200));
-            }
-        } catch (err) {
-            console.error("[BlogContentImg] GPT-Image-2 failed/timeout:", err instanceof Error ? err.message : err);
-        }
+    if (!openaiKey) {
+        throw new Error("OPENAI_API_KEY not configured");
     }
 
-    console.error("[BlogContentImg] image generation failed, route will fall back to gradient");
-    return null;
+    let lastError = "";
+    try {
+        const res = await fetchWithTimeout("https://api.openai.com/v1/images/generations", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${openaiKey}` },
+            body: JSON.stringify({
+                model: "gpt-image-2",
+                prompt: finalPrompt,
+                n: 1,
+                size: "1024x1024",
+                quality: "high",
+                output_format: "png",
+            }),
+        }, 55000);
+        if (res.ok) {
+            const data = await res.json();
+            if (data.data?.[0]?.b64_json) {
+                console.log(`[BlogContentImg] GPT-Image-2 ${style} success`);
+                return { imageBase64: data.data[0].b64_json };
+            }
+            lastError = `unexpected response shape: ${JSON.stringify(data).substring(0, 200)}`;
+            console.error(`[BlogContentImg] ${lastError}`);
+        } else {
+            const errText = await res.text();
+            lastError = `GPT-Image-2 HTTP ${res.status}: ${errText.substring(0, 300)}`;
+            console.error(`[BlogContentImg] ${lastError}`);
+        }
+    } catch (err) {
+        lastError = err instanceof Error ? err.message : String(err);
+        console.error("[BlogContentImg] GPT-Image-2 failed/timeout:", lastError);
+    }
+
+    throw new Error(lastError || "image generation failed");
 }
 
 /**

@@ -46,17 +46,15 @@ export async function POST(req: Request) {
             const style = cardType === "thumbnail" ? "realistic" : "webtoon";
             try {
                 const img = await generateBlogContentImage(content, title || "", style);
-                if (!img?.imageBase64) {
-                    return NextResponse.json({ error: `${cardNames[cardType]} 이미지 생성 실패` }, { status: 500 });
-                }
                 const dataUrl = `data:image/png;base64,${img.imageBase64}`;
                 const html = `<div style="width:800px;height:800px;position:relative;overflow:hidden;background:#000;"><img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover;display:block;" /></div>`;
                 return NextResponse.json({
                     card: { type: cardType, name: cardNames[cardType], html },
                 });
             } catch (err) {
-                console.error(`[generate-design] ${cardType} AI image error:`, err);
-                return NextResponse.json({ error: `${cardNames[cardType]} 이미지 생성 중 오류` }, { status: 500 });
+                const msg = err instanceof Error ? err.message : String(err);
+                console.error(`[generate-design] ${cardType} AI image error:`, msg);
+                return NextResponse.json({ error: msg }, { status: 500 });
             }
         }
 
