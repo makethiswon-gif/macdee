@@ -242,7 +242,6 @@ ${variationDirective}
             body: JSON.stringify({
                 model: "claude-opus-4-7",
                 max_tokens: 4096,
-                temperature: 0.85,
                 system: systemMessage,
                 messages: [{ role: "user", content: prompt }],
             }),
