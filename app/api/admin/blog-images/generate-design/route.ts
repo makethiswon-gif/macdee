@@ -5,9 +5,13 @@ import { extractLogoColor } from "@/lib/blog-images/logo-color";
 
 export const maxDuration = 90;
 
-async function generateShortTitle(content: string, existingTitle: string, apiKey: string): Promise<string> {
-    // 기존 제목이 이미 10자 이하면 그대로 사용
-    if (existingTitle && Array.from(existingTitle).length <= 10) return existingTitle;
+interface TitleParts { keyword: string; rest: string; }
+
+async function generateTitleParts(content: string, existingTitle: string, apiKey: string): Promise<TitleParts> {
+    const fallback = (): TitleParts => {
+        const chars = Array.from(existingTitle || "");
+        return { keyword: chars.slice(0, 5).join(""), rest: chars.slice(5, 15).join("") };
+    };
 
     const source = existingTitle
         ? `제목: ${existingTitle}\n\n본문: ${content.substring(0, 400)}`
@@ -23,16 +27,33 @@ async function generateShortTitle(content: string, existingTitle: string, apiKey
             },
             body: JSON.stringify({
                 model: "claude-haiku-4-5",
-                max_tokens: 30,
-                messages: [{ role: "user", content: `다음 블로그 글의 핵심을 8~10자 이내 임팩트 있는 한글 제목으로 만드세요. 절대 10자를 넘기면 안됩니다. 제목만 출력. 따옴표·번호 없이.\n\n${source}` }],
+                max_tokens: 60,
+                messages: [{
+                    role: "user",
+                    content: `다음 블로그 글 제목을 두 파트로 나눠 JSON으로만 반환하세요.
+
+keyword: 가장 핵심 법률 키워드 2~5자 (예: "이혼", "스토킹", "사기죄", "상속세")
+rest: 나머지 부연 설명 최대 10자
+
+규칙: keyword + rest 합쳐서 15자 이내. JSON만 출력, 다른 텍스트 없이.
+출력 형식: {"keyword":"...","rest":"..."}
+
+${source}`,
+                }],
             }),
         });
-        if (!res.ok) return existingTitle ? Array.from(existingTitle).slice(0, 10).join("") : "";
+        if (!res.ok) return fallback();
         const data = await res.json();
-        const t = (data.content?.[0]?.text || "").trim().replace(/^["'"'`]+|["'"'`]+$/g, "").split("\n")[0];
-        return Array.from(t).slice(0, 10).join("") || Array.from(existingTitle || "").slice(0, 10).join("");
+        const raw = (data.content?.[0]?.text || "").trim();
+        const match = raw.match(/\{[^}]+\}/);
+        if (!match) return fallback();
+        const parsed = JSON.parse(match[0]) as { keyword?: string; rest?: string };
+        return {
+            keyword: Array.from(parsed.keyword || "").slice(0, 5).join(""),
+            rest: Array.from(parsed.rest || "").slice(0, 10).join(""),
+        };
     } catch {
-        return Array.from(existingTitle || "").slice(0, 10).join("");
+        return fallback();
     }
 }
 
@@ -77,24 +98,27 @@ export async function POST(req: Request) {
             const style = cardType === "thumbnail" ? "realistic" : "webtoon";
             try {
                 // 썸네일 전용: 이미지 생성과 제목 생성 병렬 실행
-                const [img, shortTitle] = await Promise.all([
+                const [img, titleParts] = await Promise.all([
                     generateBlogContentImage(content, title || "", style),
                     cardType === "thumbnail"
-                        ? generateShortTitle(content, title || "", apiKey)
-                        : Promise.resolve(""),
+                        ? generateTitleParts(content, title || "", apiKey)
+                        : Promise.resolve(null),
                 ]);
 
                 const dataUrl = `data:image/png;base64,${img.imageBase64}`;
 
                 let html: string;
-                if (cardType === "thumbnail" && shortTitle) {
-                    const len = Array.from(shortTitle).length;
-                    const fontSize = len <= 6 ? 72 : len <= 8 ? 64 : 56;
-                    html = `<style>@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@900&display=swap');</style>
+                if (cardType === "thumbnail" && titleParts?.keyword) {
+                    const kwLen = Array.from(titleParts.keyword).length;
+                    const kwSize = kwLen <= 3 ? 96 : kwLen <= 4 ? 84 : 72;
+                    html = `<style>@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;900&display=swap');</style>
 <div style="width:800px;height:800px;position:relative;overflow:hidden;background:#000;">
   <img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover;display:block;" />
-  <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.80) 0%,rgba(0,0,0,0.20) 50%,transparent 100%);"></div>
-  <div style="position:absolute;bottom:52px;left:0;right:0;padding:0 52px;font-family:'Noto Sans KR',sans-serif;font-weight:900;font-size:${fontSize}px;color:#fff;line-height:1.2;letter-spacing:-2px;word-break:keep-all;overflow-wrap:break-word;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;text-shadow:0 3px 24px rgba(0,0,0,0.7);">${shortTitle}</div>
+  <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.85) 0%,rgba(0,0,0,0.25) 50%,transparent 100%);"></div>
+  <div style="position:absolute;bottom:48px;left:0;right:0;padding:0 52px;">
+    ${titleParts.rest ? `<div style="font-family:'Noto Sans KR',sans-serif;font-weight:400;font-size:26px;color:rgba(255,255,255,0.75);letter-spacing:0px;margin-bottom:6px;text-shadow:0 2px 12px rgba(0,0,0,0.8);">${titleParts.rest}</div>` : ""}
+    <div style="font-family:'Noto Sans KR',sans-serif;font-weight:900;font-size:${kwSize}px;color:#fff;line-height:1.0;letter-spacing:-3px;text-shadow:0 4px 28px rgba(0,0,0,0.7);">${titleParts.keyword}</div>
+  </div>
 </div>`;
                 } else {
                     html = `<div style="width:800px;height:800px;position:relative;overflow:hidden;background:#000;"><img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover;display:block;" /></div>`;
