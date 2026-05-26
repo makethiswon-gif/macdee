@@ -57,6 +57,16 @@ export async function POST(request: Request) {
                 return NextResponse.json({ error: "파일을 선택해주세요." }, { status: 400 });
             }
 
+            const MAX_SIZE = 50 * 1024 * 1024; // 50MB per file
+            for (const file of files) {
+                if (file.size > MAX_SIZE) {
+                    return NextResponse.json(
+                        { error: `파일 크기 초과: ${file.name} (최대 50MB)` },
+                        { status: 413 }
+                    );
+                }
+            }
+
             const results = [];
 
             for (const file of files) {

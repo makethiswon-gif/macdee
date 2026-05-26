@@ -55,15 +55,20 @@ export default function DashboardPage() {
         setUserName(lawyer.name);
         setUserPlan(lawyer.plan || "free");
 
-        const [uploadsRes, contentsRes, pubsRes] = await Promise.all([
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+        const [uploadsRes, contentsRes, pubsRes, visitsRes] = await Promise.all([
             supabase.from("uploads").select("id, status", { count: "exact" }).eq("lawyer_id", lawyer.id),
             supabase.from("contents").select("id, title, channel, status, created_at").eq("lawyer_id", lawyer.id).order("created_at", { ascending: false }).limit(5),
             supabase.from("publications").select("id", { count: "exact" }).eq("lawyer_id", lawyer.id),
+            supabase.from("blog_visits").select("id", { count: "exact" }).eq("lawyer_id", lawyer.id).gte("created_at", sevenDaysAgo.toISOString()),
         ]);
 
         const uploads = uploadsRes.data || [];
         const contents = contentsRes.data || [];
         const published = pubsRes.data || [];
+        const weeklyViews = visitsRes.count || 0;
 
         setPendingUploads(uploads.filter((u) => u.status === "processing").length);
         setRecentContents(contents);
@@ -71,7 +76,7 @@ export default function DashboardPage() {
             uploads: uploads.length,
             contents: contents.length,
             published: published.length,
-            views: 0, clicks: 0, inquiries: 0,
+            views: weeklyViews, clicks: 0, inquiries: 0,
         });
         setLoading(false);
     }, [supabase]);

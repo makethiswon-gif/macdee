@@ -1,4 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&display=swap');
+/* Self-hosted via @fontsource — no Google CDN call, faster load, no FOUT */
+@import '@fontsource/noto-sans-kr/300.css';
+@import '@fontsource/noto-sans-kr/400.css';
+@import '@fontsource/noto-sans-kr/500.css';
+@import '@fontsource/noto-sans-kr/600.css';
+@import '@fontsource/noto-sans-kr/700.css';
+@import '@fontsource/noto-sans-kr/900.css';
 @import "tailwindcss";
 
 :root {
