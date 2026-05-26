@@ -86,7 +86,7 @@ ${category || "법률정보"}
                 "anthropic-version": "2023-06-01",
             },
             body: JSON.stringify({
-                model: "claude-sonnet-4-6",
+                model: "claude-opus-4-7",
                 max_tokens: 8192,
                 system: systemPrompt,
                 messages: [{ role: "user", content: prompt }],
