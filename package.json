@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "smoke:monitor": "node scripts/monitor-smoke.js"
   },
   "dependencies": {
     "@fontsource/noto-sans-kr": "^5.2.9",

@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
     try {
-        const apiRes = await fetch(`${baseUrl}/api/blog/${slug}/${postSlug}`);
+        const apiRes = await fetch(`${baseUrl}/api/blog/${slug}/${postSlug}`, { next: { revalidate: 60 } });
         if (!apiRes.ok) {
             return { title: "포스트를 찾을 수 없습니다" };
         }
