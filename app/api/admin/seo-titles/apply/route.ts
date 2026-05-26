@@ -44,11 +44,12 @@ export async function POST(request: Request) {
 
             const { error } = await supabase
                 .from("contents")
-                .update({ title: cleanTitle, updated_at: new Date().toISOString() })
+                .update({ title: cleanTitle })
                 .eq("id", u.id);
 
             if (error) {
-                errors.push({ id: u.id, error: error.message });
+                console.error(`[SEO Titles Apply] DB error for ${u.id}:`, error.message, error.code);
+                errors.push({ id: u.id, error: `${error.code}: ${error.message}` });
             } else {
                 updated++;
                 console.log(`[SEO Titles Apply] ${u.id}: "${backup.get(u.id)}" → "${cleanTitle}"`);

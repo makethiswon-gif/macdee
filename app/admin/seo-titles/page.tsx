@@ -112,7 +112,11 @@ export default function SeoTitlesPage() {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "적용 실패");
 
-            toast.success(`${data.updated}개 제목 변경 완료${data.errors?.length ? ` (실패 ${data.errors.length})` : ""}`);
+            if (data.updated === 0 && data.errors?.length > 0) {
+                toast.error(`적용 실패: ${data.errors[0]?.error || "DB 오류"}`);
+            } else {
+                toast.success(`${data.updated}개 제목 변경 완료${data.errors?.length ? ` (실패 ${data.errors.length}건: ${data.errors[0]?.error})` : ""}`);
+            }
 
             // 적용된 항목의 oldTitle을 업데이트해 다음 라운드 비교에 반영
             setRows(prev => prev.map(r => {
