@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 
-// Allow enough time for image generation (gpt-image-1.5 can take 30-60s)
+// Allow enough time for image generation (gpt-image-2 can take 30-60s)
 export const maxDuration = 120;
 
-// POST: Generate cover image for magazine using OpenAI gpt-image-1.5 → DALL-E 3 fallback
+// POST: Generate cover image for magazine using GPT Image 2 → DALL-E 3 fallback
 export async function POST(request: Request) {
     // Admin verify
     const token = request.headers.get("cookie")?.match(/admin_token=([^;]+)/)?.[1];
@@ -68,6 +68,8 @@ CRITICAL REQUIREMENTS:
 6. Use trendy, modern aesthetic choices (good composition, lighting, and color grading).`;
 
 
+        // 1순위: GPT Image 2
+        let b64: string | null = null;
         const res = await fetch("https://api.openai.com/v1/images/generations", {
             method: "POST",
             headers: {
@@ -75,25 +77,50 @@ CRITICAL REQUIREMENTS:
                 Authorization: `Bearer ${openaiKey}`,
             },
             body: JSON.stringify({
-                model: "dall-e-3",
+                model: "gpt-image-2",
                 prompt,
                 n: 1,
                 size: "1024x1024",
-                quality: "hd",
-                response_format: "b64_json",
+                quality: "high",
+                output_format: "png",
             }),
         });
 
-        if (!res.ok) {
+        if (res.ok) {
+            const data = await res.json();
+            b64 = data.data?.[0]?.b64_json ?? null;
+        } else {
             const errText = await res.text();
-            console.error("[Magazine Image] DALL-E 3 error:", errText);
-            return NextResponse.json({ error: "이미지 생성 실패" }, { status: 500 });
+            console.error("[Magazine Image] GPT Image 2 error:", errText);
         }
 
-        const data = await res.json();
-        const b64 = data.data?.[0]?.b64_json;
+        // 2순위: DALL-E 3 폴백
         if (!b64) {
-            return NextResponse.json({ error: "이미지 생성 결과 없음" }, { status: 500 });
+            console.log("[Magazine Image] Falling back to DALL-E 3");
+            const fallbackRes = await fetch("https://api.openai.com/v1/images/generations", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${openaiKey}`,
+                },
+                body: JSON.stringify({
+                    model: "dall-e-3",
+                    prompt,
+                    n: 1,
+                    size: "1024x1024",
+                    quality: "hd",
+                    response_format: "b64_json",
+                }),
+            });
+            if (fallbackRes.ok) {
+                const fallbackData = await fallbackRes.json();
+                b64 = fallbackData.data?.[0]?.b64_json ?? null;
+            } else {
+                console.error("[Magazine Image] DALL-E 3 fallback error:", await fallbackRes.text());
+            }
+        }
+        if (!b64) {
+            return NextResponse.json({ error: "이미지 생성 실패 (GPT Image 2 및 DALL-E 3 모두 실패)" }, { status: 500 });
         }
 
         const dataUrl = `data:image/png;base64,${b64}`;
