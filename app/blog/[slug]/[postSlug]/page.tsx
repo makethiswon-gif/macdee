@@ -12,93 +12,44 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { slug, postSlug } = await params;
     const isUuid = UUID_RE.test(postSlug);
-    const supabase = createServiceClient();
 
-    // Log env presence for debugging in production (do not log secrets)
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
     try {
-        // eslint-disable-next-line no-console
-        console.log("generateMetadata env:", {
-            supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL || null,
-            hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-        });
-    } catch {
-        /* ignore */
-    }
-
-    let postData: any = null;
-    let lawyerName = "";
-
-    if (isUuid) {
-        const { data: byId, error: byIdError } = await supabase
-            .from("contents")
-            .select("title,meta_description,tags,slug,id,lawyer_id")
-            .eq("id", postSlug)
-            .limit(1)
-            .maybeSingle();
-        if (!byId && byIdError) {
-            try { console.error("generateMetadata byId error:", byIdError); } catch {}
-        }
-        postData = byId ?? null;
-        if (postData && postData.lawyer_id) {
-            const { data: lRows, error: lErr } = await supabase
-                .from("lawyers")
-                .select("name")
-                .eq("id", postData.lawyer_id)
-                .limit(1)
-                .maybeSingle();
-            if (!lRows && lErr) {
-                try { console.error("generateMetadata lawyer lookup error:", lErr); } catch {}
-            }
-            lawyerName = lRows?.name || "";
-        }
-    } else {
-        const { data: lawyer, error: lawyerErr } = await supabase
-            .from("lawyers")
-            .select("id,name")
-            .eq("slug", slug)
-            .limit(1)
-            .maybeSingle();
-        if (lawyerErr) try { console.error("generateMetadata lawyer by slug error:", lawyerErr); } catch {}
-        if (!lawyer) return { title: "포스트를 찾을 수 없습니다" };
-        lawyerName = lawyer.name;
-        const { data: bySlug, error: bySlugErr } = await supabase
-            .from("contents")
-            .select("title,meta_description,tags,slug,id,lawyer_id")
-            .eq("lawyer_id", lawyer.id)
-            .eq("slug", postSlug)
-            .limit(1)
-            .maybeSingle();
-        if (!bySlug && bySlugErr) try { console.error("generateMetadata bySlug error:", bySlugErr); } catch {}
-        postData = bySlug ?? null;
-    }
-
-    if (!postData) {
-        try {
+        const apiRes = await fetch(`${baseUrl}/api/blog/${slug}/${postSlug}`);
+        if (!apiRes.ok) {
             // eslint-disable-next-line no-console
-            console.error("generateMetadata: postData null", { slug, postSlug, isUuid });
-        } catch {}
+            console.error("generateMetadata api fetch failed", { status: apiRes.status });
+            return { title: "포스트를 찾을 수 없습니다" };
+        }
+        const json = await apiRes.json();
+        const postData = json.post ?? null;
+        const lawyerName = json.lawyer?.name || "";
+        if (!postData) return { title: "포스트를 찾을 수 없습니다" };
+
+        const canonicalSlug = postData.slug || postData.id || postSlug;
+        const canonicalUrl = `${baseUrl}/blog/${slug}/${canonicalSlug}`;
+
+        return {
+            title: `${postData.title} | ${lawyerName} 변호사`,
+            description: postData.meta_description || postData.title,
+            keywords: (postData.tags || []).join(", "),
+            alternates: { canonical: canonicalUrl },
+            robots: { index: true, follow: true },
+            openGraph: {
+                title: postData.title,
+                description: postData.meta_description || postData.title,
+                type: "article",
+                url: canonicalUrl,
+                authors: [lawyerName],
+                images: ["/og-image.png"],
+            },
+        };
+    } catch (err) {
+        try { console.error("generateMetadata fetch error", err); } catch {}
         return { title: "포스트를 찾을 수 없습니다" };
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
-    const canonicalSlug = postData.slug || postData.id || postSlug;
-    const canonicalUrl = `${baseUrl}/blog/${slug}/${canonicalSlug}`;
-
-    return {
-        title: `${postData.title} | ${lawyerName} 변호사`,
-        description: postData.meta_description || postData.title,
-        keywords: (postData.tags || []).join(", "),
-        alternates: { canonical: canonicalUrl },
-        robots: { index: true, follow: true },
-        openGraph: {
-            title: postData.title,
-            description: postData.meta_description || postData.title,
-            type: "article",
-            url: canonicalUrl,
-            authors: [lawyerName],
-            images: ["/og-image.png"],
-        },
-    };
+    // unreachable
 }
 
 export default async function PostPage({ params }: Props) {
