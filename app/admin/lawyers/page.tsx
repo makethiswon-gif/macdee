@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Users, Search, Mail, MapPin, Briefcase, Trash2 } from "lucide-react";
+import { Users, Search, Mail, MapPin, Briefcase, Trash2, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
 interface Lawyer {
@@ -14,6 +14,7 @@ interface Lawyer {
     office_name: string;
     experience_years: number;
     plan: string;
+    slug: string | null;
     created_at: string;
     uploads_count: number;
     contents_count: number;
@@ -206,6 +207,16 @@ export default function AdminLawyersPage() {
                                         </td>
                                         <td className="px-4 py-3 text-center">
                                             <div className="inline-flex items-center gap-2 justify-center">
+                                                {lawyer.slug && (
+                                                    <a
+                                                        href={`/blog/${lawyer.slug}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="px-2 py-1 rounded-lg text-[11px] font-medium border border-[#3563AE] text-blue-400 bg-blue-500/10 hover:bg-blue-500/15 transition-colors flex items-center gap-1"
+                                                    >
+                                                        <ExternalLink size={12} /> 블로그
+                                                    </a>
+                                                )}
                                                 <button
                                                     onClick={() => handleDeleteLawyer(lawyer.id, lawyer.name)}
                                                     disabled={deletingId === lawyer.id}
