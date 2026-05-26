@@ -12,39 +12,55 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { slug, postSlug } = await params;
     const supabase = await createAdminClient();
-
-    const { data: lawyer } = await supabase.from("lawyers").select("id, name").eq("slug", slug).single();
-    if (!lawyer) return { title: "포스트를 찾을 수 없습니다" };
-
     const isUuid = UUID_RE.test(postSlug);
-    const { data: post } = await (isUuid
-        ? supabase.from("contents").select("title, meta_description, tags, slug, id").eq("lawyer_id", lawyer.id).eq("id", postSlug)
-        : supabase.from("contents").select("title, meta_description, tags, slug, id").eq("lawyer_id", lawyer.id).eq("slug", postSlug)
-    ).maybeSingle();
 
-    if (!post) return { title: "포스트를 찾을 수 없습니다" };
+    let postData: { title: string; meta_description: string | null; tags: string[] | null; slug: string | null; id: string; lawyer_id: string } | null = null;
+    let lawyerName = "";
+
+    if (isUuid) {
+        // UUID is globally unique — find directly without lawyer_id constraint
+        const { data } = await supabase
+            .from("contents")
+            .select("title, meta_description, tags, slug, id, lawyer_id")
+            .eq("id", postSlug)
+            .maybeSingle();
+        postData = data;
+        if (postData) {
+            const { data: l } = await supabase.from("lawyers").select("name").eq("id", postData.lawyer_id).single();
+            lawyerName = l?.name || "";
+        }
+    } else {
+        // Slug-based URL — need lawyer lookup to disambiguate
+        const { data: lawyer } = await supabase.from("lawyers").select("id, name").eq("slug", slug).single();
+        if (!lawyer) return { title: "포스트를 찾을 수 없습니다" };
+        lawyerName = lawyer.name;
+        const { data } = await supabase
+            .from("contents")
+            .select("title, meta_description, tags, slug, id, lawyer_id")
+            .eq("lawyer_id", lawyer.id)
+            .eq("slug", postSlug)
+            .maybeSingle();
+        postData = data;
+    }
+
+    if (!postData) return { title: "포스트를 찾을 수 없습니다" };
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
-    const canonicalSlug = post.slug || post.id || postSlug;
+    const canonicalSlug = postData.slug || postData.id || postSlug;
     const canonicalUrl = `${baseUrl}/blog/${slug}/${canonicalSlug}`;
 
     return {
-        title: `${post.title} | ${lawyer.name} 변호사`,
-        description: post.meta_description || post.title,
-        keywords: (post.tags || []).join(", "),
-        alternates: {
-            canonical: canonicalUrl,
-        },
-        robots: {
-            index: true,
-            follow: true,
-        },
+        title: `${postData.title} | ${lawyerName} 변호사`,
+        description: postData.meta_description || postData.title,
+        keywords: (postData.tags || []).join(", "),
+        alternates: { canonical: canonicalUrl },
+        robots: { index: true, follow: true },
         openGraph: {
-            title: post.title,
-            description: post.meta_description || post.title,
+            title: postData.title,
+            description: postData.meta_description || postData.title,
             type: "article",
             url: canonicalUrl,
-            authors: [lawyer.name],
+            authors: [lawyerName],
             images: ["/og-image.png"],
         },
     };
