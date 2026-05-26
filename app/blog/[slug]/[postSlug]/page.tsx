@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     try {
         // eslint-disable-next-line no-console
         console.log("generateMetadata env:", {
-            hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+            supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL || null,
             hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
         });
     } catch {
