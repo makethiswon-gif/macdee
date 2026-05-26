@@ -142,6 +142,11 @@ export default function BlogPageClient({ lawyer, posts, currentPage, totalPages,
                                 {lawyer.name}
                                 <span className="text-white/20 font-light ml-2">변호사</span>
                             </h1>
+                            {lawyer.office_name && (
+                                <p className="mt-3 text-[18px] font-semibold text-white/80 tracking-tight">
+                                    {lawyer.office_name}
+                                </p>
+                            )}
                             <p className="mt-1.5 text-[11px] text-white/15 tracking-[0.2em] uppercase font-light">
                                 Attorney at Law
                             </p>

@@ -54,6 +54,13 @@ export async function PATCH(request: Request) {
 
         if (!id) return NextResponse.json({ error: "id가 필요합니다." }, { status: 400 });
 
+        const { data: lawyer } = await supabase
+            .from("lawyers")
+            .select("id")
+            .eq("user_id", user.id)
+            .single();
+        if (!lawyer) return NextResponse.json({ error: "프로필을 찾을 수 없습니다." }, { status: 404 });
+
         const updateData: Record<string, string> = {};
         if (title !== undefined) updateData.title = title;
         if (contentBody !== undefined) updateData.body = contentBody;
@@ -63,10 +70,11 @@ export async function PATCH(request: Request) {
             .from("contents")
             .update(updateData)
             .eq("id", id)
+            .eq("lawyer_id", lawyer.id)
             .select()
             .single();
 
-        if (error) return NextResponse.json({ error: "수정 실패" }, { status: 500 });
+        if (error || !data) return NextResponse.json({ error: "수정 실패 또는 권한이 없습니다." }, { status: 403 });
 
         return NextResponse.json({ content: data });
     } catch {

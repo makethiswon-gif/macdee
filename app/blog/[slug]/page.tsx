@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/server";
 import BlogPageClient from "./BlogPageClient";
 
@@ -58,15 +59,7 @@ export default async function BlogPage({ params, searchParams }: Props) {
         .single();
 
     if (!lawyer) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-[#FAFBFC]">
-                <div className="text-center">
-                    <p className="text-6xl mb-4">📭</p>
-                    <h1 className="text-xl font-bold text-[#1F2937]">블로그를 찾을 수 없습니다</h1>
-                    <p className="mt-2 text-sm text-[#6B7280]">URL을 확인해주세요.</p>
-                </div>
-            </div>
-        );
+        notFound();
     }
 
     const { data: posts, count } = await supabase
@@ -83,14 +76,18 @@ export default async function BlogPage({ params, searchParams }: Props) {
     // Helper: strip markdown syntax for plain text excerpts
     function stripMarkdown(text: string): string {
         return text
-            .replace(/^#{1,6}\s+/gm, "")     // ## headings
+            .replace(/^#{1,6}\s+/gm, "")     // headings
             .replace(/\*\*(.*?)\*\*/g, "$1")   // **bold**
             .replace(/\*(.*?)\*/g, "$1")       // *italic*
             .replace(/\[(.*?)\]\(.*?\)/g, "$1") // [link](url)
-            .replace(/[`~>]/g, "")            // backticks, blockquotes
+            .replace(/^>\s*/gm, "")            // blockquotes
+            .replace(/^\s*[-*_]{3,}\s*$/gm, "") // horizontal rules
+            .replace(/[`~]/g, "")              // code/tilde markers
+            .replace(/\\(["'`\\/])/g, "$1") // escaped quotes and slashes
             .replace(/^[-*]\s+/gm, "")        // list items
             .replace(/\n{2,}/g, " ")          // multiple newlines
             .replace(/\n/g, " ")              // single newlines
+            .replace(/\s{2,}/g, " ")          // collapse whitespace
             .trim();
     }
 

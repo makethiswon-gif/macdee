@@ -1,16 +1,43 @@
 import { NextResponse } from "next/server";
+import crypto from "crypto";
 
-const ADMIN_ID = "macdee";
-const ADMIN_PW = "02208888md!";
+const ADMIN_ID = process.env.ADMIN_ID ?? "macdee";
+const ADMIN_PW = process.env.ADMIN_PW ?? "";
+const TOKEN_SECRET = process.env.ADMIN_TOKEN_SECRET ?? "";
+
+function generateToken(): string {
+    const nonce = crypto.randomBytes(16).toString("hex");
+    const payload = `${ADMIN_ID}:${Date.now()}:${nonce}`;
+    const sig = crypto.createHmac("sha256", TOKEN_SECRET).update(payload).digest("hex");
+    return Buffer.from(`${payload}:${sig}`).toString("base64url");
+}
+
+function verifyToken(token: string): boolean {
+    try {
+        const decoded = Buffer.from(token, "base64url").toString();
+        const lastColon = decoded.lastIndexOf(":");
+        if (lastColon === -1) return false;
+        const payload = decoded.substring(0, lastColon);
+        const sig = decoded.substring(lastColon + 1);
+        const expectedSig = crypto.createHmac("sha256", TOKEN_SECRET).update(payload).digest("hex");
+        return crypto.timingSafeEqual(Buffer.from(sig, "hex"), Buffer.from(expectedSig, "hex"));
+    } catch {
+        return false;
+    }
+}
 
 // POST: Admin login
 export async function POST(request: Request) {
     try {
+        if (!ADMIN_PW || !TOKEN_SECRET) {
+            console.error("[Admin Auth] ADMIN_PW or ADMIN_TOKEN_SECRET not configured");
+            return NextResponse.json({ error: "서버 설정 오류" }, { status: 500 });
+        }
+
         const { username, password } = await request.json();
 
         if (username === ADMIN_ID && password === ADMIN_PW) {
-            // Generate a simple session token
-            const token = Buffer.from(`${ADMIN_ID}:${Date.now()}:macdee_admin_secret`).toString("base64");
+            const token = generateToken();
 
             const response = NextResponse.json({ success: true });
             response.cookies.set("admin_token", token, {
@@ -43,13 +70,8 @@ export async function GET(request: Request) {
         return NextResponse.json({ authenticated: false }, { status: 401 });
     }
 
-    try {
-        const decoded = Buffer.from(token, "base64").toString();
-        if (decoded.startsWith(ADMIN_ID) && decoded.includes("macdee_admin_secret")) {
-            return NextResponse.json({ authenticated: true, username: ADMIN_ID });
-        }
-    } catch {
-        // invalid token
+    if (verifyToken(token)) {
+        return NextResponse.json({ authenticated: true, username: ADMIN_ID });
     }
 
     return NextResponse.json({ authenticated: false }, { status: 401 });

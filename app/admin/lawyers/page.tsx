@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Users, Search, Mail, MapPin, Briefcase } from "lucide-react";
+import { Users, Search, Mail, MapPin, Briefcase, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface Lawyer {
     id: string;
@@ -39,6 +40,7 @@ export default function AdminLawyersPage() {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [updatingId, setUpdatingId] = useState<string | null>(null);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
 
     useEffect(() => {
         setLoading(true);
@@ -67,15 +69,39 @@ export default function AdminLawyersPage() {
                     )
                 );
                 const planLabel = PLAN_LABELS[result.plan] || result.plan;
-                alert(`✅ ${result.name || "변호사"} → ${planLabel} 변경 완료`);
+                toast.success(`${result.name || "변호사"} → ${planLabel} 변경 완료`);
             } else {
                 const data = await res.json();
-                alert(`플랜 변경 실패: ${data.error}`);
+                toast.error(`플랜 변경 실패: ${data.error}`);
             }
         } catch {
-            alert("플랜 변경 중 오류가 발생했습니다.");
+            toast.error("플랜 변경 중 오류가 발생했습니다.");
         } finally {
             setUpdatingId(null);
+        }
+    };
+
+    const handleDeleteLawyer = async (lawyerId: string, lawyerName: string) => {
+        if (!confirm(`정말 ${lawyerName} 변호사를 탈퇴 처리하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) {
+            return;
+        }
+        setDeletingId(lawyerId);
+        try {
+            const res = await fetch(`/api/admin/lawyers?id=${lawyerId}`, {
+                method: "DELETE",
+            });
+            if (!res.ok) {
+                const data = await res.json();
+                toast.error(`탈퇴 처리 실패: ${data.error || "서버 오류"}`);
+                return;
+            }
+            setLawyers((prev) => prev.filter((lawyer) => lawyer.id !== lawyerId));
+            setTotal((prev) => Math.max(0, prev - 1));
+            toast.success(`${lawyerName} 변호사가 탈퇴 처리되었습니다.`);
+        } catch {
+            toast.error("탈퇴 처리 중 오류가 발생했습니다.");
+        } finally {
+            setDeletingId(null);
         }
     };
 
@@ -115,8 +141,8 @@ export default function AdminLawyersPage() {
                     <div className="animate-spin w-6 h-6 border-2 border-[#3563AE] border-t-transparent rounded-full" />
                 </div>
             ) : (
-                <div className="rounded-xl bg-[#111827] border border-[#1F2937] overflow-hidden">
-                    <table className="w-full text-sm">
+                <div className="rounded-xl bg-[#111827] border border-[#1F2937] overflow-x-auto">
+                    <table className="w-full text-sm min-w-[700px]">
                         <thead>
                             <tr className="border-b border-[#1F2937]">
                                 <th className="text-left px-4 py-3 text-[11px] font-medium text-[#6B7280] uppercase">변호사</th>
@@ -124,6 +150,7 @@ export default function AdminLawyersPage() {
                                 <th className="text-center px-4 py-3 text-[11px] font-medium text-[#6B7280] uppercase">업로드</th>
                                 <th className="text-center px-4 py-3 text-[11px] font-medium text-[#6B7280] uppercase">콘텐츠</th>
                                 <th className="text-center px-4 py-3 text-[11px] font-medium text-[#6B7280] uppercase">요금제</th>
+                                <th className="text-center px-4 py-3 text-[11px] font-medium text-[#6B7280] uppercase">관리</th>
                                 <th className="text-right px-4 py-3 text-[11px] font-medium text-[#6B7280] uppercase">가입일</th>
                             </tr>
                         </thead>
@@ -159,6 +186,7 @@ export default function AdminLawyersPage() {
                                                 value={currentPlan}
                                                 onChange={(e) => handlePlanChange(lawyer.id, e.target.value)}
                                                 disabled={updatingId === lawyer.id}
+                                                aria-label={`${lawyer.name} 요금제`}
                                                 className={`text-[11px] px-2 py-1 rounded-lg font-medium border-0 cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#3563AE] ${
                                                     updatingId === lawyer.id ? "opacity-50" : ""
                                                 } ${
@@ -176,6 +204,17 @@ export default function AdminLawyersPage() {
                                                 ))}
                                             </select>
                                         </td>
+                                        <td className="px-4 py-3 text-center">
+                                            <div className="inline-flex items-center gap-2 justify-center">
+                                                <button
+                                                    onClick={() => handleDeleteLawyer(lawyer.id, lawyer.name)}
+                                                    disabled={deletingId === lawyer.id}
+                                                    className={`px-2 py-1 rounded-lg text-[11px] font-medium border border-red-500 text-red-300 bg-red-500/10 hover:bg-red-500/15 transition-colors flex items-center gap-1 ${deletingId === lawyer.id ? "opacity-40 cursor-not-allowed" : ""}`}
+                                                >
+                                                    <Trash2 size={12} /> 탈퇴
+                                                </button>
+                                            </div>
+                                        </td>
                                         <td className="px-4 py-3 text-right text-[11px] text-[#6B7280]">
                                             {new Date(lawyer.created_at).toLocaleDateString("ko-KR")}
                                         </td>
@@ -184,7 +223,7 @@ export default function AdminLawyersPage() {
                             })}
                             {filtered.length === 0 && (
                                 <tr>
-                                    <td colSpan={6} className="px-4 py-10 text-center text-[#4B5563]">
+                                    <td colSpan={7} className="px-4 py-10 text-center text-[#4B5563]">
                                         변호사 데이터가 없습니다
                                     </td>
                                 </tr>

@@ -91,9 +91,7 @@ export async function POST(request: Request) {
                     errorCodes: verifyData["error-codes"],
                 }));
 
-                // Only block very low scores (almost certainly bots)
-                // Allow through if verification itself fails (key config issue)
-                if (verifyData.success && verifyData.score < 0.3) {
+                if (verifyData.success && verifyData.score < 0.5) {
                     return NextResponse.json(
                         { error: "보안 검증에 실패했습니다. 다시 시도해주세요." },
                         { status: 400 }
@@ -114,9 +112,21 @@ export async function POST(request: Request) {
             );
         }
 
-        if (password.length < 6) {
+        if (password.length < 8) {
             return NextResponse.json(
-                { error: "비밀번호는 6자 이상이어야 합니다." },
+                { error: "비밀번호는 8자 이상이어야 합니다." },
+                { status: 400 }
+            );
+        }
+        if (!/\d/.test(password)) {
+            return NextResponse.json(
+                { error: "비밀번호에 숫자를 포함해야 합니다." },
+                { status: 400 }
+            );
+        }
+        if (!/[!@#$%^&*()_+\-=[\]{};':\"\\|,.<>/?]/.test(password)) {
+            return NextResponse.json(
+                { error: "비밀번호에 특수문자를 포함해야 합니다." },
                 { status: 400 }
             );
         }
@@ -144,12 +154,12 @@ export async function POST(request: Request) {
             }
         }
 
-        // Create auth user
+        // Create auth user with email confirmation required
         const { data: authData, error: authError } =
             await supabase.auth.admin.createUser({
                 email,
                 password,
-                email_confirm: true, // Auto-confirm (no email verification needed)
+                email_confirm: false, // Require email verification
                 user_metadata: { name, specialty, region },
             });
 

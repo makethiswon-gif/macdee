@@ -86,8 +86,16 @@ export default function SignupPage() {
         setError(null);
 
         // Validation
-        if (form.password.length < 6) {
-            setError("비밀번호는 6자 이상이어야 합니다.");
+        if (form.password.length < 8) {
+            setError("비밀번호는 8자 이상이어야 합니다.");
+            return;
+        }
+        if (!/\d/.test(form.password)) {
+            setError("비밀번호에 숫자를 포함해야 합니다.");
+            return;
+        }
+        if (!/[!@#$%^&*()_+\-=[\]{};':\"\\|,.<>/?]/.test(form.password)) {
+            setError("비밀번호에 특수문자를 포함해야 합니다.");
             return;
         }
         if (form.password !== form.passwordConfirm) {
@@ -150,16 +158,16 @@ export default function SignupPage() {
                 <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
                     <Mail size={28} className="text-emerald-600" />
                 </div>
-                <h2 className="text-xl font-bold text-[#1F2937]">회원가입 완료!</h2>
+                <h2 className="text-xl font-bold text-[#1F2937]">회원가입 신청이 완료되었습니다!</h2>
                 <p className="mt-3 text-sm text-[#6B7280] max-w-sm mx-auto">
-                    <strong className="text-[#1F2937]">{form.name}</strong> 변호사님, 가입이 완료되었습니다.
-                    <br />지금 바로 로그인하실 수 있습니다.
+                    <strong className="text-[#1F2937]">{form.name}</strong> 변호사님, 가입 신청이 접수되었습니다.
+                    <br />입력하신 이메일로 발송된 인증 메일을 확인하신 후 로그인해 주세요.
                 </p>
                 <button
                     onClick={() => router.push("/login")}
                     className="mt-6 px-6 py-2.5 text-sm font-semibold text-white bg-[#3563AE] rounded-xl hover:bg-[#2A4F8A] transition-all"
                 >
-                    로그인하기
+                    로그인 페이지로 이동
                 </button>
             </div>
         );
@@ -253,9 +261,9 @@ export default function SignupPage() {
                             type={showPassword ? "text" : "password"}
                             value={form.password}
                             onChange={(e) => updateForm("password", e.target.value)}
-                            placeholder="6자 이상"
+                            placeholder="8자 이상, 숫자·특수문자 포함"
                             required
-                            minLength={6}
+                            minLength={8}
                             className="w-full pl-10 pr-11 py-3 rounded-xl border border-[#E4E7ED] bg-white text-sm text-[#1F2937] placeholder:text-[#9CA3B0] focus:outline-none focus:ring-2 focus:ring-[#3563AE]/20 focus:border-[#3563AE] transition-all"
                         />
                         <button

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -24,16 +25,6 @@ export interface BlogProfile {
     updatedAt: number;
 }
 
-function verifyAdmin(request: Request): boolean {
-    const token = request.headers.get("cookie")?.match(/admin_token=([^;]+)/)?.[1];
-    if (!token) return false;
-    try {
-        const decoded = Buffer.from(token, "base64").toString();
-        return decoded.startsWith("macdee") && decoded.includes("macdee_admin_secret");
-    } catch {
-        return false;
-    }
-}
 
 function getSupabase() {
     return createClient(

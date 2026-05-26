@@ -35,8 +35,18 @@ interface PostData {
     card_news_cover_image?: string | null;
 }
 
-function formatInline(text: string): string {
+function escapeHtml(text: string): string {
     return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function formatInline(text: string): string {
+    const escaped = escapeHtml(text);
+    return escaped
         .replace(/\*\*(.+?)\*\*/g, '<strong class="text-white/75 font-semibold">$1</strong>')
         .replace(/\*(.+?)\*/g, '<em>$1</em>');
 }
@@ -68,13 +78,66 @@ function renderBody(rawBody: string, brandColor: string) {
         }
     }
     // Fix literal \n that wasn't converted
-    body = body.replace(/\\n/g, "\n");
-
+    body = body.replace(/\\n/g, "\n");    body = body.replace(/\\(["'`\\/])/g, "$1");
+    body = body.replace(/^>\s*/gm, "");
+    body = body.replace(/^\s*[-*_]{3,}\s*$/gm, "");
     const lines = body.split("\n");
     const elements: React.ReactNode[] = [];
 
+    const parseTableRow = (row: string) => {
+        const cells = row
+            .trim()
+            .replace(/^\||\|$/g, "")
+            .split("|")
+            .map((cell) => cell.trim());
+        return cells;
+    };
+
+    const isTableSeparator = (row: string) => /^\s*\|?\s*[:\-\s]+\|?\s*$/.test(row);
+
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
+
+        const isTableHeader = /^\s*\|.*\|\s*$/.test(line);
+        if (isTableHeader && i + 1 < lines.length && isTableSeparator(lines[i + 1])) {
+            const headerCells = parseTableRow(line);
+            const rows: string[][] = [];
+            i += 2;
+            for (; i < lines.length; i++) {
+                const rowLine = lines[i];
+                if (!/^\s*\|.*\|\s*$/.test(rowLine)) {
+                    i -= 1;
+                    break;
+                }
+                rows.push(parseTableRow(rowLine));
+            }
+
+            elements.push(
+                <table key={`table-${i}`} className="w-full border-collapse text-[15px] text-white/70 mb-8">
+                    <thead>
+                        <tr>
+                            {headerCells.map((cell, idx) => (
+                                <th key={idx} className="border border-white/[0.08] px-3 py-2 text-left font-semibold text-white/80 bg-white/[0.03]">
+                                    {cell}
+                                </th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {rows.map((row, rowIndex) => (
+                            <tr key={rowIndex} className={rowIndex % 2 === 0 ? "bg-white/[0.02]" : "bg-transparent"}>
+                                {row.map((cell, cellIndex) => (
+                                    <td key={cellIndex} className="border border-white/[0.08] px-3 py-2 align-top text-white/60"
+                                        dangerouslySetInnerHTML={{ __html: formatInline(cell) }}
+                                    />
+                                ))}
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            );
+            continue;
+        }
 
         if (line.startsWith("## ")) {
             elements.push(
@@ -103,11 +166,15 @@ function renderBody(rawBody: string, brandColor: string) {
         } else if (line.trim() === "") {
             elements.push(<div key={i} className="h-4" />);
         } else {
+            const cleanedLine = line.replace(/^>\s*/, "").trim();
+            if (cleanedLine === "" || /^[-*_]{3,}$/.test(cleanedLine)) {
+                continue;
+            }
             elements.push(
                 <p
                     key={i}
                     className="text-[15px] text-white/50 leading-[1.9] tracking-normal"
-                    dangerouslySetInnerHTML={{ __html: formatInline(line) }}
+                    dangerouslySetInnerHTML={{ __html: formatInline(cleanedLine) }}
                 />
             );
         }
@@ -567,7 +634,7 @@ export default function PostPageClient({ lawyer, post, isOwner = false }: { lawy
             {/* Floating bottom CTA bar (mobile) */}
             {hasPhone && (
                 <div className="fixed bottom-0 left-0 right-0 z-50 sm:hidden">
-                    <div className="bg-[#0A0A0A]/95 backdrop-blur-xl border-t border-white/[0.06] px-4 py-3 flex items-center gap-3">
+                    <div className="bg-[#0A0A0A]/95 backdrop-blur-xl border-t border-white/[0.06] px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom,0px))] flex items-center gap-3">
                         <a
                             href={`tel:${lawyer.phone}`}
                             className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[13px] font-bold text-white transition-all"

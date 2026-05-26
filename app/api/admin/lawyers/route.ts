@@ -1,21 +1,11 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { createClient as createDirectClient } from "@supabase/supabase-js";
-
-function verifyAdmin(request: Request): boolean {
-    const token = request.headers.get("cookie")?.match(/admin_token=([^;]+)/)?.[1];
-    if (!token) return false;
-    try {
-        const decoded = Buffer.from(token, "base64").toString();
-        return decoded.startsWith("macdee") && decoded.includes("macdee_admin_secret");
-    } catch {
-        return false;
-    }
-}
+import { verifyAdminToken } from "@/lib/admin-auth";
 
 // GET: List all lawyers
 export async function GET(request: Request) {
-    if (!verifyAdmin(request)) {
+    if (!verifyAdminToken(request)) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -60,7 +50,7 @@ export async function GET(request: Request) {
 
 // PATCH: Update lawyer plan (RLS 우회를 위해 직접 service role 클라이언트 사용)
 export async function PATCH(request: Request) {
-    if (!verifyAdmin(request)) {
+    if (!verifyAdminToken(request)) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -119,6 +109,55 @@ export async function PATCH(request: Request) {
         return NextResponse.json({ success: true, plan: savedPlan, name });
     } catch (err) {
         console.error("[Admin] Plan update error:", err);
+        return NextResponse.json({ error: "서버 오류" }, { status: 500 });
+    }
+}
+
+export async function DELETE(request: Request) {
+    if (!verifyAdminToken(request)) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    try {
+        const url = new URL(request.url);
+        const id = url.searchParams.get("id");
+        if (!id) {
+            return NextResponse.json({ error: "id가 필요합니다." }, { status: 400 });
+        }
+
+        const supabase = await createAdminClient();
+        const { data: lawyer, error: fetchErr } = await supabase
+            .from("lawyers")
+            .select("id, user_id, name")
+            .eq("id", id)
+            .maybeSingle();
+
+        if (fetchErr) {
+            console.error("[Admin] Lawyer fetch error:", fetchErr);
+            return NextResponse.json({ error: "변호사 조회 실패" }, { status: 500 });
+        }
+
+        if (!lawyer) {
+            return NextResponse.json({ error: "변호사를 찾을 수 없습니다." }, { status: 404 });
+        }
+
+        if (lawyer.user_id) {
+            const { error: authError } = await supabase.auth.admin.deleteUser(lawyer.user_id);
+            if (authError && !authError.message.includes("not found")) {
+                console.error("[Admin] Auth delete error:", authError);
+                return NextResponse.json({ error: "사용자 삭제에 실패했습니다." }, { status: 500 });
+            }
+        } else {
+            const { error: deleteErr } = await supabase.from("lawyers").delete().eq("id", id);
+            if (deleteErr) {
+                console.error("[Admin] Lawyer delete error:", deleteErr);
+                return NextResponse.json({ error: "변호사 삭제에 실패했습니다." }, { status: 500 });
+            }
+        }
+
+        return NextResponse.json({ success: true });
+    } catch (err) {
+        console.error("[Admin] Lawyer delete error:", err);
         return NextResponse.json({ error: "서버 오류" }, { status: 500 });
     }
 }

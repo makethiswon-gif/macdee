@@ -1,16 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
+import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
 
-function verifyAdmin(request: Request): boolean {
-    const token = request.headers.get("cookie")?.match(/admin_token=([^;]+)/)?.[1];
-    if (!token) return false;
-    try {
-        const decoded = Buffer.from(token, "base64").toString();
-        return decoded.startsWith("macdee") && decoded.includes("macdee_admin_secret");
-    } catch {
-        return false;
-    }
-}
 
 export async function GET(request: Request) {
     if (!verifyAdmin(request)) {

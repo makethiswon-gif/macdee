@@ -13,6 +13,14 @@ export async function POST(request: Request) {
 
         console.log(`[Publish] Starting publish for content ${content_id}`);
 
+        // Verify ownership before using admin client
+        const { data: lawyer } = await supabase
+            .from("lawyers")
+            .select("id")
+            .eq("user_id", user.id)
+            .single();
+        if (!lawyer) return NextResponse.json({ error: "프로필을 찾을 수 없습니다." }, { status: 404 });
+
         // Use admin client to bypass RLS for status updates
         const adminSupabase = await createAdminClient();
 
@@ -26,6 +34,12 @@ export async function POST(request: Request) {
         if (!content || contentError) {
             console.error("[Publish] Content not found:", contentError);
             return NextResponse.json({ error: "콘텐츠를 찾을 수 없습니다." }, { status: 404 });
+        }
+
+        // Ownership check
+        if (content.lawyer_id !== lawyer.id) {
+            console.warn(`[Publish] Ownership mismatch: user lawyer=${lawyer.id}, content lawyer=${content.lawyer_id}`);
+            return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
         }
 
         console.log(`[Publish] Content found: channel=${content.channel}, current status=${content.status}, lawyer_id=${content.lawyer_id}`);
