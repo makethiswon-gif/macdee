@@ -367,7 +367,7 @@ Output ONLY the English image prompt. No explanation, no quotes, no markdown.`;
 }
 
 /**
- * 블로그 카드용 콘텐츠 이미지 생성.
+ * 블로그 카드용 콘텐츠 이미지 생성 (Replicate Flux 1.1 Pro).
  * style="realistic": 시네마틱 K-드라마 스틸컷 (메인 썸네일용)
  * style="webtoon": 한국 웹툰 1컷 (일러스트 카드용)
  */
@@ -378,48 +378,78 @@ export async function generateBlogContentImage(
     profileImageUrl?: string,
 ): Promise<{ imageBase64: string }> {
     const scenePrompt = await generateBlogScenePromptWithClaude(blogContent, title, style, profileImageUrl);
-    const finalPrompt = `${scenePrompt}\n\nABSOLUTE: Zero text, zero letters, zero numbers, zero speech bubbles. Square 1:1.`;
+    const finalPrompt = `${scenePrompt} ABSOLUTE RULE: zero text, zero letters, zero numbers, zero speech bubbles anywhere in the image.`;
 
     console.log(`[BlogContentImg] ${style} prompt: ${scenePrompt.substring(0, 120)}...`);
 
-    const openaiKey = process.env.OPENAI_API_KEY;
-    if (!openaiKey) {
-        throw new Error("OPENAI_API_KEY not configured");
+    const replicateKey = process.env.REPLICATE_API_TOKEN;
+    if (!replicateKey) {
+        throw new Error("REPLICATE_API_TOKEN not configured");
     }
 
-    let lastError = "";
-    try {
-        const res = await fetchWithTimeout("https://api.openai.com/v1/images/generations", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${openaiKey}` },
-            body: JSON.stringify({
-                model: "gpt-image-1.5",
+    // Replicate에 예측 요청 (Prefer: wait=60 으로 동기 응답)
+    const createRes = await fetchWithTimeout("https://api.replicate.com/v1/models/black-forest-labs/flux-1.1-pro/predictions", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Token ${replicateKey}`,
+            "Prefer": "wait=60",
+        },
+        body: JSON.stringify({
+            input: {
                 prompt: finalPrompt,
-                n: 1,
-                size: "1024x1024",
-                quality: "high",
+                width: 1024,
+                height: 1024,
                 output_format: "png",
-            }),
-        }, 55000);
-        if (res.ok) {
-            const data = await res.json();
-            if (data.data?.[0]?.b64_json) {
-                console.log(`[BlogContentImg] GPT-Image-2 ${style} success`);
-                return { imageBase64: data.data[0].b64_json };
-            }
-            lastError = `unexpected response shape: ${JSON.stringify(data).substring(0, 200)}`;
-            console.error(`[BlogContentImg] ${lastError}`);
-        } else {
-            const errText = await res.text();
-            lastError = `GPT-Image-2 HTTP ${res.status}: ${errText.substring(0, 300)}`;
-            console.error(`[BlogContentImg] ${lastError}`);
-        }
-    } catch (err) {
-        lastError = err instanceof Error ? err.message : String(err);
-        console.error("[BlogContentImg] GPT-Image-2 failed/timeout:", lastError);
+                output_quality: 95,
+                safety_tolerance: 2,
+                prompt_upsampling: true,
+            },
+        }),
+    }, 70000);
+
+    if (!createRes.ok) {
+        const errText = await createRes.text();
+        throw new Error(`Replicate HTTP ${createRes.status}: ${errText.substring(0, 300)}`);
     }
 
-    throw new Error(lastError || "image generation failed");
+    const prediction = await createRes.json();
+
+    // wait=60 으로 동기 응답을 받았지만 아직 processing 중일 경우 폴링
+    let output = prediction.output;
+    if (!output && prediction.status !== "failed") {
+        const predId = prediction.id;
+        for (let i = 0; i < 30; i++) {
+            await new Promise(r => setTimeout(r, 2000));
+            const pollRes = await fetch(`https://api.replicate.com/v1/predictions/${predId}`, {
+                headers: { "Authorization": `Token ${replicateKey}` },
+            });
+            if (!pollRes.ok) break;
+            const poll = await pollRes.json();
+            if (poll.status === "succeeded") { output = poll.output; break; }
+            if (poll.status === "failed") throw new Error(`Replicate failed: ${poll.error}`);
+        }
+    }
+
+    if (prediction.status === "failed") {
+        throw new Error(`Replicate failed: ${prediction.error}`);
+    }
+
+    // output은 이미지 URL (배열 또는 문자열)
+    const imageUrl: string = Array.isArray(output) ? output[0] : output;
+    if (!imageUrl) {
+        throw new Error("Replicate returned no output URL");
+    }
+
+    console.log(`[BlogContentImg] Flux 1.1 Pro ${style} success`);
+
+    // URL → base64 변환
+    const imgRes = await fetch(imageUrl);
+    if (!imgRes.ok) throw new Error(`Failed to fetch image from Replicate CDN: ${imgRes.status}`);
+    const buffer = await imgRes.arrayBuffer();
+    const imageBase64 = Buffer.from(buffer).toString("base64");
+
+    return { imageBase64 };
 }
 
 /**
