@@ -29,38 +29,46 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     let lawyerName = "";
 
     if (isUuid) {
-        const { data: byId } = await supabase
+        const { data: byId, error: byIdError } = await supabase
             .from("contents")
             .select("title,meta_description,tags,slug,id,lawyer_id")
             .eq("id", postSlug)
             .limit(1)
             .maybeSingle();
+        if (!byId && byIdError) {
+            try { console.error("generateMetadata byId error:", byIdError); } catch {}
+        }
         postData = byId ?? null;
         if (postData && postData.lawyer_id) {
-            const { data: lRows } = await supabase
+            const { data: lRows, error: lErr } = await supabase
                 .from("lawyers")
                 .select("name")
                 .eq("id", postData.lawyer_id)
                 .limit(1)
                 .maybeSingle();
+            if (!lRows && lErr) {
+                try { console.error("generateMetadata lawyer lookup error:", lErr); } catch {}
+            }
             lawyerName = lRows?.name || "";
         }
     } else {
-        const { data: lawyer } = await supabase
+        const { data: lawyer, error: lawyerErr } = await supabase
             .from("lawyers")
             .select("id,name")
             .eq("slug", slug)
             .limit(1)
             .maybeSingle();
+        if (lawyerErr) try { console.error("generateMetadata lawyer by slug error:", lawyerErr); } catch {}
         if (!lawyer) return { title: "포스트를 찾을 수 없습니다" };
         lawyerName = lawyer.name;
-        const { data: bySlug } = await supabase
+        const { data: bySlug, error: bySlugErr } = await supabase
             .from("contents")
             .select("title,meta_description,tags,slug,id,lawyer_id")
             .eq("lawyer_id", lawyer.id)
             .eq("slug", postSlug)
             .limit(1)
             .maybeSingle();
+        if (!bySlug && bySlugErr) try { console.error("generateMetadata bySlug error:", bySlugErr); } catch {}
         postData = bySlug ?? null;
     }
 
