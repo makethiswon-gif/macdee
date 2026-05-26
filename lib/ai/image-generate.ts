@@ -228,13 +228,19 @@ async function generateBlogBackgroundPromptWithClaude(
     blogContent: string,
     cardType: "thumbnail" | "career",
     brandColor: string,
+    moodHint?: string,
 ): Promise<string> {
     const apiKey = process.env.ANTHROPIC_API_KEY;
+    const moodTail = moodHint ? `. Mood DNA: ${moodHint}` : "";
     const fallback = cardType === "career"
-        ? `Architectural photography of a luxury Korean law office interior at golden hour, marble and walnut wood textures, soft warm dramatic lighting through tall windows, no people, no text, no letters, premium brand atmosphere, editorial composition, cinematic depth, ultra high quality 1:1.`
-        : `Editorial photography, minimal premium law firm brand mood, abstract atmospheric composition with soft natural light, subtle ${brandColor} accent tones, no people, no text, no letters, no documents with writing, cinematic depth of field, ultra high quality 1:1.`;
+        ? `Architectural photography of a luxury Korean law office interior at golden hour, marble and walnut wood textures, soft warm dramatic lighting through tall windows, no people, no text, no letters, premium brand atmosphere, editorial composition, cinematic depth, ultra high quality 1:1${moodTail}.`
+        : `Editorial photography, minimal premium law firm brand mood, abstract atmospheric composition with soft natural light, subtle ${brandColor} accent tones, no people, no text, no letters, no documents with writing, cinematic depth of field, ultra high quality 1:1${moodTail}.`;
 
     if (!apiKey) return fallback;
+
+    const moodDirective = moodHint
+        ? `\n[MANDATORY MOOD DNA — this lawyer's brand identity, must be consistent across ALL their cards]\n${moodHint}\nWeave these mood/lighting/material keywords into the prompt verbatim or as close synonyms.\n`
+        : "";
 
     const systemPrompt = `You are an art director for a luxury Korean law firm's editorial brand imagery.
 Given a Korean legal blog post, output ONE detailed English image-generation prompt for a textless atmospheric BACKGROUND image.
@@ -251,7 +257,7 @@ Given a Korean legal blog post, output ONE detailed English image-generation pro
 - ${cardType === "career"
         ? "Card type is 'career/brand' — depict a luxurious empty law office interior or architectural detail"
         : "Card type is 'thumbnail' — depict an abstract atmospheric composition subtly evoking the blog topic without showing case-specific events"}
-
+${moodDirective}
 Output ONLY the English prompt. No explanation, no quotes.`;
 
     try {
@@ -287,13 +293,15 @@ Output ONLY the English prompt. No explanation, no quotes.`;
 /**
  * 블로그 이미지 카드용 textless 배경 이미지 생성.
  * thumbnail / career 카드 배경에 사용. 폴백 체인은 generateCoverImage와 동일.
+ * moodHint: 변호사별 DNA의 bgMoodFamily.aiPromptHint를 받아 같은 변호사 카드의 무드 일관성 유지.
  */
 export async function generateBlogCardBackground(
     blogContent: string,
     cardType: "thumbnail" | "career",
     brandColor: string,
+    moodHint?: string,
 ): Promise<{ imageBase64: string } | null> {
-    const scenePrompt = await generateBlogBackgroundPromptWithClaude(blogContent, cardType, brandColor);
+    const scenePrompt = await generateBlogBackgroundPromptWithClaude(blogContent, cardType, brandColor, moodHint);
     const finalPrompt = `${scenePrompt}\n\nABSOLUTE: Zero text, zero letters, zero numbers, zero people. Square 1:1.`;
 
     console.log(`[BlogCardBG] ${cardType} prompt: ${scenePrompt.substring(0, 120)}...`);

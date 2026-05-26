@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { generateBlogCardBackground } from "@/lib/ai/image-generate";
+import { getLawyerDesignDNA } from "@/lib/blog-images/design-dna";
 
 export const maxDuration = 90;
 
@@ -24,44 +25,18 @@ export async function POST(req: Request) {
         const brandLines: string[] = (profile.brandLines || []).filter((b: string) => b.trim());
         const tagline = brandLines[0] || "";
 
-        // ── Layout & style randomization ──
-        const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
-
-        const layouts = [
-            "하단 20%에만 텍스트, 나머지 80%는 순수 비주얼 (사진/그라데이션)",
-            "카드 정중앙 세로축에 텍스트를 배치하고 좌우를 완전히 비움",
-            "좌측 절반은 사진/비주얼, 우측 절반 하단 코너에만 텍스트",
-            "상단 로고, 하단 제목만 — 중간 전체를 여백이나 사진으로",
-            "대각선 분할: clip-path polygon으로 배경 2분할 후 한쪽 코너에만 텍스트",
-        ];
-
-        const typographies = [
-            `제목 font-size:52px font-weight:900 letter-spacing:-3px 색상 흰색, 한 줄`,
-            `제목 font-size:44px font-weight:300 letter-spacing:6px 색상 흰색, 우아하게`,
-            `제목 font-size:48px font-weight:800 letter-spacing:-2px 색상 흰색`,
-            `제목 font-size:40px font-weight:700 letter-spacing:2px 색상 rgba(255,255,255,0.95)`,
-        ];
-
-        const backgrounds = [
-            `배경: 사무실 사진 전체 + linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.85) 100%) 오버레이`,
-            `배경: ${brandColor} → 검정 방향으로 135deg linear-gradient, 중간에 radial-gradient 광원 1개`,
-            `배경: 사무실 사진 전체 + ${brandColor}99 색조 오버레이`,
-            `배경: 검정(#080808) 베이스 + ${brandColor} 계열 radial-gradient 광원 상단 우측에`,
-        ];
-
-        const accents = [
-            `하단에 ${brandColor} 색상 2px 가로선 하나만`,
-            `좌측 상단 모서리에 ${brandColor} 색상 L자형 선 장식 (width:40px, height:40px, 2px)`,
-            `카드 안쪽 여백에 1px rgba(255,255,255,0.08) 전체 테두리`,
-            `장식 없음 — 순수 여백과 타이포로만`,
-        ];
+        // ── 변호사별 디자인 DNA (lawyerId 기반 결정론적) ──
+        // 같은 변호사는 영원히 같은 layout/typo/accent/bgMood 조합 → 브랜드 일관성.
+        // 다른 변호사는 거의 항상 다른 조합 (8^4 = 4096) → 차별화.
+        const dna = getLawyerDesignDNA(profile.id || profile.lawyerName || "default", brandColor);
+        console.log(`[generate-design] DNA for ${profile.lawyerName}: ${dna.layoutFamily.name} / ${dna.typoFamily.name} / ${dna.accentFamily.name} / ${dna.bgMoodFamily.name}`);
 
         // ── AI 배경 이미지 생성 (thumbnail / career 카드만) ──
-        // 텍스트가 전혀 없는 시네마틱 분위기 배경. data URL로 HTML에 직접 임베드.
+        // 텍스트가 전혀 없는 시네마틱 분위기 배경. DNA의 무드 힌트로 같은 변호사 일관성 유지.
         let aiBgDataUrl: string | null = null;
         if (cardType === "thumbnail" || cardType === "career") {
             try {
-                const bg = await generateBlogCardBackground(content, cardType, brandColor);
+                const bg = await generateBlogCardBackground(content, cardType, brandColor, dna.bgMoodFamily.aiPromptHint);
                 if (bg?.imageBase64) {
                     aiBgDataUrl = `data:image/png;base64,${bg.imageBase64}`;
                 }
@@ -70,19 +45,20 @@ export async function POST(req: Request) {
             }
         }
 
-        const layoutChoice = pick(layouts);
-        const typoChoice = pick(typographies);
-        const bgChoice = aiBgDataUrl
-            ? `배경: AI 생성 시네마틱 배경 이미지를 전체에 깔고 (object-fit:cover, z-index:0), 그 위에 linear-gradient(to bottom, rgba(0,0,0,0.1) 30%, rgba(0,0,0,0.85) 100%) 오버레이로 텍스트 가독성 확보`
-            : hasOfficeImg ? pick(backgrounds) : pick(backgrounds.filter(b => !b.includes("사무실")));
-        const accentChoice = pick(accents);
+        const bgSpec = aiBgDataUrl
+            ? `배경: AI 생성 시네마틱 배경 이미지를 전체에 깔고 (object-fit:cover, z-index:0), 그 위에 linear-gradient(to bottom, rgba(0,0,0,0.1) 30%, rgba(0,0,0,0.85) 100%) 오버레이로 텍스트 가독성 확보. DNA 무드(${dna.bgMoodFamily.name})에 맞춰 어두운 톤 오버레이 강도 조정.`
+            : dna.bgMoodFamily.htmlSpec;
 
         const variationDirective = `
-[이번 생성의 디자인 지시]
-- 레이아웃: ${layoutChoice}
-- 타이포: ${typoChoice}
-- ${bgChoice}
-- 악센트: ${accentChoice}
+[이 변호사의 디자인 DNA — 같은 변호사의 모든 카드는 이 DNA를 동일하게 유지해야 함]
+- 레이아웃 family: "${dna.layoutFamily.name}"
+  → ${dna.layoutFamily.spec}
+- 타이포 family: "${dna.typoFamily.name}"
+  → ${dna.typoFamily.spec}
+- 악센트 family: "${dna.accentFamily.name}"
+  → ${dna.accentFamily.spec}
+- 무드 family: "${dna.bgMoodFamily.name}"
+  → ${bgSpec}
 `;
 
         // ── System message ──
