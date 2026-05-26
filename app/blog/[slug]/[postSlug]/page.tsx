@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import { permanentRedirect } from "next/navigation";
-import { createAdminClient, createServiceClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
 import PostPageClient from "./PostPageClient";
 
 export const dynamic = "force-dynamic";
@@ -11,38 +11,48 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { slug, postSlug } = await params;
-    // Use cookie-free service client — createAdminClient() calls cookies() which
-    // can fail in generateMetadata context before request is fully established
-    const supabase = createServiceClient();
     const isUuid = UUID_RE.test(postSlug);
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+    const headers = {
+        "apikey": serviceKey,
+        "Authorization": `Bearer ${serviceKey}`,
+        "Content-Type": "application/json",
+    };
 
     let postData: { title: string; meta_description: string | null; tags: string[] | null; slug: string | null; id: string; lawyer_id: string } | null = null;
     let lawyerName = "";
 
     if (isUuid) {
-        // UUID is globally unique — find directly without lawyer_id constraint
-        const { data } = await supabase
-            .from("contents")
-            .select("title, meta_description, tags, slug, id, lawyer_id")
-            .eq("id", postSlug)
-            .maybeSingle();
-        postData = data;
+        const res = await fetch(
+            `${supabaseUrl}/rest/v1/contents?id=eq.${encodeURIComponent(postSlug)}&select=title,meta_description,tags,slug,id,lawyer_id&limit=1`,
+            { headers, cache: "no-store" }
+        );
+        const rows = res.ok ? await res.json() : [];
+        postData = rows[0] ?? null;
         if (postData) {
-            const { data: l } = await supabase.from("lawyers").select("name").eq("id", postData.lawyer_id).single();
-            lawyerName = l?.name || "";
+            const lRes = await fetch(
+                `${supabaseUrl}/rest/v1/lawyers?id=eq.${encodeURIComponent(postData.lawyer_id)}&select=name&limit=1`,
+                { headers, cache: "no-store" }
+            );
+            const lRows = lRes.ok ? await lRes.json() : [];
+            lawyerName = lRows[0]?.name || "";
         }
     } else {
-        // Slug-based URL — need lawyer lookup to disambiguate
-        const { data: lawyer } = await supabase.from("lawyers").select("id, name").eq("slug", slug).single();
-        if (!lawyer) return { title: "포스트를 찾을 수 없습니다" };
-        lawyerName = lawyer.name;
-        const { data } = await supabase
-            .from("contents")
-            .select("title, meta_description, tags, slug, id, lawyer_id")
-            .eq("lawyer_id", lawyer.id)
-            .eq("slug", postSlug)
-            .maybeSingle();
-        postData = data;
+        const lRes = await fetch(
+            `${supabaseUrl}/rest/v1/lawyers?slug=eq.${encodeURIComponent(slug)}&select=id,name&limit=1`,
+            { headers, cache: "no-store" }
+        );
+        const lRows = lRes.ok ? await lRes.json() : [];
+        if (!lRows[0]) return { title: "포스트를 찾을 수 없습니다" };
+        lawyerName = lRows[0].name;
+        const res = await fetch(
+            `${supabaseUrl}/rest/v1/contents?lawyer_id=eq.${encodeURIComponent(lRows[0].id)}&slug=eq.${encodeURIComponent(postSlug)}&select=title,meta_description,tags,slug,id,lawyer_id&limit=1`,
+            { headers, cache: "no-store" }
+        );
+        const rows = res.ok ? await res.json() : [];
+        postData = rows[0] ?? null;
     }
 
     if (!postData) return { title: "포스트를 찾을 수 없습니다" };
