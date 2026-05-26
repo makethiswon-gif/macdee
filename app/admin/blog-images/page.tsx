@@ -105,15 +105,14 @@ export default function BlogImagesPage() {
 
         const cardTypes = [
             { type: "thumbnail", label: "메인 썸네일" },
-            { type: "summary", label: "핵심 요약" },
-            { type: "career", label: "로펌 브랜드" },
+            { type: "illustration", label: "관련 일러스트" },
             { type: "contact", label: "문의 안내" },
         ];
 
         const total = cardTypes.length;
         setGenerationMessage(`AI가 ${total}장 카드를 동시 생성하는 중... (~15초)`);
 
-        // 4장을 병렬로 생성 — 가장 느린 카드 시간만큼만 걸림.
+        // 3장을 병렬로 생성 — 가장 느린 카드 시간만큼만 걸림.
         const results = await Promise.all(
             cardTypes.map(async (ct) => {
                 try {
@@ -208,8 +207,7 @@ export default function BlogImagesPage() {
 
             const cardNameMap: Record<string, string> = {
                 thumbnail: '메인썸네일',
-                summary: '핵심요약',
-                career: '로펌브랜드',
+                illustration: '관련일러스트',
                 contact: '문의안내',
             };
 
@@ -362,8 +360,8 @@ export default function BlogImagesPage() {
                             {(!isGenerating && cards.length === 0) && (
                                 <div className="flex-1 flex flex-col items-center justify-center text-[#4B5563]">
                                     <Sparkles size={48} className="mb-4 text-[#1F2937]" />
-                                    <p className="text-sm font-medium">✨ &apos;생성형 UI 카드 만들기&apos;를 누르면 3~4개의 테마 카드가 나옵니다.</p>
-                                    <p className="text-xs text-[#374151] mt-2">각 카드는 순수 HTML과 CSS로 즉석 코딩되어 그려집니다.</p>
+                                    <p className="text-sm font-medium">✨ &apos;생성형 UI 카드 만들기&apos;를 누르면 3장이 나옵니다.</p>
+                                    <p className="text-xs text-[#374151] mt-2">메인 썸네일 · 관련 일러스트 · 문의 안내</p>
                                 </div>
                             )}
 
@@ -373,7 +371,7 @@ export default function BlogImagesPage() {
                                         <Code size={24} className="animate-pulse" />
                                     </div>
                                     <h3 className="text-xl font-bold text-white mb-2">프리미엄 렌더링 진행 중</h3>
-                                    <p className="text-[#9CA3B0] text-sm">Claude Sonnet 4.6 + GPT-Image-2가 4장을 동시에 코딩 중...</p>
+                                    <p className="text-[#9CA3B0] text-sm">Claude Sonnet 4.6 + GPT-Image-2가 3장을 동시에 코딩 중...</p>
                                 </div>
                             )}
 

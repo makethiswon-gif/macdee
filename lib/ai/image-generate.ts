@@ -218,10 +218,9 @@ export async function generateCoverImage(
     return await generateCoverImageDallE(caseType, hookText);
 }
 
-// ─── 블로그 이미지 카드 배경 생성 ───
-// 블로그 본문을 분석하여 분위기 있는 textless 배경을 생성. HTML 카드의 배경으로 사용.
-// 직렬 폴백 체인이 너무 길어지면 Vercel 함수 타임아웃(60~90s)을 초과하므로
-// 각 API 호출에 하드 타임아웃을 걸어 빨리 실패하고 다음 단계로 넘어가게 한다.
+// ─── 블로그 카드용 콘텐츠 이미지 생성 ───
+// 블로그 본문을 분석하여 글 주제에 맞는 시네마틱 사진 또는 한국 웹툰 1컷을 생성.
+// 텍스트는 이미지에 넣지 않고 HTML이 오버레이.
 
 async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
     const controller = new AbortController();
@@ -233,41 +232,43 @@ async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: numbe
     }
 }
 
-async function generateBlogBackgroundPromptWithClaude(
+async function generateBlogScenePromptWithClaude(
     blogContent: string,
-    cardType: "thumbnail" | "career",
-    brandColor: string,
-    moodHint?: string,
+    title: string,
+    style: "realistic" | "webtoon",
 ): Promise<string> {
     const apiKey = process.env.ANTHROPIC_API_KEY;
-    const moodTail = moodHint ? `. Mood DNA: ${moodHint}` : "";
-    const fallback = cardType === "career"
-        ? `Architectural photography of a luxury Korean law office interior at golden hour, marble and walnut wood textures, soft warm dramatic lighting through tall windows, no people, no text, no letters, premium brand atmosphere, editorial composition, cinematic depth, ultra high quality 1:1${moodTail}.`
-        : `Editorial photography, minimal premium law firm brand mood, abstract atmospheric composition with soft natural light, subtle ${brandColor} accent tones, no people, no text, no letters, no documents with writing, cinematic depth of field, ultra high quality 1:1${moodTail}.`;
+    const fallback = style === "webtoon"
+        ? `Korean webtoon (manhwa) panel illustration depicting a Korean legal scene related to: "${title || "legal consultation"}". Dramatic expressions, clean bold lines, dramatic lighting, Korean characters. NO text, NO letters, NO speech bubbles, NO words. Square 1:1, ultra high quality.`
+        : `Cinematic K-drama photograph depicting a Korean legal scene related to: "${title || "legal consultation"}". DSLR bokeh, dramatic chiaroscuro lighting, Korean setting, professional film still aesthetic. NO text, NO letters, NO documents with readable writing. Square 1:1, ultra high quality.`;
 
     if (!apiKey) return fallback;
 
-    const moodDirective = moodHint
-        ? `\n[MANDATORY MOOD DNA — this lawyer's brand identity, must be consistent across ALL their cards]\n${moodHint}\nWeave these mood/lighting/material keywords into the prompt verbatim or as close synonyms.\n`
-        : "";
+    const systemPrompt = `You are an art director translating Korean legal blog content into a single dramatic ${style === "webtoon" ? "Korean webtoon panel" : "cinematic K-drama photograph"}.
 
-    const systemPrompt = `You are an art director for a luxury Korean law firm's editorial brand imagery.
-Given a Korean legal blog post, output ONE detailed English image-generation prompt for a textless atmospheric BACKGROUND image.
+[YOUR JOB]
+Read the Korean blog content and produce ONE English image-generation prompt that captures the heart of the case in a single visual scene.
 
-[STRICT RULES]
-- NO people, NO faces, NO body parts in the scene
-- NO text, NO letters, NO numbers, NO logos, NO signs (the image must be 100% text-free — text will be overlaid later by HTML)
-- NO depiction of specific case events (no courtroom drama, no crash sites, no document close-ups with readable text)
-- Focus on MOOD and ATMOSPHERE only: architecture, interiors, natural elements, abstract textures, soft light
-- Korean luxury aesthetic — think Bottega Veneta editorial, Apple product pages, large law firm annual reports
-- Mention specific lighting (golden hour, soft diffused, dramatic chiaroscuro)
-- Mention specific materials (marble, walnut, brushed brass, raw concrete, linen, glass)
-- Brand color accent: ${brandColor} (use sparingly as subtle ambient tone, not as flat fill)
-- ${cardType === "career"
-        ? "Card type is 'career/brand' — depict a luxurious empty law office interior or architectural detail"
-        : "Card type is 'thumbnail' — depict an abstract atmospheric composition subtly evoking the blog topic without showing case-specific events"}
-${moodDirective}
-Output ONLY the English prompt. No explanation, no quotes.`;
+[REQUIREMENTS]
+- ${style === "webtoon"
+        ? "Style: Korean manhwa (webtoon) — clean bold linework, dramatic expressions, distinctly Korean characters, manhwa color palette and shading"
+        : "Style: Cinematic K-drama still photograph — DSLR shallow depth of field, dramatic chiaroscuro lighting, editorial film aesthetic, distinctly Korean setting"}
+- Depict ONE specific scene that conveys the legal situation viscerally (e.g., divorce → tense couple at dining table; fraud → suspicious documents and hand passing money; assault case → courtroom moment)
+- Korean people, Korean settings, Korean architecture/clothing where relevant
+- Strong emotional tone matching the case gravity
+- Square 1:1 composition with clear focal point
+
+[STRICTLY FORBIDDEN]
+- NO text, NO letters, NO numbers, NO speech bubbles, NO words, NO readable signs or documents (text will be overlaid via HTML)
+- NO Western settings or non-Korean characters
+- NO recognizable real people (no real faces)
+- NO graphic violence, NO blood
+
+Output ONLY the English image prompt. No explanation, no quotes, no markdown.`;
+
+    const userMsg = title
+        ? `Title: ${title}\n\nContent:\n${blogContent.substring(0, 1500)}`
+        : blogContent.substring(0, 1500);
 
     try {
         const res = await fetchWithTimeout("https://api.anthropic.com/v1/messages", {
@@ -281,12 +282,12 @@ Output ONLY the English prompt. No explanation, no quotes.`;
                 model: "claude-haiku-4-5",
                 max_tokens: 400,
                 system: systemPrompt,
-                messages: [{ role: "user", content: blogContent.substring(0, 1500) }],
+                messages: [{ role: "user", content: userMsg }],
             }),
         }, 6000);
 
         if (!res.ok) {
-            console.error("[BlogCardBG] Claude prompt gen failed:", await res.text());
+            console.error("[BlogContentImg] Claude scene gen failed:", await res.text());
             return fallback;
         }
 
@@ -294,29 +295,26 @@ Output ONLY the English prompt. No explanation, no quotes.`;
         const prompt = data.content?.[0]?.text?.trim() || "";
         return prompt || fallback;
     } catch (err) {
-        console.error("[BlogCardBG] Claude prompt gen error/timeout, using template:", err instanceof Error ? err.message : err);
+        console.error("[BlogContentImg] Claude scene gen error/timeout:", err instanceof Error ? err.message : err);
         return fallback;
     }
 }
 
 /**
- * 블로그 이미지 카드용 textless 배경 이미지 생성.
- * thumbnail / career 카드 배경에 사용. 폴백 체인은 generateCoverImage와 동일.
- * moodHint: 변호사별 DNA의 bgMoodFamily.aiPromptHint를 받아 같은 변호사 카드의 무드 일관성 유지.
+ * 블로그 카드용 콘텐츠 이미지 생성.
+ * style="realistic": 시네마틱 K-드라마 스틸컷 (메인 썸네일용)
+ * style="webtoon": 한국 웹툰 1컷 (일러스트 카드용)
  */
-export async function generateBlogCardBackground(
+export async function generateBlogContentImage(
     blogContent: string,
-    cardType: "thumbnail" | "career",
-    brandColor: string,
-    moodHint?: string,
+    title: string,
+    style: "realistic" | "webtoon",
 ): Promise<{ imageBase64: string } | null> {
-    const scenePrompt = await generateBlogBackgroundPromptWithClaude(blogContent, cardType, brandColor, moodHint);
-    const finalPrompt = `${scenePrompt}\n\nABSOLUTE: Zero text, zero letters, zero numbers, zero people. Square 1:1.`;
+    const scenePrompt = await generateBlogScenePromptWithClaude(blogContent, title, style);
+    const finalPrompt = `${scenePrompt}\n\nABSOLUTE: Zero text, zero letters, zero numbers, zero speech bubbles. Square 1:1.`;
 
-    console.log(`[BlogCardBG] ${cardType} prompt: ${scenePrompt.substring(0, 120)}...`);
+    console.log(`[BlogContentImg] ${style} prompt: ${scenePrompt.substring(0, 120)}...`);
 
-    // GPT-Image-2 단일 경로 (보통 ~12초, 하드 타임아웃 35초).
-    // Imagen은 응답 불안정/품질 편차로 제외. 실패 시 라우트에서 그라데이션 배경으로 폴백.
     const openaiKey = process.env.OPENAI_API_KEY;
     if (openaiKey) {
         try {
@@ -335,18 +333,18 @@ export async function generateBlogCardBackground(
             if (res.ok) {
                 const data = await res.json();
                 if (data.data?.[0]?.b64_json) {
-                    console.log(`[BlogCardBG] GPT-Image-2 success`);
+                    console.log(`[BlogContentImg] GPT-Image-2 ${style} success`);
                     return { imageBase64: data.data[0].b64_json };
                 }
             } else {
-                console.error(`[BlogCardBG] GPT-Image-2 error (${res.status}):`, (await res.text()).substring(0, 200));
+                console.error(`[BlogContentImg] GPT-Image-2 error (${res.status}):`, (await res.text()).substring(0, 200));
             }
         } catch (err) {
-            console.error("[BlogCardBG] GPT-Image-2 failed/timeout:", err instanceof Error ? err.message : err);
+            console.error("[BlogContentImg] GPT-Image-2 failed/timeout:", err instanceof Error ? err.message : err);
         }
     }
 
-    console.error("[BlogCardBG] GPT-Image-2 failed, route will fall back to gradient");
+    console.error("[BlogContentImg] image generation failed, route will fall back to gradient");
     return null;
 }
 
