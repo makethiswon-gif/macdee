@@ -1,4 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
+import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
 // Server-side Supabase client (for Server Components, Route Handlers, Server Actions)
@@ -25,6 +26,16 @@ export async function createClient() {
                 },
             },
         }
+    );
+}
+
+// Cookie-free admin client for generateMetadata / static contexts
+// (createAdminClient calls cookies() which can fail outside request context)
+export function createServiceClient() {
+    return createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+        process.env.SUPABASE_SERVICE_ROLE_KEY || "",
+        { auth: { persistSession: false } }
     );
 }
 
