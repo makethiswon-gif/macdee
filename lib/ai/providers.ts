@@ -195,13 +195,21 @@ export class ClaudeProvider implements AIProvider {
 }
 
 // ─── Provider Factory ───
-// 전처리: Claude Sonnet 4.6 (법률 텍스트는 복잡해서 Sonnet이 정확 - 요약/분류/PII 마스킹)
+// 전처리: Claude Haiku 4.5 — 구조화 JSON 추출·PII 마스킹은 Haiku로 충분 (Sonnet 대비 ~75% 절감)
 export function getPreprocessor(): AIProvider {
     if (!process.env.ANTHROPIC_API_KEY) {
         // Fallback to OpenAI if Claude key not set
         return new OpenAIProvider("gpt-4o-mini");
     }
-    return new ClaudeProvider("claude-sonnet-4-6");
+    return new ClaudeProvider("claude-haiku-4-5-20251001");
+}
+
+// AI 검색 프로필 생성: Claude Haiku 4.5 — 짧은 정형화 출력, Sonnet 불필요
+export function getAISearchGenerator(): AIProvider {
+    if (!process.env.ANTHROPIC_API_KEY) {
+        return new OpenAIProvider("gpt-4o-mini");
+    }
+    return new ClaudeProvider("claude-haiku-4-5-20251001");
 }
 
 // 콘텐츠 생성: Claude Sonnet 4.6 (최고 글쓰기 품질)

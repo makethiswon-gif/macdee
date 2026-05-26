@@ -1,4 +1,4 @@
-import { getPreprocessor, getContentGenerator, type AIMessage } from "./providers";
+import { getPreprocessor, getContentGenerator, getAISearchGenerator, type AIMessage } from "./providers";
 
 const PREPROCESS_SYSTEM = `당신은 법률 문서 전처리 및 개인정보 보호 전문가입니다.
 
@@ -428,7 +428,7 @@ export async function generateContent(
     },
     options?: { blogStyle?: string; customPrompt?: string }
 ) {
-    const generator = getContentGenerator();
+    const generator = channel === "macdee" ? getAISearchGenerator() : getContentGenerator();
     const config = getChannelConfig(channel, options);
 
     const channelLabel = channel === "blog" ? "네이버 블로그" : channel === "instagram" ? "인스타그램 카드뉴스" : channel === "google" ? "구글 SEO 기사" : "AI 검색 최적화 프로필";

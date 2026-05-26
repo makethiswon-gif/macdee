@@ -182,37 +182,35 @@ export async function generateCoverImage(
         }
     }
 
-    // Step 3: Gemini 폴백
+    // Step 3: Imagen 4.0 폴백 (webtoon-generate.ts와 동일한 predict 엔드포인트)
     const geminiKey = process.env.GEMINI_API_KEY;
     if (geminiKey) {
         try {
-            console.log(`[CoverImage] Trying Gemini ${style} fallback`);
+            console.log(`[CoverImage] Trying Imagen 4.0 ${style} fallback`);
             const res = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${geminiKey}`,
+                `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-preview-06-06:predict?key=${geminiKey}`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        contents: [{ parts: [{ text: finalPrompt }] }],
-                        generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
+                        instances: [{ prompt: finalPrompt }],
+                        parameters: { sampleCount: 1, aspectRatio: "1:1" },
                     }),
                 }
             );
 
             if (res.ok) {
                 const data = await res.json();
-                const parts = data.candidates?.[0]?.content?.parts || [];
-                const imagePart = parts.find(
-                    (p: { inlineData?: { mimeType: string; data: string } }) =>
-                        p.inlineData?.mimeType?.startsWith("image/")
-                );
-                if (imagePart?.inlineData?.data) {
-                    console.log(`[CoverImage] Gemini ${style} fallback succeeded`);
-                    return { imageBase64: imagePart.inlineData.data, revisedPrompt: finalPrompt, style };
+                const b64 = data.predictions?.[0]?.bytesBase64Encoded;
+                if (b64) {
+                    console.log(`[CoverImage] Imagen 4.0 ${style} fallback succeeded`);
+                    return { imageBase64: b64, revisedPrompt: finalPrompt, style };
                 }
+            } else {
+                console.error(`[CoverImage] Imagen 4.0 error (${res.status}):`, await res.text());
             }
         } catch (err) {
-            console.error("[CoverImage] Gemini fallback failed:", err);
+            console.error("[CoverImage] Imagen 4.0 fallback failed:", err);
         }
     }
 
