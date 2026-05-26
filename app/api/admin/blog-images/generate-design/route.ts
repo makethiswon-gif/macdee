@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { generateBlogCardBackground } from "@/lib/ai/image-generate";
 import { getLawyerDesignDNA } from "@/lib/blog-images/design-dna";
+import { extractLogoColor } from "@/lib/blog-images/logo-color";
 
 export const maxDuration = 90;
 
@@ -17,10 +18,21 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "ANTHROPIC_API_KEY not configured" }, { status: 500 });
         }
 
-        const brandColor = profile.brandColor || "#3563AE";
         const hasProfileImg = !!(profile.profileImages?.length);
         const hasLogo = !!profile.logoImage;
         const hasOfficeImg = !!(profile.officeImages?.length);
+
+        // 로고 이미지에서 대표 색상을 추출해 brandColor로 사용 (변호사 정체성과 자동 일치).
+        // 추출 실패하거나 로고가 없으면 profile.brandColor → 기본값 순으로 폴백.
+        let brandColor = profile.brandColor || "#3563AE";
+        if (hasLogo && profile.logoImage) {
+            const logoColor = await extractLogoColor(profile.logoImage);
+            if (logoColor) {
+                console.log(`[generate-design] brandColor ${brandColor} → ${logoColor} (extracted from logo)`);
+                brandColor = logoColor;
+            }
+        }
+
         const specialties = (profile.specialty || []).slice(0, 2).join(" · ") || "";
         const brandLines: string[] = (profile.brandLines || []).filter((b: string) => b.trim());
         const tagline = brandLines[0] || "";
