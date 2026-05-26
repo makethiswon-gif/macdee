@@ -47,6 +47,7 @@ export default function SeoTitlesPage() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ channels }),
+                credentials: "include",
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "분석 실패");
@@ -83,6 +84,7 @@ export default function SeoTitlesPage() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ updates }),
+                credentials: "include",
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "적용 실패");
