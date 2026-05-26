@@ -6,8 +6,8 @@ import { extractLogoColor } from "@/lib/blog-images/logo-color";
 export const maxDuration = 90;
 
 async function generateShortTitle(content: string, existingTitle: string, apiKey: string): Promise<string> {
-    // 기존 제목이 이미 15자 이하면 그대로 사용
-    if (existingTitle && Array.from(existingTitle).length <= 15) return existingTitle;
+    // 기존 제목이 이미 10자 이하면 그대로 사용
+    if (existingTitle && Array.from(existingTitle).length <= 10) return existingTitle;
 
     const source = existingTitle
         ? `제목: ${existingTitle}\n\n본문: ${content.substring(0, 400)}`
@@ -23,16 +23,16 @@ async function generateShortTitle(content: string, existingTitle: string, apiKey
             },
             body: JSON.stringify({
                 model: "claude-haiku-4-5",
-                max_tokens: 40,
-                messages: [{ role: "user", content: `다음 블로그 글의 핵심을 10~15자 이내 임팩트 있는 한글 제목으로 만드세요. 제목만 출력. 따옴표·번호 없이.\n\n${source}` }],
+                max_tokens: 30,
+                messages: [{ role: "user", content: `다음 블로그 글의 핵심을 8~10자 이내 임팩트 있는 한글 제목으로 만드세요. 절대 10자를 넘기면 안됩니다. 제목만 출력. 따옴표·번호 없이.\n\n${source}` }],
             }),
         });
-        if (!res.ok) return existingTitle || "";
+        if (!res.ok) return existingTitle ? Array.from(existingTitle).slice(0, 10).join("") : "";
         const data = await res.json();
-        const t = (data.content?.[0]?.text || "").trim().replace(/^["'"'`]+|["'"'`]+$/g, "");
-        return Array.from(t).slice(0, 15).join("") || existingTitle || "";
+        const t = (data.content?.[0]?.text || "").trim().replace(/^["'"'`]+|["'"'`]+$/g, "").split("\n")[0];
+        return Array.from(t).slice(0, 10).join("") || Array.from(existingTitle || "").slice(0, 10).join("");
     } catch {
-        return existingTitle || "";
+        return Array.from(existingTitle || "").slice(0, 10).join("");
     }
 }
 
@@ -90,12 +90,12 @@ export async function POST(req: Request) {
                 let html: string;
                 if (cardType === "thumbnail" && shortTitle) {
                     const len = Array.from(shortTitle).length;
-                    const fontSize = len <= 10 ? 64 : len <= 12 ? 56 : 48;
+                    const fontSize = len <= 6 ? 72 : len <= 8 ? 64 : 56;
                     html = `<style>@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@900&display=swap');</style>
 <div style="width:800px;height:800px;position:relative;overflow:hidden;background:#000;">
   <img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover;display:block;" />
-  <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.80) 0%,rgba(0,0,0,0.30) 45%,transparent 100%);"></div>
-  <div style="position:absolute;bottom:56px;left:0;right:0;padding:0 52px;font-family:'Noto Sans KR',sans-serif;font-weight:900;font-size:${fontSize}px;color:#fff;line-height:1.15;letter-spacing:-2px;text-shadow:0 3px 24px rgba(0,0,0,0.6);">${shortTitle}</div>
+  <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.80) 0%,rgba(0,0,0,0.20) 50%,transparent 100%);"></div>
+  <div style="position:absolute;bottom:52px;left:0;right:0;padding:0 52px;font-family:'Noto Sans KR',sans-serif;font-weight:900;font-size:${fontSize}px;color:#fff;line-height:1.2;letter-spacing:-2px;word-break:keep-all;overflow-wrap:break-word;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;text-shadow:0 3px 24px rgba(0,0,0,0.7);">${shortTitle}</div>
 </div>`;
                 } else {
                     html = `<div style="width:800px;height:800px;position:relative;overflow:hidden;background:#000;"><img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover;display:block;" /></div>`;
