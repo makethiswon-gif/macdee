@@ -18,10 +18,10 @@ export async function GET() {
         // Blog pages use channels "google" and "macdee" — match that here
         const { data: blogPosts } = await supabase
             .from("contents")
-            .select("id, slug, updated_at, published_at, lawyer_id, lawyers!inner(slug)")
+            .select("id, slug, updated_at, lawyer_id, lawyers!inner(slug)")
             .eq("status", "published")
             .in("channel", ["google", "macdee"])
-            .order("published_at", { ascending: false });
+            .order("created_at", { ascending: false });
 
         // Get published magazine articles
         const { data: magazines } = await supabase
@@ -102,7 +102,7 @@ export async function GET() {
             xml += `
     <url>
         <loc>${sitemapUrl(`${baseUrl}/blog/${lawyerSlug}/${post.slug || post.id}`)}</loc>
-        <lastmod>${new Date(post.updated_at || post.published_at).toISOString()}</lastmod>
+        <lastmod>${new Date(post.updated_at).toISOString()}</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.7</priority>
     </url>`;

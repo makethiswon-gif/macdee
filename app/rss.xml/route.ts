@@ -13,10 +13,10 @@ export async function GET(request: NextRequest) {
         // Get published blog posts with lawyer info for correct URLs
         const { data: blogPosts } = await supabase
             .from("contents")
-            .select("id, slug, title, body, updated_at, published_at, lawyers!inner(slug)")
+            .select("id, slug, title, body, updated_at, lawyers!inner(slug)")
             .eq("status", "published")
             .in("channel", ["google", "macdee"])
-            .order("published_at", { ascending: false })
+            .order("created_at", { ascending: false })
             .limit(50);
 
         // Get published magazine articles
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
             if (!lawyerSlug) continue;
             const desc = (post.body || "").replace(/<[^>]*>/g, "").slice(0, 300);
             const fullBody = (post.body || "").replace(/\]\]/g, "]]]]><![CDATA[");
-            const pubDate = new Date(post.published_at || post.updated_at).toUTCString();
+            const pubDate = new Date(post.updated_at).toUTCString();
             const postUrl = encodeURI(`${baseUrl}/blog/${lawyerSlug}/${post.slug || post.id}`);
             items += `
     <item>
