@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
 
 export const maxDuration = 300;
@@ -145,7 +145,7 @@ export async function POST(request: Request) {
         const offset: number = typeof body.offset === "number" ? body.offset : 0;
         const limit: number = typeof body.limit === "number" ? Math.min(body.limit, 100) : 100;
 
-        const supabase = await createAdminClient();
+        const supabase = createServiceClient();
 
         // 전체 개수 먼저 조회 (첫 배치에서만)
         let total: number | null = null;

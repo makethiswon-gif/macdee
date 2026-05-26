@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
 
 export const maxDuration = 60;
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "no updates provided" }, { status: 400 });
         }
 
-        const supabase = await createAdminClient();
+        const supabase = createServiceClient();
 
         // 변경 전 제목 백업 (감사 로그) — 추후 롤백용
         const ids = updates.map(u => u.id);
@@ -42,17 +42,22 @@ export async function POST(request: Request) {
             // 동일하면 스킵
             if (backup.get(u.id) === cleanTitle) continue;
 
-            const { error } = await supabase
+            const { data: updatedRow, error } = await supabase
                 .from("contents")
                 .update({ title: cleanTitle })
-                .eq("id", u.id);
+                .eq("id", u.id)
+                .select("id, title")
+                .single();
 
             if (error) {
                 console.error(`[SEO Titles Apply] DB error for ${u.id}:`, error.message, error.code);
                 errors.push({ id: u.id, error: `${error.code}: ${error.message}` });
+            } else if (!updatedRow || updatedRow.title !== cleanTitle) {
+                console.error(`[SEO Titles Apply] Update not reflected for ${u.id}: got "${updatedRow?.title}"`);
+                errors.push({ id: u.id, error: "DB에 반영되지 않음" });
             } else {
                 updated++;
-                console.log(`[SEO Titles Apply] ${u.id}: "${backup.get(u.id)}" → "${cleanTitle}"`);
+                console.log(`[SEO Titles Apply] OK ${u.id}: "${backup.get(u.id)}" → "${cleanTitle}"`);
             }
         }
 

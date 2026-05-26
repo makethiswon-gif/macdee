@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Sparkles, Loader2, Check, AlertTriangle, RefreshCw, ExternalLink } from "lucide-react";
+import { Sparkles, Loader2, Check, AlertTriangle, RefreshCw, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
+
+const PAGE_SIZE = 50;
 
 interface AnalysisRow {
     id: string;
@@ -26,6 +28,10 @@ export default function SeoTitlesPage() {
         google: true,
         macdee: true,
     });
+    const [currentPage, setCurrentPage] = useState(0);
+
+    const totalPages = useMemo(() => Math.max(1, Math.ceil(rows.length / PAGE_SIZE)), [rows]);
+    const pagedRows = useMemo(() => rows.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE), [rows, currentPage]);
 
     const stats = useMemo(() => ({
         total: rows.length,
@@ -44,6 +50,7 @@ export default function SeoTitlesPage() {
         setRows([]);
         setSelectedIds(new Set());
         setEditedTitles(new Map());
+        setCurrentPage(0);
 
         const BATCH = 100;
         let offset = 0;
@@ -118,12 +125,13 @@ export default function SeoTitlesPage() {
                 toast.success(`${data.updated}개 제목 변경 완료${data.errors?.length ? ` (실패 ${data.errors.length}건: ${data.errors[0]?.error})` : ""}`);
             }
 
-            // 적용된 항목의 oldTitle을 업데이트해 다음 라운드 비교에 반영
-            setRows(prev => prev.map(r => {
-                if (!selectedIds.has(r.id)) return r;
-                const applied = editedTitles.get(r.id) ?? r.newTitle;
-                return { ...r, oldTitle: applied, newTitle: applied, needsChange: false, reason: "적용됨" };
-            }));
+            // 적용된 항목을 목록에서 제거
+            setRows(prev => {
+                const next = prev.filter(r => !selectedIds.has(r.id));
+                const maxPage = Math.max(0, Math.ceil(next.length / PAGE_SIZE) - 1);
+                setCurrentPage(p => Math.min(p, maxPage));
+                return next;
+            });
             setSelectedIds(new Set());
         } catch (err) {
             toast.error(err instanceof Error ? err.message : "적용 중 오류");
@@ -132,25 +140,22 @@ export default function SeoTitlesPage() {
         }
     };
 
-    const toggleAll = () => {
-        if (selectedIds.size === rows.length) {
-            setSelectedIds(new Set());
+    const togglePageAll = () => {
+        const pageIds = new Set(pagedRows.map(r => r.id));
+        const allSelected = pagedRows.every(r => selectedIds.has(r.id));
+        const next = new Set(selectedIds);
+        if (allSelected) {
+            pageIds.forEach(id => next.delete(id));
         } else {
-            setSelectedIds(new Set(rows.map(r => r.id)));
+            pageIds.forEach(id => next.add(id));
         }
+        setSelectedIds(next);
     };
 
-    const toggleNeedsChangeOnly = () => {
-        setSelectedIds(new Set(rows.filter(r => r.needsChange).map(r => r.id)));
-    };
-
-    const selectNext50 = () => {
-        const pending = rows.filter(r => r.needsChange && !selectedIds.has(r.id)).slice(0, 50);
-        if (pending.length === 0) {
-            toast.info("수정 필요한 항목이 모두 선택됐습니다.");
-            return;
-        }
-        setSelectedIds(new Set([...selectedIds, ...pending.map(r => r.id)]));
+    const selectPageNeedsChange = () => {
+        const next = new Set(selectedIds);
+        pagedRows.filter(r => r.needsChange).forEach(r => next.add(r.id));
+        setSelectedIds(next);
     };
 
     const titleLen = (s: string) => Array.from(s).length;
@@ -212,14 +217,11 @@ export default function SeoTitlesPage() {
                             <div className="text-emerald-400">선택됨 <span className="font-bold">{stats.selected}</span></div>
                         </div>
                         <div className="flex items-center gap-2">
-                            <button onClick={toggleNeedsChangeOnly} className="px-3 py-2 rounded-lg bg-[#1F2937] text-[#D1D5DB] text-xs font-bold hover:bg-[#2A3441]">
-                                수정 필요한 것만
+                            <button onClick={selectPageNeedsChange} className="px-3 py-2 rounded-lg bg-[#1F2937] text-[#D1D5DB] text-xs font-bold hover:bg-[#2A3441]">
+                                이 페이지 수정 필요 선택
                             </button>
-                            <button onClick={selectNext50} className="px-3 py-2 rounded-lg bg-[#1F2937] text-[#D1D5DB] text-xs font-bold hover:bg-[#2A3441]">
-                                다음 50개 추가
-                            </button>
-                            <button onClick={toggleAll} className="px-3 py-2 rounded-lg bg-[#1F2937] text-[#D1D5DB] text-xs font-bold hover:bg-[#2A3441]">
-                                {selectedIds.size === rows.length ? "전체 해제" : "전체 선택"}
+                            <button onClick={togglePageAll} className="px-3 py-2 rounded-lg bg-[#1F2937] text-[#D1D5DB] text-xs font-bold hover:bg-[#2A3441]">
+                                {pagedRows.every(r => selectedIds.has(r.id)) ? "이 페이지 해제" : "이 페이지 전체 선택"}
                             </button>
                             <button
                                 onClick={apply}
@@ -245,7 +247,7 @@ export default function SeoTitlesPage() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {rows.map((r) => {
+                                    {pagedRows.map((r) => {
                                         const selected = selectedIds.has(r.id);
                                         const editedTitle = editedTitles.get(r.id) ?? r.newTitle;
                                         const newLen = titleLen(editedTitle);
@@ -322,6 +324,29 @@ export default function SeoTitlesPage() {
                             </table>
                         </div>
                     </div>
+
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                        <div className="flex items-center justify-center gap-3 mt-4">
+                            <button
+                                onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
+                                disabled={currentPage === 0}
+                                className="p-2 rounded-lg bg-[#1F2937] text-[#D1D5DB] hover:bg-[#2A3441] disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                                <ChevronLeft size={16} />
+                            </button>
+                            <span className="text-sm text-[#9CA3B0]">
+                                <span className="text-white font-bold">{currentPage + 1}</span> / {totalPages} 페이지
+                            </span>
+                            <button
+                                onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))}
+                                disabled={currentPage === totalPages - 1}
+                                className="p-2 rounded-lg bg-[#1F2937] text-[#D1D5DB] hover:bg-[#2A3441] disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                                <ChevronRight size={16} />
+                            </button>
+                        </div>
+                    )}
                 </>
             )}
 
