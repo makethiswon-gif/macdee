@@ -75,11 +75,10 @@ export async function POST(req: Request) {
         // ── thumbnail / illustration: AI 이미지 단독 ──
         if (cardType === "thumbnail" || cardType === "illustration") {
             const style = cardType === "thumbnail" ? "realistic" : "webtoon";
-            const profileImageUrl = profile.profileImages?.[0] ?? undefined;
             try {
                 // 썸네일 전용: 이미지 생성과 제목 생성 병렬 실행
                 const [img, shortTitle] = await Promise.all([
-                    generateBlogContentImage(content, title || "", style, profileImageUrl),
+                    generateBlogContentImage(content, title || "", style),
                     cardType === "thumbnail"
                         ? generateShortTitle(content, title || "", apiKey)
                         : Promise.resolve(""),

@@ -232,61 +232,10 @@ async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: numbe
     }
 }
 
-// 프로필 사진 → Claude Vision으로 외모 특징 영어 설명 추출 (캐시: 같은 URL 반복 분석 방지)
-const profileDescCache = new Map<string, string>();
-
-async function analyzeProfilePhoto(imageSource: string, apiKey: string): Promise<string> {
-    if (profileDescCache.has(imageSource)) return profileDescCache.get(imageSource)!;
-
-    // data URL이면 base64로, https URL이면 url 타입으로 분기
-    let imageBlock: Record<string, unknown>;
-    if (imageSource.startsWith("data:")) {
-        const [header, data] = imageSource.split(",");
-        const mediaType = header.replace("data:", "").replace(";base64", "") as "image/jpeg" | "image/png" | "image/webp";
-        imageBlock = { type: "image", source: { type: "base64", media_type: mediaType, data } };
-    } else {
-        imageBlock = { type: "image", source: { type: "url", url: imageSource } };
-    }
-
-    try {
-        const res = await fetchWithTimeout("https://api.anthropic.com/v1/messages", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "x-api-key": apiKey,
-                "anthropic-version": "2023-06-01",
-            },
-            body: JSON.stringify({
-                model: "claude-haiku-4-5",
-                max_tokens: 120,
-                messages: [{
-                    role: "user",
-                    content: [
-                        imageBlock,
-                        {
-                            type: "text",
-                            text: "Describe this person's physical appearance for an AI image generator. Include: gender, approximate age range, hair style and color, face shape, build, and any distinctive features. Write in English, 1-2 sentences, objective and neutral. Focus only on visual traits that can be reproduced in an illustration.",
-                        },
-                    ],
-                }],
-            }),
-        }, 8000);
-
-        if (!res.ok) return "";
-        const data = await res.json();
-        const desc = (data.content?.[0]?.text || "").trim();
-        if (desc) profileDescCache.set(imageSource, desc);
-        return desc;
-    } catch {
-        return "";
-    }
-}
-
 async function generateBlogScenePromptWithClaude(
     blogContent: string,
     title: string,
     style: "realistic" | "webtoon",
-    profileImageUrl?: string,
 ): Promise<string> {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     const fallback = style === "webtoon"
@@ -294,11 +243,6 @@ async function generateBlogScenePromptWithClaude(
         : `Cinematic K-drama photograph depicting a Korean legal scene related to: "${title || "legal consultation"}". DSLR bokeh, dramatic chiaroscuro lighting, Korean setting, professional film still aesthetic. NO text, NO letters, NO documents with readable writing. Square 1:1, ultra high quality.`;
 
     if (!apiKey) return fallback;
-
-    // 프로필 사진이 있으면 외모 분석 병렬 실행
-    const profileDescPromise = profileImageUrl
-        ? analyzeProfilePhoto(profileImageUrl, apiKey)
-        : Promise.resolve("");
 
     const systemPrompt = `You are an art director translating Korean legal blog content into a single dramatic ${style === "webtoon" ? "Korean webtoon panel" : "cinematic K-drama photograph"}.
 
@@ -327,23 +271,20 @@ Output ONLY the English image prompt. No explanation, no quotes, no markdown.`;
         : blogContent.substring(0, 1500);
 
     try {
-        const [res, profileDesc] = await Promise.all([
-            fetchWithTimeout("https://api.anthropic.com/v1/messages", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "x-api-key": apiKey,
-                    "anthropic-version": "2023-06-01",
-                },
-                body: JSON.stringify({
-                    model: "claude-haiku-4-5",
-                    max_tokens: 400,
-                    system: systemPrompt,
-                    messages: [{ role: "user", content: userMsg }],
-                }),
-            }, 6000),
-            profileDescPromise,
-        ]);
+        const res = await fetchWithTimeout("https://api.anthropic.com/v1/messages", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "x-api-key": apiKey,
+                "anthropic-version": "2023-06-01",
+            },
+            body: JSON.stringify({
+                model: "claude-haiku-4-5",
+                max_tokens: 400,
+                system: systemPrompt,
+                messages: [{ role: "user", content: userMsg }],
+            }),
+        }, 6000);
 
         if (!res.ok) {
             console.error("[BlogContentImg] Claude scene gen failed:", await res.text());
@@ -351,14 +292,7 @@ Output ONLY the English image prompt. No explanation, no quotes, no markdown.`;
         }
 
         const data = await res.json();
-        let prompt = data.content?.[0]?.text?.trim() || "";
-
-        // 외모 설명이 있으면 프롬프트 앞에 주입
-        if (profileDesc && prompt) {
-            prompt = `The lawyer protagonist in the scene has the following appearance: ${profileDesc} — ${prompt}`;
-            console.log(`[BlogContentImg] Profile injected: ${profileDesc.substring(0, 80)}...`);
-        }
-
+        const prompt = data.content?.[0]?.text?.trim() || "";
         return prompt || fallback;
     } catch (err) {
         console.error("[BlogContentImg] Claude scene gen error/timeout:", err instanceof Error ? err.message : err);
@@ -375,9 +309,8 @@ export async function generateBlogContentImage(
     blogContent: string,
     title: string,
     style: "realistic" | "webtoon",
-    profileImageUrl?: string,
 ): Promise<{ imageBase64: string }> {
-    const scenePrompt = await generateBlogScenePromptWithClaude(blogContent, title, style, profileImageUrl);
+    const scenePrompt = await generateBlogScenePromptWithClaude(blogContent, title, style);
     const finalPrompt = `${scenePrompt} ABSOLUTE RULE: zero text, zero letters, zero numbers, zero speech bubbles anywhere in the image.`;
 
     console.log(`[BlogContentImg] ${style} prompt: ${scenePrompt.substring(0, 120)}...`);
