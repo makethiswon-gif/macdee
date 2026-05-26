@@ -79,12 +79,12 @@ export default async function PostPage({ params }: Props) {
     // Recent posts by same lawyer for internal linking
     const { data: relatedPostsData } = await supabase
         .from("contents")
-        .select("id, title, slug, published_at, created_at")
+        .select("id, title, slug, created_at")
         .eq("lawyer_id", lawyer.id)
         .in("channel", ["google", "macdee"])
         .eq("status", "published")
         .neq("id", post.id)
-        .order("published_at", { ascending: false })
+        .order("created_at", { ascending: false })
         .limit(4);
 
     // Related instagram card news (same upload_id)
@@ -176,7 +176,7 @@ export default async function PostPage({ params }: Props) {
         id: p.id,
         title: p.title,
         slug: p.slug || p.id,
-        created_at: p.published_at || p.created_at,
+        created_at: p.created_at,
     }));
 
     return (
