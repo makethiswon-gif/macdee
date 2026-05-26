@@ -388,7 +388,7 @@ export async function generateBlogContentImage(
     }
 
     // Replicate에 예측 요청 (Prefer: wait=60 으로 동기 응답)
-    const createRes = await fetchWithTimeout("https://api.replicate.com/v1/models/black-forest-labs/flux-1.1-pro/predictions", {
+    const createRes = await fetchWithTimeout("https://api.replicate.com/v1/models/black-forest-labs/flux-2-pro/predictions", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -441,7 +441,7 @@ export async function generateBlogContentImage(
         throw new Error("Replicate returned no output URL");
     }
 
-    console.log(`[BlogContentImg] Flux 1.1 Pro ${style} success`);
+    console.log(`[BlogContentImg] Flux 2 Pro ${style} success`);
 
     // URL → base64 변환
     const imgRes = await fetch(imageUrl);
