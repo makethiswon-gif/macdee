@@ -142,14 +142,29 @@ export async function POST(request: Request) {
             ? body.channels
             : ["google", "macdee"];
 
+        const offset: number = typeof body.offset === "number" ? body.offset : 0;
+        const limit: number = typeof body.limit === "number" ? Math.min(body.limit, 100) : 100;
+
         const supabase = await createAdminClient();
+
+        // 전체 개수 먼저 조회 (첫 배치에서만)
+        let total: number | null = null;
+        if (offset === 0) {
+            const { count } = await supabase
+                .from("contents")
+                .select("id", { count: "exact", head: true })
+                .in("channel", channels)
+                .eq("status", "published");
+            total = count;
+        }
 
         const { data: posts, error } = await supabase
             .from("contents")
             .select("id, title, body, channel, lawyer_id, status, created_at")
             .in("channel", channels)
             .eq("status", "published")
-            .order("created_at", { ascending: false }) as { data: PostRow[] | null; error: { message: string } | null };
+            .order("created_at", { ascending: false })
+            .range(offset, offset + limit - 1) as { data: PostRow[] | null; error: { message: string } | null };
 
         if (error) {
             return NextResponse.json({ error: error.message }, { status: 500 });
@@ -195,6 +210,10 @@ export async function POST(request: Request) {
 
         return NextResponse.json({
             posts: analysis,
+            offset,
+            limit,
+            hasMore: analysis.length === limit,
+            total,
             stats: {
                 total: analysis.length,
                 needsChange: analysis.filter(a => a.needsChange).length,

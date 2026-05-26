@@ -17,6 +17,7 @@ interface AnalysisRow {
 
 export default function SeoTitlesPage() {
     const [analyzing, setAnalyzing] = useState(false);
+    const [analyzeProgress, setAnalyzeProgress] = useState<{ loaded: number; total: number | null } | null>(null);
     const [applying, setApplying] = useState(false);
     const [rows, setRows] = useState<AnalysisRow[]>([]);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -39,27 +40,49 @@ export default function SeoTitlesPage() {
             return;
         }
         setAnalyzing(true);
+        setAnalyzeProgress({ loaded: 0, total: null });
         setRows([]);
         setSelectedIds(new Set());
         setEditedTitles(new Map());
+
+        const BATCH = 100;
+        let offset = 0;
+        let totalCount: number | null = null;
+        const allRows: AnalysisRow[] = [];
+        const autoSelect = new Set<string>();
+
         try {
-            const res = await fetch("/api/admin/seo-titles/analyze", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ channels }),
-                credentials: "include",
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || "분석 실패");
-            setRows(data.posts);
-            // 기본 선택: 변경이 필요한 것만 자동 선택
-            const auto = new Set<string>(data.posts.filter((r: AnalysisRow) => r.needsChange).map((r: AnalysisRow) => r.id));
-            setSelectedIds(auto);
-            toast.success(`분석 완료 — 전체 ${data.stats.total}개 중 ${data.stats.needsChange}개 수정 필요`);
+            while (true) {
+                const res = await fetch("/api/admin/seo-titles/analyze", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ channels, offset, limit: BATCH }),
+                    credentials: "include",
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || "분석 실패");
+
+                if (offset === 0 && data.total != null) totalCount = data.total;
+
+                const batch: AnalysisRow[] = data.posts;
+                allRows.push(...batch);
+                batch.filter(r => r.needsChange).forEach(r => autoSelect.add(r.id));
+
+                setRows([...allRows]);
+                setAnalyzeProgress({ loaded: allRows.length, total: totalCount });
+
+                if (!data.hasMore) break;
+                offset += BATCH;
+            }
+
+            setSelectedIds(autoSelect);
+            const needsChange = allRows.filter(r => r.needsChange).length;
+            toast.success(`분석 완료 — 전체 ${allRows.length}개 중 ${needsChange}개 수정 필요`);
         } catch (err) {
             toast.error(err instanceof Error ? err.message : "분석 중 오류");
         } finally {
             setAnalyzing(false);
+            setAnalyzeProgress(null);
         }
     };
 
@@ -147,13 +170,22 @@ export default function SeoTitlesPage() {
                             macdee
                         </label>
                     </div>
-                    <button
-                        onClick={analyze}
-                        disabled={analyzing}
-                        className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 text-white text-sm font-bold shadow-lg hover:from-emerald-500 hover:to-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                    >
-                        {analyzing ? <><Loader2 size={16} className="animate-spin" /> 분석 중...</> : <><RefreshCw size={16} /> 분석 시작</>}
-                    </button>
+                    <div className="flex items-center gap-3">
+                        {analyzeProgress && (
+                            <span className="text-xs text-emerald-400">
+                                {analyzeProgress.total != null
+                                    ? `${analyzeProgress.loaded} / ${analyzeProgress.total}개`
+                                    : `${analyzeProgress.loaded}개 처리 중...`}
+                            </span>
+                        )}
+                        <button
+                            onClick={analyze}
+                            disabled={analyzing}
+                            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 text-white text-sm font-bold shadow-lg hover:from-emerald-500 hover:to-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        >
+                            {analyzing ? <><Loader2 size={16} className="animate-spin" /> 분석 중...</> : <><RefreshCw size={16} /> 분석 시작</>}
+                        </button>
+                    </div>
                 </div>
             </div>
 
