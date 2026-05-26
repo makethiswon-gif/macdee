@@ -246,7 +246,7 @@ export async function POST(request: Request) {
 
                         const seoResult = await withTimeout(
                             generator.generate(seoMessages, { temperature: 0.4, maxTokens: 8192 }),
-                            90000,
+                            120000,
                             "SEO 윤문"
                         );
 
