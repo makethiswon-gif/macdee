@@ -359,7 +359,7 @@ export default function BlogImagesPage() {
                                         <Code size={24} className="animate-pulse" />
                                     </div>
                                     <h3 className="text-xl font-bold text-white mb-2">프리미엄 렌더링 진행 중</h3>
-                                    <p className="text-[#9CA3B0] text-sm">Claude 3.5 Sonnet이 한 줄 한 줄 디자인 코드를 작성 중입니다...</p>
+                                    <p className="text-[#9CA3B0] text-sm">Claude Opus 4.7이 한 줄 한 줄 디자인 코드를 작성 중입니다...</p>
                                 </div>
                             )}
 

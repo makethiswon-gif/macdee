@@ -82,6 +82,21 @@ ${profile.website ? '- 홈페이지: ' + profile.website : ''}`;
             `${brandColor}와 검정 위주의 모노크롬 느낌`,
         ];
 
+        const systemMessage = `당신은 법률 브랜드 전문 프리미엄 UI/UX 디자이너 겸 프론트엔드 개발자입니다.
+생성하는 모든 카드 이미지는 대형 로펌의 공식 브랜드 자산으로 사용되므로, 전문 디자이너가 Figma로 제작한 수준의 완성도가 필요합니다.
+
+[반드시 지켜야 할 CSS 품질 기준]
+1. 폰트 임포트: HTML 맨 첫 줄에 반드시 포함 → <style>@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');</style>
+2. 배경: 단색 단독 사용 절대 금지. 최소 3색 멀티-스톱 linear-gradient 또는 radial-gradient 조합으로 광원 느낌 표현.
+3. 깊이감: box-shadow를 2~3겹 레이어링 (예: "0 2px 4px rgba(0,0,0,0.2), 0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)"). 요소가 공중에 떠 있는 것처럼 입체적으로.
+4. 타이포: letter-spacing, line-height, font-weight 조합으로 고급스러운 위계 구축. 중요 텍스트에 text-shadow 미묘하게.
+5. 레이어: 반투명 bokeh 원형(filter:blur), 기하학적 장식선, clip-path 형태 등을 position:absolute로 겹쳐 깊이 추가.
+6. 이미지: 프로필/사무실 사진은 object-fit:cover + 정확한 크기. 사진 위 그라데이션 오버레이 필수.
+7. Glassmorphism 적극 활용: backdrop-filter:blur(20px), rgba 반투명 배경, 테두리 rgba(255,255,255,0.1).
+8. 전체: '저렴한 단순 박스' 디자인 절대 금지. 프리미엄 매거진 광고 또는 고급 앱 UI 수준.
+
+출력 형식: <style>...</style><div style="...">...</div> 형태의 순수 HTML+인라인CSS만. 어떤 설명도 앞뒤에 붙이지 마세요.`;
+
         const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
         const variationDirective = `
 ★ 디자인 변주 지시 (반드시 반영) ★
@@ -217,8 +232,6 @@ ${variationDirective}
             return NextResponse.json({ error: `Unknown card type: ${cardType}` }, { status: 400 });
         }
 
-        const maxTokens = (cardType === "career" || cardType === "contact") ? 1800 : 1200;
-
         const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
             method: "POST",
             headers: {
@@ -227,9 +240,10 @@ ${variationDirective}
                 "anthropic-version": "2023-06-01",
             },
             body: JSON.stringify({
-                model: "claude-sonnet-4-6",
-                max_tokens: maxTokens,
-                temperature: 0.9,
+                model: "claude-opus-4-7",
+                max_tokens: 4096,
+                temperature: 0.85,
+                system: systemMessage,
                 messages: [{ role: "user", content: prompt }],
             }),
         });
@@ -242,9 +256,13 @@ ${variationDirective}
         const data = await anthropicRes.json();
         let html = data.content?.[0]?.text || "";
 
-        // Clean up
+        // Clean up — keep <style> blocks if Claude prepended them
+        const styleStart = html.indexOf("<style");
         const divStart = html.indexOf("<div");
-        if (divStart > 0) html = html.substring(divStart);
+        const cutStart = styleStart !== -1 && (divStart === -1 || styleStart < divStart)
+            ? styleStart
+            : divStart;
+        if (cutStart > 0) html = html.substring(cutStart);
         html = html.replace(/```[\s\S]*$/g, "").trim();
 
         // Replace image placeholders with actual base64 data (random selection)
