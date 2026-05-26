@@ -37,12 +37,23 @@ interface AICard {
     html: string;
 }
 
+interface PostItem {
+    id: string;
+    title: string;
+    body: string | null;
+    channel: string;
+    created_at: string;
+}
+
 export default function BlogImagesPage() {
     const [profiles, setProfiles] = useState<Profile[]>([]);
     const [loading, setLoading] = useState(true);
 
     // Form State
     const [selectedId, setSelectedId] = useState("");
+    const [posts, setPosts] = useState<PostItem[]>([]);
+    const [postsLoading, setPostsLoading] = useState(false);
+    const [selectedPostId, setSelectedPostId] = useState("");
     const [postTitle, setPostTitle] = useState("");
     const [postContent, setPostContent] = useState("");
 
@@ -70,8 +81,41 @@ export default function BlogImagesPage() {
         setLoading(false);
     }, []);
 
+    const fetchPosts = useCallback(async (lawyerId: string) => {
+        if (!lawyerId) { setPosts([]); return; }
+        setPostsLoading(true);
+        try {
+            const res = await fetch(`/api/admin/blog-images/posts?lawyer_id=${lawyerId}`, {
+                credentials: "include",
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setPosts(data.posts || []);
+            }
+        } catch (e) { console.error(e); }
+        setPostsLoading(false);
+    }, []);
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => { fetchProfiles(); }, [fetchProfiles]);
+
+    const handleLawyerChange = (lawyerId: string) => {
+        setSelectedId(lawyerId);
+        setSelectedPostId("");
+        setPostTitle("");
+        setPostContent("");
+        setPosts([]);
+        if (lawyerId) fetchPosts(lawyerId);
+    };
+
+    const handlePostSelect = (postId: string) => {
+        setSelectedPostId(postId);
+        const post = posts.find(p => p.id === postId);
+        if (post) {
+            setPostTitle(post.title || "");
+            setPostContent(post.body || "");
+        }
+    };
 
     const handleGenerate = async () => {
         if (!selectedId) return alert("변호사를 선택해주세요.");
@@ -306,7 +350,7 @@ export default function BlogImagesPage() {
                                         </button>
                                     </label>
                                     <div className="relative">
-                                        <select value={selectedId} onChange={e => setSelectedId(e.target.value)} className={`${ic} appearance-none cursor-pointer font-medium`}>
+                                        <select value={selectedId} onChange={e => handleLawyerChange(e.target.value)} className={`${ic} appearance-none cursor-pointer font-medium`}>
                                             <option value="">담당 변호사 프로필을 선택하세요</option>
                                             {profiles.map(p => (
                                                 <option key={p.id} value={p.id}>
@@ -325,15 +369,47 @@ export default function BlogImagesPage() {
 
                                 <div className="h-px w-full bg-[#1F2937]" />
 
+                                {/* 글 선택 */}
+                                {selectedId && (
+                                    <div>
+                                        <label className="block text-sm font-semibold text-[#D1D5DB] mb-2 flex items-center gap-2">
+                                            발행된 글 선택
+                                            {postsLoading && <Loader2 size={12} className="animate-spin text-[#3563AE]" />}
+                                            <span className="text-[11px] text-[#6B7280] font-normal ml-auto">{posts.length}개</span>
+                                        </label>
+                                        <div className="relative">
+                                            <select
+                                                value={selectedPostId}
+                                                onChange={e => handlePostSelect(e.target.value)}
+                                                disabled={postsLoading || posts.length === 0}
+                                                className={`${ic} appearance-none cursor-pointer`}
+                                            >
+                                                <option value="">글을 선택하면 자동으로 채워집니다</option>
+                                                {posts.map(p => (
+                                                    <option key={p.id} value={p.id}>
+                                                        {p.title}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#4B5563] pointer-events-none" />
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div>
-                                    <label className="block text-sm font-semibold text-[#D1D5DB] mb-2">메인 썸네일 제목</label>
+                                    <label className="block text-sm font-semibold text-[#D1D5DB] mb-2">제목 <span className="text-[#6B7280] font-normal text-xs">(선택)</span></label>
                                     <input type="text" value={postTitle} onChange={e => setPostTitle(e.target.value)}
-                                        placeholder="입력하면 그대로 썸네일에 표시 · 비우면 AI가 자동 생성" className={ic} />
+                                        placeholder="비우면 AI가 본문에서 자동 추출" className={ic} />
                                 </div>
                                 <div className="flex flex-col">
-                                    <label className="block text-sm font-semibold text-[#D1D5DB] mb-2">블로그 본문 텍스트 *</label>
+                                    <label className="block text-sm font-semibold text-[#D1D5DB] mb-2 flex items-center justify-between">
+                                        본문 텍스트 *
+                                        {postContent && (
+                                            <span className="text-[11px] text-[#6B7280] font-normal">{postContent.length.toLocaleString()}자</span>
+                                        )}
+                                    </label>
                                     <textarea value={postContent} onChange={e => setPostContent(e.target.value)}
-                                        placeholder="글 내용을 상세히 붙여넣어주시면 AI가 맥락을 이해하여 요약 카드와 썸네일을 설계합니다."
+                                        placeholder="글을 위에서 선택하거나, 직접 본문을 붙여넣으세요."
                                         rows={8}
                                         className={`${ic} resize-none font-sans text-[13px] leading-relaxed`} />
                                 </div>
@@ -371,7 +447,7 @@ export default function BlogImagesPage() {
                                         <Code size={24} className="animate-pulse" />
                                     </div>
                                     <h3 className="text-xl font-bold text-white mb-2">프리미엄 렌더링 진행 중</h3>
-                                    <p className="text-[#9CA3B0] text-sm">Claude Sonnet 4.6 + GPT-Image-2가 3장을 동시에 코딩 중...</p>
+                                    <p className="text-[#9CA3B0] text-sm">Claude Sonnet 4.6 + GPT-Image-1.5가 3장을 동시에 생성 중...</p>
                                 </div>
                             )}
 
