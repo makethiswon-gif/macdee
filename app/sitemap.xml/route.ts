@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 
 // Encode URL for sitemap (handle Korean characters)
 function sitemapUrl(url: string): string {
@@ -10,17 +10,17 @@ function sitemapUrl(url: string): string {
 // Dynamic sitemap for SEO — Google + Naver
 export async function GET() {
     try {
-        const supabase = await createAdminClient();
+        const supabase = createServiceClient();
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
         const now = new Date().toISOString();
 
-        // Get published blog posts WITH lawyer slug for correct URL pattern
-        // Blog pages use channels "google" and "macdee" — match that here
+        // slug가 있는 발행된 포스트만 — UUID URL은 사이트맵에서 제외
         const { data: blogPosts } = await supabase
             .from("contents")
             .select("id, slug, updated_at, lawyer_id, lawyers!inner(slug)")
             .eq("status", "published")
             .in("channel", ["google", "macdee"])
+            .not("slug", "is", null)
             .order("created_at", { ascending: false });
 
         // Get published magazine articles
@@ -57,30 +57,7 @@ export async function GET() {
         <changefreq>daily</changefreq>
         <priority>0.9</priority>
     </url>
-    <url>
-        <loc>${baseUrl}/makethisone</loc>
-        <lastmod>${now}</lastmod>
-        <changefreq>weekly</changefreq>
-        <priority>0.9</priority>
-    </url>
-    <url>
-        <loc>${baseUrl}/signup</loc>
-        <lastmod>${now}</lastmod>
-        <changefreq>monthly</changefreq>
-        <priority>0.8</priority>
-    </url>
-    <url>
-        <loc>${baseUrl}/terms</loc>
-        <lastmod>${now}</lastmod>
-        <changefreq>monthly</changefreq>
-        <priority>0.3</priority>
-    </url>
-    <url>
-        <loc>${baseUrl}/refund</loc>
-        <lastmod>${now}</lastmod>
-        <changefreq>monthly</changefreq>
-        <priority>0.3</priority>
-    </url>`;
+    `;
 
         // Lawyer blog listing pages (/blog/[lawyer-slug]) — high priority entry points
         for (const lawyer of lawyers || []) {
