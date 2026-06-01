@@ -73,6 +73,13 @@ export default async function BlogPage({ params, searchParams }: Props) {
 
     const totalPages = count ? Math.ceil(count / limit) : 1;
 
+    // slug URL 매핑 — 별도 경량 쿼리로 타입 충돌 없이 가져옴
+    const postIds = (posts || []).map(p => p.id);
+    const { data: slugRows } = postIds.length > 0
+        ? await supabase.from("contents").select("id, slug").in("id", postIds)
+        : { data: [] as { id: string; slug: string | null }[] };
+    const slugMap = new Map((slugRows || []).map(r => [r.id as string, r.slug as string | null]));
+
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
 
     // Lawyer blog JSON-LD: Person + Blog listing
@@ -92,7 +99,7 @@ export default async function BlogPage({ params, searchParams }: Props) {
         blogPost: (posts || []).slice(0, 10).map(p => ({
             "@type": "BlogPosting",
             headline: p.title,
-            url: `${baseUrl}/blog/${slug}/${p.id}`,
+            url: `${baseUrl}/blog/${slug}/${slugMap.get(p.id) || p.id}`,
             datePublished: p.created_at,
         })),
     };
@@ -144,7 +151,7 @@ export default async function BlogPage({ params, searchParams }: Props) {
         // Remove channel suffix from title (e.g. "제목 - google")
         title = title.replace(/\s*-\s*(google|macdee|blog|instagram)\s*$/i, "").trim();
 
-        return { id: p.id, title, slug: p.id, excerpt, tags: p.tags || [], channel: p.channel, created_at: p.created_at };
+        return { id: p.id, title, slug: slugMap.get(p.id) || p.id, excerpt, tags: p.tags || [], channel: p.channel, created_at: p.created_at };
     }
 
     return (
