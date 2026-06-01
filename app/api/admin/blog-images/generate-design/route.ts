@@ -10,7 +10,7 @@ interface TitleParts { keyword: string; rest: string; }
 async function generateTitleParts(content: string, existingTitle: string, apiKey: string): Promise<TitleParts> {
     const fallback = (): TitleParts => {
         const chars = Array.from(existingTitle || "");
-        return { keyword: chars.slice(0, 5).join(""), rest: chars.slice(5, 15).join("") };
+        return { keyword: chars.slice(0, 10).join(""), rest: chars.slice(10, 20).join("") };
     };
 
     const source = existingTitle
@@ -32,10 +32,10 @@ async function generateTitleParts(content: string, existingTitle: string, apiKey
                     role: "user",
                     content: `다음 블로그 글 제목을 두 파트로 나눠 JSON으로만 반환하세요.
 
-keyword: 가장 핵심 법률 키워드 2~5자 (예: "이혼", "스토킹", "사기죄", "상속세")
+keyword: 가장 핵심 법률 키워드 2~10자 (예: "이혼", "스토킹", "사기죄", "양육권 분쟁", "상속세 절세 전략")
 rest: 나머지 부연 설명 최대 10자
 
-규칙: keyword + rest 합쳐서 15자 이내. JSON만 출력, 다른 텍스트 없이.
+규칙: keyword + rest 합쳐서 20자 이내. JSON만 출력, 다른 텍스트 없이.
 출력 형식: {"keyword":"...","rest":"..."}
 
 ${source}`,
@@ -49,7 +49,7 @@ ${source}`,
         if (!match) return fallback();
         const parsed = JSON.parse(match[0]) as { keyword?: string; rest?: string };
         return {
-            keyword: Array.from(parsed.keyword || "").slice(0, 5).join(""),
+            keyword: Array.from(parsed.keyword || "").slice(0, 10).join(""),
             rest: Array.from(parsed.rest || "").slice(0, 10).join(""),
         };
     } catch {
@@ -110,7 +110,7 @@ export async function POST(req: Request) {
                 let html: string;
                 if (cardType === "thumbnail" && titleParts?.keyword) {
                     const kwLen = Array.from(titleParts.keyword).length;
-                    const kwSize = kwLen <= 3 ? 96 : kwLen <= 4 ? 84 : 72;
+                    const kwSize = kwLen <= 3 ? 96 : kwLen <= 5 ? 80 : kwLen <= 7 ? 64 : 52;
                     html = `<style>@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;900&display=swap');</style>
 <div style="width:800px;height:800px;position:relative;overflow:hidden;background:#000;">
   <img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover;display:block;" />
