@@ -64,7 +64,7 @@ export default async function BlogPage({ params, searchParams }: Props) {
 
     const { data: posts, count } = await supabase
         .from("contents")
-        .select("id, slug, title, body, meta_description, tags, channel, created_at, status", { count: "exact" })
+        .select("id, title, body, meta_description, tags, channel, created_at, status", { count: "exact" })
         .eq("lawyer_id", lawyer.id)
         .in("channel", ["google", "macdee"])
         .eq("status", "published")
@@ -92,7 +92,7 @@ export default async function BlogPage({ params, searchParams }: Props) {
         blogPost: (posts || []).slice(0, 10).map(p => ({
             "@type": "BlogPosting",
             headline: p.title,
-            url: `${baseUrl}/blog/${slug}/${(p as { slug?: string | null }).slug || p.id}`,
+            url: `${baseUrl}/blog/${slug}/${p.id}`,
             datePublished: p.created_at,
         })),
     };
@@ -116,7 +116,7 @@ export default async function BlogPage({ params, searchParams }: Props) {
     }
 
     // Helper: parse post body (handles raw JSON or markdown)
-    function parsePost(p: { id: string; slug: string | null; title: string; body: string; meta_description: string | null; tags: string[] | null; channel: string; created_at: string; status: string }) {
+    function parsePost(p: { id: string; title: string; body: string; meta_description: string | null; tags: string[] | null; channel: string; created_at: string; status: string }) {
         let title = p.title;
         let body = p.body || "";
         let excerpt = p.meta_description || "";
@@ -144,7 +144,7 @@ export default async function BlogPage({ params, searchParams }: Props) {
         // Remove channel suffix from title (e.g. "제목 - google")
         title = title.replace(/\s*-\s*(google|macdee|blog|instagram)\s*$/i, "").trim();
 
-        return { id: p.id, title, slug: p.slug || p.id, excerpt, tags: p.tags || [], channel: p.channel, created_at: p.created_at };
+        return { id: p.id, title, slug: p.id, excerpt, tags: p.tags || [], channel: p.channel, created_at: p.created_at };
     }
 
     return (
