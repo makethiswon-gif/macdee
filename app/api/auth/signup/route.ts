@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
+import { rateLimitOk, getClientIp, tooManyRequests } from "@/lib/ratelimit";
 
 // --- Bot Prevention Helpers ---
 
@@ -32,6 +33,12 @@ function isSpamName(name: string): boolean {
 
 export async function POST(request: Request) {
     try {
+        // 가입 남용 방어: IP당 분당 3회
+        const ip = getClientIp(request);
+        if (!(await rateLimitOk("signup", ip, 3, "1 m"))) {
+            return tooManyRequests("가입 시도가 너무 많습니다. 잠시 후 다시 시도해주세요.");
+        }
+
         const body = await request.json();
         const { email, password, name, specialty, region, company, _t, recaptchaToken } = body;
 

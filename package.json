@@ -18,6 +18,8 @@
     "@supabase/supabase-js": "^2.98.0",
     "@tosspayments/payment-sdk": "^1.9.2",
     "@tosspayments/tosspayments-sdk": "^2.5.0",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.38.0",
     "cheerio": "^1.2.0",
     "date-fns": "^4.1.0",
     "file-saver": "^2.0.5",

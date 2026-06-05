@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { generateBlogContentImage } from "@/lib/ai/image-generate";
 import { getLawyerDesignDNA } from "@/lib/blog-images/design-dna";
 import { extractLogoColor } from "@/lib/blog-images/logo-color";
+import { verifyAdminToken } from "@/lib/admin-auth";
 
 export const maxDuration = 90;
 
@@ -58,6 +59,9 @@ ${source}`,
 }
 
 export async function POST(req: Request) {
+    if (!verifyAdminToken(req)) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     try {
         const { profile, content, title, cardType } = await req.json();
 

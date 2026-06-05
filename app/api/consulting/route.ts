@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimitOk, getClientIp, tooManyRequests } from "@/lib/ratelimit";
 
 export const maxDuration = 180;
 
 export async function POST(req: NextRequest) {
     try {
+        // AI 비용 남용 방어: IP당 분당 3회
+        const ip = getClientIp(req);
+        if (!(await rateLimitOk("consulting", ip, 3, "1 m"))) {
+            return tooManyRequests();
+        }
+
         const apiKey = process.env.ANTHROPIC_API_KEY;
         if (!apiKey) return NextResponse.json({ error: "API key not configured" }, { status: 500 });
 

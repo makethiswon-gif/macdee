@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
+import { rateLimitOk, getClientIp, tooManyRequests } from "@/lib/ratelimit";
 
 export async function POST(req: NextRequest) {
     try {
+        // 문의 스팸 방어: IP당 분당 3회
+        const ip = getClientIp(req);
+        if (!(await rateLimitOk("inquiry", ip, 3, "1 m"))) {
+            return tooManyRequests();
+        }
+
         const body = await req.json();
         const { name, firm, phone, email, subject, message } = body;
 

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
+import { rateLimitOk, getClientIp, tooManyRequests } from "@/lib/ratelimit";
 
 const ADMIN_ID = process.env.ADMIN_ID ?? "macdee";
 const ADMIN_PW = process.env.ADMIN_PW ?? "";
@@ -29,6 +30,12 @@ function verifyToken(token: string): boolean {
 // POST: Admin login
 export async function POST(request: Request) {
     try {
+        // brute-force 방어: IP당 분당 5회
+        const ip = getClientIp(request);
+        if (!(await rateLimitOk("admin-login", ip, 5, "1 m"))) {
+            return tooManyRequests("로그인 시도가 너무 많습니다. 1분 후 다시 시도해주세요.");
+        }
+
         if (!ADMIN_PW || !TOKEN_SECRET) {
             console.error("[Admin Auth] ADMIN_PW or ADMIN_TOKEN_SECRET not configured");
             return NextResponse.json({ error: "서버 설정 오류" }, { status: 500 });

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { ClaudeProvider } from "@/lib/ai/providers";
 import type { AIMessage } from "@/lib/ai/providers";
+import { verifyAdminToken } from "@/lib/admin-auth";
 
 const BLOG_POLISH_SYSTEM = `당신은 대한민국 최고의 네이버 블로그 전문 작가입니다.
 사용자가 작성한 글을 아래 규칙에 따라 윤문해주세요.
@@ -31,6 +32,9 @@ const BLOG_POLISH_SYSTEM = `당신은 대한민국 최고의 네이버 블로그
 윤문된 글 본문만 출력하세요. JSON이나 코드블록 없이 순수 텍스트로 반환. ##, ** 등 마크다운 기호 절대 금지.`;
 
 export async function POST(req: Request) {
+    if (!verifyAdminToken(req)) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     try {
         const { text } = await req.json();
 

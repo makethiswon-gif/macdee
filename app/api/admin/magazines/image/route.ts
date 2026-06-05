@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
+import { verifyAdminToken } from "@/lib/admin-auth";
 
 // Allow enough time for image generation (gpt-image-1.5 can take 30-60s)
 export const maxDuration = 120;
 
 // POST: Generate cover image for magazine using GPT Image 2 → DALL-E 3 fallback
 export async function POST(request: Request) {
-    // Admin verify
-    const token = request.headers.get("cookie")?.match(/admin_token=([^;]+)/)?.[1];
-    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // Admin verify (서명 검증)
+    if (!verifyAdminToken(request)) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     try {
         const { title, body, category } = await request.json();
