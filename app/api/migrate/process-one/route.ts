@@ -1,7 +1,9 @@
+import { randomUUID } from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { scrapeUrl } from "@/lib/ai/blog-scraper";
 import { maskPII } from "@/lib/ai/mask-pii";
 import { getContentGenerator, type AIMessage } from "@/lib/ai/providers";
+import { makeSlug } from "@/lib/slug";
 
 export const maxDuration = 300;
 
@@ -241,9 +243,13 @@ export async function POST(request: Request) {
                 const b = seoResult.value.content.match(/"body"\s*:\s*"([\s\S]*?)(?:"\s*,\s*"|"\s*})/)?.[1]?.replace(/\\n/g, "\n") || seoResult.value.content;
                 return { title: t, body: b, meta_description: "", keywords: [], faq: null };
             })();
+            const gTitle = cleanSeoTitle(seoParsed.title || scraped.title, scraped.title);
+            const gId = randomUUID();
             await supabase.from("contents").insert({
+                id: gId,
                 upload_id: upload.id, lawyer_id: lawyer.id, channel: "google",
-                title: cleanSeoTitle(seoParsed.title || scraped.title, scraped.title),
+                title: gTitle,
+                slug: makeSlug(gTitle, gId),
                 body: seoParsed.body || seoResult.value.content,
                 meta_description: seoParsed.meta_description || "",
                 tags: seoParsed.keywords || [],
@@ -263,9 +269,13 @@ export async function POST(request: Request) {
                 const b = aiResult.value.content.match(/"body"\s*:\s*"([\s\S]*?)(?:"\s*,\s*"|"\s*})/)?.[1]?.replace(/\\n/g, "\n") || aiResult.value.content;
                 return { title: t, body: b, schema_markup: null };
             })();
+            const mTitle = cleanSeoTitle(aiParsed.title || scraped.title, scraped.title);
+            const mId = randomUUID();
             await supabase.from("contents").insert({
+                id: mId,
                 upload_id: upload.id, lawyer_id: lawyer.id, channel: "macdee",
-                title: cleanSeoTitle(aiParsed.title || scraped.title, scraped.title),
+                title: mTitle,
+                slug: makeSlug(mTitle, mId),
                 body: aiParsed.body || aiResult.value.content,
                 schema_markup: aiParsed.schema_markup || null,
                 status: "review",

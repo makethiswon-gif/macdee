@@ -1,7 +1,9 @@
+import { randomUUID } from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { scrapeUrl } from "@/lib/ai/blog-scraper";
 import { maskPII } from "@/lib/ai/mask-pii";
 import { getContentGenerator, type AIMessage } from "@/lib/ai/providers";
+import { makeSlug } from "@/lib/slug";
 
 export const maxDuration = 300; // 5분 — 여러 URL 처리에 충분한 시간
 
@@ -294,11 +296,15 @@ export async function POST(request: Request) {
                             };
                         }
 
+                        const gTitle = cleanSeoTitle(seoParsed.title || scraped.title, scraped.title);
+                        const gId = randomUUID();
                         await supabase.from("contents").insert({
+                            id: gId,
                             upload_id: upload.id,
                             lawyer_id: lawyer.id,
                             channel: "google",
-                            title: cleanSeoTitle(seoParsed.title || scraped.title, scraped.title),
+                            title: gTitle,
+                            slug: makeSlug(gTitle, gId),
                             body: seoParsed.body || seoContent,
                             meta_description: seoParsed.meta_description || "",
                             tags: seoParsed.keywords || [],
@@ -353,11 +359,15 @@ export async function POST(request: Request) {
                             };
                         }
 
+                        const mTitle = cleanSeoTitle(aiParsed.title || scraped.title, scraped.title);
+                        const mId = randomUUID();
                         await supabase.from("contents").insert({
+                            id: mId,
                             upload_id: upload.id,
                             lawyer_id: lawyer.id,
                             channel: "macdee",
-                            title: cleanSeoTitle(aiParsed.title || scraped.title, scraped.title),
+                            title: mTitle,
+                            slug: makeSlug(mTitle, mId),
                             body: aiParsed.body || aiContent,
                             schema_markup: aiParsed.schema_markup || null,
                             status: "review",
