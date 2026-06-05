@@ -141,79 +141,69 @@ export default function MigratePage() {
 
     const selectedCount = posts.filter((p) => p.selected).length;
 
-    // ─── Step 3: Process one by one ───
+    // ─── Step 3: SSE 배치 처리 ───
     const startMigration = useCallback(async () => {
-        const selectedUrls = posts
+        const selected = posts
             .map((p, i) => ({ ...p, originalIndex: i }))
             .filter((p) => p.selected);
-        if (selectedUrls.length === 0) return;
+        if (selected.length === 0) return;
 
         setStep(3);
         setProcessing(true);
 
-        for (let i = 0; i < selectedUrls.length; i++) {
-            const post = selectedUrls[i];
+        // 선택된 URL 목록 (순서 보존)
+        const urls = selected.map((p) => p.url);
 
-            // Update status: scraping
-            setPosts((prev) =>
-                prev.map((p, idx) =>
-                    idx === post.originalIndex ? { ...p, status: "scraping" as PostStatus } : p
-                )
-            );
+        try {
+            const res = await fetch("/api/migrate/process", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ urls }),
+            });
 
-            try {
-                const res = await fetch("/api/migrate/process-one", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ url: post.url }),
-                });
-
-                const text = await res.text();
-                let data: { error?: string; title?: string; results?: { channel: string; title: string; success: boolean }[] };
-                try {
-                    data = JSON.parse(text);
-                } catch {
-                    setPosts((prev) =>
-                        prev.map((p, idx) =>
-                            idx === post.originalIndex
-                                ? { ...p, status: "error" as PostStatus, error: res.status === 504 ? "처리 시간 초과 (글이 너무 길거나 서버 부하)" : `서버 오류 (${res.status})` }
-                                : p
-                        )
-                    );
-                    continue;
-                }
-
-                if (!res.ok) {
-                    setPosts((prev) =>
-                        prev.map((p, idx) =>
-                            idx === post.originalIndex
-                                ? { ...p, status: "error" as PostStatus, error: data.error || "처리 실패" }
-                                : p
-                        )
-                    );
-                    continue;
-                }
-                setPosts((prev) =>
-                    prev.map((p, idx) =>
-                        idx === post.originalIndex
-                            ? {
-                                ...p,
-                                title: data.title || p.title,
-                                status: "done" as PostStatus,
-                                results: data.results,
-                            }
-                            : p
-                    )
-                );
-            } catch (err) {
-                setPosts((prev) =>
-                    prev.map((p, idx) =>
-                        idx === post.originalIndex
-                            ? { ...p, status: "error" as PostStatus, error: err instanceof Error ? err.message : "네트워크 오류" }
-                            : p
-                    )
-                );
+            if (!res.ok || !res.body) {
+                setError("마이그레이션을 시작할 수 없습니다.");
+                setProcessing(false);
+                return;
             }
+
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = "";
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split("\n\n");
+                buffer = lines.pop() || "";
+
+                for (const line of lines) {
+                    if (!line.startsWith("data: ")) continue;
+                    try {
+                        const data = JSON.parse(line.slice(6));
+                        if (data.type === "progress") {
+                            const originalIndex = selected[data.index]?.originalIndex ?? -1;
+                            if (originalIndex === -1) continue;
+                            setPosts((prev) =>
+                                prev.map((p, idx) =>
+                                    idx === originalIndex
+                                        ? {
+                                            ...p,
+                                            title: data.title || p.title,
+                                            status: data.status as PostStatus,
+                                            error: data.error,
+                                            results: data.results,
+                                        }
+                                        : p
+                                )
+                            );
+                        }
+                    } catch { /* ignore parse errors */ }
+                }
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "마이그레이션 중 오류 발생");
         }
 
         setProcessing(false);
