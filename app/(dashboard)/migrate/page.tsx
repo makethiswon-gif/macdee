@@ -168,8 +168,22 @@ export default function MigratePage() {
                     body: JSON.stringify({ url: post.url }),
                 });
 
+                const text = await res.text();
+                let data: { error?: string; title?: string; results?: { channel: string; title: string; success: boolean }[] };
+                try {
+                    data = JSON.parse(text);
+                } catch {
+                    setPosts((prev) =>
+                        prev.map((p, idx) =>
+                            idx === post.originalIndex
+                                ? { ...p, status: "error" as PostStatus, error: res.status === 504 ? "처리 시간 초과 (글이 너무 길거나 서버 부하)" : `서버 오류 (${res.status})` }
+                                : p
+                        )
+                    );
+                    continue;
+                }
+
                 if (!res.ok) {
-                    const data = await res.json();
                     setPosts((prev) =>
                         prev.map((p, idx) =>
                             idx === post.originalIndex
@@ -179,8 +193,6 @@ export default function MigratePage() {
                     );
                     continue;
                 }
-
-                const data = await res.json();
                 setPosts((prev) =>
                     prev.map((p, idx) =>
                         idx === post.originalIndex
