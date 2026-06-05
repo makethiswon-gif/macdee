@@ -163,6 +163,7 @@ export default function BlogImagesPage() {
                     const res = await fetch("/api/admin/blog-images/generate-design", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
+                        credentials: "include",
                         body: JSON.stringify({
                             profile: fullProfile,
                             title: postTitle,

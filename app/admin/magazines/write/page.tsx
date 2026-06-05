@@ -324,6 +324,7 @@ function MagazineWriteContent() {
                                             const res = await fetch("/api/admin/magazines/image", {
                                                 method: "POST",
                                                 headers: { "Content-Type": "application/json" },
+                                                credentials: "include",
                                                 body: JSON.stringify({ title: form.title, body: form.body, category: form.category }),
                                             });
                                             const data = await res.json();

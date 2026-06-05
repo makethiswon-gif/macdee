@@ -28,6 +28,7 @@ export default function BlogPolishPage() {
             const res = await fetch("/api/admin/blog-polish", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
+                credentials: "include",
                 body: JSON.stringify({ text: inputText }),
             });
 
