@@ -141,7 +141,7 @@ export default function MigratePage() {
 
     const selectedCount = posts.filter((p) => p.selected).length;
 
-    // ─── Step 3: SSE 배치 처리 ───
+    // ─── Step 3: SSE 배치 처리 (청크 단위로 분할 — Vercel 5분 제한 회피) ───
     const startMigration = useCallback(async () => {
         const selected = posts
             .map((p, i) => ({ ...p, originalIndex: i }))
@@ -150,60 +150,89 @@ export default function MigratePage() {
 
         setStep(3);
         setProcessing(true);
+        setError("");
 
-        // 선택된 URL 목록 (순서 보존)
-        const urls = selected.map((p) => p.url);
+        // 한 번의 함수 호출당 최대 4개씩 — 각 호출이 5분 이내로 끝나도록 보장
+        const CHUNK_SIZE = 4;
 
-        try {
-            const res = await fetch("/api/migrate/process", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ urls }),
-            });
+        for (let chunkStart = 0; chunkStart < selected.length; chunkStart += CHUNK_SIZE) {
+            const chunk = selected.slice(chunkStart, chunkStart + CHUNK_SIZE);
+            const urls = chunk.map((p) => p.url);
 
-            if (!res.ok || !res.body) {
-                setError("마이그레이션을 시작할 수 없습니다.");
-                setProcessing(false);
-                return;
-            }
+            // 이 청크 항목들을 처리 대기 상태로 표시
+            setPosts((prev) =>
+                prev.map((p, idx) =>
+                    chunk.some((c) => c.originalIndex === idx)
+                        ? { ...p, status: "scraping" as PostStatus }
+                        : p
+                )
+            );
 
-            const reader = res.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = "";
+            try {
+                const res = await fetch("/api/migrate/process", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ urls }),
+                });
 
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split("\n\n");
-                buffer = lines.pop() || "";
-
-                for (const line of lines) {
-                    if (!line.startsWith("data: ")) continue;
-                    try {
-                        const data = JSON.parse(line.slice(6));
-                        if (data.type === "progress") {
-                            const originalIndex = selected[data.index]?.originalIndex ?? -1;
-                            if (originalIndex === -1) continue;
-                            setPosts((prev) =>
-                                prev.map((p, idx) =>
-                                    idx === originalIndex
-                                        ? {
-                                            ...p,
-                                            title: data.title || p.title,
-                                            status: data.status as PostStatus,
-                                            error: data.error,
-                                            results: data.results,
-                                        }
-                                        : p
-                                )
-                            );
-                        }
-                    } catch { /* ignore parse errors */ }
+                if (!res.ok || !res.body) {
+                    // 이 청크 전체 실패 표시 후 다음 청크로
+                    setPosts((prev) =>
+                        prev.map((p, idx) =>
+                            chunk.some((c) => c.originalIndex === idx)
+                                ? { ...p, status: "error" as PostStatus, error: `서버 오류 (${res.status})` }
+                                : p
+                        )
+                    );
+                    continue;
                 }
+
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = "";
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split("\n\n");
+                    buffer = lines.pop() || "";
+
+                    for (const line of lines) {
+                        if (!line.startsWith("data: ")) continue;
+                        try {
+                            const data = JSON.parse(line.slice(6));
+                            if (data.type === "progress") {
+                                // data.index는 청크 내 인덱스 → 전체 selected 인덱스로 변환
+                                const originalIndex = chunk[data.index]?.originalIndex ?? -1;
+                                if (originalIndex === -1) continue;
+                                setPosts((prev) =>
+                                    prev.map((p, idx) =>
+                                        idx === originalIndex
+                                            ? {
+                                                ...p,
+                                                title: data.title || p.title,
+                                                status: data.status as PostStatus,
+                                                error: data.error,
+                                                results: data.results,
+                                            }
+                                            : p
+                                    )
+                                );
+                            }
+                        } catch { /* ignore parse errors */ }
+                    }
+                }
+            } catch (err) {
+                // 네트워크 끊김 등 — 이 청크만 실패 처리하고 계속
+                setPosts((prev) =>
+                    prev.map((p, idx) =>
+                        chunk.some((c) => c.originalIndex === idx) && p.status === "scraping"
+                            ? { ...p, status: "error" as PostStatus, error: err instanceof Error ? err.message : "네트워크 오류" }
+                            : p
+                    )
+                );
             }
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "마이그레이션 중 오류 발생");
         }
 
         setProcessing(false);
