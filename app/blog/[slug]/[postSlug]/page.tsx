@@ -178,6 +178,35 @@ export default async function PostPage({ params }: Props) {
         created_at: p.created_at,
     }));
 
+    // 구조화 데이터: 저장된 형태에 맞는 올바른 스키마 생성
+    // - FAQ 배열 [{q,a}] (google 채널) → 표준 FAQPage (Question/Answer)
+    // - @type 있는 객체 (macdee 채널 Attorney 등) → 그대로 사용
+    // - 그 외 형태 불명 → 렌더하지 않음 (무효 스키마 방지)
+    function buildSchemaJsonLd(raw: unknown): object | null {
+        if (!raw) return null;
+        if (Array.isArray(raw)) {
+            const faqs = raw.filter(
+                (it): it is { q: string; a: string } =>
+                    !!it && typeof it === "object" && "q" in it && "a" in it && !!it.q && !!it.a
+            );
+            if (faqs.length === 0) return null;
+            return {
+                "@context": "https://schema.org",
+                "@type": "FAQPage",
+                mainEntity: faqs.map(f => ({
+                    "@type": "Question",
+                    name: f.q,
+                    acceptedAnswer: { "@type": "Answer", text: f.a },
+                })),
+            };
+        }
+        if (typeof raw === "object" && raw !== null && "@type" in raw) {
+            return { "@context": "https://schema.org", ...(raw as object) };
+        }
+        return null;
+    }
+    const schemaJsonLd = buildSchemaJsonLd(post.schema_markup);
+
     return (
         <>
             <script
@@ -188,16 +217,10 @@ export default async function PostPage({ params }: Props) {
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
             />
-            {post.schema_markup && (
+            {schemaJsonLd && (
                 <script
                     type="application/ld+json"
-                    dangerouslySetInnerHTML={{
-                        __html: JSON.stringify({
-                            "@context": "https://schema.org",
-                            "@type": "FAQPage",
-                            ...(post.schema_markup as object),
-                        }),
-                    }}
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaJsonLd) }}
                 />
             )}
             <PostPageClient
