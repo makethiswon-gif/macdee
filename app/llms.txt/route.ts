@@ -109,7 +109,6 @@ export async function GET() {
                 .select("title, slug, id, lawyer_id, created_at")
                 .in("channel", ["google", "macdee"])
                 .eq("status", "published")
-                .not("slug", "is", null)
                 .order("created_at", { ascending: false })
                 .limit(300) as unknown as Promise<{ data: PostRow[] | null }>,
         ]);

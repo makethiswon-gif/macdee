@@ -14,13 +14,12 @@ export async function GET() {
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
         const now = new Date().toISOString();
 
-        // slug가 있는 발행된 포스트만 — UUID URL은 사이트맵에서 제외
+        // 발행된 모든 포스트 (slug 없으면 UUID URL 사용 — 정상 동작)
         const { data: blogPosts } = await supabase
             .from("contents")
             .select("id, slug, updated_at, lawyer_id, lawyers!inner(slug)")
             .eq("status", "published")
             .in("channel", ["google", "macdee"])
-            .not("slug", "is", null)
             .order("created_at", { ascending: false });
 
         // Get published magazine articles
