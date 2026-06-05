@@ -375,7 +375,7 @@ JSON만 출력하세요. 코드 블록 없이.`;
     }
 }
 
-// ─── Step 2: 이미지 생성 (GPT Image 1 → Imagen 4 Fast → DALL-E 3) ───
+// ─── Step 2: 이미지 생성 (Flux 2 Pro → GPT Image 1.5 → Imagen 4 Fast → DALL-E 3) ───
 export async function generateWebtoonImages(
     scenario: WebtoonScenario,
     style: WebtoonStyleKey = "dramatic",
@@ -383,7 +383,9 @@ export async function generateWebtoonImages(
 ): Promise<{ panelIndex: number; imageBase64: string }[]> {
     const openaiKey = process.env.OPENAI_API_KEY;
     const geminiKey = process.env.GEMINI_API_KEY;
-    if (!openaiKey && !geminiKey) throw new Error("OPENAI_API_KEY 또는 GEMINI_API_KEY가 필요합니다.");
+    if (!process.env.REPLICATE_API_TOKEN && !openaiKey && !geminiKey) {
+        throw new Error("REPLICATE_API_TOKEN, OPENAI_API_KEY 또는 GEMINI_API_KEY가 필요합니다.");
+    }
 
     const stylePrompt = WEBTOON_STYLES[style]?.prompt || WEBTOON_STYLES.dramatic.prompt;
     const charSheet = scenario.character_sheet;
@@ -423,6 +425,86 @@ Requirements:
     // Generate all panels
     const allPanels = scenario.panels.slice(0, totalPanels);
     const engineErrors: string[] = [];
+
+    const fetchWithTimeout = async (url: string, init: RequestInit, timeoutMs: number): Promise<Response> => {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+            return await fetch(url, { ...init, signal: controller.signal });
+        } finally {
+            clearTimeout(timer);
+        }
+    };
+
+    // ── 1순위: Replicate Flux 2 Pro (블로그 이미지와 동일 모델로 통일) ──
+    const replicateKey = process.env.REPLICATE_API_TOKEN;
+    const generateWithReplicate = async (panel: WebtoonPanel): Promise<{ panelIndex: number; imageBase64: string } | null> => {
+        if (!replicateKey) return null;
+        const prompt = `${buildPrompt(panel)}\n\nABSOLUTE RULE: zero text, zero letters, zero numbers, zero speech bubbles anywhere in the image.`;
+
+        try {
+            console.log(`[Webtoon/Flux2] Panel ${panel.panel}/${totalPanels} (${panel.role})...`);
+            const createRes = await fetchWithTimeout("https://api.replicate.com/v1/models/black-forest-labs/flux-2-pro/predictions", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Token ${replicateKey}`,
+                    "Prefer": "wait=60",
+                },
+                body: JSON.stringify({
+                    input: {
+                        prompt,
+                        width: 1024,
+                        height: 1024,
+                        output_format: "png",
+                        output_quality: 95,
+                        safety_tolerance: 2,
+                        prompt_upsampling: true,
+                    },
+                }),
+            }, 70000);
+
+            if (!createRes.ok) {
+                const errText = await createRes.text();
+                console.error(`[Webtoon/Flux2] Panel ${panel.panel} error (${createRes.status}):`, errText.substring(0, 200));
+                engineErrors.push(`Flux2: ${createRes.status} - ${errText.substring(0, 200)}`);
+                return null;
+            }
+
+            const prediction = await createRes.json();
+            let output = prediction.output;
+            if (!output && prediction.status !== "failed") {
+                for (let i = 0; i < 30; i++) {
+                    await new Promise(r => setTimeout(r, 2000));
+                    const pollRes = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
+                        headers: { "Authorization": `Token ${replicateKey}` },
+                    });
+                    if (!pollRes.ok) break;
+                    const poll = await pollRes.json();
+                    if (poll.status === "succeeded") { output = poll.output; break; }
+                    if (poll.status === "failed") { engineErrors.push(`Flux2 failed: ${poll.error}`); return null; }
+                }
+            }
+            if (prediction.status === "failed") {
+                engineErrors.push(`Flux2 failed: ${prediction.error}`);
+                return null;
+            }
+
+            const imageUrl: string = Array.isArray(output) ? output[0] : output;
+            if (!imageUrl) return null;
+
+            const imgRes = await fetch(imageUrl);
+            if (!imgRes.ok) return null;
+            const buffer = await imgRes.arrayBuffer();
+            console.log(`[Webtoon/Flux2] Panel ${panel.panel} ✓`);
+            return { panelIndex: panel.panel, imageBase64: Buffer.from(buffer).toString("base64") };
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            console.error(`[Webtoon/Flux2] Panel ${panel.panel} failed:`, msg);
+            engineErrors.push(`Flux2 exception: ${msg.substring(0, 200)}`);
+            return null;
+        }
+    };
 
     // ── 1순위: GPT Image 1 (최고 프롬프트 이해도) ──
     const generateWithGPTImage = async (panel: WebtoonPanel): Promise<{ panelIndex: number; imageBase64: string } | null> => {
@@ -558,17 +640,21 @@ Requirements:
         }
     };
 
-    // ── 폴백 체인: GPT Image 1 → Imagen 4 Fast → DALL-E 3 ──
+    // ── 폴백 체인: Flux 2 Pro → GPT Image 1.5 → Imagen 4 Fast → DALL-E 3 ──
     const generatePanel = async (panel: WebtoonPanel, retries = 1): Promise<{ panelIndex: number; imageBase64: string } | null> => {
-        // 1순위: GPT Image 1
+        // 1순위: Replicate Flux 2 Pro
+        const fluxResult = await generateWithReplicate(panel);
+        if (fluxResult) return fluxResult;
+
+        // 2순위: GPT Image 1.5
         const gptResult = await generateWithGPTImage(panel);
         if (gptResult) return gptResult;
 
-        // 2순위: Imagen 4 Fast
+        // 3순위: Imagen 4 Fast
         const imagenResult = await generateWithImagen(panel);
         if (imagenResult) return imagenResult;
 
-        // 3순위: DALL-E 3
+        // 4순위: DALL-E 3
         const dalleResult = await generateWithDallE(panel);
         if (dalleResult) return dalleResult;
 
@@ -581,7 +667,7 @@ Requirements:
         return null;
     };
 
-    console.log(`[Webtoon] Generating ${totalPanels} panels (GPT Image → Imagen 4 → DALL-E 3)...`);
+    console.log(`[Webtoon] Generating ${totalPanels} panels (Flux 2 Pro → GPT Image → Imagen 4 → DALL-E 3)...`);
     const results = await Promise.all(allPanels.map(p => generatePanel(p)));
 
     const successful = results.filter((r): r is { panelIndex: number; imageBase64: string } => r !== null);
