@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
+import { makeSlug } from "@/lib/slug";
 
 export const maxDuration = 60;
 
@@ -42,9 +43,11 @@ export async function POST(request: Request) {
             // 동일하면 스킵
             if (backup.get(u.id) === cleanTitle) continue;
 
+            // 제목 변경 시 slug도 함께 재생성 (URL도 새 키워드로 갱신)
+            const newSlug = makeSlug(cleanTitle, u.id);
             const { data: updatedRow, error } = await supabase
                 .from("contents")
-                .update({ title: cleanTitle })
+                .update({ title: cleanTitle, slug: newSlug })
                 .eq("id", u.id)
                 .select("id, title")
                 .single();
