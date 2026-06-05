@@ -198,126 +198,81 @@ export async function POST(request: Request) {
             return Response.json({ error: `업로드 레코드 생성 실패: ${uploadError?.message}` }, { status: 500 });
         }
 
-        // Step 4: Generate content
+        // Step 4: Google SEO + AI Search 병렬 생성
         const generator = getContentGenerator();
         const customPrompt = lawyer.schema_data?.customPrompt;
-        const results: { channel: string; title: string; success: boolean }[] = [];
 
-        // --- Google SEO ---
-        try {
-            let seoSystem = MIGRATE_SEO_SYSTEM;
-            if (customPrompt) {
-                seoSystem = `[나만의 AI 문체 트레이닝 규칙 - 최우선 적용]\n${customPrompt}\n\n${seoSystem}`;
+        function parseJson(raw: string) {
+            let content = raw;
+            const m = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+            if (m) content = m[1];
+            else {
+                const s = content.indexOf("{"); const e = content.lastIndexOf("}");
+                if (s !== -1 && e > s) content = content.substring(s, e + 1);
             }
+            try {
+                return JSON.parse(content
+                    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
+                    .replace(/\r\n/g, "\\n").replace(/\r/g, "\\n")
+                    .replace(/\n/g, "\\n").replace(/\t/g, "\\t"));
+            } catch { return null; }
+        }
 
-            const seoMessages: AIMessage[] = [
+        let seoSystem = MIGRATE_SEO_SYSTEM;
+        if (customPrompt) seoSystem = `[나만의 AI 문체 트레이닝 규칙 - 최우선 적용]\n${customPrompt}\n\n${seoSystem}`;
+
+        const [seoResult, aiResult] = await Promise.allSettled([
+            generator.generate([
                 { role: "system", content: seoSystem },
                 { role: "user", content: `다음은 변호사가 직접 작성한 기존 네이버 블로그 글입니다. 이 글을 구글 SEO에 최적화된 형태로 리라이팅해주세요.\n\n[원문 제목] ${scraped.title}\n\n[원문 본문]\n${maskedText}` },
-            ];
+            ], { temperature: 0.4, maxTokens: 6000 }),
+            generator.generate([
+                { role: "system", content: MIGRATE_AI_SEARCH_SYSTEM },
+                { role: "user", content: `다음은 변호사가 직접 작성한 기존 네이버 블로그 글입니다. AI 검색엔진이 이 변호사를 추천할 수 있도록 콘텐츠를 생성해주세요.\n\n[변호사 이름] ${lawyer.name}\n\n[원문 제목] ${scraped.title}\n\n[원문 본문]\n${maskedText}` },
+            ], { temperature: 0.3, maxTokens: 3000 }),
+        ]);
 
-            const seoResult = await generator.generate(seoMessages, { temperature: 0.4, maxTokens: 8192 });
+        const results: { channel: string; title: string; success: boolean }[] = [];
 
-            let seoContent = seoResult.content;
-            const jsonMatch = seoContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-            if (jsonMatch) seoContent = jsonMatch[1];
-            else {
-                const s = seoContent.indexOf("{");
-                const e = seoContent.lastIndexOf("}");
-                if (s !== -1 && e > s) seoContent = seoContent.substring(s, e + 1);
-            }
-
-            let seoParsed;
-            try {
-                const sanitized = seoContent
-                    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
-                    .replace(/\r\n/g, "\\n")
-                    .replace(/\r/g, "\\n")
-                    .replace(/\n/g, "\\n")
-                    .replace(/\t/g, "\\t");
-                seoParsed = JSON.parse(sanitized);
-            } catch {
-                const titleMatch = seoContent.match(/"title"\s*:\s*"([^"]+)"/);
-                const bodyMatch = seoContent.match(/"body"\s*:\s*"([\s\S]*?)(?:"\s*,\s*"|"\s*}|"$|$)/);
-                seoParsed = {
-                    title: titleMatch?.[1] || scraped.title,
-                    body: bodyMatch?.[1]?.replace(/\\n/g, "\n") || seoContent,
-                    meta_description: "",
-                    keywords: [],
-                };
-            }
-
-            const finalBody = seoParsed.body || seoContent;
-
+        // --- Google SEO 저장 ---
+        if (seoResult.status === "fulfilled") {
+            const seoParsed = parseJson(seoResult.value.content) || (() => {
+                const t = seoResult.value.content.match(/"title"\s*:\s*"([^"]+)"/)?.[1] || scraped.title;
+                const b = seoResult.value.content.match(/"body"\s*:\s*"([\s\S]*?)(?:"\s*,\s*"|"\s*})/)?.[1]?.replace(/\\n/g, "\n") || seoResult.value.content;
+                return { title: t, body: b, meta_description: "", keywords: [], faq: null };
+            })();
             await supabase.from("contents").insert({
-                upload_id: upload.id,
-                lawyer_id: lawyer.id,
-                channel: "google",
+                upload_id: upload.id, lawyer_id: lawyer.id, channel: "google",
                 title: cleanSeoTitle(seoParsed.title || scraped.title, scraped.title),
-                body: finalBody,
+                body: seoParsed.body || seoResult.value.content,
                 meta_description: seoParsed.meta_description || "",
                 tags: seoParsed.keywords || [],
                 schema_markup: seoParsed.faq || null,
                 status: "review",
             });
-
             results.push({ channel: "google", title: seoParsed.title || scraped.title, success: true });
-        } catch (err) {
-            console.error(`[Migrate] Google SEO failed for ${url}:`, err);
+        } else {
+            console.error(`[Migrate] Google SEO failed:`, seoResult.reason);
             results.push({ channel: "google", title: "", success: false });
         }
 
-        // --- AI Search ---
-        try {
-            const aiMessages: AIMessage[] = [
-                { role: "system", content: MIGRATE_AI_SEARCH_SYSTEM },
-                { role: "user", content: `다음은 변호사가 직접 작성한 기존 네이버 블로그 글입니다. AI 검색엔진이 이 변호사를 추천할 수 있도록 콘텐츠를 생성해주세요.\n\n[변호사 이름] ${lawyer.name}\n\n[원문 제목] ${scraped.title}\n\n[원문 본문]\n${maskedText}` },
-            ];
-
-            const aiResult = await generator.generate(aiMessages, { temperature: 0.3, maxTokens: 4096 });
-
-            let aiContent = aiResult.content;
-            const jsonMatch2 = aiContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-            if (jsonMatch2) aiContent = jsonMatch2[1];
-            else {
-                const s = aiContent.indexOf("{");
-                const e = aiContent.lastIndexOf("}");
-                if (s !== -1 && e > s) aiContent = aiContent.substring(s, e + 1);
-            }
-
-            let aiParsed;
-            try {
-                const sanitized = aiContent
-                    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
-                    .replace(/\r\n/g, "\\n")
-                    .replace(/\r/g, "\\n")
-                    .replace(/\n/g, "\\n")
-                    .replace(/\t/g, "\\t");
-                aiParsed = JSON.parse(sanitized);
-            } catch {
-                const titleMatch = aiContent.match(/"title"\s*:\s*"([^"]+)"/);
-                const bodyMatch = aiContent.match(/"body"\s*:\s*"([\s\S]*?)(?:"\s*,\s*"|"\s*}|"$|$)/);
-                aiParsed = {
-                    title: titleMatch?.[1] || `${scraped.title} - AI`,
-                    body: bodyMatch?.[1]?.replace(/\\n/g, "\n") || aiContent,
-                    schema_markup: null,
-                };
-            }
-
-            const finalAiBody = aiParsed.body || aiContent;
-
+        // --- AI Search 저장 ---
+        if (aiResult.status === "fulfilled") {
+            const aiParsed = parseJson(aiResult.value.content) || (() => {
+                const t = aiResult.value.content.match(/"title"\s*:\s*"([^"]+)"/)?.[1] || scraped.title;
+                const b = aiResult.value.content.match(/"body"\s*:\s*"([\s\S]*?)(?:"\s*,\s*"|"\s*})/)?.[1]?.replace(/\\n/g, "\n") || aiResult.value.content;
+                return { title: t, body: b, schema_markup: null };
+            })();
             await supabase.from("contents").insert({
-                upload_id: upload.id,
-                lawyer_id: lawyer.id,
-                channel: "macdee",
+                upload_id: upload.id, lawyer_id: lawyer.id, channel: "macdee",
                 title: cleanSeoTitle(aiParsed.title || scraped.title, scraped.title),
-                body: finalAiBody,
+                body: aiParsed.body || aiResult.value.content,
                 schema_markup: aiParsed.schema_markup || null,
                 status: "review",
             });
-
             results.push({ channel: "macdee", title: aiParsed.title || scraped.title, success: true });
-        } catch (err) {
-            console.error(`[Migrate] AI Search failed for ${url}:`, err);
+        } else {
+            console.error(`[Migrate] AI Search failed:`, aiResult.reason);
             results.push({ channel: "macdee", title: "", success: false });
         }
 
