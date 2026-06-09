@@ -4,6 +4,7 @@ import { scrapeUrl } from "@/lib/ai/blog-scraper";
 import { maskPII } from "@/lib/ai/mask-pii";
 import { getContentGenerator, type AIMessage } from "@/lib/ai/providers";
 import { makeSlug } from "@/lib/slug";
+import { parseAiContent, cleanBody } from "@/lib/ai-content";
 
 export const maxDuration = 300;
 
@@ -204,22 +205,6 @@ export async function POST(request: Request) {
         const generator = getContentGenerator();
         const customPrompt = lawyer.schema_data?.customPrompt;
 
-        function parseJson(raw: string) {
-            let content = raw;
-            const m = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-            if (m) content = m[1];
-            else {
-                const s = content.indexOf("{"); const e = content.lastIndexOf("}");
-                if (s !== -1 && e > s) content = content.substring(s, e + 1);
-            }
-            try {
-                return JSON.parse(content
-                    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
-                    .replace(/\r\n/g, "\\n").replace(/\r/g, "\\n")
-                    .replace(/\n/g, "\\n").replace(/\t/g, "\\t"));
-            } catch { return null; }
-        }
-
         let seoSystem = MIGRATE_SEO_SYSTEM;
         if (customPrompt) seoSystem = `[나만의 AI 문체 트레이닝 규칙 - 최우선 적용]\n${customPrompt}\n\n${seoSystem}`;
 
@@ -238,11 +223,7 @@ export async function POST(request: Request) {
 
         // --- Google SEO 저장 ---
         if (seoResult.status === "fulfilled") {
-            const seoParsed = parseJson(seoResult.value.content) || (() => {
-                const t = seoResult.value.content.match(/"title"\s*:\s*"([^"]+)"/)?.[1] || scraped.title;
-                const b = seoResult.value.content.match(/"body"\s*:\s*"([\s\S]*?)(?:"\s*,\s*"|"\s*})/)?.[1]?.replace(/\\n/g, "\n") || seoResult.value.content;
-                return { title: t, body: b, meta_description: "", keywords: [], faq: null };
-            })();
+            const seoParsed = parseAiContent(seoResult.value.content) || { title: scraped.title, body: seoResult.value.content };
             const gTitle = cleanSeoTitle(seoParsed.title || scraped.title, scraped.title);
             const gId = randomUUID();
             await supabase.from("contents").insert({
@@ -250,7 +231,7 @@ export async function POST(request: Request) {
                 upload_id: upload.id, lawyer_id: lawyer.id, channel: "google",
                 title: gTitle,
                 slug: makeSlug(gTitle, gId),
-                body: seoParsed.body || seoResult.value.content,
+                body: cleanBody(seoParsed.body || seoResult.value.content),
                 meta_description: seoParsed.meta_description || "",
                 tags: seoParsed.keywords || [],
                 schema_markup: seoParsed.faq || null,
@@ -264,11 +245,7 @@ export async function POST(request: Request) {
 
         // --- AI Search 저장 ---
         if (aiResult.status === "fulfilled") {
-            const aiParsed = parseJson(aiResult.value.content) || (() => {
-                const t = aiResult.value.content.match(/"title"\s*:\s*"([^"]+)"/)?.[1] || scraped.title;
-                const b = aiResult.value.content.match(/"body"\s*:\s*"([\s\S]*?)(?:"\s*,\s*"|"\s*})/)?.[1]?.replace(/\\n/g, "\n") || aiResult.value.content;
-                return { title: t, body: b, schema_markup: null };
-            })();
+            const aiParsed = parseAiContent(aiResult.value.content) || { title: scraped.title, body: aiResult.value.content };
             const mTitle = cleanSeoTitle(aiParsed.title || scraped.title, scraped.title);
             const mId = randomUUID();
             await supabase.from("contents").insert({
@@ -276,7 +253,7 @@ export async function POST(request: Request) {
                 upload_id: upload.id, lawyer_id: lawyer.id, channel: "macdee",
                 title: mTitle,
                 slug: makeSlug(mTitle, mId),
-                body: aiParsed.body || aiResult.value.content,
+                body: cleanBody(aiParsed.body || aiResult.value.content),
                 schema_markup: aiParsed.schema_markup || null,
                 status: "review",
             });

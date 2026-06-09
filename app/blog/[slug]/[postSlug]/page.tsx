@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import { permanentRedirect } from "next/navigation";
 import { createAdminClient, createServiceClient } from "@/lib/supabase/server";
+import { parseAiContent } from "@/lib/ai-content";
 import PostPageClient from "./PostPageClient";
 
 export const dynamic = "force-dynamic";
@@ -109,18 +110,17 @@ export default async function PostPage({ params }: Props) {
         }
     }
 
-    // Parse JSON body if stored raw from AI
+    // Parse JSON body if stored raw from AI (견고한 파서 + 안전망)
     let parsedTitle = post.title;
     let parsedBody = post.body || "";
     let parsedMeta = post.meta_description || "";
-    if (parsedBody.trim().startsWith("```") || parsedBody.trim().startsWith("{")) {
-        try {
-            const cleanJson = parsedBody.replace(/^[\s]*```(?:json)?\s*\n?/, "").replace(/\n?\s*```[\s]*$/, "").trim();
-            const parsed = JSON.parse(cleanJson);
+    if (parsedBody.trimStart().startsWith("```") || parsedBody.trimStart().startsWith("{")) {
+        const parsed = parseAiContent(parsedBody);
+        if (parsed?.body) {
             if (parsed.title) parsedTitle = parsed.title;
-            if (parsed.body) parsedBody = parsed.body;
+            parsedBody = parsed.body;
             if (parsed.meta_description && !parsedMeta) parsedMeta = parsed.meta_description;
-        } catch { /* keep original */ }
+        }
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";

@@ -4,6 +4,7 @@ import { scrapeUrl } from "@/lib/ai/blog-scraper";
 import { maskPII } from "@/lib/ai/mask-pii";
 import { getContentGenerator, type AIMessage } from "@/lib/ai/providers";
 import { makeSlug } from "@/lib/slug";
+import { parseAiContent, cleanBody } from "@/lib/ai-content";
 
 export const maxDuration = 300; // 5분 — 여러 URL 처리에 충분한 시간
 
@@ -266,36 +267,7 @@ export async function POST(request: Request) {
                             "SEO 윤문"
                         );
 
-                        // Parse JSON
-                        let seoContent = seoResult.content;
-                        const jsonMatch = seoContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-                        if (jsonMatch) seoContent = jsonMatch[1];
-                        else {
-                            const s = seoContent.indexOf("{");
-                            const e = seoContent.lastIndexOf("}");
-                            if (s !== -1 && e > s) seoContent = seoContent.substring(s, e + 1);
-                        }
-
-                        let seoParsed;
-                        try {
-                            const sanitized = seoContent
-                                .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
-                                .replace(/\r\n/g, "\\n")
-                                .replace(/\r/g, "\\n")
-                                .replace(/\n/g, "\\n")
-                                .replace(/\t/g, "\\t");
-                            seoParsed = JSON.parse(sanitized);
-                        } catch {
-                            const titleMatch = seoContent.match(/"title"\s*:\s*"([^"]+)"/);
-                            const bodyMatch = seoContent.match(/"body"\s*:\s*"([\s\S]*?)(?:"\s*,\s*"|"\s*})/);
-                            seoParsed = {
-                                title: titleMatch?.[1] || scraped.title,
-                                body: bodyMatch?.[1]?.replace(/\\n/g, "\n") || seoContent,
-                                meta_description: "",
-                                keywords: [],
-                            };
-                        }
-
+                        const seoParsed = parseAiContent(seoResult.content) || { title: scraped.title, body: seoResult.content };
                         const gTitle = cleanSeoTitle(seoParsed.title || scraped.title, scraped.title);
                         const gId = randomUUID();
                         await supabase.from("contents").insert({
@@ -305,7 +277,7 @@ export async function POST(request: Request) {
                             channel: "google",
                             title: gTitle,
                             slug: makeSlug(gTitle, gId),
-                            body: seoParsed.body || seoContent,
+                            body: cleanBody(seoParsed.body || seoResult.content),
                             meta_description: seoParsed.meta_description || "",
                             tags: seoParsed.keywords || [],
                             schema_markup: seoParsed.faq || null,
@@ -331,34 +303,7 @@ export async function POST(request: Request) {
                             "AI 검색 윤문"
                         );
 
-                        let aiContent = aiResult.content;
-                        const jsonMatch2 = aiContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-                        if (jsonMatch2) aiContent = jsonMatch2[1];
-                        else {
-                            const s = aiContent.indexOf("{");
-                            const e = aiContent.lastIndexOf("}");
-                            if (s !== -1 && e > s) aiContent = aiContent.substring(s, e + 1);
-                        }
-
-                        let aiParsed;
-                        try {
-                            const sanitized = aiContent
-                                .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
-                                .replace(/\r\n/g, "\\n")
-                                .replace(/\r/g, "\\n")
-                                .replace(/\n/g, "\\n")
-                                .replace(/\t/g, "\\t");
-                            aiParsed = JSON.parse(sanitized);
-                        } catch {
-                            const titleMatch = aiContent.match(/"title"\s*:\s*"([^"]+)"/);
-                            const bodyMatch = aiContent.match(/"body"\s*:\s*"([\s\S]*?)(?:"\s*,\s*"|"\s*})/);
-                            aiParsed = {
-                                title: titleMatch?.[1] || `${scraped.title} - AI`,
-                                body: bodyMatch?.[1]?.replace(/\\n/g, "\n") || aiContent,
-                                schema_markup: null,
-                            };
-                        }
-
+                        const aiParsed = parseAiContent(aiResult.content) || { title: scraped.title, body: aiResult.content };
                         const mTitle = cleanSeoTitle(aiParsed.title || scraped.title, scraped.title);
                         const mId = randomUUID();
                         await supabase.from("contents").insert({
@@ -368,7 +313,7 @@ export async function POST(request: Request) {
                             channel: "macdee",
                             title: mTitle,
                             slug: makeSlug(mTitle, mId),
-                            body: aiParsed.body || aiContent,
+                            body: cleanBody(aiParsed.body || aiResult.content),
                             schema_markup: aiParsed.schema_markup || null,
                             status: "review",
                         });
