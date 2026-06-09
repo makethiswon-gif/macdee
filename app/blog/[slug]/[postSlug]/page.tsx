@@ -11,12 +11,13 @@ type Props = { params: Promise<{ slug: string; postSlug: string }> };
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-    const { slug, postSlug } = await params;
-    const isUuid = UUID_RE.test(postSlug);
+    const { slug: rawSlug, postSlug: rawPostSlug } = await params;
+    const slug = decodeURIComponent(rawSlug);
+    const postSlug = decodeURIComponent(rawPostSlug);
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
     try {
-        const apiRes = await fetch(`${baseUrl}/api/blog/${slug}/${postSlug}`, { next: { revalidate: 60 } });
+        const apiRes = await fetch(`${baseUrl}/api/blog/${encodeURIComponent(slug)}/${encodeURIComponent(postSlug)}`, { next: { revalidate: 60 } });
         if (!apiRes.ok) {
             return { title: "포스트를 찾을 수 없습니다" };
         }
@@ -51,7 +52,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function PostPage({ params }: Props) {
-    const { slug, postSlug } = await params;
+    const { slug: rawSlug, postSlug: rawPostSlug } = await params;
+    const slug = decodeURIComponent(rawSlug);
+    const postSlug = decodeURIComponent(rawPostSlug);
     // 순수 service role 클라이언트 — 브라우저의 anon 쿠키가 RLS를 트리거해 published 글을
     // 못 찾는 문제 방지 (createAdminClient는 SSR 쿠키 기반이라 쿠키가 service role을 덮어씀)
     const supabase = createServiceClient();

@@ -11,7 +11,8 @@ type Props = {
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-    const { slug } = await params;
+    const { slug: rawSlug } = await params;
+    const slug = decodeURIComponent(rawSlug);
     const supabase = createServiceClient();
     const { data: lawyer } = await supabase
         .from("lawyers")
@@ -43,7 +44,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function BlogPage({ params, searchParams }: Props) {
-    const { slug } = await params;
+    const { slug: rawSlug } = await params;
+    const slug = decodeURIComponent(rawSlug);
     const resolvedParams = searchParams ? await searchParams : {};
     const page = parseInt(resolvedParams.page as string) || 1;
     const limit = 10;
