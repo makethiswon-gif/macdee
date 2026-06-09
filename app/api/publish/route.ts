@@ -57,7 +57,7 @@ export async function POST(request: Request) {
 
         console.log(`[Publish] Status updated to published for content ${content_id}`);
 
-        // Get lawyer slug for blog URL — always use content_id (UUID) to match actual route
+        // Get lawyer slug for blog URL — prefer post slug (SEO URL), fall back to UUID
         let publishedUrl: string | null = null;
         if (content.channel === "google" || content.channel === "macdee") {
             const { data: lawyerForUrl } = await adminSupabase
@@ -66,7 +66,8 @@ export async function POST(request: Request) {
                 .eq("id", content.lawyer_id)
                 .single();
             if (lawyerForUrl?.slug) {
-                publishedUrl = `/blog/${lawyerForUrl.slug}/${content_id}`;
+                const postSlug = content.slug || content_id;
+                publishedUrl = `/blog/${lawyerForUrl.slug}/${encodeURIComponent(postSlug)}`;
             }
         }
 

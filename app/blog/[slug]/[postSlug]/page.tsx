@@ -69,7 +69,8 @@ export default async function PostPage({ params }: Props) {
         : supabase.from("contents").select("*").eq("lawyer_id", lawyer.id).eq("slug", postSlug).eq("status", "published");
     const { data: post } = await postQuery.maybeSingle();
 
-    if (isUuid && post?.slug) permanentRedirect(`/blog/${slug}/${post.slug}`);
+    // slug에 한글이 포함되면 Location 헤더(ASCII 전용)에 그대로 넣을 수 없어 인코딩 필수
+    if (isUuid && post?.slug) permanentRedirect(`/blog/${slug}/${encodeURIComponent(post.slug)}`);
 
     if (!post) {
         return <div className="min-h-screen flex items-center justify-center"><p className="text-[#6B7280]">포스트를 찾을 수 없습니다.</p></div>;
