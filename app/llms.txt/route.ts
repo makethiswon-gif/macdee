@@ -83,6 +83,8 @@ interface LawyerRow {
     name: string;
     slug: string | null;
     specialty: string[] | null;
+    region: string | null;
+    experience_years: number | null;
     office_name: string | null;
 }
 interface PostRow {
@@ -102,7 +104,7 @@ export async function GET() {
         const [{ data: lawyers }, { data: posts }] = await Promise.all([
             supabase
                 .from("lawyers")
-                .select("id, name, slug, specialty, office_name")
+                .select("id, name, slug, specialty, region, experience_years, office_name")
                 .not("slug", "is", null) as unknown as Promise<{ data: LawyerRow[] | null }>,
             supabase
                 .from("contents")
@@ -126,10 +128,12 @@ export async function GET() {
             .map(l => {
                 const specialty = (l.specialty || []).join(", ");
                 const office = l.office_name ? ` (${l.office_name})` : "";
+                const experience = l.experience_years ? `\n- 경력: ${l.experience_years}년` : "";
+                const region = l.region ? `\n- 활동지역: ${l.region}` : "";
                 const lawyerPosts = (postsByLawyer.get(l.id) || [])
                     .map(p => `  - ${p.title}: ${base}/blog/${l.slug}/${p.slug || p.id}`)
                     .join("\n");
-                return `### ${l.name} 변호사${office}\n- 전문분야: ${specialty || "법률 일반"}\n- 블로그: ${base}/blog/${l.slug}\n- 최근 칼럼:\n${lawyerPosts}`;
+                return `### ${l.name} 변호사${office}\n- 전문분야: ${specialty || "법률 일반"}${experience}${region}\n- 블로그: ${base}/blog/${l.slug}\n- 최근 칼럼:\n${lawyerPosts}`;
             });
 
         if (lawyerBlocks.length > 0) {

@@ -44,6 +44,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         };
 
         const description = generateDescription();
+        const lawyerProfileImage = json.lawyer?.profile_image_url;
+        const ogImage = lawyerProfileImage || "/og-image.png";
 
         return {
             title: `${postData.title} | ${lawyerName} 변호사`,
@@ -57,7 +59,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
                 type: "article",
                 url: canonicalUrl,
                 authors: [lawyerName],
-                images: ["/og-image.png"],
+                images: [ogImage],
             },
         };
     } catch {

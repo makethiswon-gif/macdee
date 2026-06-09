@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const supabase = createServiceClient();
     const { data: lawyer } = await supabase
         .from("lawyers")
-        .select("name, specialty, region, bio")
+        .select("name, specialty, region, bio, profile_image_url")
         .eq("slug", slug)
         .single();
 
@@ -24,9 +24,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
     const specialties = (lawyer.specialty || []).join(", ");
+    const keywords = [
+        ...((lawyer.specialty || []) as string[]),
+        lawyer.region,
+        "변호사",
+        "블로그",
+        "법률 칼럼",
+    ].filter(Boolean);
+
     return {
         title: `${lawyer.name} 변호사 블로그 | ${specialties}`,
         description: lawyer.bio || `${lawyer.name} 변호사의 법률 칼럼 블로그. ${specialties} 전문.`,
+        keywords,
         alternates: {
             canonical: `${baseUrl}/blog/${slug}`,
         },
@@ -39,6 +48,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
             description: lawyer.bio || `${specialties} 전문 변호사`,
             type: "website",
             url: `${baseUrl}/blog/${slug}`,
+            images: lawyer.profile_image_url ? [lawyer.profile_image_url] : ["/og-image.png"],
         },
     };
 }
@@ -77,7 +87,7 @@ export default async function BlogPage({ params, searchParams }: Props) {
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
 
-    // Lawyer blog JSON-LD: Person + Blog listing
+    // Lawyer blog JSON-LD: Attorney + Blog listing
     const blogJsonLd = {
         "@context": "https://schema.org",
         "@type": "Blog",
@@ -85,11 +95,14 @@ export default async function BlogPage({ params, searchParams }: Props) {
         description: lawyer.bio || `${lawyer.name} 변호사의 법률 칼럼`,
         url: `${baseUrl}/blog/${slug}`,
         author: {
-            "@type": "Person",
+            "@type": "Attorney",
             name: lawyer.name,
             jobTitle: "변호사",
-            worksFor: lawyer.office_name ? { "@type": "LegalService", name: lawyer.office_name } : undefined,
             knowsAbout: lawyer.specialty || [],
+            areaServed: lawyer.region || undefined,
+            hasCredential: "대한변호사협회 등록",
+            yearsOfExperience: lawyer.experience_years || undefined,
+            worksFor: lawyer.office_name ? { "@type": "LegalService", name: lawyer.office_name } : undefined,
         },
         blogPost: (posts || []).slice(0, 10).map(p => ({
             "@type": "BlogPosting",

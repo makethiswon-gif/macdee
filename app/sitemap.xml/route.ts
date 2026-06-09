@@ -17,7 +17,7 @@ export async function GET() {
         // 발행된 모든 포스트 (slug 없으면 UUID URL 사용 — 정상 동작)
         const { data: blogPosts } = await supabase
             .from("contents")
-            .select("id, slug, updated_at, lawyer_id, lawyers!inner(slug)")
+            .select("id, slug, updated_at, created_at, lawyer_id, lawyers!inner(slug)")
             .eq("status", "published")
             .in("channel", ["google", "macdee"])
             .order("created_at", { ascending: false });
@@ -71,16 +71,21 @@ export async function GET() {
         }
 
         // Individual blog posts — URL pattern: /blog/[lawyer-slug]/[post-id]
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         for (const post of blogPosts || []) {
             const lawyerData = post.lawyers as unknown as { slug: string } | null;
             const lawyerSlug = lawyerData?.slug;
             if (!lawyerSlug) continue;
+            const isRecent = new Date(post.created_at) > thirtyDaysAgo;
+            const priority = isRecent ? 0.8 : 0.7;
+            const changefreq = isRecent ? "daily" : "weekly";
             xml += `
     <url>
         <loc>${sitemapUrl(`${baseUrl}/blog/${lawyerSlug}/${post.slug || post.id}`)}</loc>
         <lastmod>${new Date(post.updated_at).toISOString()}</lastmod>
-        <changefreq>weekly</changefreq>
-        <priority>0.7</priority>
+        <changefreq>${changefreq}</changefreq>
+        <priority>${priority}</priority>
     </url>`;
         }
 

@@ -57,9 +57,17 @@ export async function generateMetadata({
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
     const canonicalUrl = `${baseUrl}/magazine/${magazine.slug}`;
 
+    const keywords = [
+        ...(magazine.tags || []),
+        "변호사",
+        "법률",
+        "법률 정보",
+    ].filter(Boolean);
+
     return {
         title: magazine.meta_title || magazine.title,
         description: magazine.meta_description || magazine.excerpt,
+        keywords,
         alternates: {
             canonical: canonicalUrl,
         },
