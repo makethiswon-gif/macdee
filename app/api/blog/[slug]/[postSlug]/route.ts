@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 
 // GET /api/blog/[slug]/[postSlug] → 개별 포스트
 export async function GET(
@@ -8,7 +8,7 @@ export async function GET(
 ) {
     try {
         const { slug, postSlug } = await params;
-        const supabase = await createAdminClient();
+        const supabase = createServiceClient();
 
         // Get lawyer
         const { data: lawyer } = await supabase

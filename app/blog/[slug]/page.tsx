@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { createAdminClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import BlogPageClient from "./BlogPageClient";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +12,7 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { slug } = await params;
-    const supabase = await createAdminClient();
+    const supabase = createServiceClient();
     const { data: lawyer } = await supabase
         .from("lawyers")
         .select("name, specialty, region, bio")
@@ -51,7 +51,7 @@ export default async function BlogPage({ params, searchParams }: Props) {
     const end = start + limit - 1;
 
     // Fetch data server-side
-    const supabase = await createAdminClient();
+    const supabase = createServiceClient();
     const { data: lawyer } = await supabase
         .from("lawyers")
         .select("id, name, slug, specialty, region, bio, profile_image_url, office_name, experience_years, brand_color")

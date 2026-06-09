@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import { permanentRedirect } from "next/navigation";
-import { createAdminClient, createServiceClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import { parseAiContent } from "@/lib/ai-content";
 import PostPageClient from "./PostPageClient";
 
@@ -52,7 +52,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function PostPage({ params }: Props) {
     const { slug, postSlug } = await params;
-    const supabase = await createAdminClient();
+    // 순수 service role 클라이언트 — 브라우저의 anon 쿠키가 RLS를 트리거해 published 글을
+    // 못 찾는 문제 방지 (createAdminClient는 SSR 쿠키 기반이라 쿠키가 service role을 덮어씀)
+    const supabase = createServiceClient();
 
     const { data: lawyer } = await supabase
         .from("lawyers")
