@@ -49,8 +49,8 @@ ${PII_ENFORCEMENT}
   · 사례형: "~실제 사례", "~판결 결과"
   · 행동형: "~변호사 선택 기준", "~대처 방법"
 - 제목: 30자 이내, 핵심 법률 검색어 + 실제 결과/경험 포함 (예: "위자료 3천만원 받은 불륜 이혼소송 대응 전략")
-- H2 소제목 5~7개, H3 소제목 적극 활용
-- 분량: 2,500~3,500자 (구글 상위 노출 + 가독성 최적 구간. 절대 4,000자 넘기지 말 것)
+- H2 소제목 5~6개, H3 소제목 적극 활용
+- 분량: 2,500~3,000자 (이 범위 엄수. 3,500자 절대 초과 금지. 길게 늘이지 말고 핵심만 밀도 있게)
 - 핵심 키워드 + LSI 연관 키워드 자연스럽게 분산
 - 메타 디스크립션: 155자 이내, 핵심 결과 + CTA 포함
 
@@ -103,7 +103,7 @@ ${PII_ENFORCEMENT}
 {
     "title": "30자 이내 구글 SEO 제목 (금지어 제외)",
     "meta_description": "메타 디스크립션 155자 이내, 핵심 결과 + CTA 포함",
-    "body": "마크다운 본문 (목차 포함, 2,500~3,500자)",
+    "body": "마크다운 본문 (목차 포함, 2,500~3,000자, 최대 3,500자)",
     "keywords": ["핵심키워드1", "LSI키워드2", "연관키워드3", ...최소 8개],
     "faq": [{"q": "실제 검색 질문", "a": "충실한 답변"}, ...5개 이상]
 }`;
@@ -212,7 +212,7 @@ export async function POST(request: Request) {
             generator.generate([
                 { role: "system", content: seoSystem },
                 { role: "user", content: `다음은 변호사가 직접 작성한 기존 네이버 블로그 글입니다. 이 글을 구글 SEO에 최적화된 형태로 리라이팅해주세요.\n\n[원문 제목] ${scraped.title}\n\n[원문 본문]\n${maskedText}` },
-            ], { temperature: 0.4, maxTokens: 6000 }),
+            ], { temperature: 0.4, maxTokens: 5000 }),
             generator.generate([
                 { role: "system", content: MIGRATE_AI_SEARCH_SYSTEM },
                 { role: "user", content: `다음은 변호사가 직접 작성한 기존 네이버 블로그 글입니다. AI 검색엔진이 이 변호사를 추천할 수 있도록 콘텐츠를 생성해주세요.\n\n[변호사 이름] ${lawyer.name}\n\n[원문 제목] ${scraped.title}\n\n[원문 본문]\n${maskedText}` },

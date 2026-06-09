@@ -48,8 +48,8 @@ ${PII_ENFORCEMENT}
   · 사례형: "~실제 사례", "~판결 결과"
   · 행동형: "~변호사 선택 기준", "~대처 방법"
 - 제목: 30자 이내, 핵심 법률 검색어 + 실제 결과/경험 포함 (예: "위자료 3천만원 받은 불륜 이혼소송 대응 전략")
-- H2 소제목 5~7개, H3 소제목 적극 활용
-- 분량: 2,500~3,500자 (구글 상위 노출 + 가독성 최적 구간. 절대 4,000자 넘기지 말 것)
+- H2 소제목 5~6개, H3 소제목 적극 활용
+- 분량: 2,500~3,000자 (이 범위 엄수. 3,500자 절대 초과 금지. 길게 늘이지 말고 핵심만 밀도 있게)
 - 핵심 키워드 + LSI 연관 키워드 자연스럽게 분산
 - 메타 디스크립션: 155자 이내, 핵심 결과 + CTA 포함
 
@@ -102,7 +102,7 @@ ${PII_ENFORCEMENT}
 {
     "title": "30자 이내 구글 SEO 제목 (금지어 제외)",
     "meta_description": "메타 디스크립션 155자 이내, 핵심 결과 + CTA 포함",
-    "body": "마크다운 본문 (목차 포함, 2,500~3,500자)",
+    "body": "마크다운 본문 (목차 포함, 2,500~3,000자, 최대 3,500자)",
     "keywords": ["핵심키워드1", "LSI키워드2", "연관키워드3", ...최소 8개],
     "faq": [{"q": "실제 검색 질문", "a": "충실한 답변"}, ...5개 이상]
 }`;
@@ -262,7 +262,7 @@ export async function POST(request: Request) {
                         ];
 
                         const seoResult = await withTimeout(
-                            generator.generate(seoMessages, { temperature: 0.4, maxTokens: 8192 }),
+                            generator.generate(seoMessages, { temperature: 0.4, maxTokens: 5000 }),
                             120000,
                             "SEO 윤문"
                         );
