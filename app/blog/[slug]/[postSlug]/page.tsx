@@ -29,15 +29,31 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         const canonicalSlug = postData.slug || postData.id || postSlug;
         const canonicalUrl = `${baseUrl}/blog/${slug}/${canonicalSlug}`;
 
+        // Generate SEO description from content if not set
+        const generateDescription = (): string => {
+            if (postData.meta_description) return postData.meta_description;
+            // Extract first 160 chars from body, removing markdown
+            const body = postData.body || postData.title;
+            const text = body
+                .replace(/#+\s/g, "") // Remove markdown headers
+                .replace(/\*\*|__/g, "") // Remove bold
+                .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // Remove links, keep text
+                .replace(/\n+/g, " ") // Replace newlines with space
+                .trim();
+            return text.length > 160 ? text.substring(0, 157) + "..." : text;
+        };
+
+        const description = generateDescription();
+
         return {
             title: `${postData.title} | ${lawyerName} 변호사`,
-            description: postData.meta_description || postData.title,
+            description,
             keywords: (postData.tags || []).join(", "),
             alternates: { canonical: canonicalUrl },
             robots: { index: true, follow: true },
             openGraph: {
                 title: postData.title,
-                description: postData.meta_description || postData.title,
+                description,
                 type: "article",
                 url: canonicalUrl,
                 authors: [lawyerName],
