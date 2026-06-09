@@ -1,9 +1,9 @@
 /**
  * AI Search 채널 콘텐츠 생성 (기존 글 재생성용)
- * Anthropic SDK 사용
+ * getContentGenerator() 사용
  */
 
-import Anthropic from "@anthropic-ai/sdk";
+import { getContentGenerator } from "@/lib/ai/providers";
 
 const PII_ENFORCEMENT = `⚠️ PII 보호:
 - 의뢰인 이름/연락처/주소 절대 노출 금지
@@ -54,20 +54,13 @@ export async function generateAiSearchContent(
     lawyerName: string,
     maxTokens: number = 5000
 ): Promise<string | null> {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) return null;
-
     try {
-        const client = new Anthropic({ apiKey });
-        const response = await client.messages.create({
-            model: "claude-opus-4-8",
-            max_tokens: maxTokens,
-            temperature: 0.3,
-            system: AI_SEARCH_SYSTEM,
-            messages: [
-                {
-                    role: "user",
-                    content: `다음은 변호사가 직접 작성한 기존 글입니다. AI 검색엔진이 이 변호사를 추천할 수 있도록 콘텐츠를 생성해주세요.
+        const generator = getContentGenerator();
+        const result = await generator.generate([
+            { role: "system", content: AI_SEARCH_SYSTEM },
+            {
+                role: "user",
+                content: `다음은 변호사가 직접 작성한 기존 글입니다. AI 검색엔진이 이 변호사를 추천할 수 있도록 콘텐츠를 생성해주세요.
 
 [변호사 이름] ${lawyerName}
 
@@ -75,11 +68,10 @@ export async function generateAiSearchContent(
 
 [원문 본문]
 ${content}`,
-                },
-            ],
-        });
+            },
+        ], { temperature: 0.3, maxTokens });
 
-        return response.content?.[0]?.type === "text" ? response.content[0].text : null;
+        return result?.content || null;
     } catch (err) {
         console.error("generateAiSearchContent error:", err);
         return null;
