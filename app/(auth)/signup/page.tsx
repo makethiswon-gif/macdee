@@ -191,6 +191,16 @@ export default function SignupPage() {
                 </p>
             </div>
 
+            {/* Warning banner */}
+            <div className="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200">
+                <p className="text-sm text-amber-900 font-medium">
+                    ⚠️ 변호사만 가입 가능합니다
+                </p>
+                <p className="text-xs text-amber-800 mt-1.5 leading-relaxed">
+                    회원가입 후 심사 기간을 거쳐 변호사 자격이 확인됩니다. 변호사가 아닌 분들은 가입 정보 확인 후 <strong>영구 IP 차단</strong>됩니다.
+                </p>
+            </div>
+
             <form onSubmit={handleSignup} className="space-y-4">
                 {/* Honeypot — invisible to humans, bots auto-fill it */}
                 <div style={{ position: "absolute", left: "-9999px", opacity: 0, height: 0, overflow: "hidden" }} aria-hidden="true" tabIndex={-1}>
