@@ -216,7 +216,7 @@ export async function POST(request: Request) {
             generator.generate([
                 { role: "system", content: MIGRATE_AI_SEARCH_SYSTEM },
                 { role: "user", content: `다음은 변호사가 직접 작성한 기존 네이버 블로그 글입니다. AI 검색엔진이 이 변호사를 추천할 수 있도록 콘텐츠를 생성해주세요.\n\n[변호사 이름] ${lawyer.name}\n\n[원문 제목] ${scraped.title}\n\n[원문 본문]\n${maskedText}` },
-            ], { temperature: 0.3, maxTokens: 3000 }),
+            ], { temperature: 0.3, maxTokens: 5000 }),
         ]);
 
         const results: { channel: string; title: string; success: boolean }[] = [];

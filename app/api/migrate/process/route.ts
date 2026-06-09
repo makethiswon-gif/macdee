@@ -298,7 +298,7 @@ export async function POST(request: Request) {
                         ];
 
                         const aiResult = await withTimeout(
-                            generator.generate(aiMessages, { temperature: 0.3, maxTokens: 2048 }),
+                            generator.generate(aiMessages, { temperature: 0.3, maxTokens: 5000 }),
                             60000,
                             "AI 검색 윤문"
                         );
