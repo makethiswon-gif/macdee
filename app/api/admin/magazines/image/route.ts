@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { verifyAdminToken } from "@/lib/admin-auth";
+import { uploadMagazineCover } from "@/lib/supabase/storage";
 
 // Allow enough time for image generation (gpt-image-1.5 can take 30-60s)
 export const maxDuration = 120;
@@ -125,8 +126,13 @@ CRITICAL REQUIREMENTS:
             return NextResponse.json({ error: "이미지 생성 실패 (GPT Image 2 및 DALL-E 3 모두 실패)" }, { status: 500 });
         }
 
-        const dataUrl = `data:image/png;base64,${b64}`;
-        return NextResponse.json({ imageUrl: dataUrl });
+        // base64를 DB에 직접 넣으면 페이지가 비대해지므로 스토리지에 올려 URL로 저장
+        const key = `${(title || "magazine").substring(0, 40)}-${Date.now()}`;
+        const storageUrl = await uploadMagazineCover(key, b64);
+
+        // 스토리지 업로드 실패 시에만 data URI로 폴백 (생성 자체는 실패시키지 않음)
+        const imageUrl = storageUrl || `data:image/png;base64,${b64}`;
+        return NextResponse.json({ imageUrl });
     } catch (err) {
         console.error("[Magazine Image] Error:", err);
         return NextResponse.json({ error: "서버 오류" }, { status: 500 });

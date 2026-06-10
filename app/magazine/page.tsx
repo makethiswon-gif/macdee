@@ -1,8 +1,8 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import MagazinePageClient from "./MagazinePageClient";
 
-// 매거진 커버 이미지가 base64로 저장돼 ISR 정적 폴백이 비대해지는 문제로 동적 렌더 유지
-export const dynamic = "force-dynamic";
+// 커버 이미지를 스토리지 URL로 이전해 페이로드가 작아졌으므로 ISR(10분) 적용
+export const revalidate = 600;
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
 
