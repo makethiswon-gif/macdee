@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { rateLimitOk, getClientIp, tooManyRequests } from "@/lib/ratelimit";
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+    },
+});
 
 export async function POST(req: NextRequest) {
     try {
@@ -40,9 +46,9 @@ export async function POST(req: NextRequest) {
         }
 
         // 이메일 발송 (비동기 - 에러해도 응답은 성공으로 반환)
-        if (process.env.RESEND_API_KEY) {
-            resend.emails.send({
-                from: "상담문의 <noreply@makethis1.com>",
+        if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+            transporter.sendMail({
+                from: `"상담문의 알림" <${process.env.EMAIL_USER}>`,
                 to: "ceo@lawnald.com",
                 subject: `[새 상담문의] ${name}${subject ? ` - ${subject}` : ""}`,
                 html: `
@@ -59,9 +65,6 @@ export async function POST(req: NextRequest) {
                             <p><strong>상담 내용:</strong></p>
                             <p style="white-space: pre-wrap; color: #333;">${message}</p>
                         </div>
-                        <p style="color: #666; font-size: 12px; margin-top: 30px;">
-                            <a href="https://www.makethis1.com/makethisone" style="color: #0038A8;">Supabase에서 확인하기</a>
-                        </p>
                     </div>
                 `,
             }).catch((err) => console.error("[Inquiries Email] Failed:", err));
