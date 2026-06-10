@@ -288,10 +288,13 @@ section {
   scroll-snap-stop: always;
 }
 
-section.auto-height {
+section.auto-height,
+#team {
   min-height: auto;
+  height: auto;
   scroll-snap-align: none;
   scroll-snap-stop: auto;
+  padding: 120px 0;
 }
 
 /* ---- Geometric Background Lines (blue tinted) ---- */
