@@ -45,6 +45,20 @@ body {
 
 html {
   scroll-behavior: smooth;
+  scroll-snap-type: y mandatory;
+}
+
+/* 풀스크린 섹션 스냅 효과 */
+main > section {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  min-height: 100vh;
+}
+
+/* 풀화면이 아닌 섹션은 스냅 제외 */
+main > section.auto-height {
+  scroll-snap-align: none;
+  scroll-snap-stop: auto;
 }
 
 ::-webkit-scrollbar {
