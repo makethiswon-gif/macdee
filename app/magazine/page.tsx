@@ -1,7 +1,8 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import MagazinePageClient from "./MagazinePageClient";
 
-export const revalidate = 600;
+// 매거진 커버 이미지가 base64로 저장돼 ISR 정적 폴백이 비대해지는 문제로 동적 렌더 유지
+export const dynamic = "force-dynamic";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
 
@@ -27,7 +28,7 @@ export default async function MagazinePage() {
         .select("id, title, slug, excerpt, category, tags, cover_image_url, view_count, published_at, author")
         .eq("status", "published")
         .order("published_at", { ascending: false })
-        .limit(200);
+        .limit(60);
 
     const magazines: Magazine[] = data || [];
 
