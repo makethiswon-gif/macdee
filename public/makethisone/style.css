@@ -48,7 +48,6 @@
 html {
   font-size: 16px;
   scroll-behavior: smooth;
-  scroll-snap-type: y mandatory;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -278,25 +277,17 @@ body.intro-active {
 
 section {
   position: relative;
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 60px 0;
   overflow: hidden;
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
 }
 
-/* 콘텐츠가 긴 섹션은 스냅 제외, 자유 스크롤 */
-section.auto-height,
-#team,
-#partners {
-  height: auto;
+/* 콘텐츠에 맞춰 화면보다 짧아질 수 있는 섹션 */
+section.auto-height {
   min-height: auto;
-  scroll-snap-align: none;
-  scroll-snap-stop: auto;
-  overflow: visible;
   padding: 100px 0;
 }
 
