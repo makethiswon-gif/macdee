@@ -603,6 +603,7 @@ function Footer() {
           <div>
             <h4 className="text-[11px] text-white/30 uppercase tracking-[0.15em] mb-5">회사</h4>
             <ul className="space-y-3">
+              <li><a href="/makethisone" className="text-[13px] text-white/25 hover:text-white/60 transition-colors">메이크디스원</a></li>
               <li><a href="/about" className="text-[13px] text-white/25 hover:text-white/60 transition-colors">MACDEE 소개</a></li>
               <li><a href="/terms" className="text-[13px] text-white/25 hover:text-white/60 transition-colors">이용약관</a></li>
               <li><a href="/refund" className="text-[13px] text-white/25 hover:text-white/60 transition-colors">환불정책</a></li>
