@@ -48,6 +48,7 @@
 html {
   font-size: 16px;
   scroll-behavior: smooth;
+  scroll-snap-type: y mandatory;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -282,10 +283,14 @@ section {
   align-items: center;
   padding: 120px 0;
   overflow: hidden;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
 }
 
 section.auto-height {
   min-height: auto;
+  scroll-snap-align: none;
+  scroll-snap-stop: auto;
 }
 
 /* ---- Geometric Background Lines (blue tinted) ---- */

@@ -3,6 +3,72 @@
    Animations, Data Layer, & Interactions
    ============================================ */
 
+// ---- FULLSCREEN SCROLL SNAP ANIMATION ----
+document.addEventListener('DOMContentLoaded', () => {
+  let currentSection = 0;
+  let isScrolling = false;
+  const sections = document.querySelectorAll('section');
+
+  const handleWheel = (e) => {
+    if (isScrolling || sections.length === 0) return;
+
+    const scrollDirection = e.deltaY > 0 ? 1 : -1;
+    const nextSection = Math.max(0, Math.min(sections.length - 1, currentSection + scrollDirection));
+
+    if (nextSection !== currentSection) {
+      isScrolling = true;
+      currentSection = nextSection;
+
+      // 부드러운 스크롤
+      sections[currentSection].scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+
+      // 스크롤 잠금 해제 (애니메이션 후)
+      setTimeout(() => {
+        isScrolling = false;
+      }, 1000);
+    }
+  };
+
+  // 터치 스크롤도 지원 (모바일)
+  let touchStartY = 0;
+  const handleTouchStart = (e) => {
+    touchStartY = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e) => {
+    if (isScrolling) return;
+    const touchEndY = e.changedTouches[0].clientY;
+    const diff = touchStartY - touchEndY;
+
+    if (Math.abs(diff) > 50) {
+      const scrollDirection = diff > 0 ? 1 : -1;
+      const nextSection = Math.max(0, Math.min(sections.length - 1, currentSection + scrollDirection));
+
+      if (nextSection !== currentSection) {
+        isScrolling = true;
+        currentSection = nextSection;
+
+        sections[currentSection].scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+
+        setTimeout(() => {
+          isScrolling = false;
+        }, 1000);
+      }
+    }
+  };
+
+  // 스크롤 감지 (선택사항: 너무 민감하면 주석 처리)
+  // document.addEventListener('wheel', handleWheel, { passive: true });
+  document.addEventListener('touchstart', handleTouchStart, { passive: true });
+  document.addEventListener('touchend', handleTouchEnd, { passive: true });
+});
+
 // ---- INTRO ANIMATION ----
 function runIntro() {
   const splash = document.getElementById('introSplash');
