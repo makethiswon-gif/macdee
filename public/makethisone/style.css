@@ -278,12 +278,13 @@ body.intro-active {
 
 section {
   position: relative;
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   align-items: center;
-  padding: 120px 0;
+  justify-content: center;
+  padding: 60px 0;
   overflow: hidden;
-  scroll-snap-align: start;
+  scroll-snap-align: center;
   scroll-snap-stop: always;
 }
 
