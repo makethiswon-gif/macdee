@@ -284,17 +284,20 @@ section {
   justify-content: center;
   padding: 60px 0;
   overflow: hidden;
-  scroll-snap-align: center;
+  scroll-snap-align: start;
   scroll-snap-stop: always;
 }
 
+/* 콘텐츠가 긴 섹션은 스냅 제외, 자유 스크롤 */
 section.auto-height,
-#team {
-  min-height: auto;
+#team,
+#partners {
   height: auto;
+  min-height: auto;
   scroll-snap-align: none;
   scroll-snap-stop: auto;
-  padding: 120px 0;
+  overflow: visible;
+  padding: 100px 0;
 }
 
 /* ---- Geometric Background Lines (blue tinted) ---- */
