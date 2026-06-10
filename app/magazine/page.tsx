@@ -1,8 +1,8 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import MagazinePageClient from "./MagazinePageClient";
 
-// 커버 이미지를 스토리지 URL로 이전해 페이로드가 작아졌으므로 ISR(10분) 적용
-export const revalidate = 600;
+// 매일 자동 발행 글이 목록에 즉시 보이도록 동적 렌더(커버가 URL이라 페이로드도 가벼움)
+export const dynamic = "force-dynamic";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
 
