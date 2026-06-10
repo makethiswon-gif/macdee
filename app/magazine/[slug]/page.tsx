@@ -16,6 +16,7 @@ interface Magazine {
     meta_description: string;
     view_count: number;
     published_at: string;
+    updated_at: string | null;
     author: string;
 }
 
@@ -78,7 +79,7 @@ export async function generateMetadata({
         openGraph: {
             title: magazine.meta_title || magazine.title,
             description: magazine.meta_description || magazine.excerpt,
-            images: magazine.cover_image_url ? [magazine.cover_image_url] : [],
+            images: [magazine.cover_image_url || `${baseUrl}/og-image.png`],
             type: "article",
             url: canonicalUrl,
         },
@@ -138,10 +139,12 @@ export default async function MagazineArticlePage({
         headline: magazine.title,
         description: magazine.meta_description || magazine.excerpt,
         datePublished: magazine.published_at,
+        dateModified: magazine.updated_at || magazine.published_at,
         wordCount,
         author: {
             "@type": "Person",
             name: magazine.author || "macdee 에디터",
+            url: `${baseUrl}/about`,
         },
         publisher: {
             "@type": "Organization",

@@ -1,7 +1,7 @@
-import { createAdminClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import MagazinePageClient from "./MagazinePageClient";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 600;
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
 
@@ -20,14 +20,14 @@ interface Magazine {
 }
 
 export default async function MagazinePage() {
-    const supabase = await createAdminClient();
+    const supabase = createServiceClient();
 
     const { data } = await supabase
         .from("magazines")
         .select("id, title, slug, excerpt, category, tags, cover_image_url, view_count, published_at, author")
         .eq("status", "published")
         .order("published_at", { ascending: false })
-        .limit(50);
+        .limit(200);
 
     const magazines: Magazine[] = data || [];
 

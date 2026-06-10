@@ -26,6 +26,7 @@ export const metadata: Metadata = {
             "변호사 광고, 로펌 마케팅 트렌드와 전략. 법률 마케팅 전문가가 직접 쓰는 인사이트.",
         type: "website",
         url: `${BASE_URL}/magazine`,
+        images: [`${BASE_URL}/og-image.png`],
     },
 };
 

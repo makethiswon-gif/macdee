@@ -383,6 +383,13 @@ function Footer() {
 export default function MagazinePageClient({ magazines }: { magazines: Magazine[] }) {
     const [showIntro, setShowIntro] = useState(true);
 
+    // 인트로는 세션당 1회만 — 재방문·내부 이동 시 콘텐츠 즉시 표시 (LCP/CWV 개선)
+    useEffect(() => {
+        if (typeof window !== "undefined" && sessionStorage.getItem("mz_intro_seen")) {
+            setShowIntro(false);
+        }
+    }, []);
+
     useEffect(() => {
         if (showIntro) {
             document.body.style.overflow = "hidden";
@@ -395,7 +402,10 @@ export default function MagazinePageClient({ magazines }: { magazines: Magazine[
     return (
         <main>
             <AnimatePresence mode="wait">
-                {showIntro && <IntroSplash key="intro" onComplete={() => setShowIntro(false)} />}
+                {showIntro && <IntroSplash key="intro" onComplete={() => {
+                    if (typeof window !== "undefined") sessionStorage.setItem("mz_intro_seen", "1");
+                    setShowIntro(false);
+                }} />}
             </AnimatePresence>
 
             <motion.div
