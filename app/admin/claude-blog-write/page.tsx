@@ -28,6 +28,8 @@ interface TopicResponse {
     }>;
 }
 
+const TOPIC_CACHE_VERSION = "v2";
+
 const FALLBACK_TOPIC_FIELDS: TopicResponse["fields"] = [
     {
         id: "divorce",
@@ -255,6 +257,51 @@ const FALLBACK_TOPIC_FIELDS: TopicResponse["fields"] = [
         ],
     },
     {
+        id: "bankruptcy",
+        label: "회생/파산",
+        topics: [
+            {
+                fieldId: "bankruptcy",
+                fieldLabel: "회생/파산",
+                topic: "개인회생 신청 전 통장거래를 정리해야 하는 이유",
+                keyword: "개인회생 통장거래",
+                intent: "개인회생을 준비하면서 최근 입출금 내역이 문제가 될지 걱정하는 채무자의 검색 의도",
+                angle: "재산 은닉 오해, 편파변제, 소득 입증 문제가 변제계획에 영향을 줄 수 있다는 점을 설명",
+                titleIdeas: ["개인회생 전 통장거래, 왜 먼저 봐야 할까", "개인회생 신청 전에 하면 안 되는 이체"],
+                talkingPoints: ["최근 입출금 내역", "편파변제 위험", "소득과 생계비 입증"],
+                conversionPoint: "신청 전 통장내역을 정리해 기각·보정 리스크 상담 유도",
+                newsRefs: [],
+                score: 92,
+            },
+            {
+                fieldId: "bankruptcy",
+                fieldLabel: "회생/파산",
+                topic: "개인파산과 면책이 기각될 수 있는 경우",
+                keyword: "개인파산 면책 기각",
+                intent: "파산 신청을 해도 빚이 없어지지 않을까 봐 불안한 채무자의 검색 의도",
+                angle: "면책불허가 사유와 최근 소비·채무 발생 경위를 중심으로 설명",
+                titleIdeas: ["개인파산 면책, 이런 경우 기각될 수 있습니다", "파산 신청 전 꼭 확인해야 할 면책불허가 사유"],
+                talkingPoints: ["면책불허가 사유", "도박·투자 채무", "재산 처분 내역"],
+                conversionPoint: "신청 가능성 판단과 자료 보완 상담 유도",
+                newsRefs: [],
+                score: 90,
+            },
+            {
+                fieldId: "bankruptcy",
+                fieldLabel: "회생/파산",
+                topic: "사업자 채무가 있을 때 회생과 파산 중 무엇을 선택할까",
+                keyword: "사업자 회생 파산",
+                intent: "매출은 줄고 채무는 늘어난 자영업자·법인 대표의 검색 의도",
+                angle: "영업 지속 가능성, 채권자 대응, 보증채무를 기준으로 절차 선택을 설명",
+                titleIdeas: ["사업자 채무, 회생과 파산 중 무엇이 맞을까", "자영업자 빚 문제에서 절차 선택 기준"],
+                talkingPoints: ["영업 계속 가능성", "보증채무와 세금", "채권자 독촉 대응"],
+                conversionPoint: "독촉·압류 전 절차 선택 상담 유도",
+                newsRefs: [],
+                score: 89,
+            },
+        ],
+    },
+    {
         id: "civil",
         label: "민사",
         topics: [
@@ -326,13 +373,16 @@ export default function ClaudeBlogWritePage() {
         setTopicsLoading(true);
         setTopicsError("");
         try {
-            const cacheKey = `macdee:claude-blog-topics:${todayKey}`;
+            const cacheKey = `macdee:claude-blog-topics:${TOPIC_CACHE_VERSION}:${todayKey}`;
             if (!force) {
                 const cached = localStorage.getItem(cacheKey);
                 if (cached) {
-                    setTopicsData(JSON.parse(cached));
-                    setTopicsLoading(false);
-                    return;
+                    const parsed = JSON.parse(cached) as TopicResponse;
+                    if (parsed.fields?.some((item) => item.id === "bankruptcy")) {
+                        setTopicsData(parsed);
+                        setTopicsLoading(false);
+                        return;
+                    }
                 }
             }
 

@@ -3,7 +3,7 @@ import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
 
 export const maxDuration = 120;
 
-type FieldId = "divorce" | "criminal" | "real-estate" | "construction" | "inheritance" | "civil";
+type FieldId = "divorce" | "criminal" | "real-estate" | "construction" | "inheritance" | "bankruptcy" | "civil";
 
 interface NewsRef {
     title: string;
@@ -42,6 +42,7 @@ const LEGAL_FIELDS: Array<{ id: FieldId; label: string; queries: string[] }> = [
     { id: "real-estate", label: "부동산", queries: ["전세보증금 반환 명도소송 임대차 분쟁", "부동산 계약 해제 손해배상"] },
     { id: "construction", label: "건설", queries: ["공사대금 하자보수 지체상금 건설 분쟁", "건설 공사 계약 손해배상"] },
     { id: "inheritance", label: "상속", queries: ["상속 유류분 한정승인 상속포기", "상속재산분할 유언 분쟁"] },
+    { id: "bankruptcy", label: "회생/파산", queries: ["개인회생 개인파산 면책 채무조정", "법인회생 법인파산 채무 변제계획"] },
     { id: "civil", label: "민사", queries: ["대여금 손해배상 내용증명 민사소송", "민사 소송 가압류 지급명령"] },
 ];
 
@@ -150,6 +151,7 @@ function normalizeTopic(raw: Partial<TopicSuggestion>, fieldId: FieldId, fieldLa
         "real-estate": ["전세보증금 반환이 늦어질 때 바로 할 일", "명도소송 전에 내용증명을 보내는 이유", "부동산 계약 해제와 계약금 반환 분쟁"],
         construction: ["공사대금 미지급 때 남겨야 할 증거", "하자보수와 손해배상 청구의 차이", "지체상금이 전액 인정되지 않는 경우"],
         inheritance: ["유류분 청구 전 증여 내역을 확인해야 하는 이유", "상속포기와 한정승인을 헷갈리면 생기는 문제", "상속재산분할 협의가 깨졌을 때 소송 흐름"],
+        bankruptcy: ["개인회생 신청 전 통장거래를 정리해야 하는 이유", "개인파산과 면책이 기각될 수 있는 경우", "사업자 채무가 있을 때 회생과 파산 중 무엇을 선택할까"],
         civil: ["차용증 없이 빌려준 돈을 받는 방법", "손해배상 청구에서 입증자료가 부족한 경우", "내용증명을 무시당한 뒤 다음 단계"],
     };
     const topic = raw.topic || fallbackTopics[fieldId][index] || `${fieldLabel} 상담 전 꼭 확인할 쟁점`;
@@ -202,7 +204,7 @@ async function generateTopics(newsByField: Record<FieldId, NewsRef[]>): Promise<
 오늘 수집한 법률 뉴스 신호를 참고하되, 뉴스 요약이 아니라 변호사 블로그에 올리면 상담 전환이 잘 날 주제를 추천합니다.
 
 규칙:
-- 분야별로 정확히 3개씩 추천합니다. 분야는 이혼, 형사, 부동산, 건설, 상속, 민사입니다.
+- 분야별로 정확히 3개씩 추천합니다. 분야는 이혼, 형사, 부동산, 건설, 상속, 회생/파산, 민사입니다.
 - 각 분야 3개는 1) 최근 뉴스/제도/판례 신호 기반 1개, 2) 꾸준한 검색 수요형 1개, 3) 상담 전환형 불안 해소 주제 1개로 구성합니다.
 - 선정 기준은 검색 의도, 긴급성, 증거/기간 리스크, 상담 유도 가능성입니다.
 - 과장, 승소 보장, 확인되지 않은 판례 번호는 금지합니다.
