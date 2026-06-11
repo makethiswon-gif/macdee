@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generateAllChannels } from "@/lib/ai/generate";
 import { maskPII } from "@/lib/ai/mask-pii";
+import { cleanBody } from "@/lib/ai-content";
+import { makeSlug } from "@/lib/slug";
 
 // POST: Generate AI content from an upload
 export async function POST(request: Request) {
@@ -111,7 +113,7 @@ export async function POST(request: Request) {
             // Parse channel-specific output
             if (r.channel === "google" || r.channel === "macdee") {
                 try {
-                    let cleanJson = stripCodeBlock(r.data.content);
+                    const cleanJson = stripCodeBlock(r.data.content);
                     // Robust JSON sanitization: fix literal \n inside string values
                     // First try direct parse
                     let parsed;
@@ -244,7 +246,14 @@ export async function POST(request: Request) {
                 }
             }
 
+            if (r.channel === "google" || r.channel === "macdee") {
+                body = cleanBody(body);
+                title = title.replace(/\s*-\s*(google|macdee|blog|instagram)\s*$/i, "").trim();
+            }
+
+            const contentId = crypto.randomUUID();
             const insertData: Record<string, unknown> = {
+                id: contentId,
                 upload_id,
                 lawyer_id: lawyer.id,
                 channel: r.channel,
@@ -255,6 +264,10 @@ export async function POST(request: Request) {
                 schema_markup: schemaMarkup,
                 status: "review",
             };
+
+            if ((r.channel === "google" || r.channel === "macdee") && title) {
+                insertData.slug = makeSlug(title, contentId);
+            }
 
             let content = null;
             let error = null;

@@ -1,7 +1,8 @@
 import { Metadata } from "next";
-import { permanentRedirect } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
-import { parseAiContent } from "@/lib/ai-content";
+import { cleanBody, parseAiContent } from "@/lib/ai-content";
+import { isPublicLawyerSlug } from "@/lib/public-content";
 import PostPageClient from "./PostPageClient";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +17,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const postSlug = decodeURIComponent(rawPostSlug);
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
+    if (!isPublicLawyerSlug(slug)) {
+        return { title: "포스트를 찾을 수 없습니다", robots: { index: false, follow: false } };
+    }
+
     try {
         const apiRes = await fetch(`${baseUrl}/api/blog/${encodeURIComponent(slug)}/${encodeURIComponent(postSlug)}`, { next: { revalidate: 60 } });
         if (!apiRes.ok) {
@@ -73,6 +78,10 @@ export default async function PostPage({ params }: Props) {
     const { slug: rawSlug, postSlug: rawPostSlug } = await params;
     const slug = decodeURIComponent(rawSlug);
     const postSlug = decodeURIComponent(rawPostSlug);
+    if (!isPublicLawyerSlug(slug)) {
+        notFound();
+    }
+
     // 순수 service role 클라이언트 — 브라우저의 anon 쿠키가 RLS를 트리거해 published 글을
     // 못 찾는 문제 방지 (createAdminClient는 SSR 쿠키 기반이라 쿠키가 service role을 덮어씀)
     const supabase = createServiceClient();
@@ -137,14 +146,13 @@ export default async function PostPage({ params }: Props) {
     let parsedTitle = post.title;
     let parsedBody = post.body || "";
     let parsedMeta = post.meta_description || "";
-    if (parsedBody.trimStart().startsWith("```") || parsedBody.trimStart().startsWith("{")) {
-        const parsed = parseAiContent(parsedBody);
-        if (parsed?.body) {
-            if (parsed.title) parsedTitle = parsed.title;
-            parsedBody = parsed.body;
-            if (parsed.meta_description && !parsedMeta) parsedMeta = parsed.meta_description;
-        }
+    const parsed = parseAiContent(parsedBody);
+    if (parsed?.body) {
+        if (parsed.title) parsedTitle = parsed.title;
+        parsedBody = cleanBody(parsedBody);
+        if (parsed.meta_description && !parsedMeta) parsedMeta = parsed.meta_description;
     }
+    parsedTitle = parsedTitle.replace(/\s*-\s*(google|macdee|blog|instagram)\s*$/i, "").trim();
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
     const canonicalPostSlug = post.slug || post.id;

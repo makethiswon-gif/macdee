@@ -77,7 +77,7 @@ export function parseAiContent(raw: string): AiContent | null {
 export function cleanBody(body: string): string {
     if (!body) return body;
     const t = body.trimStart();
-    if (t.startsWith("```") || t.startsWith("{")) {
+    if (t.startsWith("```") || t.startsWith("{") || /^json\s*\{/i.test(t)) {
         const parsed = parseAiContent(body);
         if (parsed?.body && parsed.body.trim()) return parsed.body;
     }

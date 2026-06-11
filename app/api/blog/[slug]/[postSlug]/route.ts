@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
+import { cleanBody, parseAiContent } from "@/lib/ai-content";
+import { isPublicLawyerSlug } from "@/lib/public-content";
 
 // GET /api/blog/[slug]/[postSlug] → 개별 포스트
 export async function GET(
@@ -8,6 +10,10 @@ export async function GET(
 ) {
     try {
         const { slug, postSlug } = await params;
+        if (!isPublicLawyerSlug(slug)) {
+            return NextResponse.json({ error: "블로그를 찾을 수 없습니다." }, { status: 404 });
+        }
+
         const supabase = createServiceClient();
 
         // Get lawyer
@@ -48,6 +54,11 @@ export async function GET(
             return NextResponse.json({ error: "포스트를 찾을 수 없습니다." }, { status: 404 });
         }
 
+        const parsedPost = parseAiContent(post.body || "");
+        const postBody = cleanBody(post.body || "");
+        const postTitle = (parsedPost?.title || post.title || "").replace(/\s*-\s*(google|macdee|blog|instagram)\s*$/i, "").trim();
+        const postMetaDescription = post.meta_description || parsedPost?.meta_description || null;
+
         // Look up related instagram card news (same upload_id)
         let cardNewsSlides: { slide: number; text: string }[] = [];
         let cardNewsCoverImage: string | null = null;
@@ -85,12 +96,12 @@ export async function GET(
             },
             post: {
                 id: post.id,
-                title: post.title,
+                title: postTitle,
                 slug: post.slug || post.id,
-                body: post.body,
-                meta_description: post.meta_description,
-                tags: post.tags || [],
-                schema_markup: post.schema_markup,
+                body: postBody,
+                meta_description: postMetaDescription,
+                tags: post.tags || parsedPost?.keywords || [],
+                schema_markup: post.schema_markup || parsedPost?.schema_markup || parsedPost?.faq || null,
                 channel: post.channel,
                 created_at: post.created_at,
                 card_news_slides: cardNewsSlides,

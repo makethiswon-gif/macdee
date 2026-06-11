@@ -1,5 +1,20 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
+import { cleanBody } from "@/lib/ai-content";
+import { isPublicLawyerSlug } from "@/lib/public-content";
+
+function toPlainExcerpt(body: string | null | undefined, fallback: string | null | undefined): string {
+    const source = fallback || cleanBody(body || "");
+    return source
+        .replace(/<[^>]*>/g, " ")
+        .replace(/^#{1,6}\s+/gm, "")
+        .replace(/\*\*(.*?)\*\*/g, "$1")
+        .replace(/\[(.*?)\]\(.*?\)/g, "$1")
+        .replace(/[`~]/g, "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 150);
+}
 
 // GET /api/blog/[slug] → 변호사 프로필 + 발행된 포스트 목록
 export async function GET(
@@ -8,6 +23,10 @@ export async function GET(
 ) {
     try {
         const { slug } = await params;
+        if (!isPublicLawyerSlug(slug)) {
+            return NextResponse.json({ error: "블로그를 찾을 수 없습니다." }, { status: 404 });
+        }
+
         const supabase = await createAdminClient();
 
         // Get lawyer by slug
@@ -46,7 +65,7 @@ export async function GET(
                 id: p.id,
                 title: p.title,
                 slug: p.slug || p.id,
-                excerpt: p.meta_description || p.body?.substring(0, 150) + "...",
+                excerpt: `${toPlainExcerpt(p.body, p.meta_description)}...`,
                 tags: p.tags || [],
                 channel: p.channel,
                 created_at: p.created_at,

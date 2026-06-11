@@ -1,4 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/server";
+import { isPublicLawyerSlug } from "@/lib/public-content";
 
 export const revalidate = 3600; // 1시간마다 재생성
 
@@ -124,7 +125,7 @@ export async function GET() {
         }
 
         const lawyerBlocks = (lawyers || [])
-            .filter(l => l.slug && (postsByLawyer.get(l.id)?.length ?? 0) > 0)
+            .filter(l => isPublicLawyerSlug(l.slug) && (postsByLawyer.get(l.id)?.length ?? 0) > 0)
             .map(l => {
                 const specialty = (l.specialty || []).join(", ");
                 const office = l.office_name ? ` (${l.office_name})` : "";

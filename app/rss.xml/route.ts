@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
+import { cleanBody } from "@/lib/ai-content";
+import { isPublicLawyerSlug } from "@/lib/public-content";
 
 // RSS 2.0 feed for Naver Search Advisor + general RSS readers
 export async function GET(request: NextRequest) {
@@ -34,9 +36,10 @@ export async function GET(request: NextRequest) {
         for (const post of blogPosts || []) {
             const lawyerData = post.lawyers as unknown as { slug: string } | null;
             const lawyerSlug = lawyerData?.slug;
-            if (!lawyerSlug) continue;
-            const desc = (post.body || "").replace(/<[^>]*>/g, "").slice(0, 300);
-            const fullBody = (post.body || "").replace(/\]\]/g, "]]]]><![CDATA[");
+            if (!isPublicLawyerSlug(lawyerSlug)) continue;
+            const body = cleanBody(post.body || "");
+            const desc = body.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim().slice(0, 300);
+            const fullBody = body.replace(/\]\]/g, "]]]]><![CDATA[");
             const pubDate = new Date(post.updated_at).toUTCString();
             const postUrl = encodeURI(`${baseUrl}/blog/${lawyerSlug}/${post.slug || post.id}`);
             items += `

@@ -1,6 +1,8 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
+import { cleanBody, parseAiContent } from "@/lib/ai-content";
+import { isPublicLawyerSlug } from "@/lib/public-content";
 import BlogPageClient from "./BlogPageClient";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +15,8 @@ type Props = {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { slug: rawSlug } = await params;
     const slug = decodeURIComponent(rawSlug);
+    if (!isPublicLawyerSlug(slug)) return { title: "블로그를 찾을 수 없습니다", robots: { index: false, follow: false } };
+
     const supabase = createServiceClient();
     const { data: lawyer } = await supabase
         .from("lawyers")
@@ -56,6 +60,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function BlogPage({ params, searchParams }: Props) {
     const { slug: rawSlug } = await params;
     const slug = decodeURIComponent(rawSlug);
+    if (!isPublicLawyerSlug(slug)) {
+        notFound();
+    }
+
     const resolvedParams = searchParams ? await searchParams : {};
     const page = parseInt(resolvedParams.page as string) || 1;
     const limit = 10;
@@ -136,17 +144,10 @@ export default async function BlogPage({ params, searchParams }: Props) {
         let body = p.body || "";
         let excerpt = p.meta_description || "";
 
-        // Try to parse JSON body (stored raw from AI)
-        const trimmed = body.trim();
-        if (trimmed.startsWith("```") || trimmed.startsWith("{") || trimmed.startsWith("\"")) {
-            try {
-                const cleanJson = trimmed.replace(/^[\s]*```(?:json)?\s*\n?/, "").replace(/\n?\s*```[\s]*$/, "").trim();
-                const parsed = JSON.parse(cleanJson);
-                if (parsed.title) title = parsed.title;
-                if (parsed.body) body = parsed.body;
-                if (parsed.meta_description && !excerpt) excerpt = parsed.meta_description;
-            } catch { /* keep original */ }
-        }
+        const parsed = parseAiContent(body);
+        if (parsed?.title) title = parsed.title;
+        if (parsed?.body) body = cleanBody(body);
+        if (parsed?.meta_description && !excerpt) excerpt = parsed.meta_description;
 
         // Strip markdown for excerpt
         const plainBody = stripMarkdown(body);

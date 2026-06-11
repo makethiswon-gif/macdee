@@ -20,7 +20,7 @@ interface Magazine {
     author: string;
 }
 
-async function getMagazine(slug: string): Promise<Magazine | null> {
+async function getMagazine(slug: string, incrementView = false): Promise<Magazine | null> {
     try {
         const decodedSlug = decodeURIComponent(slug);
         const supabase = await createAdminClient();
@@ -33,12 +33,14 @@ async function getMagazine(slug: string): Promise<Magazine | null> {
 
         if (error || !magazine) return null;
 
-        // Increment view count (fire and forget)
-        supabase
-            .from("magazines")
-            .update({ view_count: (magazine.view_count || 0) + 1 })
-            .eq("id", magazine.id)
-            .then(() => { });
+        if (incrementView) {
+            // Increment view count only on the actual article render, not metadata generation.
+            supabase
+                .from("magazines")
+                .update({ view_count: (magazine.view_count || 0) + 1 })
+                .eq("id", magazine.id)
+                .then(() => { });
+        }
 
         return magazine;
     } catch {
@@ -92,7 +94,7 @@ export default async function MagazineArticlePage({
     params: Promise<{ slug: string }>;
 }) {
     const { slug } = await params;
-    const magazine = await getMagazine(slug);
+    const magazine = await getMagazine(slug, true);
     if (!magazine) notFound();
 
     // Markdown to HTML rendering

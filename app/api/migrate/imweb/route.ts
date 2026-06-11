@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
+import { verifyAdminToken } from "@/lib/admin-auth";
 import * as cheerio from "cheerio";
 
 // Extracted legacy IDs via browser subagent
@@ -29,6 +30,10 @@ const TITLES_MAP: Record<string, string> = {
 };
 
 export async function GET(request: Request) {
+    if (!verifyAdminToken(request)) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const supabase = await createAdminClient();
     const { searchParams } = new URL(request.url);
     const queryIdx = searchParams.get('idx');
@@ -73,7 +78,7 @@ export async function GET(request: Request) {
             const title = TITLES_MAP[idx] || parsedTitle;
 
             // Insert into Supabase
-            const { data, error } = await supabase.from('magazines').upsert({
+            const { error } = await supabase.from('magazines').upsert({
                 slug: idx, // Crucial for 301 match
                 title: title,
                 body: contentHtml,

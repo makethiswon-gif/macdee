@@ -71,6 +71,30 @@ const nextConfig: NextConfig = {
         destination: "/magazine/:idx",
         permanent: true,
       },
+      {
+        source: "/32",
+        has: [
+          {
+            type: "query",
+            key: "idx",
+            value: "(?<idx>.*)",
+          },
+        ],
+        destination: "/magazine/:idx",
+        permanent: true,
+      },
+      {
+        source: "/32/",
+        has: [
+          {
+            type: "query",
+            key: "idx",
+            value: "(?<idx>.*)",
+          },
+        ],
+        destination: "/magazine/:idx",
+        permanent: true,
+      },
 
       // 2. Legacy Column Fallbacks (Without ID)
       {

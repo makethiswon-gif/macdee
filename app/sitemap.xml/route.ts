@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
+import { isPublicLawyerSlug } from "@/lib/public-content";
 
 // Encode URL for sitemap (handle Korean characters)
 function sitemapUrl(url: string): string {
@@ -60,7 +61,7 @@ export async function GET() {
 
         // Lawyer blog listing pages (/blog/[lawyer-slug]) — high priority entry points
         for (const lawyer of lawyers || []) {
-            if (!lawyer.slug) continue;
+            if (!isPublicLawyerSlug(lawyer.slug)) continue;
             xml += `
     <url>
         <loc>${sitemapUrl(`${baseUrl}/blog/${lawyer.slug}`)}</loc>
@@ -76,7 +77,7 @@ export async function GET() {
         for (const post of blogPosts || []) {
             const lawyerData = post.lawyers as unknown as { slug: string } | null;
             const lawyerSlug = lawyerData?.slug;
-            if (!lawyerSlug) continue;
+            if (!isPublicLawyerSlug(lawyerSlug)) continue;
             const isRecent = new Date(post.created_at) > thirtyDaysAgo;
             const priority = isRecent ? 0.8 : 0.7;
             const changefreq = isRecent ? "daily" : "weekly";
