@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+import Link from "next/link";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import {
   FileText,
@@ -14,6 +16,8 @@ import {
   Check,
   ArrowRight,
   ArrowUpRight,
+  Bot,
+  BriefcaseBusiness,
   Menu,
   X,
 } from "lucide-react";
@@ -51,9 +55,9 @@ function Header() {
       <div className={`relative z-50 ${open ? "bg-[#0A0A0A]" : ""}`}>
         <div className="max-w-[1400px] mx-auto px-6 sm:px-10 lg:px-16">
           <div className="flex items-center justify-between h-20">
-            <a href="/" className="text-white text-lg font-bold tracking-tight">
+            <Link href="/" className="text-white text-lg font-bold tracking-tight">
               macdee.
-            </a>
+            </Link>
 
             <nav className="hidden md:flex items-center gap-10">
               {["서비스", "프로세스", "가격", "메이크디스원", "소개", "매거진"].map((t) => (
@@ -98,6 +102,136 @@ function Header() {
   );
 }
 
+/* ═══════════════════ ENTRY SPLIT ═══════════════════ */
+function EntrySplitSection() {
+  const macdeePoints = ["AI 콘텐츠 자동 생성", "구글·AI 검색 노출", "변호사 업무자료 기반 자동화"];
+  const makethisonePoints = ["변호사 광고 대행", "브랜드 블로그·SEO 운영", "법률 마케팅 전략 설계"];
+
+  return (
+    <section className="relative min-h-[100dvh] overflow-hidden bg-[#06101D]">
+      <div className="absolute inset-0 grid grid-cols-1 lg:grid-cols-2">
+        <div className="relative overflow-hidden border-b border-white/10 lg:border-b-0 lg:border-r lg:border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(53,99,174,0.28),transparent_42%),linear-gradient(160deg,#07111d_0%,#0d1c31_56%,#102543_100%)]">
+          <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }} />
+          <div className="absolute inset-0 bg-[linear-gradient(120deg,transparent_0%,transparent_38%,rgba(138,180,248,0.08)_38.4%,transparent_39%),linear-gradient(160deg,transparent_0%,transparent_62%,rgba(255,255,255,0.05)_62.4%,transparent_63%)]" />
+
+          <div className="relative flex min-h-[50dvh] lg:min-h-[100dvh] items-end px-6 pb-10 pt-28 sm:px-10 lg:px-14 lg:pb-14">
+            <motion.div
+              initial={{ opacity: 0, y: 28 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.9, delay: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
+              className="w-full max-w-[34rem]"
+            >
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#8AB4F8]/20 bg-[#8AB4F8]/10 px-3 py-1.5 text-[11px] font-medium tracking-[0.18em] text-[#8AB4F8] uppercase">
+                <Bot size={13} strokeWidth={1.8} />
+                AI Marketing Platform
+              </div>
+
+              <div className="mt-8">
+                <Image
+                  src="/logo.png"
+                  alt="macdee"
+                  width={520}
+                  height={188}
+                  priority
+                  className="h-auto w-[12rem] sm:w-[15rem] lg:w-[19rem]"
+                />
+                <div className="mt-4">
+                  <p className="text-[11px] uppercase tracking-[0.26em] text-white/42">AI Legal Marketing Platform</p>
+                  <div className="mt-3 h-px w-20 bg-white/12" />
+                </div>
+                <p className="mt-5 max-w-[26rem] text-[15px] leading-relaxed text-white/62 sm:text-[16px]">
+                  판결문, 상담 녹취, 메모를 넣으면 네이버 블로그, 구글 SEO, AI 검색용 콘텐츠까지 자동으로 만들어주는 변호사 마케팅 자동화 플랫폼.
+                </p>
+              </div>
+
+              <div className="mt-7 flex flex-wrap gap-2.5">
+                {macdeePoints.map((point) => (
+                  <span key={point} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[12px] text-white/55">
+                    {point}
+                  </span>
+                ))}
+              </div>
+
+              <div className="mt-9 flex items-center gap-4">
+                <a
+                  href="#macdee-home"
+                  className="group inline-flex items-center gap-3 rounded-full bg-white px-6 py-3 text-[14px] font-semibold text-[#0A0A0A] transition-all hover:bg-[#E8E8E8]"
+                >
+                  맥디로 들어가기
+                  <ArrowUpRight size={15} className="transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                </a>
+                <span className="text-[12px] text-white/28">AI 자동화 서비스 둘러보기</span>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+
+        <div className="relative overflow-hidden bg-[radial-gradient(circle_at_top_right,rgba(77,139,245,0.12),transparent_35%),linear-gradient(160deg,#0a1630_0%,#07101d_40%,#0d1421_100%)]">
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),transparent_18%),linear-gradient(130deg,transparent_0%,transparent_42%,rgba(77,139,245,0.08)_42.5%,transparent_43%)]" />
+
+          <div className="relative flex min-h-[50dvh] lg:min-h-[100dvh] items-end px-6 pb-10 pt-28 sm:px-10 lg:px-14 lg:pb-14">
+            <motion.div
+              initial={{ opacity: 0, y: 28 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.9, delay: 0.32, ease: [0.25, 0.1, 0.25, 1] }}
+              className="w-full max-w-[34rem]"
+            >
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#4D8BF5]/25 bg-[#0038A8]/20 px-3 py-1.5 text-[11px] font-medium tracking-[0.18em] text-[#8AB4F8] uppercase">
+                <BriefcaseBusiness size={13} strokeWidth={1.8} />
+                Law Firm Marketing Agency
+              </div>
+
+              <div className="mt-8">
+                <div className="flex items-center gap-3">
+                  <span className="inline-block h-0 w-0 border-l-[10px] border-r-[10px] border-t-[14px] border-l-transparent border-r-transparent border-t-white/90 translate-y-[-2px]" />
+                  <span className="font-sans text-[2.4rem] font-black leading-none tracking-[-0.05em] text-white sm:text-[3.1rem] lg:text-[4rem]">
+                    makethis1<span className="text-[#4D8BF5]">.</span>
+                  </span>
+                </div>
+                <div className="mt-4">
+                  <p className="text-[11px] uppercase tracking-[0.26em] text-white/42">Law Firm Marketing Partner</p>
+                  <div className="mt-3 h-px w-20 bg-white/12" />
+                </div>
+                <p className="mt-5 max-w-[27rem] text-[15px] leading-relaxed text-white/62 sm:text-[16px]">
+                  메이크디스원은 변호사 광고, 법무법인 광고, 로펌 브랜딩을 실제 운영 전략과 콘텐츠 실행까지 함께 맡는 법률 마케팅 대행사입니다.
+                </p>
+              </div>
+
+              <div className="mt-7 flex flex-wrap gap-2.5">
+                {makethisonePoints.map((point) => (
+                  <span key={point} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[12px] text-white/55">
+                    {point}
+                  </span>
+                ))}
+              </div>
+
+              <div className="mt-9 flex items-center gap-4">
+                <Link
+                  href="/makethisone"
+                  className="group inline-flex items-center gap-3 rounded-full border border-white/14 bg-white/[0.06] px-6 py-3 text-[14px] font-semibold text-white transition-all hover:bg-white hover:text-[#0A0A0A]"
+                >
+                  메이크디스원 보기
+                  <ArrowUpRight size={15} className="transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                </Link>
+                <span className="text-[12px] text-white/28">광고 대행 서비스 살펴보기</span>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, delay: 0.5 }}
+        className="pointer-events-none absolute bottom-6 left-1/2 z-10 hidden -translate-x-1/2 lg:flex items-center gap-3 rounded-full border border-white/10 bg-black/25 px-4 py-2 text-[11px] uppercase tracking-[0.18em] text-white/40 backdrop-blur-sm"
+      >
+        one company, two ways in
+      </motion.div>
+    </section>
+  );
+}
+
 /* ═══════════════════ HERO ═══════════════════ */
 function HeroSection() {
   const ref = useRef(null);
@@ -106,7 +240,7 @@ function HeroSection() {
   const scale = useTransform(scrollYProgress, [0, 0.8], [1, 0.96]);
 
   return (
-    <section ref={ref} className="relative min-h-[100dvh] flex items-center bg-[#0A0A0A] overflow-hidden">
+    <section id="macdee-home" ref={ref} className="relative min-h-[100dvh] flex items-center bg-[#0A0A0A] overflow-hidden">
       {/* Subtle grain */}
       <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }} />
 
@@ -745,6 +879,7 @@ export default function HomePageClient() {
         transition={{ duration: 0.5, delay: 0.3 }}
       >
         <Header />
+        <EntrySplitSection />
         <HeroSection />
         <FeaturesSection />
         <AIQualitySection />

@@ -4,13 +4,13 @@ import HomePageClient from "./HomePageClient";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-    title: "macdee | 변호사를 위한 AI 마케팅 자동화 플랫폼",
-    description: "네이버 블로그 글을 ChatGPT·Perplexity·Gemini 등 AI가 구글·AI 검색에 최적화된 콘텐츠로 자동 변환. 변호사 전문 마케팅 플랫폼.",
-    keywords: ["변호사 마케팅", "로펌 SEO", "변호사 블로그", "AI 법률 콘텐츠", "변호사 광고", "AI 마케팅 자동화", "법률 마케팅"],
+    title: "macdee · makethis1 | AI 마케팅 자동화 플랫폼 · 변호사 광고 대행사",
+    description: "맥디 AI 마케팅 자동화 플랫폼과 메이크디스원 변호사 광고 대행사를 한 곳에서 만나는 법률 마케팅 홈페이지. 변호사 광고, 로펌 SEO, 블로그 운영, AI 콘텐츠 자동화를 함께 제공합니다.",
+    keywords: ["변호사 마케팅", "로펌 SEO", "변호사 블로그", "AI 법률 콘텐츠", "변호사 광고", "AI 마케팅 자동화", "법률 마케팅", "메이크디스원", "makethis1", "변호사 광고 대행"],
     alternates: { canonical: "https://www.makethis1.com" },
     openGraph: {
-        title: "macdee | 변호사 AI 마케팅 자동화",
-        description: "변호사 블로그를 AI가 자동 최적화. Google·ChatGPT·Perplexity 검색 상위 노출.",
+        title: "macdee · makethis1 | 법률 마케팅 플랫폼과 광고 대행",
+        description: "맥디의 AI 자동화와 메이크디스원의 변호사 광고 대행을 한 화면에서 선택할 수 있는 법률 마케팅 홈페이지.",
         images: ["/og-image.png"],
         type: "website",
     },
