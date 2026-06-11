@@ -28,6 +28,279 @@ interface TopicResponse {
     }>;
 }
 
+const FALLBACK_TOPIC_FIELDS: TopicResponse["fields"] = [
+    {
+        id: "divorce",
+        label: "이혼",
+        topics: [
+            {
+                fieldId: "divorce",
+                fieldLabel: "이혼",
+                topic: "재산분할에서 특유재산이 실제로 나뉘는 경우",
+                keyword: "이혼 재산분할 특유재산",
+                intent: "결혼 전 재산이나 부모님 지원금도 나눠야 하는지 확인하려는 검색 의도",
+                angle: "특유재산이라도 유지·증식 기여가 있으면 다툼이 생긴다는 점을 사례형으로 설명",
+                titleIdeas: ["특유재산도 재산분할 대상이 될까", "이혼 재산분할, 결혼 전 재산도 나뉘나"],
+                talkingPoints: ["특유재산과 공동재산의 구분", "기여도 입증자료", "초기 재산목록 정리의 중요성"],
+                conversionPoint: "재산 흐름 자료를 놓치기 전에 상담을 유도",
+                newsRefs: [],
+                score: 88,
+            },
+            {
+                fieldId: "divorce",
+                fieldLabel: "이혼",
+                topic: "양육권 다툼에서 법원이 실제로 보는 생활환경",
+                keyword: "양육권 친권 면접교섭",
+                intent: "아이를 누가 키우게 될지 불안해하는 부모의 상담 전 검색 의도",
+                angle: "소득보다 실제 돌봄, 주거, 양육 계획이 중요하다는 점을 설명",
+                titleIdeas: ["양육권 소송에서 법원이 보는 기준", "아이를 키우고 싶다면 먼저 준비할 자료"],
+                talkingPoints: ["주양육자 자료", "아이 생활 안정성", "면접교섭 계획"],
+                conversionPoint: "감정싸움 전 양육자료 정리가 필요하다는 메시지",
+                newsRefs: [],
+                score: 86,
+            },
+            {
+                fieldId: "divorce",
+                fieldLabel: "이혼",
+                topic: "상간소송 증거로 카톡과 사진을 쓸 때 조심할 점",
+                keyword: "상간소송 증거",
+                intent: "이미 확보한 증거가 소송에서 쓸 수 있는지 확인하려는 검색 의도",
+                angle: "증거능력과 불법수집 위험을 함께 짚어 상담 필요성을 높임",
+                titleIdeas: ["상간소송 카톡 증거, 그대로 내도 될까", "불륜 증거 모을 때 하면 안 되는 행동"],
+                talkingPoints: ["합법 증거와 불법 증거", "위자료 산정 요소", "소장 전 증거 정리"],
+                conversionPoint: "증거를 더 모으기 전에 불법 리스크 점검 상담 유도",
+                newsRefs: [],
+                score: 90,
+            },
+        ],
+    },
+    {
+        id: "criminal",
+        label: "형사",
+        topics: [
+            {
+                fieldId: "criminal",
+                fieldLabel: "형사",
+                topic: "경찰 조사 전 진술서를 혼자 준비하면 위험한 사건",
+                keyword: "경찰조사 진술서",
+                intent: "첫 조사 전에 무엇을 말해야 할지 불안한 피의자·피고소인의 검색 의도",
+                angle: "첫 진술이 이후 사건 방향을 좌우한다는 점을 실무형으로 설명",
+                titleIdeas: ["경찰조사 전 진술서, 혼자 쓰면 위험한 이유", "첫 경찰조사 전에 준비해야 할 것"],
+                talkingPoints: ["첫 진술의 중요성", "불리한 표현", "변호인 동석 필요성"],
+                conversionPoint: "조사 일정 전 긴급 상담을 유도",
+                newsRefs: [],
+                score: 92,
+            },
+            {
+                fieldId: "criminal",
+                fieldLabel: "형사",
+                topic: "스토킹·데이트폭력 고소 후 합의가 가능한 시점",
+                keyword: "스토킹 고소 합의",
+                intent: "고소 후 처벌 수위와 합의 가능성을 확인하려는 검색 의도",
+                angle: "접근금지, 피해자 보호, 합의 전략을 균형 있게 설명",
+                titleIdeas: ["스토킹 고소 후 합의, 언제 가능할까", "데이트폭력 고소 뒤 바로 해야 할 일"],
+                talkingPoints: ["잠정조치", "합의 시점", "2차 가해 위험"],
+                conversionPoint: "연락 방식 하나도 문제가 될 수 있어 상담 유도",
+                newsRefs: [],
+                score: 87,
+            },
+            {
+                fieldId: "criminal",
+                fieldLabel: "형사",
+                topic: "보이스피싱 전달책으로 조사받을 때 무죄 주장 포인트",
+                keyword: "보이스피싱 전달책",
+                intent: "억울하게 가담자로 몰렸다고 느끼는 피의자의 검색 의도",
+                angle: "고의 인식 여부와 객관 자료의 중요성을 설명",
+                titleIdeas: ["보이스피싱 전달책, 몰랐다는 말만으로 부족합니다", "보이스피싱 가담 혐의 대응 방법"],
+                talkingPoints: ["고의성 판단", "구인공고·대화내역", "초기 조사 대응"],
+                conversionPoint: "휴대폰 자료 보존과 조사 전 상담 유도",
+                newsRefs: [],
+                score: 91,
+            },
+        ],
+    },
+    {
+        id: "real-estate",
+        label: "부동산",
+        topics: [
+            {
+                fieldId: "real-estate",
+                fieldLabel: "부동산",
+                topic: "전세보증금 반환이 늦어질 때 바로 해야 할 조치",
+                keyword: "전세보증금 반환",
+                intent: "집주인이 돈을 안 줄 때 당장 무엇을 해야 하는지 찾는 검색 의도",
+                angle: "내용증명, 임차권등기, 지급명령 순서를 구체적으로 설명",
+                titleIdeas: ["전세보증금 못 받을 때 바로 해야 할 일", "이사 전 임차권등기 꼭 해야 할까"],
+                talkingPoints: ["임차권등기명령", "보증보험", "지연손해금"],
+                conversionPoint: "이사 전 권리 보전 상담 유도",
+                newsRefs: [],
+                score: 94,
+            },
+            {
+                fieldId: "real-estate",
+                fieldLabel: "부동산",
+                topic: "명도소송 전에 내용증명을 보내야 하는 이유",
+                keyword: "명도소송 내용증명",
+                intent: "임차인 퇴거 문제를 빠르게 해결하려는 임대인의 검색 의도",
+                angle: "해지 통보와 점유관계 정리가 소송기간에 영향을 준다는 점을 설명",
+                titleIdeas: ["명도소송 전 내용증명, 왜 먼저 보내야 할까", "임차인이 안 나갈 때 명도소송 순서"],
+                talkingPoints: ["계약해지 통보", "점유자 특정", "강제집행 준비"],
+                conversionPoint: "무리한 자력구제 방지와 소송 설계 상담 유도",
+                newsRefs: [],
+                score: 86,
+            },
+            {
+                fieldId: "real-estate",
+                fieldLabel: "부동산",
+                topic: "매매계약 해제와 계약금 반환 분쟁",
+                keyword: "부동산 계약해제 계약금",
+                intent: "계약금을 돌려받거나 지켜야 하는 상황에서 검색하는 의도",
+                angle: "해제 사유, 위약금, 중도금 지급 여부를 중심으로 설명",
+                titleIdeas: ["부동산 계약 해제, 계약금 돌려받을 수 있을까", "매매계약 파기 전 꼭 확인할 것"],
+                talkingPoints: ["해약금과 위약금", "중도금 지급 후 해제", "문자·계약서 증거"],
+                conversionPoint: "해제 통보 전 문구 검토 상담 유도",
+                newsRefs: [],
+                score: 84,
+            },
+        ],
+    },
+    {
+        id: "construction",
+        label: "건설",
+        topics: [
+            {
+                fieldId: "construction",
+                fieldLabel: "건설",
+                topic: "공사대금 미지급 때 증거로 남겨야 할 자료",
+                keyword: "공사대금 미지급",
+                intent: "공사를 끝냈는데 돈을 못 받은 시공자의 검색 의도",
+                angle: "계약서가 부족해도 기성고와 추가공사 자료로 입증하는 흐름 설명",
+                titleIdeas: ["공사대금 못 받았을 때 필요한 증거", "계약서 없어도 공사대금 청구 가능할까"],
+                talkingPoints: ["견적서·세금계산서", "현장 사진", "추가공사 승인"],
+                conversionPoint: "자료가 사라지기 전 증거 정리 상담 유도",
+                newsRefs: [],
+                score: 89,
+            },
+            {
+                fieldId: "construction",
+                fieldLabel: "건설",
+                topic: "하자보수 청구와 손해배상 청구의 차이",
+                keyword: "건설 하자보수 손해배상",
+                intent: "하자 때문에 수리비나 배상을 받을 수 있는지 확인하려는 검색 의도",
+                angle: "감정, 하자 범위, 보수비 산정을 쉽게 설명",
+                titleIdeas: ["하자보수와 손해배상, 무엇을 청구해야 할까", "건설 하자 분쟁에서 감정이 중요한 이유"],
+                talkingPoints: ["하자 감정", "보수비 산정", "담보책임 기간"],
+                conversionPoint: "현장 보존과 감정 전 상담 유도",
+                newsRefs: [],
+                score: 85,
+            },
+            {
+                fieldId: "construction",
+                fieldLabel: "건설",
+                topic: "지체상금 약정이 있어도 전액 인정되지 않는 경우",
+                keyword: "공사지연 지체상금",
+                intent: "공사가 늦어졌거나 지체상금을 청구받은 당사자의 검색 의도",
+                angle: "귀책사유와 공기연장 사유가 핵심이라는 점 설명",
+                titleIdeas: ["공사지연 지체상금, 전액 내야 할까", "지체상금 분쟁에서 꼭 보는 자료"],
+                talkingPoints: ["공기연장 사유", "발주자 귀책", "지체상금 감액"],
+                conversionPoint: "공정표와 현장 기록 검토 상담 유도",
+                newsRefs: [],
+                score: 83,
+            },
+        ],
+    },
+    {
+        id: "inheritance",
+        label: "상속",
+        topics: [
+            {
+                fieldId: "inheritance",
+                fieldLabel: "상속",
+                topic: "유류분 청구 전에 증여 내역을 확인해야 하는 이유",
+                keyword: "유류분 반환청구",
+                intent: "형제 중 누가 더 많이 받았는지 다투는 상속인의 검색 의도",
+                angle: "생전증여와 특별수익 자료가 결과를 바꾼다는 점을 설명",
+                titleIdeas: ["유류분 청구 전 증여 내역부터 확인하세요", "상속에서 생전증여가 문제 되는 경우"],
+                talkingPoints: ["특별수익", "금융거래내역", "청구 기간"],
+                conversionPoint: "기간 도과 전 자료 추적 상담 유도",
+                newsRefs: [],
+                score: 90,
+            },
+            {
+                fieldId: "inheritance",
+                fieldLabel: "상속",
+                topic: "상속포기와 한정승인을 헷갈리면 생기는 문제",
+                keyword: "상속포기 한정승인",
+                intent: "빚이 많은 상속을 어떻게 처리해야 하는지 찾는 검색 의도",
+                angle: "3개월 기간과 선택별 효과 차이를 명확히 설명",
+                titleIdeas: ["상속포기와 한정승인, 선택을 잘못하면 생기는 일", "상속 빚이 많을 때 3개월 안에 해야 할 일"],
+                talkingPoints: ["숙려기간", "채무 확인", "후순위 상속인"],
+                conversionPoint: "3개월 기한 전 긴급 상담 유도",
+                newsRefs: [],
+                score: 93,
+            },
+            {
+                fieldId: "inheritance",
+                fieldLabel: "상속",
+                topic: "상속재산분할 협의가 깨졌을 때 소송 흐름",
+                keyword: "상속재산분할심판",
+                intent: "가족 간 협의가 안 될 때 다음 절차를 찾는 검색 의도",
+                angle: "협의, 조정, 심판 절차와 부동산 분할 방식을 설명",
+                titleIdeas: ["상속재산분할 협의가 안 될 때 다음 단계", "상속 부동산을 나누는 현실적인 방법"],
+                talkingPoints: ["상속인 확정", "재산목록", "기여분·특별수익"],
+                conversionPoint: "감정싸움 전에 재산표 정리 상담 유도",
+                newsRefs: [],
+                score: 85,
+            },
+        ],
+    },
+    {
+        id: "civil",
+        label: "민사",
+        topics: [
+            {
+                fieldId: "civil",
+                fieldLabel: "민사",
+                topic: "차용증 없이 빌려준 돈을 받을 수 있는 방법",
+                keyword: "대여금 소송 차용증",
+                intent: "차용증은 없지만 계좌이체나 카톡이 있는 채권자의 검색 의도",
+                angle: "돈을 빌려준 사실과 변제 약속을 어떻게 입증하는지 설명",
+                titleIdeas: ["차용증 없어도 빌려준 돈 받을 수 있을까", "대여금 소송에서 카톡 증거가 중요한 이유"],
+                talkingPoints: ["계좌이체 내역", "카톡·문자", "지급명령"],
+                conversionPoint: "상대가 재산을 빼기 전 보전처분 상담 유도",
+                newsRefs: [],
+                score: 91,
+            },
+            {
+                fieldId: "civil",
+                fieldLabel: "민사",
+                topic: "손해배상 청구에서 입증자료가 부족한 경우",
+                keyword: "손해배상 입증",
+                intent: "피해는 있는데 어떤 자료를 내야 할지 모르는 사람의 검색 의도",
+                angle: "손해 발생, 인과관계, 금액 입증을 분리해 설명",
+                titleIdeas: ["손해배상 청구, 증거가 부족하면 어떻게 될까", "피해를 입증하려면 어떤 자료가 필요할까"],
+                talkingPoints: ["손해액 산정", "인과관계", "진단서·견적서"],
+                conversionPoint: "자료 보완 가능성 상담 유도",
+                newsRefs: [],
+                score: 84,
+            },
+            {
+                fieldId: "civil",
+                fieldLabel: "민사",
+                topic: "내용증명을 보냈는데도 상대가 무시할 때 다음 단계",
+                keyword: "내용증명 다음 단계",
+                intent: "내용증명 이후 소송·지급명령 여부를 고민하는 검색 의도",
+                angle: "내용증명은 시작일 뿐이고 이후 절차 선택이 중요하다는 점 설명",
+                titleIdeas: ["내용증명 무시당했을 때 다음 단계", "내용증명 후 바로 소송해야 할까"],
+                talkingPoints: ["지급명령", "소장 제출", "가압류 검토"],
+                conversionPoint: "소송 전 절차 선택 상담 유도",
+                newsRefs: [],
+                score: 87,
+            },
+        ],
+    },
+];
+
 export default function ClaudeBlogWritePage() {
     const [field, setField] = useState("");
     const [content, setContent] = useState("");
@@ -149,7 +422,8 @@ export default function ClaudeBlogWritePage() {
         window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
-    const selectedTopics = topicsData?.fields.find((item) => item.id === selectedField)?.topics || [];
+    const topicFields = topicsData?.fields?.length ? topicsData.fields : FALLBACK_TOPIC_FIELDS;
+    const selectedTopics = topicFields.find((item) => item.id === selectedField)?.topics || [];
 
     return (
         <div className="max-w-5xl">
@@ -191,14 +465,7 @@ export default function ClaudeBlogWritePage() {
                 {topicsError && <p className="text-[13px] text-red-400 mb-3">{topicsError}</p>}
 
                 <div className="flex gap-1.5 overflow-x-auto pb-2 mb-4">
-                    {(topicsData?.fields || [
-                        { id: "divorce", label: "이혼", topics: [] },
-                        { id: "criminal", label: "형사", topics: [] },
-                        { id: "real-estate", label: "부동산", topics: [] },
-                        { id: "construction", label: "건설", topics: [] },
-                        { id: "inheritance", label: "상속", topics: [] },
-                        { id: "civil", label: "민사", topics: [] },
-                    ]).map((item) => (
+                    {topicFields.map((item) => (
                         <button
                             key={item.id}
                             onClick={() => setSelectedField(item.id)}
@@ -212,14 +479,15 @@ export default function ClaudeBlogWritePage() {
                     ))}
                 </div>
 
-                {topicsLoading && !topicsData ? (
-                    <div className="flex items-center gap-2 text-[13px] text-[#9CA3B0] py-6">
-                        <Loader2 size={15} className="animate-spin" />
-                        추천 주제를 불러오는 중…
+                {topicsLoading && !topicsData && (
+                    <div className="flex items-center gap-2 text-[12px] text-[#9CA3B0] mb-3">
+                        <Loader2 size={14} className="animate-spin" />
+                        최신 뉴스 기반 추천을 불러오는 중입니다. 먼저 기본 추천 주제를 표시합니다.
                     </div>
-                ) : (
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-                        {selectedTopics.map((topic) => (
+                )}
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                    {selectedTopics.map((topic) => (
                             <div key={`${topic.fieldId}-${topic.topic}`} className="bg-[#0B0F1A] border border-[#1A2035] rounded-lg p-4">
                                 <div className="flex items-start justify-between gap-3 mb-2">
                                     <h3 className="text-[14px] font-semibold text-white leading-snug">{topic.topic}</h3>
@@ -252,9 +520,8 @@ export default function ClaudeBlogWritePage() {
                                     이 주제로 쓰기
                                 </button>
                             </div>
-                        ))}
-                    </div>
-                )}
+                    ))}
+                </div>
             </div>
 
             {/* Input */}
