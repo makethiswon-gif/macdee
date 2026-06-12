@@ -12,10 +12,18 @@ type Props = {
     searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+function parsePageNumber(value: string | string[] | undefined): number {
+    const raw = Array.isArray(value) ? value[0] : value;
+    const parsed = Number.parseInt(raw || "1", 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+}
+
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
     const { slug: rawSlug } = await params;
     const slug = decodeURIComponent(rawSlug);
     if (!isPublicLawyerSlug(slug)) return { title: "블로그를 찾을 수 없습니다", robots: { index: false, follow: false } };
+    const resolvedSearchParams = searchParams ? await searchParams : {};
+    const page = parsePageNumber(resolvedSearchParams.page);
 
     const supabase = createServiceClient();
     const { data: lawyer } = await supabase
@@ -44,7 +52,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
             canonical: `${baseUrl}/blog/${slug}`,
         },
         robots: {
-            index: true,
+            index: page === 1,
             follow: true,
         },
         openGraph: {
@@ -65,7 +73,7 @@ export default async function BlogPage({ params, searchParams }: Props) {
     }
 
     const resolvedParams = searchParams ? await searchParams : {};
-    const page = parseInt(resolvedParams.page as string) || 1;
+    const page = parsePageNumber(resolvedParams.page);
     const limit = 10;
     const start = (page - 1) * limit;
     const end = start + limit - 1;
@@ -92,6 +100,9 @@ export default async function BlogPage({ params, searchParams }: Props) {
         .range(start, end);
 
     const totalPages = count ? Math.ceil(count / limit) : 1;
+    if (page > totalPages) {
+        notFound();
+    }
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
 
