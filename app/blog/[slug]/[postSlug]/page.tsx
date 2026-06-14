@@ -92,7 +92,7 @@ export default async function PostPage({ params }: Props) {
         .eq("slug", slug).single();
 
     if (!lawyer) {
-        return <div className="min-h-screen flex items-center justify-center"><p className="text-[#6B7280]">블로그를 찾을 수 없습니다.</p></div>;
+        notFound();
     }
 
     // UUID URL → slug URL: 301 redirect to canonical slug URL when slug exists
@@ -106,7 +106,7 @@ export default async function PostPage({ params }: Props) {
     if (isUuid && post?.slug) permanentRedirect(`/blog/${slug}/${encodeURIComponent(post.slug)}`);
 
     if (!post) {
-        return <div className="min-h-screen flex items-center justify-center"><p className="text-[#6B7280]">포스트를 찾을 수 없습니다.</p></div>;
+        notFound();
     }
 
     // Recent posts by same lawyer for internal linking
