@@ -28,7 +28,14 @@ interface PostItem {
     created_at: string;
 }
 
-export default function BlogPageClient({ lawyer, posts, currentPage, totalPages, totalCount }: { lawyer: LawyerInfo; posts: PostItem[]; currentPage: number; totalPages: number; totalCount: number }) {
+interface ArchivePostItem {
+    id: string;
+    title: string;
+    slug: string;
+    created_at: string;
+}
+
+export default function BlogPageClient({ lawyer, posts, archivePosts, currentPage, totalPages, totalCount }: { lawyer: LawyerInfo; posts: PostItem[]; archivePosts: ArchivePostItem[]; currentPage: number; totalPages: number; totalCount: number }) {
     const formatDate = (d: string) => {
         const date = new Date(d);
         return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")}`;
@@ -308,6 +315,35 @@ export default function BlogPageClient({ lawyer, posts, currentPage, totalPages,
                             </div>
                         )}
                     </div>
+                )}
+
+                {currentPage === 1 && archivePosts.length > 0 && (
+                    <section className="mt-20">
+                        <div className="flex items-center justify-between mb-6">
+                            <span className="text-[11px] text-white/20 tracking-[0.2em] uppercase font-medium">
+                                Archive
+                            </span>
+                            <span className="text-[11px] text-white/15">
+                                최근 글 더보기
+                            </span>
+                        </div>
+                        <div className="grid gap-x-8 gap-y-0 md:grid-cols-2 border-t border-white/[0.05]">
+                            {archivePosts.map((post) => (
+                                <Link
+                                    key={post.id}
+                                    href={`/blog/${lawyer.slug}/${post.slug}`}
+                                    className="flex items-start justify-between gap-4 py-4 border-b border-white/[0.05] hover:border-white/[0.1] transition-colors group"
+                                >
+                                    <span className="text-[13px] leading-relaxed text-white/45 group-hover:text-white/70 transition-colors">
+                                        {post.title}
+                                    </span>
+                                    <span className="flex-shrink-0 text-[11px] text-white/18 tabular-nums">
+                                        {formatDate(post.created_at)}
+                                    </span>
+                                </Link>
+                            ))}
+                        </div>
+                    </section>
                 )}
             </main>
 

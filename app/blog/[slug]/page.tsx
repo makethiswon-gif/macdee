@@ -99,6 +99,17 @@ export default async function BlogPage({ params, searchParams }: Props) {
         .order("created_at", { ascending: false })
         .range(start, end);
 
+    const archivePostsQuery = page === 1
+        ? await supabase
+            .from("contents")
+            .select("id, slug, title, created_at")
+            .eq("lawyer_id", lawyer.id)
+            .in("channel", ["google", "macdee"])
+            .eq("status", "published")
+            .order("created_at", { ascending: false })
+            .range(10, 69)
+        : { data: [] };
+
     const totalPages = count ? Math.ceil(count / limit) : 1;
     if (page > totalPages) {
         notFound();
@@ -145,8 +156,12 @@ export default async function BlogPage({ params, searchParams }: Props) {
             .replace(/^[-*]\s+/gm, "")        // list items
             .replace(/\n{2,}/g, " ")          // multiple newlines
             .replace(/\n/g, " ")              // single newlines
-            .replace(/\s{2,}/g, " ")          // collapse whitespace
-            .trim();
+        .replace(/\s{2,}/g, " ")          // collapse whitespace
+        .trim();
+    }
+
+    function normalizeTitle(title: string) {
+        return title.replace(/\s*-\s*(google|macdee|blog|instagram)\s*$/i, "").trim();
     }
 
     // Helper: parse post body (handles raw JSON or markdown)
@@ -169,7 +184,7 @@ export default async function BlogPage({ params, searchParams }: Props) {
         }
 
         // Remove channel suffix from title (e.g. "제목 - google")
-        title = title.replace(/\s*-\s*(google|macdee|blog|instagram)\s*$/i, "").trim();
+        title = normalizeTitle(title);
 
         return { id: p.id, title, slug: p.slug || p.id, excerpt, tags: p.tags || [], channel: p.channel, created_at: p.created_at };
     }
@@ -194,6 +209,12 @@ export default async function BlogPage({ params, searchParams }: Props) {
                 profile_image_url: lawyer.profile_image_url || "",
             }}
             posts={(posts || []).map(parsePost)}
+            archivePosts={(archivePostsQuery.data || []).map((post) => ({
+                id: post.id,
+                title: normalizeTitle(post.title),
+                slug: post.slug || post.id,
+                created_at: post.created_at,
+            }))}
             currentPage={page}
             totalPages={totalPages}
             totalCount={count || 0}

@@ -13,7 +13,6 @@ export async function GET() {
     try {
         const supabase = createServiceClient();
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
-        const now = new Date().toISOString();
 
         // 발행된 모든 포스트 (slug 없으면 UUID URL 사용 — 정상 동작)
         const { data: blogPosts } = await supabase
@@ -36,24 +35,35 @@ export async function GET() {
             .select("slug, updated_at")
             .not("slug", "is", null);
 
+        const latestBlogLastmod = blogPosts?.[0]?.updated_at || blogPosts?.[0]?.created_at || null;
+        const latestMagazineLastmod = magazines?.[0]?.updated_at || magazines?.[0]?.published_at || null;
+        const latestLawyerLastmod = lawyers
+            ?.map((lawyer) => lawyer.updated_at)
+            .filter(Boolean)
+            .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0] || null;
+
+        const homepageLastmod = latestBlogLastmod || latestMagazineLastmod || latestLawyerLastmod || new Date().toISOString();
+        const aboutLastmod = latestLawyerLastmod || latestMagazineLastmod || homepageLastmod;
+        const magazineIndexLastmod = latestMagazineLastmod || homepageLastmod;
+
         let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
     <url>
         <loc>${baseUrl}</loc>
-        <lastmod>${now}</lastmod>
+        <lastmod>${new Date(homepageLastmod).toISOString()}</lastmod>
         <changefreq>daily</changefreq>
         <priority>1.0</priority>
     </url>
     <url>
         <loc>${baseUrl}/about</loc>
-        <lastmod>${now}</lastmod>
+        <lastmod>${new Date(aboutLastmod).toISOString()}</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.95</priority>
     </url>
     <url>
         <loc>${baseUrl}/magazine</loc>
-        <lastmod>${now}</lastmod>
+        <lastmod>${new Date(magazineIndexLastmod).toISOString()}</lastmod>
         <changefreq>daily</changefreq>
         <priority>0.9</priority>
     </url>
@@ -81,10 +91,11 @@ export async function GET() {
             const isRecent = new Date(post.created_at) > thirtyDaysAgo;
             const priority = isRecent ? 0.8 : 0.7;
             const changefreq = isRecent ? "daily" : "weekly";
+            const postLastmod = post.updated_at || post.created_at;
             xml += `
     <url>
         <loc>${sitemapUrl(`${baseUrl}/blog/${lawyerSlug}/${post.slug || post.id}`)}</loc>
-        <lastmod>${new Date(post.updated_at).toISOString()}</lastmod>
+        <lastmod>${new Date(postLastmod).toISOString()}</lastmod>
         <changefreq>${changefreq}</changefreq>
         <priority>${priority}</priority>
     </url>`;
