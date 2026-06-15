@@ -1,7 +1,25 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
+import { postToThreads } from "@/lib/threads/post";
+import { generateThreadsCaption } from "@/lib/threads/caption";
 
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
+
+// 발행된 매거진 글을 스레드에 자동 게시 (best-effort — 실패해도 발행엔 영향 없음)
+async function autoPostToThreads(slug: string, title: string, excerpt: string, body: string) {
+    try {
+        const code = (slug.split("-").pop() || "").trim();
+        const shortUrl = code ? `${BASE_URL}/m/${code}` : `${BASE_URL}/magazine/${slug}`;
+        const caption = (await generateThreadsCaption({ title, excerpt, body })) || excerpt || title;
+        const result = await postToThreads({ text: caption, linkUrl: shortUrl });
+        if (result.error) console.error("[Magazine→Threads]", result.error);
+        return result;
+    } catch (e) {
+        console.error("[Magazine→Threads] error:", e);
+        return null;
+    }
+}
 
 function slugify(text: string): string {
     return text
@@ -72,7 +90,13 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "매거진 생성 실패" }, { status: 500 });
         }
 
-        return NextResponse.json({ magazine: data }, { status: 201 });
+        // 발행 상태로 생성되면 스레드에도 자동 게시
+        let threads = null;
+        if (status === "published") {
+            threads = await autoPostToThreads(data.slug, title, excerpt || content.substring(0, 160), content);
+        }
+
+        return NextResponse.json({ magazine: data, threads }, { status: 201 });
     } catch (err) {
         console.error("[Magazine] Error:", err);
         return NextResponse.json({ error: "서버 오류" }, { status: 500 });
@@ -89,6 +113,13 @@ export async function PATCH(request: Request) {
         const { id, ...updates } = body;
 
         if (!id) return NextResponse.json({ error: "id가 필요합니다." }, { status: 400 });
+
+        // 발행 전환 감지를 위해 기존 상태 조회
+        const { data: prior } = await supabase
+            .from("magazines")
+            .select("status, slug, title, body, excerpt")
+            .eq("id", id)
+            .single();
 
         if (updates.body || updates.title) {
             updates.seo_score = calculateSeoScore({
@@ -107,7 +138,18 @@ export async function PATCH(request: Request) {
         const { error } = await supabase.from("magazines").update(updates).eq("id", id);
         if (error) return NextResponse.json({ error: "업데이트 실패" }, { status: 500 });
 
-        return NextResponse.json({ success: true });
+        // draft → published 로 처음 전환될 때만 스레드 자동 게시 (수정/재발행 중복 방지)
+        let threads = null;
+        if (updates.status === "published" && prior && prior.status !== "published") {
+            threads = await autoPostToThreads(
+                prior.slug,
+                updates.title || prior.title,
+                updates.excerpt || prior.excerpt || "",
+                updates.body || prior.body || "",
+            );
+        }
+
+        return NextResponse.json({ success: true, threads });
     } catch {
         return NextResponse.json({ error: "서버 오류" }, { status: 500 });
     }
