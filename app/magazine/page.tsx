@@ -27,7 +27,9 @@ export default async function MagazinePage() {
         .from("magazines")
         .select("id, title, slug, excerpt, category, tags, cover_image_url, view_count, published_at, author")
         .eq("status", "published")
-        .order("published_at", { ascending: false })
+        // published_at이 비어도 최신글이 위로 오도록 NULLS LAST + created_at 보조 정렬
+        .order("published_at", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false })
         .limit(60);
 
     const magazines: Magazine[] = data || [];
