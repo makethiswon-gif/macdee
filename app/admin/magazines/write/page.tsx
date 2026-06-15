@@ -177,8 +177,18 @@ function MagazineWriteContent() {
 
             if (res.ok) {
                 setSaved(true);
+                // 발행 시 스레드 게시 결과 안내
+                if (publish && data.threads) {
+                    if (data.threads.ok) {
+                        alert("발행 완료 + 스레드에도 게시되었습니다.");
+                    } else if (data.threads.skipped) {
+                        alert("발행 완료. (스레드 환경변수 미설정으로 스레드 게시는 건너뜀)");
+                    } else {
+                        alert(`발행 완료. 단, 스레드 게시 실패: ${data.threads.error || "알 수 없는 오류"}`);
+                    }
+                }
                 if (publish) {
-                    setTimeout(() => router.push("/admin/magazines"), 500);
+                    setTimeout(() => router.push("/admin/magazines"), 1200);
                 }
             } else {
                 alert(`저장 실패: ${data.error || res.status}`);
