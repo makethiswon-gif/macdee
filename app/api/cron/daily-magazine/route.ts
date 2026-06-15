@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { uploadMagazineCover } from "@/lib/supabase/storage";
+import { postToThreads } from "@/lib/threads/post";
 import nodemailer from "nodemailer";
 
 // 웹검색 + Opus 생성 + 이미지 생성까지 한 번에 처리하므로 넉넉히
@@ -80,10 +81,24 @@ export async function GET(request: Request) {
         }
 
         const url = `${BASE_URL}/magazine/${inserted.slug}`;
-        // 5) 발행 알림(이메일) — best-effort
+
+        // 5) 스레드(Threads) 자동 포스팅 — best-effort
+        //    긴 한글 URL 대신 짧은 링크(/m/{code})를 link_attachment로 첨부 → 500자 제한 안 먹음
+        const shortCode = (inserted.slug.split("-").pop() || "").trim();
+        const shortUrl = shortCode ? `${BASE_URL}/m/${shortCode}` : url;
+        const caption = (article.threads || article.excerpt || article.title).trim();
+        let threads = null;
+        try {
+            threads = await postToThreads({ text: caption, linkUrl: shortUrl });
+            if (threads.error) console.error("[Daily Magazine] threads:", threads.error);
+        } catch (e) {
+            console.error("[Daily Magazine] threads error:", e);
+        }
+
+        // 6) 발행 알림(이메일) — best-effort
         await notify(article.title, url).catch((e) => console.error("[Daily Magazine] notify error:", e));
 
-        return NextResponse.json({ success: true, id: inserted.id, title: article.title, url });
+        return NextResponse.json({ success: true, id: inserted.id, title: article.title, url, threads });
     } catch (err) {
         console.error("[Daily Magazine] Error:", err);
         return NextResponse.json({ error: "서버 오류" }, { status: 500 });
@@ -99,6 +114,7 @@ interface Article {
     tags: string[];
     category: string;
     body: string;
+    threads: string;
 }
 
 async function generateArticleWithWebSearch(apiKey: string, recentTitles: string[]): Promise<Article | null> {
@@ -147,7 +163,9 @@ web_search 도구로 '오늘 기준 가장 최근의' 변호사·법무법인 �
 ===CATEGORY===
 (법률 마케팅 또는 업계 동향)
 ===BODY===
-(마크다운 본문, 2,500자 이상, ## 소제목 3개 이상)`;
+(마크다운 본문, 2,500자 이상, ## 소제목 3개 이상)
+===THREADS===
+(SNS 'Threads(스레드)'에 올릴 홍보 캡션. 한국어, 400자 이내. 글의 핵심을 후킹 있게 압축한 1~3문단으로, 변호사가 읽고 전문 끝까지 읽고 싶게 만드세요. 마지막 줄에 관련 해시태그 2~3개. URL은 절대 넣지 마세요(링크는 시스템이 별도로 첨부합니다). 'AI가 썼다', '스레드' 같은 메타 언급 금지.)`;
 
     const userPrompt = `오늘 기준 최신 변호사 업계 소식 또는 법률 마케팅 트렌드를 웹에서 조사한 뒤, 가장 가치 있는 주제로 macdee insights 칼럼을 작성해 주세요.${avoid}`;
 
@@ -238,7 +256,7 @@ async function notify(title: string, url: string) {
 
 // ─── 구분자 파싱 ───
 function parseDelimiterFormat(text: string): Article | null {
-    const keys = ["TITLE", "META_TITLE", "META_DESCRIPTION", "EXCERPT", "TAGS", "CATEGORY", "BODY"];
+    const keys = ["TITLE", "META_TITLE", "META_DESCRIPTION", "EXCERPT", "TAGS", "CATEGORY", "BODY", "THREADS"];
     const sections: Record<string, string> = {};
 
     for (let i = 0; i < keys.length; i++) {
@@ -263,6 +281,7 @@ function parseDelimiterFormat(text: string): Article | null {
         tags: sections["TAGS"] ? sections["TAGS"].split(",").map((t) => t.trim()).filter(Boolean) : [],
         category: sections["CATEGORY"] || "법률 마케팅",
         body: sections["BODY"],
+        threads: sections["THREADS"] || "",
     };
 }
 
