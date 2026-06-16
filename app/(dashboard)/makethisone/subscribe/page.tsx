@@ -5,6 +5,7 @@ import { Check, X, CreditCard, Sparkles, CheckCircle2, FileText, ArrowRight, Loa
 import Image from "next/image";
 import { loadTossPayments } from "@tosspayments/payment-sdk";
 import { toast } from "sonner";
+import { CREDIT_PACKS } from "@/lib/billing/one-time";
 
 // 요금제 데이터
 const PRICING_PLANS = [
@@ -125,6 +126,27 @@ export default function MakeThisOnePage() {
         }
     };
 
+    // 일회성(단건) 콘텐츠 크레딧 결제
+    const handleBuyCredit = (packId: string) => {
+        if (!tossPaymentsSDK) {
+            toast.error("결제 모듈을 불러오는 중입니다. 잠시 후 다시 시도해주세요.");
+            return;
+        }
+        const pack = CREDIT_PACKS[packId as keyof typeof CREDIT_PACKS];
+        if (!pack) return;
+        const orderId = `otp_${pack.id}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        tossPaymentsSDK.requestPayment("카드", {
+            amount: pack.price,
+            orderId,
+            orderName: pack.name,
+            successUrl: `${window.location.origin}/makethisone/purchase/success`,
+            failUrl: `${window.location.origin}/billing/fail`,
+        }).catch((err: any) => {
+            if (err?.code === "USER_CANCEL") toast.info("결제가 취소되었습니다.");
+            else toast.error(`결제 오류: ${err?.message || "알 수 없는 오류"}`);
+        });
+    };
+
     const plan = PRICING_PLANS.find(p => p.id === selectedPlan);
 
     return (
@@ -198,11 +220,11 @@ export default function MakeThisOnePage() {
                             ))}
                         </ul>
                         
-                        <button 
+                        <button
                             onClick={() => handleSubscribe(p.id)}
                             className={`w-full py-3.5 rounded-xl text-sm font-bold transition-all ${
-                                p.popular 
-                                ? "bg-[#3563AE] text-white hover:bg-[#2A4F8A] shadow-lg shadow-[#3563AE]/20" 
+                                p.popular
+                                ? "bg-[#3563AE] text-white hover:bg-[#2A4F8A] shadow-lg shadow-[#3563AE]/20"
                                 : "bg-white/[0.06] text-white hover:bg-white/[0.1]"
                             }`}
                         >
@@ -210,6 +232,39 @@ export default function MakeThisOnePage() {
                         </button>
                     </div>
                 ))}
+            </div>
+
+            {/* 일회성 콘텐츠 크레딧 단건 구매 */}
+            <div className="mt-20">
+                <div className="text-center mb-8">
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-[#9CA3B0] text-xs font-bold uppercase tracking-widest mb-4">
+                        One-time
+                    </div>
+                    <h2 className="text-2xl font-bold text-white mb-3">구독 없이, 필요한 만큼만</h2>
+                    <p className="text-[#9CA3B0] text-sm">정기 결제가 부담된다면 콘텐츠 건수를 한 번만 결제해서 사용할 수 있습니다.</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {Object.values(CREDIT_PACKS).map((pack) => (
+                        <div key={pack.id} className="flex flex-col p-7 rounded-3xl border border-white/[0.06] bg-[#11131A] hover:border-white/20 transition-all">
+                            <h3 className="text-lg font-bold text-white mb-1">{pack.name}</h3>
+                            <p className="text-sm text-[#9CA3B0] mb-6">콘텐츠 {pack.credits}건 단건 이용권</p>
+                            <div className="mb-8 flex items-end gap-1">
+                                <span className="text-3xl font-extrabold text-white">{pack.price.toLocaleString()}</span>
+                                <span className="text-sm font-medium text-[#9CA3B0] mb-1">원</span>
+                            </div>
+                            <button
+                                onClick={() => handleBuyCredit(pack.id)}
+                                className="mt-auto w-full py-3.5 rounded-xl text-sm font-bold bg-white/[0.06] text-white hover:bg-white/[0.1] transition-all"
+                            >
+                                한 번만 결제
+                            </button>
+                        </div>
+                    ))}
+                </div>
+                <p className="text-center text-xs text-[#6B7280] mt-6">
+                    단건 결제는 자동 갱신되지 않습니다. 결제 후 콘텐츠 건수는 영업일 기준 빠르게 계정에 반영됩니다.
+                </p>
             </div>
 
             {/* Modal */}
