@@ -104,10 +104,10 @@ async function analyze(input: {
 
     const user = `[변호사] ${input.name}
 [분야] ${input.field || "미입력"}
-[블로그 주소] ${input.blogUrl}
-[블로그 제목] ${input.blogTitle || "-"}
+[진단 대상 주소] ${input.blogUrl} (네이버 블로그·홈페이지 등 채널)
+[페이지 제목] ${input.blogTitle || "-"}
 
-[블로그 본문 일부]
+[본문 일부]
 ${input.blogSample || "(본문을 가져오지 못했습니다 — 웹검색으로 노출 상태를 진단해 주세요)"}
 
 위 변호사의 온라인 마케팅을 웹에서 조사한 뒤 진단해 주세요.`;

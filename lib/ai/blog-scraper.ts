@@ -188,14 +188,46 @@ async function scrapeGenericUrl(url: string): Promise<ScrapedContent> {
 }
 
 /**
- * Main entry point: scrape any URL. Detects Naver blog URLs automatically.
+ * 네이버 블로그 '홈' 주소(글번호 없는 blog.naver.com/아이디)에서 블로그 ID 추출.
+ */
+function naverBlogHomeId(url: string): string | null {
+    const m = url.match(/^https?:\/\/(?:m\.)?blog\.naver\.com\/([^/?#]+)\/?(?:[?#].*)?$/);
+    if (m && m[1] && m[1] !== "PostView.naver" && !/^\d+$/.test(m[1])) return m[1];
+    return null;
+}
+
+/**
+ * 네이버 블로그 홈 주소 → RSS로 최신 글을 찾아 본문 스크래핑.
+ */
+async function scrapeNaverBlogHome(blogId: string): Promise<ScrapedContent> {
+    try {
+        const rssRes = await fetch(`https://rss.blog.naver.com/${blogId}.xml`, {
+            headers: { "User-Agent": "Mozilla/5.0", Accept: "application/rss+xml,text/xml" },
+        });
+        if (rssRes.ok) {
+            const xml = await rssRes.text();
+            // 글번호(/숫자)로 끝나는 첫 게시글 링크
+            const postLink = xml.match(/https?:\/\/[^<\s"]*blog\.naver\.com\/[^<\s"]+\/\d+/i)?.[0];
+            if (postLink && toNaverMobileUrl(postLink)) {
+                return scrapeNaverBlog(postLink);
+            }
+        }
+    } catch {
+        /* RSS 실패 시 아래 범용 스크래핑으로 폴백 */
+    }
+    return scrapeGenericUrl(`https://blog.naver.com/${blogId}`);
+}
+
+/**
+ * Main entry point: scrape any URL. 네이버 블로그(글/홈) 및 일반 웹사이트 모두 지원.
  */
 export async function scrapeUrl(url: string): Promise<ScrapedContent> {
-    const isNaverBlog = toNaverMobileUrl(url) !== null;
-
-    if (isNaverBlog) {
+    if (toNaverMobileUrl(url)) {
         return scrapeNaverBlog(url);
     }
-
+    const homeId = naverBlogHomeId(url);
+    if (homeId) {
+        return scrapeNaverBlogHome(homeId);
+    }
     return scrapeGenericUrl(url);
 }

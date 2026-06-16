@@ -24,7 +24,7 @@ export default function DiagnoseClient() {
 
     const handleSubmit = async () => {
         if (!name.trim() || !blogUrl.trim()) {
-            setError("이름과 네이버 블로그 주소를 입력해주세요.");
+            setError("이름과 진단할 주소(블로그·홈페이지)를 입력해주세요.");
             return;
         }
         if (!phone.trim() && !email.trim()) {
@@ -71,7 +71,7 @@ export default function DiagnoseClient() {
                         </span>
                     </h1>
                     <p className="text-[15px] text-white/45 leading-relaxed">
-                        이름과 블로그 주소만 입력하면, AI가 구글·네이버·AI 검색 노출 상태와
+                        네이버 블로그·홈페이지 등 주소만 입력하면, AI가 구글·네이버·AI 검색 노출 상태와
                         <br className="hidden md:block" />
                         개선점을 1분 만에 무료로 진단해 드립니다.
                     </p>
@@ -84,7 +84,7 @@ export default function DiagnoseClient() {
                             <Field label="이름 / 사무소명" required value={name} onChange={setName} placeholder="예: 김변호 / 법무법인 OO" />
                             <Field label="분야 (선택)" value={field} onChange={setField} placeholder="예: 이혼 · 형사 · 상속" />
                         </div>
-                        <Field label="네이버 블로그 주소" required value={blogUrl} onChange={setBlogUrl} placeholder="https://blog.naver.com/아이디" />
+                        <Field label="블로그·홈페이지 주소" required value={blogUrl} onChange={setBlogUrl} placeholder="네이버 블로그 · 티스토리 · 홈페이지 등 주소" />
                         <div className="grid md:grid-cols-2 gap-4">
                             <Field label="전화번호" value={phone} onChange={setPhone} placeholder="010-0000-0000" />
                             <Field label="이메일 (선택)" value={email} onChange={setEmail} placeholder="email@example.com" />
