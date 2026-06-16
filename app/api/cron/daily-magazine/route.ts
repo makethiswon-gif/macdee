@@ -86,7 +86,10 @@ export async function GET(request: Request) {
         //    긴 한글 URL 대신 짧은 링크(/m/{code})를 link_attachment로 첨부 → 500자 제한 안 먹음
         const shortCode = (inserted.slug.split("-").pop() || "").trim();
         const shortUrl = shortCode ? `${BASE_URL}/m/${shortCode}` : url;
-        const caption = (article.threads || article.excerpt || article.title).trim();
+        // 진단 리드마그넷 CTA를 항상 캡션 끝에 삽입(잘리지 않게 공간 확보)
+        const cta = `\n\n내 블로그는 AI 검색에 어떻게 보일까? 무료 진단 ▶ ${BASE_URL}/diagnose`;
+        const base = (article.threads || article.excerpt || article.title).trim().slice(0, 490 - cta.length);
+        const caption = base + cta;
         let threads = null;
         try {
             threads = await postToThreads({ text: caption, linkUrl: shortUrl });

@@ -70,6 +70,12 @@ function Header() {
                 </a>
               ))}
               <a
+                href="/diagnose"
+                className="text-[13px] text-[#8AB4F8] tracking-wide hover:text-white transition-colors"
+              >
+                무료 진단
+              </a>
+              <a
                 href="/signup"
                 className="text-[13px] text-white tracking-wide hover:text-white/70 transition-colors"
               >
@@ -89,7 +95,7 @@ function Header() {
               transition={{ duration: 0.2 }}
               className="md:hidden pb-8 flex flex-col gap-5 border-t border-white/[0.08] pt-6"
             >
-              {[["서비스", "#features"], ["프로세스", "#process"], ["가격", "#pricing"], ["메이크디스원", "/makethisone"], ["소개", "/about"], ["매거진", "/magazine"], ["시작하기", "/signup"]].map(([l, h]) => (
+              {[["서비스", "#features"], ["프로세스", "#process"], ["가격", "#pricing"], ["메이크디스원", "/makethisone"], ["소개", "/about"], ["매거진", "/magazine"], ["무료 진단", "/diagnose"], ["시작하기", "/signup"]].map(([l, h]) => (
                 <a key={l} href={h} className="text-base text-white/70 hover:text-white transition-colors" onClick={() => setOpen(false)}>
                   {l}
                 </a>
@@ -293,8 +299,12 @@ function HeroSection() {
               무료 체험 시작
               <ArrowUpRight size={16} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
             </a>
-            <a href="#process" className="text-[13px] text-white/30 hover:text-white/60 transition-colors">
-              작동 방식 알아보기
+            <a
+              href="/diagnose"
+              className="group inline-flex items-center gap-2 px-8 py-4 text-[15px] font-medium text-white border border-white/20 rounded-full hover:border-white/50 transition-all"
+            >
+              내 블로그 무료 진단
+              <ArrowUpRight size={16} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
             </a>
           </motion.div>
         </motion.div>

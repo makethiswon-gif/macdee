@@ -11,7 +11,9 @@ async function autoPostToThreads(slug: string, title: string, excerpt: string, b
     try {
         const code = (slug.split("-").pop() || "").trim();
         const shortUrl = code ? `${BASE_URL}/m/${code}` : `${BASE_URL}/magazine/${slug}`;
-        const caption = (await generateThreadsCaption({ title, excerpt, body })) || excerpt || title;
+        const cta = `\n\n내 블로그는 AI 검색에 어떻게 보일까? 무료 진단 ▶ ${BASE_URL}/diagnose`;
+        const baseCaption = ((await generateThreadsCaption({ title, excerpt, body })) || excerpt || title).slice(0, 490 - cta.length);
+        const caption = baseCaption + cta;
         const result = await postToThreads({ text: caption, linkUrl: shortUrl });
         if (result.error) console.error("[Magazine→Threads]", result.error);
         return result;

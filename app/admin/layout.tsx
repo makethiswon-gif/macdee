@@ -18,6 +18,7 @@ import {
     BarChart3,
     Search,
     PenLine,
+    Stethoscope,
 } from "lucide-react";
 
 const ADMIN_NAV = [
@@ -31,6 +32,7 @@ const ADMIN_NAV = [
     { href: "/admin/blog-analytics", label: "블로그 분석", icon: BarChart3 },
     { href: "/admin/blog-polish", label: "블로그 윤문", icon: Sparkles },
     { href: "/admin/claude-blog-write", label: "클로드 블로그 글쓰기", icon: PenLine },
+    { href: "/admin/diagnose-leads", label: "무료 진단 리드", icon: Stethoscope },
     { href: "/admin/seo-titles", label: "SEO 제목 일괄수정", icon: Search },
 ];
 
