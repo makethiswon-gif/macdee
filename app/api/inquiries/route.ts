@@ -20,7 +20,22 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { name, firm, phone, email, subject, message } = body;
+        const { name, firm, phone, email, subject, message, website } = body;
+
+        // --- 봇/스팸 차단 ---
+        // 1) 허니팟: 숨김칸이 채워졌으면 봇 → 조용히 거부
+        if (website) {
+            return NextResponse.json({ success: true }, { status: 200 });
+        }
+        // 2) 링크 도배(스팸 상담 대부분이 URL 포함) 차단
+        const blob = `${name || ""} ${firm || ""} ${message || ""}`;
+        if (/(https?:\/\/|www\.)/i.test(blob)) {
+            return NextResponse.json({ error: "링크는 포함할 수 없습니다." }, { status: 400 });
+        }
+        // 3) 키릴문자 등 한국 상담폼에 올 일 없는 문자 → 스팸
+        if (/[Ѐ-ӿ]/.test(blob)) {
+            return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+        }
 
         // Validation
         if (!name || !phone || !message) {
