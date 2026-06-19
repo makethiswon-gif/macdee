@@ -161,12 +161,14 @@ export async function POST(request: Request) {
             }
         }
 
-        // Create auth user with email confirmation required
+        // 앱의 봇 방어(허니팟·리캡차·시간체크·이름패턴)를 모두 통과한 정상 가입자는
+        // 자동 인증 처리한다. 이렇게 하면 Supabase '이메일 확인'을 다시 켜서
+        // anon 키 직접 호출(봇) 가입을 막아도, 정상 변호사는 로그인이 막히지 않는다.
         const { data: authData, error: authError } =
             await supabase.auth.admin.createUser({
                 email,
                 password,
-                email_confirm: false, // Require email verification
+                email_confirm: true, // 폼 방어를 통과한 정상 사용자 → 즉시 인증
                 user_metadata: { name, specialty, region },
             });
 
