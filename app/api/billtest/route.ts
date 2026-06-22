@@ -37,7 +37,7 @@ export async function POST(request: Request) {
         // 3) recurring_billing 저장 (next_charge_date=오늘 → 크론이 즉시 잡도록)
         const supabase = createServiceClient();
         const today = new Date().toISOString().slice(0, 10);
-        await supabase.from("recurring_billing").insert({
+        const { error: saveErr } = await supabase.from("recurring_billing").insert({
             customer_name: "[테스트] 빌링 검증",
             customer_email: null,
             plan: "테스트",
@@ -48,7 +48,15 @@ export async function POST(request: Request) {
             next_charge_date: today,
         });
 
-        return NextResponse.json({ success: true, paymentKey: chargeData.paymentKey, status: chargeData.status });
+        return NextResponse.json({
+            success: true,
+            paymentKey: chargeData.paymentKey,
+            status: chargeData.status,
+            saved: !saveErr,
+            saveError: saveErr?.message || null,
+            billingKey, // 저장 실패 시 수동 등록용
+            customerKey,
+        });
     } catch (err) {
         console.error("[billtest] error:", err);
         return NextResponse.json({ error: "서버 오류" }, { status: 500 });
