@@ -33,20 +33,6 @@ export default function AboutPage() {
         "knowsAbout": ["변호사 광고", "로펌 마케팅", "법무법인 광고", "변호사 마케팅", "변호사 광고 대행", "변호사 블로그 마케팅", "법률 콘텐츠 마케팅", "변호사 온라인 마케팅", "변호사 SNS 마케팅", "법률 사무소 광고", "로펌 광고 대행"],
         "areaServed": { "@type": "Country", "name": "KR" },
         "serviceType": ["변호사 광고 대행", "로펌 마케팅 자동화", "법무법인 광고 콘텐츠", "변호사 블로그 운영", "인스타그램 카드뉴스 제작", "구글 SEO 최적화", "변호사 온라인 마케팅"],
-        "offers": {
-            "@type": "AggregateOffer",
-            "priceCurrency": "KRW",
-            "lowPrice": "0",
-            "highPrice": "179000",
-            "offerCount": "5",
-            "offers": [
-                { "@type": "Offer", "name": "무료 체험", "price": "0", "description": "7일 무료, 하루 10건 업로드" },
-                { "@type": "Offer", "name": "월 30건", "price": "49000", "description": "월 30건 콘텐츠 생성" },
-                { "@type": "Offer", "name": "월 50건", "price": "69000", "description": "월 50건 콘텐츠 생성" },
-                { "@type": "Offer", "name": "월 100건", "price": "119000", "description": "월 100건 콘텐츠 생성" },
-                { "@type": "Offer", "name": "무제한", "price": "179000", "description": "무제한 콘텐츠 생성" },
-            ],
-        },
     };
 
     const faqJsonLd = {

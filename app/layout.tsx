@@ -152,13 +152,6 @@ const jsonLd = {
         lowPrice: "0",
         highPrice: "179000",
         offerCount: "5",
-        offers: [
-          { "@type": "Offer", name: "무료 체험", price: "0", description: "7일 무료 체험, 하루 10건 업로드" },
-          { "@type": "Offer", name: "월 30건", price: "49000", description: "월 49,000원 - 변호사 광고 콘텐츠 30건 자동 생성" },
-          { "@type": "Offer", name: "월 50건", price: "69000", description: "월 69,000원 - 로펌 마케팅 콘텐츠 50건 자동 생성" },
-          { "@type": "Offer", name: "월 100건", price: "119000", description: "월 119,000원 - 법무법인 광고 콘텐츠 100건 자동 생성" },
-          { "@type": "Offer", name: "무제한", price: "179000", description: "월 179,000원 - 무제한 콘텐츠 생성 + AI 홈페이지 빌더" },
-        ],
       },
       provider: { "@id": `${BASE_URL}/#organization` },
     },
