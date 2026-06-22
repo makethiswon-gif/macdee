@@ -28,6 +28,7 @@ const ADMIN_NAV = [
     { href: "/admin/blog-images", label: "블로그 이미지", icon: ImageIcon },
     { href: "/admin/migrate", label: "블로그→매거진", icon: ArrowRightLeft },
     { href: "/admin/subscriptions", label: "구독/매출", icon: CreditCard },
+    { href: "/admin/billing", label: "정기결제 관리", icon: CreditCard },
     { href: "/admin/magazines", label: "매거진 관리", icon: BookOpen },
     { href: "/admin/blog-analytics", label: "블로그 분석", icon: BarChart3 },
     { href: "/admin/blog-polish", label: "블로그 윤문", icon: Sparkles },
