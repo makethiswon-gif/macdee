@@ -27,7 +27,7 @@ export default function AdminBillingPage() {
         customer_email: "",
         plan: "메이크디스원 베이직",
         billing_key: "",
-        customer_key: "mto_1779071276716_k8pgbbn",
+        customer_key: "",
         amount: "1200000",
         next_charge_date: "2026-06-18",
     });
@@ -101,7 +101,7 @@ export default function AdminBillingPage() {
                     <F label="이메일(선택)" v={form.customer_email} on={(v) => set("customer_email", v)} ph="email@example.com" />
                     <F label="플랜" v={form.plan} on={(v) => set("plan", v)} />
                     <F label="금액(원)" v={form.amount} on={(v) => set("amount", v)} />
-                    <F label="고객키 (mto_...)" v={form.customer_key} on={(v) => set("customer_key", v)} />
+                    <F label="고객키 customerKey (토스 '확인하기'에서 복사)" v={form.customer_key} on={(v) => set("customer_key", v)} ph="주문번호 아님! 토스 빌링 상세의 customerKey" />
                     <F label="다음 청구일 (YYYY-MM-DD)" v={form.next_charge_date} on={(v) => set("next_charge_date", v)} />
                 </div>
                 <div className="mt-3">
