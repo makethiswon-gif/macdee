@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { getTossAuthHeader, TOSS_API_URL } from "@/lib/billing/config";
+import { createServiceClient } from "@/lib/supabase/server";
+import { addOneMonth } from "@/lib/billing/charge";
 
 const MTO_PLANS = {
     basic: { name: "메이크디스원 베이직", price: 1200000 },
@@ -61,8 +63,24 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "결제 승인 실패: " + (chargeData.message || "") }, { status: 400 });
         }
 
-        // TODO: DB 저장 (ex. makethisone_subscriptions 테이블)
-        // 현재는 결제 성공 응답만 반환
+        // 정기결제 자동청구를 위해 빌링키/고객키 저장 (다음 청구일 = 한 달 뒤)
+        try {
+            const supabase = createServiceClient();
+            const today = new Date().toISOString().slice(0, 10);
+            await supabase.from("recurring_billing").insert({
+                customer_name: planInfo.name,
+                customer_email: null,
+                plan: planInfo.name,
+                billing_key: billingKey,
+                customer_key: customerKey,
+                amount: planInfo.price,
+                status: "active",
+                next_charge_date: addOneMonth(today),
+            });
+        } catch (e) {
+            console.error("[MakeThisOne] recurring_billing save error:", e);
+        }
+
         return NextResponse.json({ success: true, payment: chargeData }, { status: 200 });
 
     } catch (err) {
