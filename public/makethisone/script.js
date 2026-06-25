@@ -186,7 +186,7 @@ async function renderColumns() {
   if (!list) return;
 
   try {
-    const res = await fetch('/api/magazine?page=1&category=칼럼');
+    const res = await fetch('/api/magazine?page=1');
     if (!res.ok) throw new Error('Fetch failed');
     const data = await res.json();
     let items = data.magazines || [];
