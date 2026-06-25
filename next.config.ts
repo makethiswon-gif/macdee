@@ -157,6 +157,12 @@ const nextConfig: NextConfig = {
         source: "/mypage",
         destination: "/dashboard",
         permanent: true,
+      },
+      {
+        // 옛 변호사 URL 구조 /lawyer/{slug} → 현재 /blog/{slug}
+        source: "/lawyer/:slug",
+        destination: "/blog/:slug",
+        permanent: true,
       }
     ];
   },
