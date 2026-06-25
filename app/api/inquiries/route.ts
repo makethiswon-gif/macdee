@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { name, firm, phone, email, subject, message, website } = body;
+        const { name, firm, phone, email, subject, message, website, recaptchaToken } = body;
 
         // --- 봇/스팸 차단 ---
         // 1) 허니팟: 숨김칸이 채워졌으면 봇 → 조용히 거부
@@ -40,6 +40,31 @@ export async function POST(req: NextRequest) {
         // Validation
         if (!name || !phone || !message) {
             return NextResponse.json({ error: "필수 항목이 누락되었습니다." }, { status: 400 });
+        }
+
+        // 4) reCAPTCHA v3 검증 (회원가입과 동일한 관용적 정책: 점수<0.5만 차단)
+        const recaptchaSecret = process.env.RECAPTCHA_SECRET_KEY;
+        if (recaptchaSecret) {
+            if (!recaptchaToken) {
+                return NextResponse.json(
+                    { error: "보안 검증에 실패했습니다. 페이지를 새로고침 후 다시 시도해주세요." },
+                    { status: 400 }
+                );
+            }
+            try {
+                const verifyRes = await fetch("https://www.google.com/recaptcha/api/siteverify", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    body: `secret=${recaptchaSecret}&response=${recaptchaToken}`,
+                });
+                const verifyData = await verifyRes.json();
+                if (verifyData.success && verifyData.score < 0.5) {
+                    return NextResponse.json({ error: "보안 검증에 실패했습니다. 다시 시도해주세요." }, { status: 400 });
+                }
+            } catch (e) {
+                console.error("[Inquiries API] reCAPTCHA verify error:", e);
+                // 검증 호출 실패 시엔 통과 (실제 문의 오차단 방지)
+            }
         }
 
         const supabase = await createAdminClient();

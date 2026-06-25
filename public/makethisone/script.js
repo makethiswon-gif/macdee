@@ -8,6 +8,17 @@ function runIntro() {
   const splash = document.getElementById('introSplash');
   if (!splash) return;
 
+  // 세션당 1회만 인트로 — 이미 본 세션이면 즉시 스킵 (매 방문 2.4초 대기 제거)
+  let seen = false;
+  try { seen = sessionStorage.getItem('mto_intro_seen') === '1'; } catch (e) { /* ignore */ }
+
+  if (seen) {
+    splash.remove();
+    document.body.classList.remove('intro-active');
+    return;
+  }
+  try { sessionStorage.setItem('mto_intro_seen', '1'); } catch (e) { /* ignore */ }
+
   // Wait for character animations to finish, then fade out
   setTimeout(() => {
     splash.classList.add('hidden');
@@ -309,6 +320,19 @@ async function handleContactSubmit(e) {
     submitBtn.textContent = '전송 중...';
     submitBtn.disabled = true;
   }
+
+  // reCAPTCHA v3 토큰 발급 (미로드 시 토큰 없이 진행 — 서버가 관용 처리)
+  try {
+    const g = window.grecaptcha;
+    if (g && g.execute) {
+      entries.recaptchaToken = await new Promise((resolve) => {
+        g.ready(() => {
+          g.execute('6LfNdlYsAAAAAHC5fbwGZbkcdSWaLKSEsrfTqQrb', { action: 'contact' })
+            .then(resolve).catch(() => resolve(''));
+        });
+      });
+    }
+  } catch (err) { /* ignore */ }
 
   try {
     const response = await fetch('/api/inquiries', {
