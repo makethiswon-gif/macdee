@@ -112,7 +112,7 @@ export class OpenAIProvider implements AIProvider {
     private apiKey: string;
     private model: string;
 
-    constructor(model = "gpt-4o-mini") {
+    constructor(model = "gpt-5-mini") {
         this.apiKey = process.env.OPENAI_API_KEY || "";
         this.model = model;
     }
@@ -129,8 +129,11 @@ export class OpenAIProvider implements AIProvider {
                 body: JSON.stringify({
                     model: this.model,
                     messages,
-                    temperature: options?.temperature ?? 0.3,
-                    max_tokens: options?.maxTokens ?? 4096,
+                    // gpt-5·o 계열은 max_completion_tokens 사용 + temperature 커스텀 불가(기본 1)
+                    max_completion_tokens: options?.maxTokens ?? 4096,
+                    ...(/^(o\d|gpt-5(?!-chat))/.test(this.model)
+                        ? {}
+                        : { temperature: options?.temperature ?? 0.3 }),
                 }),
             },
             "OpenAI"
@@ -199,7 +202,7 @@ export class ClaudeProvider implements AIProvider {
 export function getPreprocessor(): AIProvider {
     if (!process.env.ANTHROPIC_API_KEY) {
         // Fallback to OpenAI if Claude key not set
-        return new OpenAIProvider("gpt-4o-mini");
+        return new OpenAIProvider("gpt-5-mini");
     }
     return new ClaudeProvider("claude-haiku-4-5-20251001");
 }
@@ -207,7 +210,7 @@ export function getPreprocessor(): AIProvider {
 // AI 검색 프로필 생성: Claude Haiku 4.5 — 짧은 정형화 출력, Sonnet 불필요
 export function getAISearchGenerator(): AIProvider {
     if (!process.env.ANTHROPIC_API_KEY) {
-        return new OpenAIProvider("gpt-4o-mini");
+        return new OpenAIProvider("gpt-5-mini");
     }
     return new ClaudeProvider("claude-haiku-4-5-20251001");
 }

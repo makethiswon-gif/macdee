@@ -375,7 +375,7 @@ JSON만 출력하세요. 코드 블록 없이.`;
     }
 }
 
-// ─── Step 2: 이미지 생성 (Flux 2 Pro → GPT Image 2 → Imagen 4 Fast → DALL-E 3) ───
+// ─── Step 2: 이미지 생성 (Flux 2 Pro → GPT Image 2 → Imagen 4 Fast → gpt-image-1-mini) ───
 export async function generateWebtoonImages(
     scenario: WebtoonScenario,
     style: WebtoonStyleKey = "dramatic",
@@ -595,13 +595,13 @@ Requirements:
         }
     };
 
-    // ── 3순위: DALL-E 3 (최종 폴백) ──
+    // ── 3순위: gpt-image-1-mini (최종 폴백) ──
     const generateWithDallE = async (panel: WebtoonPanel): Promise<{ panelIndex: number; imageBase64: string } | null> => {
         if (!openaiKey) return null;
         const prompt = buildShortPrompt(panel);
 
         try {
-            console.log(`[Webtoon/DALL-E] Final fallback panel ${panel.panel}/${totalPanels}...`);
+            console.log(`[Webtoon/GPTmini] Final fallback panel ${panel.panel}/${totalPanels}...`);
             const res = await fetch("https://api.openai.com/v1/images/generations", {
                 method: "POST",
                 headers: {
@@ -609,38 +609,38 @@ Requirements:
                     Authorization: `Bearer ${openaiKey}`,
                 },
                 body: JSON.stringify({
-                    model: "dall-e-3",
+                    model: "gpt-image-1-mini",
                     prompt,
                     n: 1,
                     size: "1024x1024",
-                    quality: "hd",
-                    response_format: "b64_json",
+                    quality: "medium",
+                    output_format: "png",
                 }),
             });
 
             if (!res.ok) {
                 const err = await res.text();
-                console.error(`[Webtoon/DALL-E] Panel ${panel.panel} error (${res.status}):`, err);
-                engineErrors.push(`DALL-E: ${res.status} - ${err.substring(0, 200)}`);
+                console.error(`[Webtoon/GPTmini] Panel ${panel.panel} error (${res.status}):`, err);
+                engineErrors.push(`gpt-image-1-mini: ${res.status} - ${err.substring(0, 200)}`);
                 return null;
             }
 
             const data = await res.json();
             const b64 = data.data?.[0]?.b64_json;
             if (b64) {
-                console.log(`[Webtoon/DALL-E] Panel ${panel.panel} ✓ (final fallback)`);
+                console.log(`[Webtoon/GPTmini] Panel ${panel.panel} ✓ (final fallback)`);
                 return { panelIndex: panel.panel, imageBase64: b64 };
             }
             return null;
         } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);
-            console.error(`[Webtoon/DALL-E] Panel ${panel.panel} failed:`, msg);
-            engineErrors.push(`DALL-E exception: ${msg.substring(0, 200)}`);
+            console.error(`[Webtoon/GPTmini] Panel ${panel.panel} failed:`, msg);
+            engineErrors.push(`gpt-image-1-mini exception: ${msg.substring(0, 200)}`);
             return null;
         }
     };
 
-    // ── 폴백 체인: Flux 2 Pro → GPT Image 2 → Imagen 4 Fast → DALL-E 3 ──
+    // ── 폴백 체인: Flux 2 Pro → GPT Image 2 → Imagen 4 Fast → gpt-image-1-mini ──
     const generatePanel = async (panel: WebtoonPanel, retries = 1): Promise<{ panelIndex: number; imageBase64: string } | null> => {
         // 1순위: Replicate Flux 2 Pro
         const fluxResult = await generateWithReplicate(panel);
@@ -654,7 +654,7 @@ Requirements:
         const imagenResult = await generateWithImagen(panel);
         if (imagenResult) return imagenResult;
 
-        // 4순위: DALL-E 3
+        // 4순위: gpt-image-1-mini
         const dalleResult = await generateWithDallE(panel);
         if (dalleResult) return dalleResult;
 

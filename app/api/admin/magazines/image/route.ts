@@ -5,7 +5,7 @@ import { uploadMagazineCover } from "@/lib/supabase/storage";
 // Allow enough time for image generation (gpt-image-2 can take 30-60s)
 export const maxDuration = 120;
 
-// POST: Generate cover image for magazine using GPT Image 2 → DALL-E 3 fallback
+// POST: Generate cover image for magazine using GPT Image 2 -> gpt-image-1-mini fallback
 export async function POST(request: Request) {
     // Admin verify (서명 검증)
     if (!verifyAdminToken(request)) {
@@ -71,7 +71,7 @@ CRITICAL REQUIREMENTS:
 6. Use trendy, modern aesthetic choices (good composition, lighting, and color grading).`;
 
 
-        // 1순위: GPT Image 1.5
+        // 1순위: GPT Image 2
         let b64: string | null = null;
         const res = await fetch("https://api.openai.com/v1/images/generations", {
             method: "POST",
@@ -97,9 +97,9 @@ CRITICAL REQUIREMENTS:
             console.error("[Magazine Image] GPT Image 2 error:", errText);
         }
 
-        // 2순위: DALL-E 3 폴백
+        // 2순위: gpt-image-1-mini 폴백
         if (!b64) {
-            console.log("[Magazine Image] Falling back to DALL-E 3");
+            console.log("[Magazine Image] Falling back to gpt-image-1-mini");
             const fallbackRes = await fetch("https://api.openai.com/v1/images/generations", {
                 method: "POST",
                 headers: {
@@ -107,23 +107,23 @@ CRITICAL REQUIREMENTS:
                     Authorization: `Bearer ${openaiKey}`,
                 },
                 body: JSON.stringify({
-                    model: "dall-e-3",
+                    model: "gpt-image-1-mini",
                     prompt,
                     n: 1,
                     size: "1024x1024",
-                    quality: "hd",
-                    response_format: "b64_json",
+                    quality: "medium",
+                    output_format: "png",
                 }),
             });
             if (fallbackRes.ok) {
                 const fallbackData = await fallbackRes.json();
                 b64 = fallbackData.data?.[0]?.b64_json ?? null;
             } else {
-                console.error("[Magazine Image] DALL-E 3 fallback error:", await fallbackRes.text());
+                console.error("[Magazine Image] gpt-image-1-mini fallback error:", await fallbackRes.text());
             }
         }
         if (!b64) {
-            return NextResponse.json({ error: "이미지 생성 실패 (GPT Image 2 및 DALL-E 3 모두 실패)" }, { status: 500 });
+            return NextResponse.json({ error: "이미지 생성 실패 (GPT Image 2 및 gpt-image-1-mini 모두 실패)" }, { status: 500 });
         }
 
         // base64를 DB에 직접 넣으면 페이지가 비대해져 크롤링 실패하므로, 반드시 스토리지 URL만 저장

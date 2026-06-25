@@ -394,7 +394,7 @@ async function generateCoverImageDallE(
 ): Promise<{ imageBase64: string; revisedPrompt: string; style: string } | null> {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
-        console.warn("[CoverImage] OPENAI_API_KEY not set, skipping DALL-E fallback");
+        console.warn("[CoverImage] OPENAI_API_KEY not set, skipping gpt-image-1-mini fallback");
         return null;
     }
 
@@ -409,12 +409,12 @@ async function generateCoverImageDallE(
                 Authorization: `Bearer ${apiKey}`,
             },
             body: JSON.stringify({
-                model: "dall-e-3",
+                model: "gpt-image-1-mini",
                 prompt,
                 n: 1,
                 size: "1024x1024",
-                quality: "hd",
-                response_format: "b64_json",
+                quality: "medium",
+                output_format: "png",
             }),
         });
 
@@ -427,7 +427,7 @@ async function generateCoverImageDallE(
             style: "realistic",
         };
     } catch (err) {
-        console.error("[CoverImage] DALL-E fallback failed:", err);
+        console.error("[CoverImage] gpt-image-1-mini fallback failed:", err);
         return null;
     }
 }
