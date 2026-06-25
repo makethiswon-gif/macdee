@@ -133,14 +133,16 @@ function EntrySplitSection() {
               </div>
 
               <div className="mt-8">
-                <Image
-                  src="/logo.png"
-                  alt="macdee"
-                  width={520}
-                  height={188}
-                  priority
-                  className="h-auto w-[12rem] sm:w-[15rem] lg:w-[19rem]"
-                />
+                <div className="flex h-[2.4rem] items-end sm:h-[3.1rem] lg:h-[4rem]">
+                  <Image
+                    src="/logo-mark.png"
+                    alt="macdee"
+                    width={883}
+                    height={309}
+                    priority
+                    className="h-full w-auto"
+                  />
+                </div>
                 <div className="mt-4">
                   <p className="text-[11px] uppercase tracking-[0.26em] text-white/42">AI Legal Marketing Platform</p>
                   <div className="mt-3 h-px w-20 bg-white/12" />
@@ -188,8 +190,8 @@ function EntrySplitSection() {
               </div>
 
               <div className="mt-8">
-                <div className="flex items-center gap-3">
-                  <span className="inline-block h-0 w-0 border-l-[10px] border-r-[10px] border-t-[14px] border-l-transparent border-r-transparent border-t-white/90 translate-y-[-2px]" />
+                <div className="flex h-[2.4rem] items-end gap-3 sm:h-[3.1rem] lg:h-[4rem]">
+                  <span className="inline-block h-0 w-0 border-l-[10px] border-r-[10px] border-t-[14px] border-l-transparent border-r-transparent border-t-white/90 mb-2" />
                   <span className="font-sans text-[2.4rem] font-black leading-none tracking-[-0.05em] text-white sm:text-[3.1rem] lg:text-[4rem]">
                     makethis1<span className="text-[#4D8BF5]">.</span>
                   </span>

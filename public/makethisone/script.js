@@ -29,7 +29,7 @@ const STORAGE_KEYS = {
 const DEFAULT_PORTFOLIO = [
   {
     id: 1,
-    title: '법무법인 율빛',
+    title: '법무법인 새록',
     category: 'Marketing',
     description: '',
     image: '',
@@ -37,15 +37,15 @@ const DEFAULT_PORTFOLIO = [
   },
   {
     id: 2,
-    title: '법무법인 해밀',
+    title: '법무법인 양영&정훈',
     category: 'Marketing',
     description: '',
     image: '',
-    color: '#1a1050'
+    color: '#10234f'
   },
   {
     id: 3,
-    title: '법무법인 안세',
+    title: '법무법인 오른',
     category: 'Marketing',
     description: '',
     image: '',
@@ -53,14 +53,6 @@ const DEFAULT_PORTFOLIO = [
   },
   {
     id: 4,
-    title: '카라 법률사무소',
-    category: 'Marketing',
-    description: '',
-    image: '',
-    color: '#2a1838'
-  },
-  {
-    id: 5,
     title: '법무법인 그날',
     category: 'Marketing',
     description: '',
@@ -68,7 +60,47 @@ const DEFAULT_PORTFOLIO = [
     color: '#0c2450'
   },
   {
+    id: 5,
+    title: '이정도 변호사',
+    category: 'Marketing',
+    description: '',
+    image: '',
+    color: '#1a1050'
+  },
+  {
     id: 6,
+    title: '법무법인 율빛',
+    category: 'Marketing',
+    description: '',
+    image: '',
+    color: '#162045'
+  },
+  {
+    id: 7,
+    title: '법무법인 해밀',
+    category: 'Marketing',
+    description: '',
+    image: '',
+    color: '#102a52'
+  },
+  {
+    id: 8,
+    title: '법무법인 안세',
+    category: 'Marketing',
+    description: '',
+    image: '',
+    color: '#0a3048'
+  },
+  {
+    id: 9,
+    title: '카라 법률사무소',
+    category: 'Marketing',
+    description: '',
+    image: '',
+    color: '#2a1838'
+  },
+  {
+    id: 10,
     title: '법무법인 류현',
     category: 'Marketing',
     description: '',
