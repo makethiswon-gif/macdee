@@ -227,7 +227,7 @@ RULES: realistic PHOTOGRAPH only (no 3D/illustration), absolutely NO text/letter
     const res = await fetch("https://api.openai.com/v1/images/generations", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${openaiKey}` },
-        body: JSON.stringify({ model: "gpt-image-1.5", prompt, n: 1, size: "1024x1024", quality: "high", output_format: "png" }),
+        body: JSON.stringify({ model: "gpt-image-2", prompt, n: 1, size: "1024x1024", quality: "high", output_format: "png" }),
     });
     if (!res.ok) {
         console.error("[Daily Magazine] image error:", await res.text());

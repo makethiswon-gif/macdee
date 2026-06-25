@@ -375,7 +375,7 @@ JSON만 출력하세요. 코드 블록 없이.`;
     }
 }
 
-// ─── Step 2: 이미지 생성 (Flux 2 Pro → GPT Image 1.5 → Imagen 4 Fast → DALL-E 3) ───
+// ─── Step 2: 이미지 생성 (Flux 2 Pro → GPT Image 2 → Imagen 4 Fast → DALL-E 3) ───
 export async function generateWebtoonImages(
     scenario: WebtoonScenario,
     style: WebtoonStyleKey = "dramatic",
@@ -506,7 +506,7 @@ Requirements:
         }
     };
 
-    // ── 1순위: GPT Image 1 (최고 프롬프트 이해도) ──
+    // ── 1순위: GPT Image 2 (최고 프롬프트 이해도) ──
     const generateWithGPTImage = async (panel: WebtoonPanel): Promise<{ panelIndex: number; imageBase64: string } | null> => {
         if (!openaiKey) return null;
         const prompt = buildPrompt(panel);
@@ -520,7 +520,7 @@ Requirements:
                     Authorization: `Bearer ${openaiKey}`,
                 },
                 body: JSON.stringify({
-                    model: "gpt-image-1.5",
+                    model: "gpt-image-2",
                     prompt,
                     n: 1,
                     size: "1024x1024",
@@ -559,7 +559,7 @@ Requirements:
         try {
             console.log(`[Webtoon/Imagen4] Fallback panel ${panel.panel}/${totalPanels}...`);
             const res = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-preview-06-06:predict?key=${geminiKey}`,
+                `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-fast-generate-001:predict?key=${geminiKey}`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -640,13 +640,13 @@ Requirements:
         }
     };
 
-    // ── 폴백 체인: Flux 2 Pro → GPT Image 1.5 → Imagen 4 Fast → DALL-E 3 ──
+    // ── 폴백 체인: Flux 2 Pro → GPT Image 2 → Imagen 4 Fast → DALL-E 3 ──
     const generatePanel = async (panel: WebtoonPanel, retries = 1): Promise<{ panelIndex: number; imageBase64: string } | null> => {
         // 1순위: Replicate Flux 2 Pro
         const fluxResult = await generateWithReplicate(panel);
         if (fluxResult) return fluxResult;
 
-        // 2순위: GPT Image 1.5
+        // 2순위: GPT Image 2
         const gptResult = await generateWithGPTImage(panel);
         if (gptResult) return gptResult;
 

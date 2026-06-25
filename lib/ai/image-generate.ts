@@ -123,9 +123,9 @@ function buildFallbackPrompt(caseType: string, hookText: string, style: "webtoon
 }
 
 /**
- * GPT-4o로 카드뉴스 배경 이미지를 생성합니다.
+ * GPT Image 2로 카드뉴스 배경 이미지를 생성합니다.
  * Claude가 사건 내용을 분석하여 구체적 장면 프롬프트를 생성한 후
- * GPT-4o가 최고 품질 이미지를 생성합니다. 폴백: Gemini → DALL-E 3
+ * GPT Image 2가 최고 품질 이미지를 생성합니다. 폴백: Gemini → DALL-E 3
  */
 export async function generateCoverImage(
     caseType: string,
@@ -146,11 +146,11 @@ export async function generateCoverImage(
         ? `Create a single-panel Korean webtoon (만화) illustration based on this scene:\n\n${sceneDescription}\n\nStyle: Korean manhwa art style, clean bold lines, dramatic expressions, distinct Korean characters, square 1:1, ultra high quality, dark dramatic lighting. NO text/words/letters/numbers in the image.`
         : `Create a photorealistic cinematic photograph based on this scene:\n\n${sceneDescription}\n\nStyle: Editorial K-drama photography, DSLR bokeh, square 1:1, ultra high quality, dramatic chiaroscuro lighting. Korean setting. NO text/words/letters/numbers in the image.`;
 
-    // Step 2: GPT-4o 이미지 생성 (주 엔진)
+    // Step 2: GPT Image 2 이미지 생성 (주 엔진)
     const apiKey = process.env.OPENAI_API_KEY;
     if (apiKey) {
         try {
-            console.log(`[CoverImage] Generating GPT-4o ${style} image`);
+            console.log(`[CoverImage] Generating GPT Image 2 ${style} image`);
             const res = await fetch("https://api.openai.com/v1/images/generations", {
                 method: "POST",
                 headers: {
@@ -170,15 +170,15 @@ export async function generateCoverImage(
             if (res.ok) {
                 const data = await res.json();
                 if (data.data?.[0]?.b64_json) {
-                    console.log(`[CoverImage] GPT-4o ${style} image generated successfully`);
+                    console.log(`[CoverImage] GPT Image 2 ${style} image generated successfully`);
                     return { imageBase64: data.data[0].b64_json, revisedPrompt: finalPrompt, style };
                 }
             } else {
                 const err = await res.text();
-                console.error(`[CoverImage] GPT-4o error: ${res.status}`, err);
+                console.error(`[CoverImage] GPT Image 2 error: ${res.status}`, err);
             }
         } catch (err) {
-            console.error("[CoverImage] GPT-4o failed:", err);
+            console.error("[CoverImage] GPT Image 2 failed:", err);
         }
     }
 
@@ -188,7 +188,7 @@ export async function generateCoverImage(
         try {
             console.log(`[CoverImage] Trying Imagen 4.0 ${style} fallback`);
             const res = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-preview-06-06:predict?key=${geminiKey}`,
+                `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-fast-generate-001:predict?key=${geminiKey}`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },

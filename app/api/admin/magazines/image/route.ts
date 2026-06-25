@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { verifyAdminToken } from "@/lib/admin-auth";
 import { uploadMagazineCover } from "@/lib/supabase/storage";
 
-// Allow enough time for image generation (gpt-image-1.5 can take 30-60s)
+// Allow enough time for image generation (gpt-image-2 can take 30-60s)
 export const maxDuration = 120;
 
 // POST: Generate cover image for magazine using GPT Image 2 → DALL-E 3 fallback
@@ -80,7 +80,7 @@ CRITICAL REQUIREMENTS:
                 Authorization: `Bearer ${openaiKey}`,
             },
             body: JSON.stringify({
-                model: "gpt-image-1.5",
+                model: "gpt-image-2",
                 prompt,
                 n: 1,
                 size: "1024x1024",

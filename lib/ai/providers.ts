@@ -106,7 +106,7 @@ async function fetchWithRetry(
     throw lastError || new Error(`${providerName}: All ${retryOpts.maxRetries + 1} attempts failed`);
 }
 
-// ─── OpenAI Provider (GPT-4o for preprocessing) ───
+// ─── OpenAI Provider (fallback only; primary is Claude) ───
 export class OpenAIProvider implements AIProvider {
     name = "openai";
     private apiKey: string;
@@ -147,7 +147,7 @@ export class OpenAIProvider implements AIProvider {
     }
 }
 
-// ─── Claude Provider (Claude 3.5 Sonnet for content generation) ───
+// ─── Claude Provider (Claude Sonnet 4.6 for content generation) ───
 export class ClaudeProvider implements AIProvider {
     name = "claude";
     private apiKey: string;
