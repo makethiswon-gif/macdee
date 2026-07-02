@@ -2,6 +2,17 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
 
+// referrer로 AI 플랫폼 유입 분류 (AI 인용 → 클릭 유입)
+function classifyAiReferrer(ref: string | null): string | null {
+    if (!ref) return null;
+    const r = ref.toLowerCase();
+    if (/chatgpt\.com|chat\.openai\.com/.test(r)) return "ChatGPT";
+    if (/perplexity\.ai/.test(r)) return "Perplexity";
+    if (/gemini\.google|bard\.google/.test(r)) return "Gemini";
+    if (/claude\.ai/.test(r)) return "Claude";
+    if (/copilot\.microsoft\.com/.test(r)) return "Copilot";
+    return null;
+}
 
 export async function GET(request: Request) {
     if (!verifyAdmin(request)) {
@@ -28,13 +39,13 @@ export async function GET(request: Request) {
         }
 
         // Get all blog visits in period — 페이지네이션으로 전량 조회 (Supabase 기본 1000행 제한 회피)
-        type VisitRow = { lawyer_id: string; post_id: string | null; session_id: string; page_path: string | null; duration_seconds: number | null; created_at: string };
+        type VisitRow = { lawyer_id: string; post_id: string | null; session_id: string; page_path: string | null; duration_seconds: number | null; created_at: string; referrer: string | null };
         const allVisits: VisitRow[] = [];
         const VISIT_PAGE = 1000;
         for (let from = 0; ; from += VISIT_PAGE) {
             const { data, error } = await supabase
                 .from("blog_visits")
-                .select("lawyer_id, post_id, session_id, page_path, duration_seconds, created_at")
+                .select("lawyer_id, post_id, session_id, page_path, duration_seconds, created_at, referrer")
                 .gte("created_at", sinceStr)
                 .order("created_at", { ascending: false })
                 .range(from, from + VISIT_PAGE - 1);
@@ -59,6 +70,14 @@ export async function GET(request: Request) {
             const uniqueSessions = new Set(lawyerVisits.map(v => v.session_id));
             const totalDuration = lawyerVisits.reduce((sum, v) => sum + (v.duration_seconds || 0), 0);
             const avgDuration = lawyerVisits.length > 0 ? Math.round(totalDuration / lawyerVisits.length) : 0;
+
+            // AI 유입 (ChatGPT·Perplexity·Gemini·Claude·Copilot에서 인용 클릭)
+            const aiBySourceLawyer: Record<string, number> = {};
+            let aiReferrals = 0;
+            for (const v of lawyerVisits) {
+                const src = classifyAiReferrer(v.referrer);
+                if (src) { aiReferrals++; aiBySourceLawyer[src] = (aiBySourceLawyer[src] || 0) + 1; }
+            }
 
             // Daily breakdown
             const dailyMap: Record<string, { views: number; sessions: Set<string> }> = {};
@@ -102,6 +121,8 @@ export async function GET(request: Request) {
                 visitors: uniqueSessions.size,
                 pageviews: lawyerVisits.length,
                 avgDuration,
+                aiReferrals,
+                aiBySource: aiBySourceLawyer,
                 daily,
                 topPosts,
             };
@@ -116,6 +137,14 @@ export async function GET(request: Request) {
         const totalPageviews = allVisits.length;
         const totalDuration = allVisits.reduce((sum, v) => sum + (v.duration_seconds || 0), 0);
         const totalAvgDuration = allVisits.length > 0 ? Math.round(totalDuration / allVisits.length) : 0;
+
+        // 전체 AI 유입 집계 (플랫폼별)
+        const aiBySource: Record<string, number> = {};
+        let aiTotal = 0;
+        for (const v of allVisits) {
+            const src = classifyAiReferrer(v.referrer);
+            if (src) { aiTotal++; aiBySource[src] = (aiBySource[src] || 0) + 1; }
+        }
 
         // Global daily trend
         const globalDailyMap: Record<string, { views: number; sessions: Set<string> }> = {};
@@ -136,7 +165,9 @@ export async function GET(request: Request) {
                 pageviews: totalPageviews,
                 avgDuration: totalAvgDuration,
                 lawyersWithTraffic: withVisits.length,
+                aiReferrals: aiTotal,
             },
+            aiReferrals: { total: aiTotal, bySource: aiBySource },
             globalDaily,
             period: days,
         });

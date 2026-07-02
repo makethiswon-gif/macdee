@@ -11,6 +11,7 @@ import {
     ExternalLink,
     ChevronDown,
     ChevronUp,
+    Sparkles,
 } from "lucide-react";
 
 const PERIOD_OPTIONS = [
@@ -38,6 +39,8 @@ interface LawyerStat {
     visitors: number;
     pageviews: number;
     avgDuration: number;
+    aiReferrals: number;
+    aiBySource: Record<string, number>;
     daily: { date: string; views: number; visitors: number }[];
     topPosts: TopPost[];
 }
@@ -47,11 +50,13 @@ interface Totals {
     pageviews: number;
     avgDuration: number;
     lawyersWithTraffic: number;
+    aiReferrals: number;
 }
 
 interface AnalyticsData {
     lawyers: LawyerStat[];
     totals: Totals;
+    aiReferrals: { total: number; bySource: Record<string, number> };
     globalDaily: { date: string; views: number; visitors: number }[];
     period: number;
 }
@@ -161,7 +166,7 @@ export default function AdminBlogAnalytics() {
             </div>
 
             {/* KPI Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
                 {[
                     {
                         label: "총 방문자",
@@ -195,6 +200,14 @@ export default function AdminBlogAnalytics() {
                         color: "#F59E0B",
                         gradient: "from-[#F59E0B]/20 to-[#F59E0B]/5",
                     },
+                    {
+                        label: "AI 유입",
+                        value: (totals.aiReferrals ?? 0).toLocaleString(),
+                        sub: "ChatGPT·Perplexity 등",
+                        icon: Sparkles,
+                        color: "#EC4899",
+                        gradient: "from-[#EC4899]/20 to-[#EC4899]/5",
+                    },
                 ].map((kpi) => (
                     <div
                         key={kpi.label}
@@ -210,6 +223,29 @@ export default function AdminBlogAnalytics() {
                         <p className="text-[10px] text-[#4B5563] mt-0.5">{kpi.sub}</p>
                     </div>
                 ))}
+            </div>
+
+            {/* AI 인용 유입 상세 */}
+            <div className="mb-8 p-4 rounded-xl bg-gradient-to-br from-[#EC4899]/10 to-transparent border border-[#EC4899]/20">
+                <div className="flex items-center gap-2 mb-3">
+                    <Sparkles size={15} className="text-[#EC4899]" />
+                    <h3 className="text-sm font-semibold text-white">AI 인용 유입</h3>
+                    <span className="text-[10px] text-[#6B7280]">AI가 블로그를 인용 → 사용자가 클릭해 방문한 횟수</span>
+                </div>
+                {(data.aiReferrals?.total ?? 0) === 0 ? (
+                    <p className="text-[12px] text-[#6B7280]">아직 AI 유입이 없습니다. AI 검색(ChatGPT·Perplexity·Gemini·Claude) 노출이 늘면 여기 집계됩니다.</p>
+                ) : (
+                    <div className="flex flex-wrap gap-2">
+                        {Object.entries(data.aiReferrals.bySource)
+                            .sort((a, b) => b[1] - a[1])
+                            .map(([src, cnt]) => (
+                                <div key={src} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06]">
+                                    <span className="text-[12px] text-white font-medium">{src}</span>
+                                    <span className="text-[12px] text-[#EC4899] font-bold tabular-nums">{cnt}</span>
+                                </div>
+                            ))}
+                    </div>
+                )}
             </div>
 
             {/* Global Daily Trend */}
@@ -355,6 +391,12 @@ export default function AdminBlogAnalytics() {
                                                 {lawyer.pageviews.toLocaleString()}
                                             </p>
                                             <p className="text-[10px] text-[#4B5563]">페이지뷰</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className={`text-sm font-bold tabular-nums ${(lawyer.aiReferrals ?? 0) > 0 ? "text-[#EC4899]" : "text-[#374151]"}`}>
+                                                {(lawyer.aiReferrals ?? 0) > 0 ? lawyer.aiReferrals.toLocaleString() : "—"}
+                                            </p>
+                                            <p className="text-[10px] text-[#4B5563]">AI 유입</p>
                                         </div>
                                         <div className="text-right min-w-[70px]">
                                             <p className={`text-sm font-bold tabular-nums ${hasData ? "text-[#14B8A6]" : "text-[#374151]"}`}>
