@@ -1,8 +1,9 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import MagazinePageClient from "./MagazinePageClient";
 
-// 매일 자동 발행 글이 목록에 즉시 보이도록 동적 렌더(커버가 URL이라 페이로드도 가벼움)
-export const dynamic = "force-dynamic";
+// ISR: 10분마다 재생성 — 크롤 시 라이브 DB 의존 없이 안정적 캐시 페이지 제공(전환 404/500 방지).
+// base64 커버 제거로 페이로드가 가벼워져 ISR 크기 제한 문제도 해소됨.
+export const revalidate = 600;
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
 
