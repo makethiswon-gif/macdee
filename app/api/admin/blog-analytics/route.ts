@@ -27,21 +27,31 @@ export async function GET(request: Request) {
             return NextResponse.json({ lawyers: [], totals: { visitors: 0, pageviews: 0, avgDuration: 0 } });
         }
 
-        // Get all blog visits in period
-        const { data: visits } = await supabase
-            .from("blog_visits")
-            .select("lawyer_id, post_id, session_id, page_path, duration_seconds, created_at")
-            .gte("created_at", sinceStr)
-            .order("created_at", { ascending: false });
+        // Get all blog visits in period — 페이지네이션으로 전량 조회 (Supabase 기본 1000행 제한 회피)
+        type VisitRow = { lawyer_id: string; post_id: string | null; session_id: string; page_path: string | null; duration_seconds: number | null; created_at: string };
+        const allVisits: VisitRow[] = [];
+        const VISIT_PAGE = 1000;
+        for (let from = 0; ; from += VISIT_PAGE) {
+            const { data, error } = await supabase
+                .from("blog_visits")
+                .select("lawyer_id, post_id, session_id, page_path, duration_seconds, created_at")
+                .gte("created_at", sinceStr)
+                .order("created_at", { ascending: false })
+                .range(from, from + VISIT_PAGE - 1);
+            if (error || !data || data.length === 0) break;
+            allVisits.push(...(data as VisitRow[]));
+            if (data.length < VISIT_PAGE) break;
+        }
 
-        const allVisits = visits || [];
-
-        // Get published post titles for reference
-        const { data: contents } = await supabase
-            .from("contents")
-            .select("id, title, lawyer_id")
-            .eq("status", "published");
-        const contentMap = new Map((contents || []).map(c => [c.id, c.title]));
+        // 방문된 post_id의 제목만 조회 (상태 무관, 청크로 나눠 1000행/URL 길이 제한 회피)
+        const neededPostIds = [...new Set(allVisits.map(v => v.post_id).filter(Boolean))] as string[];
+        const contentMap = new Map<string, string>();
+        const ID_CHUNK = 150;
+        for (let i = 0; i < neededPostIds.length; i += ID_CHUNK) {
+            const ids = neededPostIds.slice(i, i + ID_CHUNK);
+            const { data: rows } = await supabase.from("contents").select("id, title").in("id", ids);
+            for (const c of (rows || [])) contentMap.set(c.id, c.title);
+        }
 
         // Aggregate per lawyer
         const lawyerStats = lawyers.map(lawyer => {
