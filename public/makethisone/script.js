@@ -157,7 +157,13 @@ function setData(key, data) {
 function renderPortfolio() {
   const grid = document.getElementById('portfolioGrid');
   if (!grid) return;
-  const items = getData(STORAGE_KEYS.PORTFOLIO, DEFAULT_PORTFOLIO);
+  // 기본값은 초기 HTML에 정적 렌더됨(SEO·크롤). 관리자 localStorage 커스터마이즈가 있을 때만 덮어씀.
+  let stored = null;
+  try { stored = localStorage.getItem(STORAGE_KEYS.PORTFOLIO); } catch (e) { /* ignore */ }
+  if (!stored) return;
+  let items;
+  try { items = JSON.parse(stored); } catch (e) { return; }
+  if (!Array.isArray(items) || !items.length) return;
 
   grid.innerHTML = items.map((item, i) => `
     <div class="portfolio-card reveal reveal-delay-${(i % 4) + 1}">
