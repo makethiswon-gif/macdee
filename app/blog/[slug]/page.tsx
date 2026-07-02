@@ -82,7 +82,7 @@ export default async function BlogPage({ params, searchParams }: Props) {
     const supabase = createServiceClient();
     const { data: lawyer } = await supabase
         .from("lawyers")
-        .select("id, name, slug, specialty, region, bio, profile_image_url, office_name, experience_years, brand_color")
+        .select("id, name, slug, specialty, region, bio, profile_image_url, office_name, office_address, experience_years, brand_color, website_url")
         .eq("slug", slug)
         .single();
 
@@ -128,11 +128,23 @@ export default async function BlogPage({ params, searchParams }: Props) {
             "@type": "Attorney",
             name: lawyer.name,
             jobTitle: "변호사",
+            description: lawyer.bio || undefined,
+            // 엔티티 연결(이름 검색 신뢰도) — 실제 프로필/사이트를 sameAs·url로 명시
+            url: lawyer.website_url || `${baseUrl}/blog/${slug}`,
+            sameAs: lawyer.website_url ? [lawyer.website_url] : undefined,
             knowsAbout: lawyer.specialty || [],
             areaServed: lawyer.region || undefined,
             hasCredential: "대한변호사협회 등록",
             yearsOfExperience: lawyer.experience_years || undefined,
-            worksFor: lawyer.office_name ? { "@type": "LegalService", name: lawyer.office_name } : undefined,
+            worksFor: lawyer.office_name
+                ? {
+                    "@type": "LegalService",
+                    name: lawyer.office_name,
+                    address: lawyer.office_address
+                        ? { "@type": "PostalAddress", streetAddress: lawyer.office_address, addressCountry: "KR" }
+                        : undefined,
+                }
+                : undefined,
         },
         blogPost: (posts || []).slice(0, 10).map(p => ({
             "@type": "BlogPosting",
