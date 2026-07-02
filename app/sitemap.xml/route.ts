@@ -67,6 +67,12 @@ export async function GET() {
         <changefreq>daily</changefreq>
         <priority>0.9</priority>
     </url>
+    <url>
+        <loc>${baseUrl}/makethisone</loc>
+        <lastmod>${new Date(aboutLastmod).toISOString()}</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.95</priority>
+    </url>
     `;
 
         // Lawyer blog listing pages (/blog/[lawyer-slug]) — high priority entry points
