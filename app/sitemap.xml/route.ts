@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { isPublicLawyerSlug } from "@/lib/public-content";
 
+// 빌드 시점 고정 방지 — 1시간마다 재생성(ISR)해 새 글이 재배포 없이 sitemap에 반영되도록.
+export const revalidate = 3600;
+
 // Encode URL for sitemap (handle Korean characters)
 function sitemapUrl(url: string): string {
     // encodeURI handles Korean chars but preserves /:?#[]@!$&'()*+,;=

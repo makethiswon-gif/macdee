@@ -717,43 +717,7 @@ export default function PostPageClient({ lawyer, post, relatedPosts = [] }: { la
                 </motion.div>
             )}
 
-            {/* Schema.org Article */}
-            <script
-                type="application/ld+json"
-                dangerouslySetInnerHTML={{
-                    __html: JSON.stringify({
-                        "@context": "https://schema.org",
-                        "@type": "Article",
-                        headline: post.title,
-                        description: post.meta_description,
-                        datePublished: post.created_at,
-                        author: {
-                            "@type": "Person",
-                            name: lawyer.name,
-                            jobTitle: "변호사",
-                        },
-                        publisher: {
-                            "@type": "Organization",
-                            name: "macdee",
-                        },
-                        keywords: (post.tags || []).join(", "),
-                    }),
-                }}
-            />
-
-            {/* FAQ Schema */}
-            {post.schema_markup && (
-                <script
-                    type="application/ld+json"
-                    dangerouslySetInnerHTML={{
-                        __html: JSON.stringify({
-                            "@context": "https://schema.org",
-                            "@type": "FAQPage",
-                            ...(post.schema_markup as object),
-                        }),
-                    }}
-                />
-            )}
+            {/* 구조화 데이터(Article·FAQ·Breadcrumb)는 서버 컴포넌트(page.tsx)에서만 주입 — 중복 방지 */}
         </div>
     );
 }

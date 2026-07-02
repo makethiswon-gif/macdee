@@ -29,6 +29,7 @@ async function getMagazine(slug: string, incrementView = false): Promise<Magazin
             .from("magazines")
             .select("*")
             .eq("slug", decodedSlug)
+            .eq("status", "published")
             .single();
 
         if (error || !magazine) return null;
