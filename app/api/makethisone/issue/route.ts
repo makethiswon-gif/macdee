@@ -6,7 +6,7 @@ import { addOneMonth } from "@/lib/billing/charge";
 const MTO_PLANS = {
     basic: { name: "메이크디스원 베이직", price: 1200000 },
     standard: { name: "메이크디스원 스탠다드", price: 2000000 },
-    premium: { name: "메이크디스원 프리미엄", price: 3000000 },
+    premium: { name: "메이크디스원 프리미엄", price: 4000000 },
 };
 
 export async function POST(request: Request) {
