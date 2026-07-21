@@ -58,6 +58,7 @@ const PRICING_PLANS = [
 
 export default function MakeThisOnePage() {
     const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+    const [selectedCredit, setSelectedCredit] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [step, setStep] = useState(1); // 1: Contract, 2: Payment, 3: Complete
     const [agreed, setAgreed] = useState(false);
@@ -90,6 +91,7 @@ export default function MakeThisOnePage() {
             setCardNumber("");
             setExpiry("");
             setCvc("");
+            setSelectedCredit(null);
         }, 300);
     };
 
@@ -127,7 +129,7 @@ export default function MakeThisOnePage() {
         }
     };
 
-    // 일회성(단건) 콘텐츠 크레딧 결제
+    // 일회성(단건) 콘텐츠 크레딧 결제 — 구독과 동일하게 전자계약서 모달을 먼저 거친다
     const handleBuyCredit = (packId: string) => {
         if (!tossPaymentsSDK) {
             toast.error("결제 모듈을 불러오는 중입니다. 잠시 후 다시 시도해주세요.");
@@ -135,6 +137,23 @@ export default function MakeThisOnePage() {
         }
         const pack = CREDIT_PACKS[packId as keyof typeof CREDIT_PACKS];
         if (!pack) return;
+        setSelectedCredit(packId);
+        setSelectedPlan(null);
+        setIsModalOpen(true);
+        setStep(1);
+        setAgreed(false);
+    };
+
+    // 계약 동의 후 단건 결제 실행
+    const handleBuyCreditWithToss = async () => {
+        if (!agreed || !selectedCredit) return;
+        const pack = CREDIT_PACKS[selectedCredit as keyof typeof CREDIT_PACKS];
+        if (!pack) return;
+        if (!tossPaymentsSDK) {
+            toast.error("결제 모듈을 불러오는 중입니다. 잠시 후 다시 시도해주세요.");
+            return;
+        }
+        setIsProcessing(true);
         const orderId = `otp_${pack.id}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
         tossPaymentsSDK.requestPayment("카드", {
             amount: pack.price,
@@ -143,12 +162,16 @@ export default function MakeThisOnePage() {
             successUrl: `${window.location.origin}/makethisone/purchase/success`,
             failUrl: `${window.location.origin}/billing/fail`,
         }).catch((err: any) => {
+            setIsProcessing(false);
             if (err?.code === "USER_CANCEL") toast.info("결제가 취소되었습니다.");
             else toast.error(`결제 오류: ${err?.message || "알 수 없는 오류"}`);
         });
     };
 
     const plan = PRICING_PLANS.find(p => p.id === selectedPlan);
+    const creditPack = selectedCredit ? CREDIT_PACKS[selectedCredit as keyof typeof CREDIT_PACKS] : null;
+    const isCredit = !!creditPack;
+    const purchaseName = plan?.name || creditPack?.name || "";
 
     return (
         <div className="max-w-6xl mx-auto pb-20">
@@ -284,7 +307,7 @@ export default function MakeThisOnePage() {
                         <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06] bg-[#0A0B10]">
                             <h2 className="text-base font-bold text-white flex items-center gap-2">
                                 {step === 1 && <><FileText size={18} className="text-[#6B94E0]" /> 전자계약서 작성</>}
-                                {step === 2 && <><CreditCard size={18} className="text-[#6B94E0]" /> 구독 결제 등록</>}
+                                {step === 2 && <><CreditCard size={18} className="text-[#6B94E0]" /> {isCredit ? '단건 결제' : '구독 결제 등록'}</>}
                                 {step === 3 && <><CheckCircle2 size={18} className="text-green-400" /> 계약 완료</>}
                             </h2>
                             {step !== 3 && (
@@ -301,12 +324,21 @@ export default function MakeThisOnePage() {
                             <div className="space-y-6">
                                 <div className="bg-[#161B26] border border-white/[0.06] rounded-2xl p-6">
                                     <h3 className="text-lg font-bold text-white mb-1">메이크디스원 마케팅 대행 계약서</h3>
-                                    <p className="text-sm text-[#9CA3B0] mb-6">선택하신 <strong className="text-[#6B94E0]">{plan?.name}</strong> 플랜에 대한 서비스 이용 약관입니다.</p>
-                                    
+                                    <p className="text-sm text-[#9CA3B0] mb-6">선택하신 <strong className="text-[#6B94E0]">{purchaseName}</strong> {isCredit ? '단건 결제' : '플랜'}에 대한 서비스 이용 약관입니다.</p>
+
                                     <div className="bg-[#0A0B10] border border-white/[0.04] rounded-xl p-5 h-48 overflow-y-auto text-xs text-[#9CA3B0] leading-relaxed space-y-4 scrollbar-thin scrollbar-thumb-white/10">
                                         <p>제 1 조 (목적)<br/>본 계약은 "갑(이용자)"이 "을(메이크디스원)"에게 마케팅 및 콘텐츠 제작 대행 업무를 위탁함에 있어 양 당사자의 권리와 의무를 명확히 하는 데 목적이 있습니다.</p>
-                                        <p>제 2 조 (계약 기간 및 해지)<br/>1. 본 계약은 결제일로부터 1개월 단위로 자동 갱신되며, 해지 시 결제일 기준 7일 전 통보해야 합니다.<br/>2. 중도 해지 시 실제 서비스 진행 일수에 비례하여 차감된 금액이 환불됩니다.</p>
-                                        <p>제 3 조 (서비스 내용)<br/>선택한 플랜({plan?.name})에 명시된 횟수({plan?.desc})만큼의 콘텐츠 기획 및 제작을 이행합니다.</p>
+                                        {isCredit ? (
+                                            <>
+                                                <p>제 2 조 (결제 및 환불)<br/>1. 본 결제는 1회성 단건 결제이며 자동 갱신되지 않습니다. 결제하신 콘텐츠 건수는 소진 시까지 유효합니다.<br/>2. 서비스 착수 전 취소 시 전액 환불되며, 착수 후에는 이미 진행된 건수를 제외한 잔여분이 환불됩니다.</p>
+                                                <p>제 3 조 (서비스 내용)<br/>결제하신 {creditPack?.name}({creditPack?.credits}건)만큼의 콘텐츠 기획 및 제작을 이행합니다.</p>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <p>제 2 조 (계약 기간 및 해지)<br/>1. 본 계약은 결제일로부터 1개월 단위로 자동 갱신되며, 해지 시 결제일 기준 7일 전 통보해야 합니다.<br/>2. 중도 해지 시 실제 서비스 진행 일수에 비례하여 차감된 금액이 환불됩니다.</p>
+                                                <p>제 3 조 (서비스 내용)<br/>선택한 플랜({plan?.name})에 명시된 횟수({plan?.desc})만큼의 콘텐츠 기획 및 제작을 이행합니다.</p>
+                                            </>
+                                        )}
                                         <p>제 4 조 (비밀유지)<br/>"을"은 본 계약과 관련하여 취득한 "갑"의 모든 업무상 비밀 및 개인정보를 제3자에게 누설해서는 안 됩니다.</p>
                                     </div>
                                 </div>
@@ -334,8 +366,8 @@ export default function MakeThisOnePage() {
                             >
                                 취소
                             </button>
-                            <button 
-                                onClick={handleSubscribeWithToss}
+                            <button
+                                onClick={isCredit ? handleBuyCreditWithToss : handleSubscribeWithToss}
                                 disabled={!agreed || isProcessing}
                                 className="px-6 py-2.5 rounded-xl text-sm font-bold bg-[#3563AE] text-white hover:bg-[#2A4F8A] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
                             >
