@@ -4,7 +4,7 @@
 export const CREDIT_PACKS = {
     pack10: { id: "pack10", name: "콘텐츠 10건권", credits: 10, price: 1000000 },
     pack30: { id: "pack30", name: "콘텐츠 30건권", credits: 30, price: 3000000 },
-    pack50: { id: "pack50", name: "콘텐츠 50건권", credits: 50, price: 5000000 },
+    pack45: { id: "pack45", name: "콘텐츠 45건권", credits: 45, price: 4500000 },
 } as const;
 
 export type CreditPackId = keyof typeof CREDIT_PACKS;
