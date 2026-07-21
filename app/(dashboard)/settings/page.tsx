@@ -4,6 +4,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import {
     Bell,
     Shield,
@@ -15,6 +16,8 @@ import {
     Sun,
     ChevronRight,
     Film,
+    Mail,
+    KeyRound,
 } from "lucide-react";
 
 const WEBTOON_STYLES = [
@@ -29,14 +32,25 @@ export default function SettingsPage() {
     const [confirmDelete, setConfirmDelete] = useState(false);
     const [webtoonStyle, setWebtoonStyle] = useState("dramatic");
     const [savingStyle, setSavingStyle] = useState(false);
+    // 아이디(이메일)·비밀번호 변경
+    const [currentEmail, setCurrentEmail] = useState("");
+    const [showEmailForm, setShowEmailForm] = useState(false);
+    const [newEmail, setNewEmail] = useState("");
+    const [emailSaving, setEmailSaving] = useState(false);
+    const [showPwForm, setShowPwForm] = useState(false);
+    const [currentPw, setCurrentPw] = useState("");
+    const [newPw, setNewPw] = useState("");
+    const [confirmPw, setConfirmPw] = useState("");
+    const [pwSaving, setPwSaving] = useState(false);
     const supabase = createClient();
     const router = useRouter();
 
-    // Load webtoon style from DB
+    // Load webtoon style + 현재 이메일 from DB
     useState(() => {
         (async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
+            setCurrentEmail(user.email || "");
             const { data: lawyer } = await supabase
                 .from("lawyers")
                 .select("webtoon_style")
@@ -45,6 +59,74 @@ export default function SettingsPage() {
             if (lawyer?.webtoon_style) setWebtoonStyle(lawyer.webtoon_style);
         })();
     });
+
+    // 아이디(이메일) 변경 — 새 이메일로 확인 링크 발송
+    const handleChangeEmail = async () => {
+        const email = newEmail.trim().toLowerCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            toast.error("올바른 이메일 주소를 입력해주세요.");
+            return;
+        }
+        if (email === currentEmail.toLowerCase()) {
+            toast.error("현재 이메일과 동일합니다.");
+            return;
+        }
+        setEmailSaving(true);
+        const { error } = await supabase.auth.updateUser({ email });
+        setEmailSaving(false);
+        if (error) {
+            toast.error(error.message || "이메일 변경에 실패했습니다.");
+            return;
+        }
+        toast.success("새 이메일로 확인 메일을 보냈습니다. 메일의 링크를 눌러야 변경이 완료됩니다.");
+        setNewEmail("");
+        setShowEmailForm(false);
+    };
+
+    // 비밀번호 변경 — 현재 비밀번호 검증 후 변경
+    const handleChangePassword = async () => {
+        if (newPw.length < 6) {
+            toast.error("새 비밀번호는 6자 이상이어야 합니다.");
+            return;
+        }
+        if (newPw !== confirmPw) {
+            toast.error("새 비밀번호가 서로 일치하지 않습니다.");
+            return;
+        }
+        setPwSaving(true);
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user?.email) {
+                toast.error("세션이 만료되었습니다. 다시 로그인해주세요.");
+                setPwSaving(false);
+                return;
+            }
+            // 현재 비밀번호 검증
+            const { error: verifyErr } = await supabase.auth.signInWithPassword({
+                email: user.email,
+                password: currentPw,
+            });
+            if (verifyErr) {
+                toast.error("현재 비밀번호가 올바르지 않습니다.");
+                setPwSaving(false);
+                return;
+            }
+            const { error } = await supabase.auth.updateUser({ password: newPw });
+            if (error) {
+                toast.error(error.message || "비밀번호 변경에 실패했습니다.");
+                setPwSaving(false);
+                return;
+            }
+            toast.success("비밀번호가 변경되었습니다.");
+            setCurrentPw("");
+            setNewPw("");
+            setConfirmPw("");
+            setShowPwForm(false);
+        } catch {
+            toast.error("오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+        }
+        setPwSaving(false);
+    };
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
@@ -142,12 +224,85 @@ export default function SettingsPage() {
                 <SettingSection
                     icon={<Shield size={16} />}
                     title="보안"
-                    desc="비밀번호 및 계정 보안"
+                    desc="로그인 아이디(이메일)와 비밀번호를 변경합니다"
                 >
-                    <button className="w-full flex items-center justify-between p-3 rounded-xl bg-[#F9FAFB] hover:bg-[#F3F4F6] transition-colors">
-                        <span className="text-sm text-[#374151]">비밀번호 변경</span>
-                        <ChevronRight size={14} className="text-[#9CA3B0]" />
+                    {/* 아이디(이메일) 변경 */}
+                    <button
+                        onClick={() => setShowEmailForm((v) => !v)}
+                        className="w-full flex items-center justify-between p-3 rounded-xl bg-[#F9FAFB] hover:bg-[#F3F4F6] transition-colors"
+                    >
+                        <span className="flex items-center gap-2 text-sm text-[#374151]">
+                            <Mail size={14} className="text-[#9CA3B0]" /> 아이디(이메일) 변경
+                        </span>
+                        <ChevronRight size={14} className={`text-[#9CA3B0] transition-transform ${showEmailForm ? "rotate-90" : ""}`} />
                     </button>
+                    {showEmailForm && (
+                        <div className="space-y-2 p-3 rounded-xl border border-[#E8EBF0] bg-white">
+                            <p className="text-[11px] text-[#9CA3B0]">현재 아이디: <span className="font-medium text-[#374151]">{currentEmail || "—"}</span></p>
+                            <input
+                                type="email"
+                                value={newEmail}
+                                onChange={(e) => setNewEmail(e.target.value)}
+                                placeholder="새 이메일 주소"
+                                autoComplete="off"
+                                className="w-full px-3 py-2 rounded-lg border border-[#E4E7ED] text-sm text-[#1F2937] focus:border-[#3563AE] outline-none"
+                            />
+                            <button
+                                onClick={handleChangeEmail}
+                                disabled={emailSaving}
+                                className="w-full py-2 rounded-lg bg-[#3563AE] text-white text-sm font-semibold hover:bg-[#2A4F8A] disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                            >
+                                {emailSaving ? <><Loader2 size={14} className="animate-spin" /> 처리 중…</> : "확인 메일 보내기"}
+                            </button>
+                            <p className="text-[10px] text-[#9CA3B0]">새 이메일로 확인 링크가 발송됩니다. 링크를 눌러야 아이디 변경이 완료됩니다.</p>
+                        </div>
+                    )}
+
+                    {/* 비밀번호 변경 */}
+                    <button
+                        onClick={() => setShowPwForm((v) => !v)}
+                        className="w-full flex items-center justify-between p-3 rounded-xl bg-[#F9FAFB] hover:bg-[#F3F4F6] transition-colors"
+                    >
+                        <span className="flex items-center gap-2 text-sm text-[#374151]">
+                            <KeyRound size={14} className="text-[#9CA3B0]" /> 비밀번호 변경
+                        </span>
+                        <ChevronRight size={14} className={`text-[#9CA3B0] transition-transform ${showPwForm ? "rotate-90" : ""}`} />
+                    </button>
+                    {showPwForm && (
+                        <div className="space-y-2 p-3 rounded-xl border border-[#E8EBF0] bg-white">
+                            <input
+                                type="password"
+                                value={currentPw}
+                                onChange={(e) => setCurrentPw(e.target.value)}
+                                placeholder="현재 비밀번호"
+                                autoComplete="current-password"
+                                className="w-full px-3 py-2 rounded-lg border border-[#E4E7ED] text-sm text-[#1F2937] focus:border-[#3563AE] outline-none"
+                            />
+                            <input
+                                type="password"
+                                value={newPw}
+                                onChange={(e) => setNewPw(e.target.value)}
+                                placeholder="새 비밀번호 (6자 이상)"
+                                autoComplete="new-password"
+                                className="w-full px-3 py-2 rounded-lg border border-[#E4E7ED] text-sm text-[#1F2937] focus:border-[#3563AE] outline-none"
+                            />
+                            <input
+                                type="password"
+                                value={confirmPw}
+                                onChange={(e) => setConfirmPw(e.target.value)}
+                                placeholder="새 비밀번호 확인"
+                                autoComplete="new-password"
+                                className="w-full px-3 py-2 rounded-lg border border-[#E4E7ED] text-sm text-[#1F2937] focus:border-[#3563AE] outline-none"
+                            />
+                            <button
+                                onClick={handleChangePassword}
+                                disabled={pwSaving}
+                                className="w-full py-2 rounded-lg bg-[#3563AE] text-white text-sm font-semibold hover:bg-[#2A4F8A] disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                            >
+                                {pwSaving ? <><Loader2 size={14} className="animate-spin" /> 변경 중…</> : "비밀번호 변경"}
+                            </button>
+                        </div>
+                    )}
                 </SettingSection>
 
                 {/* Account actions */}
