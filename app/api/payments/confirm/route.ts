@@ -7,9 +7,10 @@ import nodemailer from "nodemailer";
 // POST: 일회성(단건) 결제 승인 + 기록 (수동 처리용 — 자동 크레딧 반영 없음)
 export async function POST(request: Request) {
     try {
+        // 메이크디스원은 대행 서비스라 macdee 로그인 없이도 결제 가능(구독 흐름과 동일).
+        // 로그인돼 있으면 구매자 정보를 첨부하고, 아니면 익명 기록 + 관리자 알림으로 수동 처리.
         const supabase = await createClient();
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
 
         const { paymentKey, orderId, amount } = await request.json();
         if (!paymentKey || !orderId) {
@@ -30,11 +31,15 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "결제 금액이 일치하지 않습니다." }, { status: 400 });
         }
 
-        const { data: lawyer } = await supabase
-            .from("lawyers")
-            .select("id, name")
-            .eq("user_id", user.id)
-            .single();
+        let lawyer: { id: string; name: string } | null = null;
+        if (user) {
+            const { data } = await supabase
+                .from("lawyers")
+                .select("id, name")
+                .eq("user_id", user.id)
+                .single();
+            lawyer = data;
+        }
 
         // 토스 결제 승인
         const tossRes = await fetch(`${TOSS_API_URL}/payments/confirm`, {
@@ -61,7 +66,7 @@ export async function POST(request: Request) {
             amount: expectedAmount,
             credits: pack.credits,
             order_name: pack.name,
-            customer_email: user.email || null,
+            customer_email: user?.email || null,
             status: tossData.status || "DONE",
             fulfilled: false,
             paid_at: tossData.approvedAt || new Date().toISOString(),
@@ -72,7 +77,7 @@ export async function POST(request: Request) {
         }
 
         // 운영자 알림 (수동 처리 안내) — best-effort
-        notify(pack, user.email || "", lawyer?.name || "", amount).catch((e) =>
+        notify(pack, user?.email || "", lawyer?.name || "", amount).catch((e) =>
             console.error("[Payments] notify error:", e),
         );
 
