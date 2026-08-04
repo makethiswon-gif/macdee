@@ -82,20 +82,24 @@ export async function GET(request: Request) {
 
         const url = `${BASE_URL}/magazine/${inserted.slug}`;
 
-        // 5) 스레드(Threads) 자동 포스팅 — best-effort
-        //    긴 한글 URL 대신 짧은 링크(/m/{code})를 link_attachment로 첨부 → 500자 제한 안 먹음
-        const shortCode = (inserted.slug.split("-").pop() || "").trim();
-        const shortUrl = shortCode ? `${BASE_URL}/m/${shortCode}` : url;
-        // 진단 리드마그넷 CTA를 항상 캡션 끝에 삽입(잘리지 않게 공간 확보)
-        const cta = `\n\n내 블로그는 AI 검색에 어떻게 보일까? 무료 진단 ▶ ${BASE_URL}/diagnose`;
-        const base = (article.threads || article.excerpt || article.title).trim().slice(0, 490 - cta.length);
-        const caption = base + cta;
-        let threads = null;
-        try {
-            threads = await postToThreads({ text: caption, linkUrl: shortUrl });
-            if (threads.error) console.error("[Daily Magazine] threads:", threads.error);
-        } catch (e) {
-            console.error("[Daily Magazine] threads error:", e);
+        // 5) 스레드(Threads) 자동 포스팅 — 사용자 요청으로 기본 중단(2026-07).
+        //    매거진 발행은 그대로 유지. 다시 켜려면 Vercel 환경변수 DAILY_THREADS_ENABLED=true 설정.
+        let threads: unknown = { skipped: "disabled" };
+        if (process.env.DAILY_THREADS_ENABLED === "true") {
+            // 긴 한글 URL 대신 짧은 링크(/m/{code})를 link_attachment로 첨부 → 500자 제한 안 먹음
+            const shortCode = (inserted.slug.split("-").pop() || "").trim();
+            const shortUrl = shortCode ? `${BASE_URL}/m/${shortCode}` : url;
+            // 진단 리드마그넷 CTA를 항상 캡션 끝에 삽입(잘리지 않게 공간 확보)
+            const cta = `\n\n내 블로그는 AI 검색에 어떻게 보일까? 무료 진단 ▶ ${BASE_URL}/diagnose`;
+            const base = (article.threads || article.excerpt || article.title).trim().slice(0, 490 - cta.length);
+            const caption = base + cta;
+            try {
+                const t = await postToThreads({ text: caption, linkUrl: shortUrl });
+                threads = t;
+                if (t.error) console.error("[Daily Magazine] threads:", t.error);
+            } catch (e) {
+                console.error("[Daily Magazine] threads error:", e);
+            }
         }
 
         // 6) 발행 알림(이메일) — best-effort
