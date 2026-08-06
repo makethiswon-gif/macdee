@@ -6,6 +6,7 @@ export interface ChargeResult {
     orderId?: string;
     status?: string;
     approvedAt?: string;
+    receiptUrl?: string;
     error?: string;
     code?: string;
 }
@@ -40,7 +41,7 @@ export async function chargeBilling(opts: {
         if (!res.ok) {
             return { ok: false, error: data.message || "결제 실패", code: data.code };
         }
-        return { ok: true, paymentKey: data.paymentKey, orderId, status: data.status, approvedAt: data.approvedAt };
+        return { ok: true, paymentKey: data.paymentKey, orderId, status: data.status, approvedAt: data.approvedAt, receiptUrl: data.receipt?.url };
     } catch (err) {
         return { ok: false, error: err instanceof Error ? err.message : "unknown" };
     }

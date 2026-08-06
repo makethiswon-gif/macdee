@@ -46,6 +46,20 @@ export async function GET(request: Request) {
                     next_charge_date: addOneMonth(row.next_charge_date),
                 })
                 .eq("id", row.id);
+            // 영수증 기록 (관리자 영수증 조회용)
+            const { error: payErr } = await supabase.from("payments").insert({
+                order_id: result.orderId,
+                payment_key: result.paymentKey || null,
+                amount: row.amount,
+                order_name: `${row.plan || "정기결제"} (${row.next_charge_date})`,
+                customer_email: row.customer_email || null,
+                customer_name: row.customer_name || null,
+                payment_type: "subscription_recurring",
+                receipt_url: result.receiptUrl || null,
+                status: result.status || "DONE",
+                paid_at: result.approvedAt || new Date().toISOString(),
+            });
+            if (payErr) console.error("[RecurringBilling] payments insert error:", payErr);
             results.push({ id: row.id, ok: true, amount: row.amount });
         } else {
             await supabase.from("recurring_billing").update({ status: "past_due" }).eq("id", row.id);
