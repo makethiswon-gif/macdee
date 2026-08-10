@@ -189,98 +189,61 @@ function fallbackResponse(newsByField: Record<FieldId, NewsRef[]>): TopicRespons
     };
 }
 
-async function generateTopics(newsByField: Record<FieldId, NewsRef[]>): Promise<TopicResponse> {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) return fallbackResponse(newsByField);
-
-    const newsBrief = LEGAL_FIELDS.map((field) => {
-        const refs = (newsByField[field.id] || [])
-            .map((ref, index) => `${index + 1}. ${ref.title} (${ref.source || "뉴스"}, ${ref.publishedAt || "날짜 미상"}) ${ref.url}`)
-            .join("\n");
-        return `## ${field.label}\n${refs || "최근 뉴스 신호 없음"}`;
-    }).join("\n\n");
+// 분야 1개당 주제 3개 생성 (sonnet-4-6, 작은 출력). 실패 시 폴백 주제로 대체.
+async function generateFieldTopics(field: { id: FieldId; label: string }, refs: NewsRef[], apiKey: string): Promise<TopicSuggestion[]> {
+    const newsBrief = refs
+        .map((ref, i) => `${i + 1}. ${ref.title} (${ref.source || "뉴스"}, ${ref.publishedAt || "날짜 미상"}) ${ref.url}`)
+        .join("\n") || "최근 뉴스 신호 없음";
 
     const system = `당신은 한국 변호사 블로그의 전환율을 높이는 SEO 콘텐츠 전략가입니다.
-오늘 수집한 법률 뉴스 신호를 참고하되, 뉴스 요약이 아니라 변호사 블로그에 올리면 상담 전환이 잘 날 주제를 추천합니다.
+'${field.label}' 분야에 한해, 뉴스 요약이 아니라 블로그에 올리면 상담 전환이 잘 날 주제 3개를 추천합니다.
+- 3개 구성: 1) 최근 뉴스/제도/판례 신호 기반, 2) 꾸준한 검색 수요형, 3) 불안 해소·상담 전환형.
+- 과장, 승소 보장, 확인되지 않은 판례 번호 금지. JSON만 반환.`;
 
-규칙:
-- 분야별로 정확히 3개씩 추천합니다. 분야는 이혼, 형사, 부동산, 건설, 상속, 회생/파산, 민사입니다.
-- 각 분야 3개는 1) 최근 뉴스/제도/판례 신호 기반 1개, 2) 꾸준한 검색 수요형 1개, 3) 상담 전환형 불안 해소 주제 1개로 구성합니다.
-- 선정 기준은 검색 의도, 긴급성, 증거/기간 리스크, 상담 유도 가능성입니다.
-- 과장, 승소 보장, 확인되지 않은 판례 번호는 금지합니다.
-- 출력은 JSON만 반환합니다.`;
-
-    const user = `오늘 날짜(KST): ${getKstDateKey()}
+    const user = `오늘(KST): ${getKstDateKey()}
+분야: ${field.label}
 
 [최근 뉴스 신호]
 ${newsBrief}
 
-아래 JSON 형식으로만 반환하세요.
-{
-  "fields": [
-    {
-      "id": "divorce",
-      "label": "이혼",
-      "topics": [
-        {
-          "topic": "주제",
-          "keyword": "핵심 키워드",
-          "intent": "의뢰인 검색 의도",
-          "angle": "글에서 잡을 관점",
-          "titleIdeas": ["제목1", "제목2", "제목3"],
-          "talkingPoints": ["본문 쟁점1", "본문 쟁점2", "본문 쟁점3"],
-          "conversionPoint": "상담 전환 포인트",
-          "newsRefs": [{"title":"참고한 뉴스/자료 제목","url":"URL","source":"출처"}],
-          "score": 85
-        }
-      ]
+아래 JSON으로만 반환:
+{"topics":[{"topic":"주제","keyword":"핵심 키워드","intent":"검색 의도","angle":"관점","titleIdeas":["제목1","제목2","제목3"],"talkingPoints":["쟁점1","쟁점2","쟁점3"],"conversionPoint":"전환 포인트","newsRefs":[{"title":"뉴스 제목","url":"URL","source":"출처"}],"score":85}]}`;
+
+    try {
+        const res = await fetch("https://api.anthropic.com/v1/messages", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
+            body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 2500, system, messages: [{ role: "user", content: user }] }),
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        const rawText = (data.content || []).find((b: { type: string; text?: string }) => b.type === "text")?.text || "";
+        const parsed = extractJson(rawText) as { topics?: Partial<TopicSuggestion>[] };
+        const topics = parsed.topics || [];
+        return [0, 1, 2].map((i) => normalizeTopic(topics[i] || {}, field.id, field.label, refs, i));
+    } catch (err) {
+        console.error(`[Topic Suggestions] ${field.id} 생성 실패, 폴백 사용:`, err instanceof Error ? err.message : err);
+        return [0, 1, 2].map((i) => normalizeTopic({}, field.id, field.label, refs, i));
     }
-  ]
-}`;
+}
 
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "x-api-key": apiKey,
-            "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({
-            model: "claude-opus-4-8",
-            max_tokens: 12000,
-            thinking: { type: "adaptive" },
-            system,
-            messages: [{ role: "user", content: user }],
-        }),
-    });
+// 7개 분야를 병렬로 생성 (opus 단일 호출 146초 → 병렬 sonnet ~20초로 단축)
+async function generateTopics(newsByField: Record<FieldId, NewsRef[]>): Promise<TopicResponse> {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) return fallbackResponse(newsByField);
 
-    if (!res.ok) {
-        console.error("[Claude Topic Suggestions] Claude error:", await res.text());
-        return fallbackResponse(newsByField);
-    }
-
-    const data = await res.json();
-    const rawText = (data.content || []).find((block: { type: string; text?: string }) => block.type === "text")?.text || "";
-    const parsed = extractJson(rawText) as { fields?: Array<{ id?: FieldId; label?: string; topics?: Partial<TopicSuggestion>[] }> };
+    const fields = await Promise.all(
+        LEGAL_FIELDS.map(async (field) => ({
+            id: field.id,
+            label: field.label,
+            topics: await generateFieldTopics(field, newsByField[field.id] || [], apiKey),
+        })),
+    );
 
     return {
         date: getKstDateKey(),
         generatedAt: new Date().toISOString(),
-        fields: LEGAL_FIELDS.map((field) => {
-            const generatedField = parsed.fields?.find((item) => item.id === field.id || item.label === field.label);
-            const generatedTopics = generatedField?.topics || [];
-            return {
-                id: field.id,
-                label: field.label,
-                topics: [0, 1, 2].map((index) => normalizeTopic(
-                    generatedTopics[index] || {},
-                    field.id,
-                    field.label,
-                    newsByField[field.id] || [],
-                    index,
-                )),
-            };
-        }),
+        fields,
     };
 }
 
