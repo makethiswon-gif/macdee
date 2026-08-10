@@ -143,8 +143,8 @@ export async function generateCoverImage(
     const sceneDescription = await generateScenePromptWithClaude(caseType, hookText, context, style);
 
     const finalPrompt = style === "webtoon"
-        ? `Create a single-panel Korean webtoon (만화) illustration based on this scene:\n\n${sceneDescription}\n\nStyle: Korean manhwa art style, clean bold lines, dramatic expressions, distinct Korean characters, square 1:1, ultra high quality, dark dramatic lighting. NO text/words/letters/numbers in the image.`
-        : `Create a photorealistic cinematic photograph based on this scene:\n\n${sceneDescription}\n\nStyle: Editorial K-drama photography, DSLR bokeh, square 1:1, ultra high quality, dramatic chiaroscuro lighting. Korean setting. NO text/words/letters/numbers in the image.`;
+        ? `Create a single-panel Korean webtoon (만화) illustration based on this scene:\n\n${sceneDescription}\n\nStyle: Korean manhwa art style, clean lines, natural and restrained facial expressions (emotive but NOT exaggerated or over-dramatic), distinct Korean characters, consistent tasteful character design, square 1:1, high quality, soft even lighting. NO text/words/letters/numbers in the image.`
+        : `Create a photorealistic editorial photograph based on this scene:\n\n${sceneDescription}\n\nStyle: clean editorial photography, DSLR shallow depth of field, square 1:1, high quality, BRIGHT natural mid-to-high-key lighting (not dark, not moody), airy and professional. Korean setting. NO text/words/letters/numbers in the image.`;
 
     // Step 2: GPT Image 2 이미지 생성 (주 엔진)
     const apiKey = process.env.OPENAI_API_KEY;

@@ -149,8 +149,9 @@ export default function BlogImagesPage() {
 
         const cardTypes = [
             { type: "thumbnail", label: "메인 썸네일" },
-            { type: "illustration", label: "관련 일러스트" },
-            { type: "contact", label: "문의 안내" },
+            { type: "illustration", label: "상황 이미지" },
+            { type: "info", label: "정보 정리" },
+            { type: "contact", label: "요약·안내" },
         ];
 
         const total = cardTypes.length;
@@ -252,8 +253,9 @@ export default function BlogImagesPage() {
 
             const cardNameMap: Record<string, string> = {
                 thumbnail: '메인썸네일',
-                illustration: '관련일러스트',
-                contact: '문의안내',
+                illustration: '상황이미지',
+                info: '정보정리',
+                contact: '요약안내',
             };
 
             for (let i = 0; i < cards.length; i++) {
@@ -437,8 +439,8 @@ export default function BlogImagesPage() {
                             {(!isGenerating && cards.length === 0) && (
                                 <div className="flex-1 flex flex-col items-center justify-center text-[#4B5563]">
                                     <Sparkles size={48} className="mb-4 text-[#1F2937]" />
-                                    <p className="text-sm font-medium">✨ &apos;생성형 UI 카드 만들기&apos;를 누르면 3장이 나옵니다.</p>
-                                    <p className="text-xs text-[#374151] mt-2">메인 썸네일 · 관련 일러스트 · 문의 안내</p>
+                                    <p className="text-sm font-medium">✨ &apos;생성형 UI 카드 만들기&apos;를 누르면 4장이 나옵니다.</p>
+                                    <p className="text-xs text-[#374151] mt-2">메인 썸네일 · 상황 이미지 · 정보 정리 · 요약·안내</p>
                                 </div>
                             )}
 

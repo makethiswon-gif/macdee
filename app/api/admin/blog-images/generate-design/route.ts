@@ -6,38 +6,32 @@ import { verifyAdminToken } from "@/lib/admin-auth";
 
 export const maxDuration = 90;
 
-interface TitleParts { keyword: string; rest: string; }
-
-async function generateTitleParts(content: string, existingTitle: string, apiKey: string): Promise<TitleParts> {
-    const fallback = (): TitleParts => {
-        const chars = Array.from(existingTitle || "");
-        return { keyword: chars.slice(0, 10).join(""), rest: chars.slice(10, 20).join("") };
+// A 썸네일용 상황형 훅 — 독자가 공감할 2~3줄(제목과 다르게, 마지막 줄은 질문형 권장)
+async function generateSituationalHook(content: string, existingTitle: string, apiKey: string): Promise<string[]> {
+    const fallback = (): string[] => {
+        const t = (existingTitle || "법률 이슈").trim();
+        return [Array.from(t).slice(0, 16).join("")];
     };
-
     const source = existingTitle
-        ? `제목: ${existingTitle}\n\n본문: ${content.substring(0, 400)}`
-        : content.substring(0, 500);
-
+        ? `제목: ${existingTitle}\n\n본문: ${content.substring(0, 600)}`
+        : content.substring(0, 700);
     try {
         const res = await fetch("https://api.anthropic.com/v1/messages", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "x-api-key": apiKey,
-                "anthropic-version": "2023-06-01",
-            },
+            headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
             body: JSON.stringify({
                 model: "claude-haiku-4-5",
-                max_tokens: 60,
+                max_tokens: 120,
                 messages: [{
                     role: "user",
-                    content: `다음 블로그 글 제목을 두 파트로 나눠 JSON으로만 반환하세요.
+                    content: `이 블로그 글의 '상황'을 독자가 공감할 짧은 썸네일 훅으로 만드세요.
 
-keyword: 가장 핵심 법률 키워드 2~10자 (예: "이혼", "스토킹", "사기죄", "양육권 분쟁", "상속세 절세 전략")
-rest: 나머지 부연 설명 최대 10자
-
-규칙: keyword + rest 합쳐서 20자 이내. JSON만 출력, 다른 텍스트 없이.
-출력 형식: {"keyword":"...","rest":"..."}
+규칙:
+- 2~3줄. 각 줄 최대 12자.
+- 제목을 그대로 쓰지 말 것(비슷해도 안 됨). 독자가 처한 '상황/질문'으로 표현.
+- 마지막 줄은 궁금증을 자극하는 질문형 권장.
+- 예: ["면접교섭 거부","자녀 소재를 모를 때","이행명령이 가능할까?"]
+- JSON만 출력: {"lines":["...","..."]}
 
 ${source}`,
                 }],
@@ -46,15 +40,48 @@ ${source}`,
         if (!res.ok) return fallback();
         const data = await res.json();
         const raw = (data.content?.[0]?.text || "").trim();
-        const match = raw.match(/\{[^}]+\}/);
+        const match = raw.match(/\{[\s\S]*\}/);
         if (!match) return fallback();
-        const parsed = JSON.parse(match[0]) as { keyword?: string; rest?: string };
-        return {
-            keyword: Array.from(parsed.keyword || "").slice(0, 10).join(""),
-            rest: Array.from(parsed.rest || "").slice(0, 10).join(""),
-        };
+        const parsed = JSON.parse(match[0]) as { lines?: string[] };
+        const lines = (parsed.lines || []).map((l) => Array.from(String(l)).slice(0, 14).join("")).filter(Boolean).slice(0, 3);
+        return lines.length ? lines : fallback();
     } catch {
         return fallback();
+    }
+}
+
+// D 요약카드용 본문 요약 — "이런 경우라면 이렇게 준비하세요" 톤 2~3줄
+async function generateSummaryLines(content: string, existingTitle: string, apiKey: string): Promise<string[]> {
+    const source = existingTitle ? `제목: ${existingTitle}\n\n본문: ${content.substring(0, 1200)}` : content.substring(0, 1400);
+    try {
+        const res = await fetch("https://api.anthropic.com/v1/messages", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
+            body: JSON.stringify({
+                model: "claude-haiku-4-5",
+                max_tokens: 200,
+                messages: [{
+                    role: "user",
+                    content: `이 블로그 글의 핵심을 마무리 요약 카드용 2~3줄로 정리하세요.
+
+규칙:
+- "상담 받으세요"류 광고 톤 금지. "이런 경우라면 이렇게 준비하세요" 같은 신뢰형 톤.
+- 각 줄 최대 30자. 실질 조언/핵심 포인트.
+- JSON만 출력: {"lines":["...","..."]}
+
+${source}`,
+                }],
+            }),
+        });
+        if (!res.ok) return [];
+        const data = await res.json();
+        const raw = (data.content?.[0]?.text || "").trim();
+        const match = raw.match(/\{[\s\S]*\}/);
+        if (!match) return [];
+        const parsed = JSON.parse(match[0]) as { lines?: string[] };
+        return (parsed.lines || []).map((l) => String(l).slice(0, 40)).filter(Boolean).slice(0, 3);
+    } catch {
+        return [];
     }
 }
 
@@ -93,35 +120,50 @@ export async function POST(req: Request) {
 
         const cardNames: Record<string, string> = {
             thumbnail: "메인 썸네일",
-            illustration: "관련 일러스트",
-            contact: "문의 안내",
+            illustration: "상황 이미지",
+            info: "정보 정리",
+            contact: "요약·안내",
         };
+
+        // C(정보형)·D(요약)용 본문 요약 라인 (Claude HTML 프롬프트에 주입)
+        const summaryLines = (cardType === "contact")
+            ? await generateSummaryLines(content, title || "", apiKey)
+            : [];
 
         // ── thumbnail / illustration: AI 이미지 단독 ──
         if (cardType === "thumbnail" || cardType === "illustration") {
             const style = cardType === "thumbnail" ? "realistic" : "webtoon";
             try {
-                // 썸네일 전용: 이미지 생성과 제목 생성 병렬 실행
-                const [img, titleParts] = await Promise.all([
+                // 썸네일: 이미지 + 상황훅 생성 병렬
+                const [img, hookLines] = await Promise.all([
                     generateBlogContentImage(content, title || "", style),
                     cardType === "thumbnail"
-                        ? generateTitleParts(content, title || "", apiKey)
-                        : Promise.resolve(null),
+                        ? generateSituationalHook(content, title || "", apiKey)
+                        : Promise.resolve<string[] | null>(null),
                 ]);
 
                 const dataUrl = `data:image/png;base64,${img.imageBase64}`;
 
                 let html: string;
-                if (cardType === "thumbnail" && titleParts?.keyword) {
-                    const kwLen = Array.from(titleParts.keyword).length;
-                    const kwSize = kwLen <= 3 ? 96 : kwLen <= 5 ? 80 : kwLen <= 7 ? 64 : 52;
-                    html = `<style>@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;900&display=swap');</style>
-<div style="width:800px;height:800px;position:relative;overflow:hidden;background:#000;">
+                if (cardType === "thumbnail" && hookLines && hookLines.length) {
+                    const last = hookLines.length - 1;
+                    const logoTag = hasLogo && profile.logoImage
+                        ? `<img src="${profile.logoImage}" style="position:absolute;top:26px;left:30px;height:28px;opacity:0.9;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.45));" />`
+                        : "";
+                    // 사진 위에 밝은 텍스트 패널(중명도↑) + 상황형 훅. 마지막 줄만 브랜드컬러 강조.
+                    const lineHtml = hookLines.map((l, i) => {
+                        const isLast = i === last;
+                        const size = isLast ? 48 : 34;
+                        return `<div style="font-family:'Noto Sans KR',sans-serif;font-weight:${isLast ? 900 : 700};font-size:${size}px;color:${isLast ? brandColor : "#1A1A1A"};line-height:1.24;letter-spacing:-1.8px;">${l}</div>`;
+                    }).join("");
+                    html = `<style>@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap');</style>
+<div style="width:800px;height:800px;position:relative;overflow:hidden;background:#e9edf2;">
   <img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover;display:block;" />
-  <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.85) 0%,rgba(0,0,0,0.25) 50%,transparent 100%);"></div>
-  <div style="position:absolute;bottom:48px;left:0;right:0;padding:0 52px;">
-    ${titleParts.rest ? `<div style="font-family:'Noto Sans KR',sans-serif;font-weight:400;font-size:26px;color:rgba(255,255,255,0.75);letter-spacing:0px;margin-bottom:6px;text-shadow:0 2px 12px rgba(0,0,0,0.8);">${titleParts.rest}</div>` : ""}
-    <div style="font-family:'Noto Sans KR',sans-serif;font-weight:900;font-size:${kwSize}px;color:#fff;line-height:1.0;letter-spacing:-3px;text-shadow:0 4px 28px rgba(0,0,0,0.7);">${titleParts.keyword}</div>
+  <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.28),transparent 46%);"></div>
+  ${logoTag}
+  <div style="position:absolute;bottom:44px;left:44px;right:44px;background:rgba(255,255,255,0.95);border-radius:26px;padding:34px 38px;box-shadow:0 24px 60px rgba(0,0,0,0.30);">
+    <div style="width:46px;height:5px;border-radius:3px;background:${brandColor};margin-bottom:18px;"></div>
+    ${lineHtml}
   </div>
 </div>`;
                 } else {
@@ -158,24 +200,58 @@ export async function POST(req: Request) {
 
         const cardPrompts: Record<string, string> = {
 
+            // C. 정보형 — 본문 보고 형식(단계/체크리스트/비교/순서도) 자동 선택
+            info: `이 블로그 글의 핵심을 '정보형 시각자료' 한 장으로 정리하세요.
+
+[형식 — 본문에 가장 잘 맞는 것 하나를 스스로 선택]
+1) 단계별 절차 (3~5단계: 번호 + 짧은 제목 + 한 줄 설명)
+2) 체크리스트 (3~5항목: 체크 아이콘 + 항목)
+3) 비교 (A vs B, 2열 대조)
+4) 순서도 (간단한 화살표 흐름)
+
+[내용 규칙 — 매우 중요]
+- 본문에 실제로 있는 내용만. 없는 내용 지어내기 절대 금지.
+- 정보 개수 3~5개. 한 장에 과하지 않게.
+- 상단에 짧은 헤더(주제) 1줄, 그 아래 항목들.
+- 글 제목을 그대로 반복하지 말 것.
+
+[본문]
+${content.substring(0, 2500)}
+
+[디자인]
+- 밝고 정돈된 인포그래픽. 흰색/아주 옅은 회색 배경. 브랜드컬러 ${brandColor}는 번호·아이콘·강조선에만 절제해서.
+- 항목은 카드/구분선/여백으로 명확히 구조화. 모바일에서도 읽히게 폰트 충분히 크게.
+${variationDirective}
+
+font-family:'Noto Sans KR',sans-serif
+800x800px, inline CSS만.`,
+
+            // D. 요약 + 안내 — 세로 명함이 아니라 '가로형 요약 배너' + 왜 연락해야 하는지 맥락
             contact: (() => {
                 const phoneRaw = profile.phone || "";
                 const phoneLines = phoneRaw.split(/[,，]/).map((p: string) => p.trim()).filter(Boolean);
+                const summaryBlock = summaryLines.length
+                    ? summaryLines.map((l) => `- ${l}`).join("\n")
+                    : "(본문 핵심을 신뢰형 톤으로 2~3줄 직접 요약)";
 
-                return `변호사 연락처 카드. 명함처럼 깔끔하고 정돈된 레이아웃.
+                return `블로그 글 마무리용 '요약 + 안내' 카드. 세로 명함형 금지 — 상단 요약이 주인공인 배너형.
 
-${hasProfileImg ? `프로필 사진 (원형): <img src="__PROFILE_IMG__" />` : ""}
-${hasLogo ? `로펌 로고: <img src="__LOGO_IMG__" />` : ""}
+[상단 60% — 요약(주인공, 밝은 배경)]
+- 헤더 한 줄: "이런 경우라면, 이렇게 준비하세요" 같은 신뢰형 톤 (광고·자극 문구 금지)
+- 핵심 요약 2~3줄:
+${summaryBlock}
 
-[카드 표시 정보 — 이것만]
-- 이름+직함: ${profile.lawyerName} ${profile.jobTitle || "변호사"}
+[하단 40% — 안내(작게 정리, ${brandColor} 톤 배경)]
+${hasProfileImg ? `- 변호사 사진: 작은 원형(지나치게 크지 않게). <img src="__PROFILE_IMG__" />` : ""}
+- ${profile.lawyerName} ${profile.jobTitle || "변호사"}
 ${phoneLines.length > 0 ? `- 전화: ${phoneLines.join(" / ")}` : ""}
 ${profile.website ? `- 홈페이지: ${profile.website}` : ""}
+${hasLogo ? `- 로펌 로고: 작게(height:30px). <img src="__LOGO_IMG__" />` : ""}
 
-레이아웃: 상단 40% = ${brandColor} 그라데이션 배경 + ${hasProfileImg ? "원형 프로필 사진 + 이름" : "이름+직함"}, 하단 60% = 어두운 배경 + 연락처 정보.
-연락처는 아이콘 없이 텍스트만 간결하게. 줄 간격 넉넉히.
-${hasLogo ? "하단 최하단에 로펌 로고 (height:36px)." : ""}
-
+[원칙]
+- "상담 받으세요" 같은 직접 광고 대신 '준비 방법 안내' 톤으로 신뢰감.
+- 사진·로고는 작게. 요약 텍스트가 시각적 주인공.
+- 연락처는 아이콘 없이 텍스트만 한 줄 정리.
 ${variationDirective}
 
 font-family:'Noto Sans KR',sans-serif
