@@ -3,7 +3,7 @@ import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
 
 export const maxDuration = 120;
 
-type FieldId = "divorce" | "criminal" | "real-estate" | "construction" | "inheritance" | "bankruptcy" | "civil";
+type FieldId = "divorce" | "criminal" | "real-estate" | "construction" | "inheritance" | "bankruptcy" | "civil" | "medical";
 
 interface NewsRef {
     title: string;
@@ -44,6 +44,7 @@ const LEGAL_FIELDS: Array<{ id: FieldId; label: string; queries: string[] }> = [
     { id: "inheritance", label: "상속", queries: ["상속 유류분 한정승인 상속포기", "상속재산분할 유언 분쟁"] },
     { id: "bankruptcy", label: "회생/파산", queries: ["개인회생 개인파산 면책 채무조정", "법인회생 법인파산 채무 변제계획"] },
     { id: "civil", label: "민사", queries: ["대여금 손해배상 내용증명 민사소송", "민사 소송 가압류 지급명령"] },
+    { id: "medical", label: "의료", queries: ["의료소송 의료과실 손해배상 진료기록", "의료행정 면허취소 요양급여 환수 의료분쟁"] },
 ];
 
 let memoryCache: TopicResponse | null = null;
@@ -153,6 +154,7 @@ function normalizeTopic(raw: Partial<TopicSuggestion>, fieldId: FieldId, fieldLa
         inheritance: ["유류분 청구 전 증여 내역을 확인해야 하는 이유", "상속포기와 한정승인을 헷갈리면 생기는 문제", "상속재산분할 협의가 깨졌을 때 소송 흐름"],
         bankruptcy: ["개인회생 신청 전 통장거래를 정리해야 하는 이유", "개인파산과 면책이 기각될 수 있는 경우", "사업자 채무가 있을 때 회생과 파산 중 무엇을 선택할까"],
         civil: ["차용증 없이 빌려준 돈을 받는 방법", "손해배상 청구에서 입증자료가 부족한 경우", "내용증명을 무시당한 뒤 다음 단계"],
+        medical: ["의료과실을 입증하려면 확보해야 할 진료기록", "요양급여 환수처분을 받았을 때 대응 절차", "의료분쟁 조정과 소송 중 무엇을 선택할까"],
     };
     const topic = raw.topic || fallbackTopics[fieldId][index] || `${fieldLabel} 상담 전 꼭 확인할 쟁점`;
     const titleIdeas = Array.isArray(raw.titleIdeas) && raw.titleIdeas.length > 0

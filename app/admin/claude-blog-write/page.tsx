@@ -28,7 +28,7 @@ interface TopicResponse {
     }>;
 }
 
-const TOPIC_CACHE_VERSION = "v2";
+const TOPIC_CACHE_VERSION = "v3";
 
 const FALLBACK_TOPIC_FIELDS: TopicResponse["fields"] = [
     {
@@ -346,6 +346,51 @@ const FALLBACK_TOPIC_FIELDS: TopicResponse["fields"] = [
             },
         ],
     },
+    {
+        id: "medical",
+        label: "의료",
+        topics: [
+            {
+                fieldId: "medical",
+                fieldLabel: "의료",
+                topic: "의료과실을 입증하려면 확보해야 할 진료기록",
+                keyword: "의료과실 진료기록",
+                intent: "치료 후 문제가 생겨 과실인지 확인하려는 환자·보호자의 검색 의도",
+                angle: "진료기록 사본·영상자료 확보와 의료감정의 중요성을 설명",
+                titleIdeas: ["의료사고, 진료기록부터 확보해야 하는 이유", "의료과실 입증에 꼭 필요한 자료"],
+                talkingPoints: ["진료기록 사본 청구", "의료감정", "인과관계 입증"],
+                conversionPoint: "기록이 변경·폐기되기 전 확보 상담 유도",
+                newsRefs: [],
+                score: 88,
+            },
+            {
+                fieldId: "medical",
+                fieldLabel: "의료",
+                topic: "요양급여 환수처분을 받았을 때 대응 절차",
+                keyword: "요양급여 환수 처분",
+                intent: "건보공단 환수·업무정지 처분을 받은 의료기관의 검색 의도",
+                angle: "행정처분 절차와 이의신청·행정소송 대응을 설명",
+                titleIdeas: ["요양급여 환수처분, 이의신청부터 준비하세요", "환수·업무정지 처분 대응 순서"],
+                talkingPoints: ["처분 사유 검토", "이의신청 기한", "행정소송·집행정지"],
+                conversionPoint: "처분 통지 후 기한 내 대응 상담 유도",
+                newsRefs: [],
+                score: 86,
+            },
+            {
+                fieldId: "medical",
+                fieldLabel: "의료",
+                topic: "의료분쟁 조정과 소송 중 무엇을 선택할까",
+                keyword: "의료분쟁 조정 소송",
+                intent: "의료분쟁조정중재원 조정과 민사소송 사이에서 고민하는 검색 의도",
+                angle: "조정과 소송의 기간·비용·입증 부담 차이를 비교",
+                titleIdeas: ["의료분쟁, 조정과 소송 어떻게 다를까", "의료소송 전에 조정을 고려해야 하는 경우"],
+                talkingPoints: ["조정 신청 절차", "감정 부담", "소송 전환 시점"],
+                conversionPoint: "사안에 맞는 절차 선택 상담 유도",
+                newsRefs: [],
+                score: 85,
+            },
+        ],
+    },
 ];
 
 export default function ClaudeBlogWritePage() {
@@ -378,7 +423,7 @@ export default function ClaudeBlogWritePage() {
                 const cached = localStorage.getItem(cacheKey);
                 if (cached) {
                     const parsed = JSON.parse(cached) as TopicResponse;
-                    if (parsed.fields?.some((item) => item.id === "bankruptcy")) {
+                    if (parsed.fields?.some((item) => item.id === "medical")) {
                         setTopicsData(parsed);
                         setTopicsLoading(false);
                         return;
