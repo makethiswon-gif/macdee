@@ -530,7 +530,7 @@ export default function ClaudeBlogWritePage() {
                 <h1 className="text-xl font-bold text-white">클로드 블로그 글쓰기</h1>
             </div>
             <p className="text-[13px] text-[#6B7280] mb-7 leading-relaxed">
-                쓰고 싶은 내용을 요약해서 넣거나, 두서없이 떠오르는 대로 적어도 됩니다. 현존 최고 글쓰기 모델(Claude Opus 4.8)이
+                쓰고 싶은 내용을 요약해서 넣거나, 두서없이 떠오르는 대로 적어도 됩니다. 현존 최고 글쓰기 모델(Claude Opus 5)이
                 의뢰인이 상담 전화를 결심하도록 설계된 3,000~3,500자 법률 콘텐츠로 다듬어 줍니다.
             </p>
 

@@ -112,7 +112,7 @@ export async function GET(request: Request) {
     }
 }
 
-// ─── Claude Opus 4.8 + 웹검색으로 기사 생성 ───
+// ─── Claude Opus 5 + 웹검색으로 기사 생성 ───
 interface Article {
     title: string;
     meta_title: string;
@@ -189,7 +189,7 @@ web_search 도구로 '오늘 기준 가장 최근의' 변호사·법무법인 �
                 "anthropic-version": "2023-06-01",
             },
             body: JSON.stringify({
-                model: "claude-opus-4-8",
+                model: "claude-opus-5",
                 max_tokens: 16000,
                 system: systemPrompt,
                 tools: [{ type: "web_search_20260209", name: "web_search" }],

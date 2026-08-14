@@ -191,7 +191,7 @@ function fallbackResponse(newsByField: Record<FieldId, NewsRef[]>): TopicRespons
     };
 }
 
-// 분야 1개당 주제 3개 생성 (sonnet-4-6, 작은 출력). 실패 시 폴백 주제로 대체.
+// 분야 1개당 주제 3개 생성 (sonnet-5, 작은 출력). 실패 시 폴백 주제로 대체.
 async function generateFieldTopics(field: { id: FieldId; label: string }, refs: NewsRef[], apiKey: string): Promise<TopicSuggestion[]> {
     const newsBrief = refs
         .map((ref, i) => `${i + 1}. ${ref.title} (${ref.source || "뉴스"}, ${ref.publishedAt || "날짜 미상"}) ${ref.url}`)
@@ -215,7 +215,7 @@ ${newsBrief}
         const res = await fetch("https://api.anthropic.com/v1/messages", {
             method: "POST",
             headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
-            body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 2500, system, messages: [{ role: "user", content: user }] }),
+            body: JSON.stringify({ model: "claude-sonnet-5", max_tokens: 2500, system, messages: [{ role: "user", content: user }] }),
         });
         if (!res.ok) throw new Error(await res.text());
         const data = await res.json();

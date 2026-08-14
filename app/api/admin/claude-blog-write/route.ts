@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
 
-// Opus 4.8 + adaptive thinking으로 한 편을 길게 뽑으므로 넉넉히
+// Opus 5 + adaptive thinking으로 한 편을 길게 뽑으므로 넉넉히
 export const maxDuration = 300;
 
 // POST: 관리자가 입력한 정보를 받아 변호사 블로그용 법률 콘텐츠 생성
@@ -81,7 +81,7 @@ export async function POST(request: Request) {
                 "anthropic-version": "2023-06-01",
             },
             body: JSON.stringify({
-                model: "claude-opus-4-8",
+                model: "claude-opus-5",
                 max_tokens: 16000,
                 thinking: { type: "adaptive" },
                 system: systemPrompt,

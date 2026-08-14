@@ -52,7 +52,7 @@ export async function POST(req: Request) {
             );
         }
 
-        const provider = new ClaudeProvider("claude-sonnet-4-6");
+        const provider = new ClaudeProvider("claude-sonnet-5");
 
         const messages: AIMessage[] = [
             { role: "system", content: BLOG_POLISH_SYSTEM },

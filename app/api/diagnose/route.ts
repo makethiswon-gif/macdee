@@ -124,7 +124,7 @@ ${input.blogSample || "(본문을 가져오지 못했습니다 — 웹검색으�
                 "anthropic-version": "2023-06-01",
             },
             body: JSON.stringify({
-                model: "claude-opus-4-8",
+                model: "claude-opus-5",
                 max_tokens: 8000,
                 system,
                 tools: [{ type: "web_search_20260209", name: "web_search" }],

@@ -1,7 +1,7 @@
 /**
  * PDF 텍스트 추출 유틸리티
  * 1단계: pdf-parse로 텍스트 추출 (텍스트 기반 PDF)
- * 2단계: 텍스트가 없거나 짧으면 Claude Vision OCR (Sonnet 4.6)
+ * 2단계: 텍스트가 없거나 짧으면 Claude Vision OCR (Sonnet 5)
  */
 
 const MIN_TEXT_LENGTH = 100; // 이 이하면 스캔 PDF로 간주
@@ -59,7 +59,7 @@ export async function extractTextFromImage(buffer: Buffer, mimeType: string): Pr
             "anthropic-version": "2023-06-01",
         },
         body: JSON.stringify({
-            model: "claude-sonnet-4-6",
+            model: "claude-sonnet-5",
             max_tokens: 16384,
             system: OCR_SYSTEM_PROMPT,
             messages: [
@@ -103,7 +103,7 @@ async function ocrPDFWithClaude(buffer: Buffer): Promise<string> {
 
     const base64 = buffer.toString("base64");
 
-    // 방법 1: Claude native PDF document 지원 (Sonnet 4.6)
+    // 방법 1: Claude native PDF document 지원 (Sonnet 5)
     try {
         const text = await ocrViaClaudeDocument(apiKey, base64);
         if (text.length > MIN_TEXT_LENGTH) {
@@ -138,7 +138,7 @@ async function ocrViaClaudeDocument(apiKey: string, base64: string): Promise<str
             "anthropic-version": "2023-06-01",
         },
         body: JSON.stringify({
-            model: "claude-sonnet-4-6",
+            model: "claude-sonnet-5",
             max_tokens: 16384,
             system: OCR_SYSTEM_PROMPT,
             messages: [
@@ -182,7 +182,7 @@ async function ocrViaClaudeBase64Image(apiKey: string, base64: string): Promise<
             "anthropic-version": "2023-06-01",
         },
         body: JSON.stringify({
-            model: "claude-sonnet-4-6",
+            model: "claude-sonnet-5",
             max_tokens: 16384,
             system: OCR_SYSTEM_PROMPT,
             messages: [
