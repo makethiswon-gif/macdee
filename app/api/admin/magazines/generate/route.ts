@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { extractClaudeText } from "@/lib/ai/claude-text";
 import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
 
 
@@ -105,7 +106,7 @@ ${category || "법률정보"}
         }
 
         const data = await res.json();
-        const rawContent = data.content?.[0]?.text || "";
+        const rawContent = extractClaudeText(data);
 
         // Parse delimiter-based format
         const article = parseDelimiterFormat(rawContent, category || "법률정보");

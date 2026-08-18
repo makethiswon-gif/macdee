@@ -1,3 +1,4 @@
+import { extractClaudeText } from "./claude-text";
 // ─── 6컷 웹툰 생성 ───
 // 1. Claude: 사건 분석 → 캐릭터 시트 + 6컷 감정몰입 시나리오
 // 2. GPT Image: 각 컷 이미지 생성
@@ -268,8 +269,7 @@ JSON만 출력하세요. 코드 블록 없이.`;
         },
         body: JSON.stringify({
             model: "claude-sonnet-5",
-            max_tokens: 4096,
-            temperature: 0.8,
+            max_tokens: 8192,
             system: systemPrompt,
             messages: [{
                 role: "user",
@@ -284,7 +284,7 @@ JSON만 출력하세요. 코드 블록 없이.`;
     }
 
     const data = await res.json();
-    const text = data.content?.[0]?.text || "";
+    const text = extractClaudeText(data);
     const clean = text.replace(/^```json?\s*\n?/i, "").replace(/\n?\s*```$/i, "").trim();
 
     // ── JSON 복구: 문자열 安의 줄바꿈만 이스케이프 ──

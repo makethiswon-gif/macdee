@@ -1,3 +1,4 @@
+import { extractClaudeText, supportsSamplingParams } from "./claude-text";
 // ─── AI Provider Abstraction Layer ───
 // 모델 교체가 쉽도록 인터페이스로 추상화
 
@@ -178,7 +179,10 @@ export class ClaudeProvider implements AIProvider {
                 body: JSON.stringify({
                     model: this.model,
                     max_tokens: options?.maxTokens ?? 8192,
-                    temperature: options?.temperature ?? 0.7,
+                    // Claude 5 세대는 temperature/top_p/top_k 미지원 (전송 시 400)
+                    ...(supportsSamplingParams(this.model)
+                        ? { temperature: options?.temperature ?? 0.7 }
+                        : {}),
                     system: systemMsg?.content || "",
                     messages: userMessages.map((m) => ({ role: m.role, content: m.content })),
                 }),
@@ -188,7 +192,7 @@ export class ClaudeProvider implements AIProvider {
 
         const data = await res.json();
         return {
-            content: data.content[0].text,
+            content: extractClaudeText(data),
             model: data.model,
             usage: data.usage
                 ? { input_tokens: data.usage.input_tokens, output_tokens: data.usage.output_tokens }

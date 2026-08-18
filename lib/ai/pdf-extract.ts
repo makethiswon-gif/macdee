@@ -1,3 +1,4 @@
+import { extractClaudeText } from "./claude-text";
 /**
  * PDF 텍스트 추출 유틸리티
  * 1단계: pdf-parse로 텍스트 추출 (텍스트 기반 PDF)
@@ -90,7 +91,7 @@ export async function extractTextFromImage(buffer: Buffer, mimeType: string): Pr
     }
 
     const data = await res.json();
-    const text = data.content?.[0]?.text?.trim() || "";
+    const text = extractClaudeText(data).trim();
     if (!text) throw new Error("이미지에서 텍스트를 추출할 수 없습니다.");
     console.log(`[Image OCR] Extracted ${text.length} chars`);
     return text;
@@ -169,7 +170,7 @@ async function ocrViaClaudeDocument(apiKey: string, base64: string): Promise<str
     }
 
     const data = await res.json();
-    return data.content?.[0]?.text?.trim() || "";
+    return extractClaudeText(data).trim();
 }
 
 // ─── 방법 2: Claude Vision (base64 이미지로 폴백) ───
@@ -213,7 +214,7 @@ async function ocrViaClaudeBase64Image(apiKey: string, base64: string): Promise<
     }
 
     const data = await res.json();
-    return data.content?.[0]?.text?.trim() || "";
+    return extractClaudeText(data).trim();
 }
 
 // ─── OCR 시스템 프롬프트 ───

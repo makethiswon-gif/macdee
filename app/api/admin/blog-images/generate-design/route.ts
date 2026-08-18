@@ -3,6 +3,7 @@ import { generateBlogContentImage } from "@/lib/ai/image-generate";
 import { getLawyerDesignDNA } from "@/lib/blog-images/design-dna";
 import { extractLogoColor } from "@/lib/blog-images/logo-color";
 import { verifyAdminToken } from "@/lib/admin-auth";
+import { extractClaudeText } from "@/lib/ai/claude-text";
 
 export const maxDuration = 90;
 
@@ -39,7 +40,7 @@ ${source}`,
         });
         if (!res.ok) return fallback();
         const data = await res.json();
-        const raw = (data.content?.[0]?.text || "").trim();
+        const raw = extractClaudeText(data).trim();
         const match = raw.match(/\{[\s\S]*\}/);
         if (!match) return fallback();
         const parsed = JSON.parse(match[0]) as { lines?: string[] };
@@ -75,7 +76,7 @@ ${source}`,
         });
         if (!res.ok) return [];
         const data = await res.json();
-        const raw = (data.content?.[0]?.text || "").trim();
+        const raw = extractClaudeText(data).trim();
         const match = raw.match(/\{[\s\S]*\}/);
         if (!match) return [];
         const parsed = JSON.parse(match[0]) as { lines?: string[] };
@@ -273,7 +274,7 @@ font-family:'Noto Sans KR',sans-serif
             },
             body: JSON.stringify({
                 model: "claude-sonnet-5",
-                max_tokens: 4096,
+                max_tokens: 8192,
                 system: systemMessage,
                 messages: [{ role: "user", content: prompt }],
             }),
@@ -285,7 +286,7 @@ font-family:'Noto Sans KR',sans-serif
         }
 
         const data = await anthropicRes.json();
-        let html = data.content?.[0]?.text || "";
+        let html = extractClaudeText(data);
 
         // <style> 블록 유지 (폰트 import용)
         const styleStart = html.indexOf("<style");
