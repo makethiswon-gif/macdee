@@ -200,7 +200,12 @@ async function generateFieldTopics(field: { id: FieldId; label: string }, refs: 
     const system = `당신은 한국 변호사 블로그의 전환율을 높이는 SEO 콘텐츠 전략가입니다.
 '${field.label}' 분야에 한해, 뉴스 요약이 아니라 블로그에 올리면 상담 전환이 잘 날 주제 3개를 추천합니다.
 - 3개 구성: 1) 최근 뉴스/제도/판례 신호 기반, 2) 꾸준한 검색 수요형, 3) 불안 해소·상담 전환형.
-- 과장, 승소 보장, 확인되지 않은 판례 번호 금지. JSON만 반환.`;
+- topic은 '키워드'가 아니라 '상황'으로 잡습니다. "음주운전 처벌기준" 같은 큰 키워드는 이미 AI가 더 잘 답하므로 금지. 의뢰인이 밤에 실제로 검색할 문장 단위로 좁히세요. (형식 예시: "초범인데 수치가 0.1을 넘겼을 때 실제로 갈리는 지점", "합의가 늦어진 사건에서 양형이 어떻게 달라졌는지" — 이 두 문장은 좁히는 정도를 보여주는 견본일 뿐이므로 그대로 가져다 쓰지 말고, 주어진 분야와 뉴스 신호에 맞는 주제를 새로 만드세요.) 대화형 검색이 늘수록 롱테일이 유리합니다.
+- angle은 '결과'가 아니라 '판단 근거'여야 합니다. 어떤 형이 나왔는지가 아니라, 사실관계의 어느 지점에서 결론이 갈리는지 · 반대 결론 사건과 무엇이 달랐는지를 각도로 잡으세요.
+- talkingPoints에는 결론이 뒤집히는 경계선을 최소 1개 포함합니다.
+- 과장, 승소 보장 금지. 판례 번호(사건번호)는 넣지 마세요. 근거 조문은 확신이 있을 때만 정확한 번호로.
+- 길이 제한(반드시 준수): topic 45자 이내, angle 2문장·120자 이내, talkingPoints 3개·각 45자 이내, titleIdeas 3개·각 30자 이내, intent와 conversionPoint 각 60자 이내. 초과하면 잘려서 못 씁니다.
+- JSON만 반환.`;
 
     const user = `오늘(KST): ${getKstDateKey()}
 분야: ${field.label}
@@ -215,7 +220,9 @@ ${newsBrief}
         const res = await fetch("https://api.anthropic.com/v1/messages", {
             method: "POST",
             headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
-            body: JSON.stringify({ model: "claude-sonnet-5", max_tokens: 2500, system, messages: [{ role: "user", content: user }] }),
+            // sonnet-5는 adaptive thinking이 기본 ON이라 thinking이 max_tokens를 먹고 JSON이 잘린다.
+            // 정형 JSON 출력이라 thinking 불필요 — 끄면 응답이 절반 시간에 끝난다.
+            body: JSON.stringify({ model: "claude-sonnet-5", max_tokens: 3000, thinking: { type: "disabled" }, system, messages: [{ role: "user", content: user }] }),
         });
         if (!res.ok) throw new Error(await res.text());
         const data = await res.json();
