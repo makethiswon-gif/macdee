@@ -321,29 +321,62 @@ export async function generateBlogContentImage(
     }
 
     // Replicate에 예측 요청 (Prefer: wait=60 으로 동기 응답)
-    const createRes = await fetchWithTimeout("https://api.replicate.com/v1/models/black-forest-labs/flux-2-pro/predictions", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Token ${replicateKey}`,
-            "Prefer": "wait=60",
-        },
-        body: JSON.stringify({
-            input: {
-                prompt: finalPrompt,
-                width: 1024,
-                height: 1024,
-                output_format: "png",
-                output_quality: 95,
-                safety_tolerance: 2,
-                prompt_upsampling: true,
+    // 429 대응: 썸네일·상황이미지 카드가 동시에 요청되는데, Replicate 잔액이 $5 미만이면
+    // burst 한도가 1로 떨어져 둘 중 하나가 반드시 throttle된다. 서버가 준 retry_after만큼
+    // 기다렸다 재시도한다. (429는 즉시 돌아오므로 maxDuration 90초 안에 들어온다)
+    const deadline = Date.now() + 78000;
+    let createRes!: Response;
+    let lastErrText = "";
+
+    const MAX_ATTEMPTS = 3;
+
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+        createRes = await fetchWithTimeout("https://api.replicate.com/v1/models/black-forest-labs/flux-2-pro/predictions", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Token ${replicateKey}`,
+                "Prefer": "wait=60",
             },
-        }),
-    }, 70000);
+            body: JSON.stringify({
+                input: {
+                    prompt: finalPrompt,
+                    width: 1024,
+                    height: 1024,
+                    output_format: "png",
+                    output_quality: 95,
+                    safety_tolerance: 2,
+                    prompt_upsampling: true,
+                },
+            }),
+        }, Math.max(5000, Math.min(70000, deadline - Date.now())));
+
+        if (createRes.ok) break;
+
+        lastErrText = await createRes.text();
+        if (createRes.status !== 429) break;
+        if (attempt === MAX_ATTEMPTS - 1) break; // 마지막 시도 뒤에는 기다리지 않는다
+
+        // {"retry_after":10} 형태. 파싱 실패 시 5초.
+        let retryAfterSec = 5;
+        try {
+            const parsed = JSON.parse(lastErrText) as { retry_after?: number };
+            if (typeof parsed.retry_after === "number") retryAfterSec = parsed.retry_after;
+        } catch { /* 기본값 사용 */ }
+        const waitMs = Math.min(retryAfterSec * 1000 + 500, 15000);
+
+        // 재시도해도 시간이 모자라면 포기 (빈손보다 명확한 에러가 낫다)
+        if (Date.now() + waitMs + 15000 > deadline) break;
+
+        console.warn(`[BlogContentImg] Replicate 429 (${style}) — ${waitMs}ms 후 재시도 ${attempt + 1}/${MAX_ATTEMPTS - 1}`);
+        await new Promise((r) => setTimeout(r, waitMs));
+    }
 
     if (!createRes.ok) {
-        const errText = await createRes.text();
-        throw new Error(`Replicate HTTP ${createRes.status}: ${errText.substring(0, 300)}`);
+        if (createRes.status === 429 && lastErrText.includes("$5.0 in credit")) {
+            throw new Error("Replicate 크레딧이 $5 미만이라 이미지 생성 속도 제한(분당 6건·동시 1건)에 걸렸습니다. Replicate 크레딧을 충전해주세요.");
+        }
+        throw new Error(`Replicate HTTP ${createRes.status}: ${lastErrText.substring(0, 300)}`);
     }
 
     const prediction = await createRes.json();
