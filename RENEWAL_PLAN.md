@@ -384,11 +384,11 @@ description: 네이버 파워링크, Google Ads, 블로그, 홈페이지, SEO·G
 | 3 | 디자인 시스템 (`renewal.css` + primitives) | ✅ |
 | 4 | SiteHeader / SiteFooter | ✅ |
 | 5 | 홈 10개 섹션 | ✅ `/renewal` |
-| 6 | 서비스 페이지 템플릿 + 8개 | ⬜ |
-| 7 | `/work` Case Study (CMS 스키마 포함) | ⬜ |
+| 6 | 서비스 페이지 템플릿 + 6개 | ✅ 공용 템플릿 + naver-ads/lawfirm-seo/geo/lawfirm-blog/lawfirm-website/conversion |
+| 7 | `/work` Case Study | ✅ 뼈대. 실데이터 없어 정책 안내 상태 |
 | 8 | `/magazine` INSIGHTS 리스킨 | ⬜ |
-| 9 | `/about` 회사·팀 | ⬜ |
-| 10 | `/contact` + `/contact/thanks` | ⬜ |
+| 9 | `/about` 회사·팀 | ✅ |
+| 10 | `/contact` + `/renewal/diagnose` | ✅ 진단 폼이 리드 경로. thanks 는 폼 내 완료 화면으로 대체 |
 | 11 | 메타 / 스키마 / sitemap | ⬜ |
 | 12 | 반응형 QA | ⬜ |
 | 13 | 성능 (LCP·CLS·INP) | ⬜ |
@@ -435,6 +435,23 @@ message = [현재 상황] …
 | R7 | **framer-motion 번들 증가** | 신규 컴포넌트는 CSS + IntersectionObserver만 사용 |
 | R8 | **가짜 데이터 유입** — Case Study 수치 압박 | 실데이터 있는 사례만 등록. 없으면 섹션 자체를 숨긴다 |
 | R9 | **SaaS 앱 단절** — 링크 제거로 기존 구독자 로그인 경로 상실 | 푸터에 "고객 로그인" 존치. `/login` URL 불변 |
+
+---
+
+## 10.1 확정 필요 — 서비스 페이지에 아직 쓰지 않은 것
+
+아래는 **정책이 확정되지 않아 페이지에 쓰지 않았다.** 확정 전까지는 확정된 서비스처럼
+쓰지 않는다(§42).
+
+- 온보딩 기간 (90일 등)
+- 전략·성과 회의 주기
+- 예산 재배분 주기와 승인 절차
+- 콘텐츠 승인 · 법률광고 검수 절차와 책임 범위
+- 수집하는 데이터의 범위와 보관 기간
+- 계약 종료 시 계정·데이터 이관 조건
+- 동일 지역 · 동일 분야 로펌 동시 수임에 대한 이해상충 정책
+
+각 서비스 FAQ 에는 "계약 시점에 서면으로 정합니다" 수준으로만 적어 두었다.
 
 ---
 
