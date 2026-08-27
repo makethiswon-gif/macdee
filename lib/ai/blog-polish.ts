@@ -9,7 +9,7 @@ const POLISH_SYSTEM = `
 
 [절대 바꾸지 말 것 — 사실이 틀어지면 실패입니다]
 - 법조문 번호, 수치, 기한, 금액, 사건 경과는 한 글자도 바꾸지 마세요.
-- 마크다운 구조를 유지하세요: ## 소제목의 개수와 위치, **굵게** 강조.
+- 마크다운 구조를 유지하세요: ## 소제목의 개수와 위치, 그리고 ==형광펜==, __밑줄__, **굵게** 표시. 강조 표시는 개수도 위치도 바꾸지 말고 감싼 범위 그대로 두세요. 새로 추가하지도 마세요.
 - 맨 끝 --- 아래의 기준일·작성 블록은 그대로 두세요.
 - 판례 사건번호를 새로 지어 넣지 마세요.
 - 분량을 유지하세요(공백 포함 3,000~3,500자). 문단을 통째로 지워 줄이지 마세요.
@@ -64,6 +64,14 @@ function validate(draft: string, out: string): string | null {
     if (/\d{4}도\d+|\d{4}\s?[가-힣]{1,3}\s?\d{3,}/.test(out)) return "판례 사건번호 생성";
     if (/기준일/.test(draft) && !/기준일/.test(out)) return "기준일 블록 유실";
     if (/보겠습니다|다음과 같습니다/.test(out)) return "AI 문체 재유입";
+
+    // 강조 표시가 유실되거나 짝이 깨지면 네이버 변환이 무너진다
+    for (const [name, re] of [["형광펜", /==/g], ["밑줄", /__/g], ["굵게", /\*\*/g]] as const) {
+        const before = count(draft, re);
+        const after = count(out, re);
+        if (after % 2 !== 0) return `${name} 표시 짝이 안 맞음`;
+        if (Math.abs(after - before) > 2) return `${name} 표시 개수 변경 (${before / 2} → ${after / 2})`;
+    }
 
     const ratio = out.length / draft.length;
     if (ratio < 0.85 || ratio > 1.2) return `분량 이탈 (${Math.round(ratio * 100)}%)`;

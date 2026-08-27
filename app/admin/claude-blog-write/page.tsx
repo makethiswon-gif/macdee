@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { toNaverHtml } from "@/lib/blog-naver-html";
 import { PenLine, Sparkles, Copy, Check, Loader2, RefreshCw, Lightbulb, ExternalLink } from "lucide-react";
 
 interface TopicSuggestion {
@@ -409,6 +410,7 @@ export default function ClaudeBlogWritePage() {
     const body = showingDraft ? draftBody : polishedBody;
     const setBody = showingDraft ? setDraftBody : setPolishedBody;
     const [copied, setCopied] = useState(false);
+    const [styledCopied, setStyledCopied] = useState(false);
     const [topicsData, setTopicsData] = useState<TopicResponse | null>(null);
     const [topicsLoading, setTopicsLoading] = useState(false);
     const [topicsError, setTopicsError] = useState("");
@@ -494,6 +496,46 @@ export default function ClaudeBlogWritePage() {
             setError("네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
         } finally {
             setLoading(false);
+        }
+    };
+
+    // 네이버에 서식 그대로 붙여넣기 위한 리치 텍스트 복사.
+    // 숨긴 div에 HTML을 넣고 선택 → execCommand("copy")로 클립보드에 text/html을 싣는다.
+    // (Clipboard API는 브라우저·권한에 따라 막히는 경우가 있어 이 방식이 더 안전하다)
+    const handleCopyStyled = async () => {
+        const html = toNaverHtml(body, title);
+        const holder = document.createElement("div");
+        holder.setAttribute("style", "position:fixed;left:-9999px;top:0;white-space:normal;");
+        holder.innerHTML = html;
+        document.body.appendChild(holder);
+
+        try {
+            const range = document.createRange();
+            range.selectNodeContents(holder);
+            const sel = window.getSelection();
+            sel?.removeAllRanges();
+            sel?.addRange(range);
+
+            const ok = document.execCommand("copy");
+            sel?.removeAllRanges();
+            if (!ok) throw new Error("execCommand 실패");
+
+            setStyledCopied(true);
+            setTimeout(() => setStyledCopied(false), 2000);
+        } catch {
+            try {
+                const item = new ClipboardItem({
+                    "text/html": new Blob([html], { type: "text/html" }),
+                    "text/plain": new Blob([holder.innerText], { type: "text/plain" }),
+                });
+                await navigator.clipboard.write([item]);
+                setStyledCopied(true);
+                setTimeout(() => setStyledCopied(false), 2000);
+            } catch {
+                setError("서식 복사에 실패했습니다. 브라우저를 Chrome으로 열어보세요.");
+            }
+        } finally {
+            document.body.removeChild(holder);
         }
     };
 
@@ -721,13 +763,23 @@ export default function ClaudeBlogWritePage() {
                                 </span>
                             )}
                         </div>
-                        <button
-                            onClick={handleCopy}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1A2035] hover:bg-[#222a44] text-[#9CA3B0] hover:text-white text-[12px] rounded-lg transition-colors"
-                        >
-                            {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
-                            {copied ? "복사됨" : "제목+본문 복사"}
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={handleCopyStyled}
+                                title="소제목·형광펜·밑줄이 적용된 상태로 네이버에 붙여넣어집니다"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#3563AE] hover:bg-[#2d559a] text-white text-[12px] rounded-lg transition-colors"
+                            >
+                                {styledCopied ? <Check size={13} /> : <Copy size={13} />}
+                                {styledCopied ? "복사됨" : "네이버용 복사 (서식 포함)"}
+                            </button>
+                            <button
+                                onClick={handleCopy}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1A2035] hover:bg-[#222a44] text-[#9CA3B0] hover:text-white text-[12px] rounded-lg transition-colors"
+                            >
+                                {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
+                                {copied ? "복사됨" : "원문 복사"}
+                            </button>
+                        </div>
                     </div>
 
                     <div>
