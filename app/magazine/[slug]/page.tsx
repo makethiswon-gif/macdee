@@ -69,7 +69,9 @@ export async function generateMetadata({
     ].filter(Boolean);
 
     return {
-        title: magazine.meta_title || magazine.title,
+        // 개별 기사도 루트 템플릿(macdee)이 붙지 않게 absolute.
+        // 기존 URL·slug 는 그대로다 — 브랜드 표기만 바꾼다.
+        title: { absolute: `${magazine.meta_title || magazine.title} | MAKETHIS1 Insights` },
         description: magazine.meta_description || magazine.excerpt,
         keywords,
         alternates: {
