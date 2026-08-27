@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { uploadMagazineCover } from "@/lib/supabase/storage";
@@ -6,6 +7,16 @@ import nodemailer from "nodemailer";
 
 // 웹검색 + Opus 생성 + 이미지 생성까지 한 번에 처리하므로 넉넉히
 export const maxDuration = 300;
+
+// 크론이 자기 서버의 관리자 API를 부를 때 쓰는 토큰. 서버의 발급 형식과 같다.
+function internalAdminToken(): string {
+    const id = process.env.ADMIN_ID ?? "macdee";
+    const secret = process.env.ADMIN_TOKEN_SECRET ?? "";
+    const payload = `${id}:${Date.now()}:${crypto.randomBytes(16).toString("hex")}`;
+    const sig = crypto.createHmac("sha256", secret).update(payload).digest("hex");
+    return Buffer.from(`${payload}:${sig}`).toString("base64url");
+}
+
 export const dynamic = "force-dynamic";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
@@ -102,10 +113,32 @@ export async function GET(request: Request) {
             }
         }
 
-        // 6) 발행 알림(이메일) — best-effort
+        // 6) 네이버용 원고 자동 생성 — best-effort.
+        //    매거진 원문을 복사하는 게 아니라 다시 쓴다. 같은 텍스트가 두 곳에 있으면
+        //    유사문서로 묶여 매거진과 네이버 글이 서로 검색에서 먹는다.
+        //    결과는 blog_posts에 draft로 들어가고, 발행 여부는 사람이 판단한다.
+        let naver: unknown = { skipped: true };
+        try {
+            const res = await fetch(`${BASE_URL}/api/admin/magazines/to-naver`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Cookie: `admin_token=${internalAdminToken()}`,
+                },
+                body: JSON.stringify({ magazineId: inserted.id }),
+            });
+            const data = await res.json();
+            naver = res.ok ? { postId: data.postId, title: data.title } : { error: data.error };
+            if (!res.ok) console.error("[Daily Magazine] naver draft:", data.error);
+        } catch (e) {
+            console.error("[Daily Magazine] naver draft error:", e);
+            naver = { error: String(e) };
+        }
+
+        // 7) 발행 알림(이메일) — best-effort
         await notify(article.title, url).catch((e) => console.error("[Daily Magazine] notify error:", e));
 
-        return NextResponse.json({ success: true, id: inserted.id, title: article.title, url, threads });
+        return NextResponse.json({ success: true, id: inserted.id, title: article.title, url, threads, naver });
     } catch (err) {
         console.error("[Daily Magazine] Error:", err);
         return NextResponse.json({ error: "서버 오류" }, { status: 500 });
