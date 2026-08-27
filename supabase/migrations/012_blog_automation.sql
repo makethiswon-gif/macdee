@@ -1,4 +1,5 @@
 -- 네이버 블로그 다계정 발행 자동화
+-- 발행 시점은 저장하지 않는다. 관리자가 원할 때 직접 누르는 방식.
 -- 기준 축은 blog_profiles(관리자가 등록한 변호사)다.
 -- contents 테이블은 SaaS 고객(lawyers, UUID) 쪽이라 여기서 쓰지 않는다.
 
@@ -7,10 +8,9 @@ ALTER TABLE blog_profiles
   ADD COLUMN IF NOT EXISTS naver_blog_id   TEXT,                      -- 네이버 블로그 아이디
   ADD COLUMN IF NOT EXISTS chrome_profile  TEXT,                      -- 크롬 프로필 디렉터리명 (예: Profile 3)
   ADD COLUMN IF NOT EXISTS naver_category  TEXT,                      -- 발행할 블로그 카테고리명
-  ADD COLUMN IF NOT EXISTS monthly_quota   INT  DEFAULT 0,            -- 월 발행 횟수
-  ADD COLUMN IF NOT EXISTS post_days       INT[] DEFAULT '{}',        -- 발행일 (1~31)
+  ADD COLUMN IF NOT EXISTS monthly_quota   INT  DEFAULT 0,            -- 월 목표 횟수 (현황 표시용, 스케줄 아님)
   ADD COLUMN IF NOT EXISTS fields          TEXT[] DEFAULT '{}',       -- 담당 분야
-  ADD COLUMN IF NOT EXISTS auto_enabled    BOOLEAN DEFAULT FALSE;     -- 자동 발행 사용 여부
+  ADD COLUMN IF NOT EXISTS dna_salt        TEXT DEFAULT '';           -- DNA가 겹칠 때 어긋내는 값
 
 -- ── 2. 원고 ──
 CREATE TABLE IF NOT EXISTS blog_posts (
