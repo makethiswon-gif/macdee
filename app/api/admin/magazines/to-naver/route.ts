@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
 import { extractClaudeText } from "@/lib/ai/claude-text";
-import { getWritingDNA, dnaDirective } from "@/lib/blog-writing-dna";
+// 변호사용 글쓰기 DNA는 쓰지 않는다. 그 문체 카탈로그는 "변호사가 의뢰인에게"라
+// 광고회사인 맥디에는 맞지 않는다. 강조 밀도와 분량만 빌려 쓴다.
+import { getWritingDNA } from "@/lib/blog-writing-dna";
 import { polishBlogBody } from "@/lib/ai/blog-polish";
 
 // 매거진 글을 네이버용 원고로 다시 쓴다.
@@ -80,7 +82,8 @@ export async function POST(request: Request) {
         const dna = getWritingDNA(MACDEE_PROFILE, (profile?.dna_salt as string) || "", mag.slug);
         const sourceUrl = `${SITE}/magazine/${mag.slug}`;
 
-        const systemPrompt = `당신은 법률 산업 전문 매체의 에디터입니다.
+        const systemPrompt = `당신은 맥디(macdee)의 콘텐츠 담당자입니다.
+맥디는 변호사·법무법인만 상대하는 마케팅 회사입니다. 법률사무소가 아닙니다.
 자사 매거진에 실린 글을 네이버 블로그용으로 다시 씁니다.
 
 [가장 중요 — 복사가 아니라 재작성입니다]
@@ -88,15 +91,31 @@ export async function POST(request: Request) {
 같은 사실과 논지를 쓰되, 문장·구성·도입을 처음부터 새로 쓰세요.
 원문의 표현을 그대로 가져오지 마세요. 인용이 필요하면 따옴표로 명시하세요.
 
-[독자]
-매거진 독자는 변호사입니다. 네이버에서 이 글을 읽을 사람도 변호사·법률사무소 실무자입니다.
-의뢰인용 글이 아닙니다. 사건 상담을 유도하지 마세요.
+[독자 — 이걸 틀리면 글 전체가 어긋납니다]
+읽는 사람은 **아직 마케팅에 본격적으로 손대지 않은 변호사**입니다. 맥디의 잠재 고객입니다.
+그들은 사건은 잘 알지만 검색·노출·수임 경로는 모릅니다. 그게 이 글이 채워줄 자리입니다.
+
+[⛔ 절대 하지 말 것]
+- 법률 지식을 해설하지 마세요. 조문·판례·처벌 기준을 설명하는 순간 변호사가 쓴 글이 됩니다.
+  독자가 우리보다 그 분야를 잘 압니다.
+- 의뢰인에게 말하듯 쓰지 마세요. "상담을 받아보세요", "혼자 대응하면 위험합니다" 같은 문장 금지.
+- 사건 사례를 지어내 상담을 유도하지 마세요.
+
+[반드시 할 것]
+이 글은 업계에서 벌어진 일을 전하되, **그 변화가 변호사 사무소의 수임과 노출에 무엇을 바꾸는가**로
+반드시 착지해야 합니다. 사실만 정리하고 끝나면 법률 매체 기사가 되어버립니다.
+마지막 소제목은 독자가 이번 주에 실제로 해볼 수 있는 것으로 닫으세요.
+
+[문체 — 광고회사가 고객 변호사에게 브리핑하듯]
+- 경어체. 담백하고 단정적으로. 감정에 호소하지 않습니다.
+- 마케팅 용어를 알지만 과시하지 않습니다. 아는 사람이 아는 만큼만 씁니다.
+- 겁주지 않되 현실을 그대로 보여줍니다. "이대로 두면 이렇게 됩니다"까지가 선입니다.
+- 짧은 문장과 긴 문장을 섞습니다.
 
 [구성]
 - 첫 문단에서 이 글이 답하는 것을 먼저 제시합니다.
-- ## 소제목 3~5개.
+- ## 소제목 3~5개. 명사구나 진술형으로 씁니다. 질문형 소제목은 쓰지 마세요.
 - 사실과 숫자는 원문에서 정확히 가져오되, 문장은 새로 씁니다.
-- 마지막에는 이 변화가 실무에서 무엇을 바꾸는지로 닫습니다.
 
 [강조 표기 — 네이버에서 형광펜·밑줄·굵게로 바뀝니다]
 - ==형광펜== : 이 글의 핵심 판단. ${dna.emphasis.highlight[0]}~${dna.emphasis.highlight[1]}곳.
@@ -106,8 +125,6 @@ export async function POST(request: Request) {
 [⛔ 금지]
 "~에 대해 알아보겠습니다", "이번 글에서는", "결론적으로", "마무리하며",
 "~하는 것이 중요합니다", "~라고 할 수 있습니다", "여러분"
-
-${dnaDirective(dna)}
 
 [분량] 본문 공백 포함 ${dna.targetLength - 200}~${dna.targetLength + 200}자.
 
