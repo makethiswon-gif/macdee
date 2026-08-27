@@ -23,7 +23,7 @@ export default function SiteFooter() {
                         <p className="mt-body mt-5 max-w-[300px] text-[14px] leading-[1.75]">
                             로펌은 사건에 집중하십시오.
                             <br />
-                            마케팅은 하나의 팀이 끝까지 관리합니다.
+                            마케팅에 필요한 모든 것은 저희가 해결합니다.
                         </p>
                     </div>
 

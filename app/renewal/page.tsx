@@ -24,7 +24,7 @@ const URL = "https://www.makethis1.com/renewal";
 const TITLE = "로펌 마케팅, 여기서 끝냅니다 | MAKETHIS1";
 const DESCRIPTION =
     "네이버 파워링크부터 Google Ads, 네이버 블로그와 홈페이지, SEO·GEO, AI 검색과 " +
-    "상담 전환 분석까지. MAKETHIS1이 로펌의 마케팅팀처럼 전체 마케팅을 통합 운영합니다.";
+    "상담 전환 분석까지. 로펌에 필요한 마케팅은 MAKETHIS1이 전부 해결합니다.";
 
 // 루트 레이아웃의 title 템플릿(macdee)이 붙지 않도록 absolute 로 고정한다.
 export const metadata: Metadata = {

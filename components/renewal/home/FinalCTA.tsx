@@ -18,7 +18,7 @@ export default function FinalCTA() {
                         <h2 className="mt-h1 mt-8">
                             로펌은 사건에 집중하십시오.
                             <br />
-                            마케팅은 하나의 팀이 끝까지 관리합니다.
+                            마케팅에 필요한 모든 것은 저희가 해결합니다.
                         </h2>
                     </Reveal>
 

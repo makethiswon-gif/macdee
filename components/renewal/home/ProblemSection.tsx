@@ -181,7 +181,7 @@ export default function ProblemSection() {
                         광고대행사, 블로그 업체, 홈페이지 업체, SEO 업체를 따로 관리할 필요가 없습니다.
                         <br className="hidden sm:block" />
                         <strong className="font-semibold" style={{ color: "var(--mt-bg)" }}>
-                            전략부터 제작, 집행, 분석까지 하나의 팀에서 관리합니다.
+                            전략부터 제작, 집행, 분석까지 전부 저희가 합니다.
                         </strong>
                     </p>
                 </Reveal>

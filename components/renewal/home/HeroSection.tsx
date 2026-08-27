@@ -35,7 +35,7 @@ export default function HeroSection() {
                         AI 검색과 상담 전환 분석까지.
                         <br className="hidden sm:block" />
                         <strong className="font-semibold" style={{ color: "var(--mt-ink)" }}>
-                            MAKETHIS1이 하나의 마케팅팀처럼 전부 운영합니다.
+                            로펌에 필요한 마케팅은 MAKETHIS1이 전부 해결합니다.
                         </strong>
                     </p>
                 </Reveal>
