@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Container, Section, Eyebrow } from "@/components/renewal/primitives";
+import { Container, Section, Eyebrow, Button } from "@/components/renewal/primitives";
 import Reveal from "@/components/renewal/Reveal";
 import DiagnoseForm from "@/components/renewal/DiagnoseForm";
 import { renewalRobots } from "../flags";
@@ -68,6 +68,14 @@ export default function Page() {
                             제안서를 먼저 드리지 않습니다. 현재 운영 중인 광고, 블로그, 홈페이지를 함께
                             확인해 지금 무엇이 새고 있는지 먼저 말씀드립니다.
                         </p>
+                    </Reveal>
+                    {/* 긴 페이지 상단에서 곧바로 요청 폼으로 내려가는 경로 */}
+                    <Reveal index={3}>
+                        <div className="mt-10">
+                            <Button href="#form">
+                                진단 요청하기 <span aria-hidden>↓</span>
+                            </Button>
+                        </div>
                     </Reveal>
                 </Container>
             </section>

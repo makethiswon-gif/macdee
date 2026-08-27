@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 // 로펌 마케팅 구조 진단 요청 폼.
 //
@@ -43,6 +43,14 @@ export default function DiagnoseForm() {
     const [state, setState] = useState<State>("idle");
     const [error, setError] = useState("");
     const [channels, setChannels] = useState<string[]>([]);
+
+    // 추가 정보(선택)는 모바일에서 접어 초기 길이를 줄인다.
+    // 첫 렌더는 서버와 동일하게 접힌 상태(false) — 하이드레이션 불일치를 피한다.
+    // 데스크톱은 폼이 길어도 문제되지 않으므로 마운트 후 자동으로 펼친다.
+    const [showOptional, setShowOptional] = useState(false);
+    useEffect(() => {
+        if (window.matchMedia("(min-width: 768px)").matches) setShowOptional(true);
+    }, []);
 
     const toggleChannel = (c: string) =>
         setChannels((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
@@ -148,6 +156,30 @@ export default function DiagnoseForm() {
                 </div>
             </fieldset>
 
+            {/* 추가 정보(선택) — 모바일에서 접어 초기 길이를 줄인다.
+                hidden 속성은 DOM 에서 제거하지 않으므로, 펼쳐 입력한 뒤 다시 접어도
+                제출 시 FormData 에 그대로 담긴다. 미작성 시에도 기존처럼 제출된다. */}
+            <button
+                type="button"
+                onClick={() => setShowOptional((v) => !v)}
+                aria-expanded={showOptional}
+                aria-controls="optional-fields"
+                className="mt-12 w-full flex items-center justify-between gap-4 h-[56px] px-5 text-[14px] font-medium rounded-[2px] transition-colors"
+                style={{ border: "1px solid var(--mt-line-strong)", color: "var(--mt-ink)" }}
+            >
+                <span>
+                    추가 정보 <span style={{ color: "var(--mt-gray)" }}>(선택 · 아는 만큼만)</span>
+                </span>
+                <span
+                    aria-hidden
+                    className="text-[12px] transition-transform duration-200"
+                    style={{ color: "var(--mt-gray)", transform: showOptional ? "rotate(180deg)" : "none" }}
+                >
+                    ▾
+                </span>
+            </button>
+
+            <div id="optional-fields" hidden={!showOptional}>
             {/* 사무소 성격 */}
             <fieldset className="mt-14 pt-10" style={{ borderTop: "1px solid var(--mt-line)" }}>
                 <legend className={legend} style={{ color: "var(--mt-gray)" }}>
@@ -284,6 +316,7 @@ export default function DiagnoseForm() {
                     </div>
                 </div>
             </fieldset>
+            </div>
 
             {error && (
                 <p className="mt-8 text-[13.5px]" style={{ color: "#B4232A" }} role="alert">

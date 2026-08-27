@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { Container, Section, Eyebrow, Button, ArrowLink } from "@/components/renewal/primitives";
 import Reveal from "@/components/renewal/Reveal";
 import CaseStudies from "@/components/renewal/home/CaseStudies";
+import PartnerGroups from "@/components/renewal/PartnerGroups";
 import { CASES } from "@/data/renewal/cases";
-import { PARTNERS, PROOF_STATS, PRIMARY_CTA, path } from "@/data/renewal/site";
+import { PROOF_STATS, PRIMARY_CTA, path } from "@/data/renewal/site";
 import { renewalRobots } from "../flags";
 
 // Case Study.
@@ -93,7 +94,7 @@ export default function Page() {
                     <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-12 lg:gap-20">
                         <div>
                             <Reveal>
-                                <Eyebrow>Selected Partners</Eyebrow>
+                                <Eyebrow>Selected Clients</Eyebrow>
                             </Reveal>
                             <Reveal index={1}>
                                 <div className="mt-10 flex flex-row lg:flex-col gap-10 lg:gap-8 flex-wrap">
@@ -121,20 +122,7 @@ export default function Page() {
                         </div>
 
                         <Reveal index={2}>
-                            <ul
-                                className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-px"
-                                style={{ background: "var(--mt-line)" }}
-                            >
-                                {PARTNERS.map((p) => (
-                                    <li
-                                        key={p}
-                                        className="flex items-center justify-center px-4 py-7 text-[13px] text-center"
-                                        style={{ background: "var(--mt-dark-bg)", color: "var(--mt-gray)" }}
-                                    >
-                                        {p}
-                                    </li>
-                                ))}
-                            </ul>
+                            <PartnerGroups />
                         </Reveal>
                     </div>
 
