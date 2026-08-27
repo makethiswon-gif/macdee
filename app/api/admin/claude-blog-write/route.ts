@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
+import { polishBlogBody } from "@/lib/ai/blog-polish";
 
 // Opus 5 + adaptive thinking으로 한 편을 길게 뽑으므로 넉넉히
 export const maxDuration = 300;
@@ -134,10 +135,23 @@ export async function POST(request: Request) {
 
         const parsed = parseDelimiterFormat(rawContent);
         const title = parsed.title;
-        const body = parsed.body;
+        const draftBody = parsed.body;
+
+        // 2차 윤문: 다른 모델(OpenAI)에 한 번 더 통과시켜 AI 문체의 지문을 흐린다.
+        // 실패하거나 검증에 걸리면 초안이 그대로 돌아온다 — 생성 자체가 깨지지 않는다.
+        const polish = await polishBlogBody(draftBody);
+        const body = polish.text;
         const charCount = body.replace(/\s/g, "").length; // 공백 제외 글자 수
 
-        return NextResponse.json({ title, body, charCount });
+        return NextResponse.json({
+            title,
+            body,
+            charCount,
+            draftBody,                       // 원문 비교용
+            polished: polish.polished,
+            polishModel: polish.model,
+            polishReason: polish.reason ?? null,
+        });
     } catch (err) {
         console.error("[Claude Blog Write] Error:", err);
         return NextResponse.json({ error: "서버 오류" }, { status: 500 });
