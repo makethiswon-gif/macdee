@@ -35,6 +35,12 @@ export const metadata: Metadata = {
         type: "website",
         locale: "ko_KR",
     },
+    // 루트 레이아웃의 macdee 트위터 카드가 상속되지 않도록 덮어쓴다
+    twitter: {
+        card: "summary_large_image",
+        title: "로펌 마케팅, 여기서 끝냅니다 | MAKETHIS1",
+        description: DESCRIPTION,
+    },
 };
 
 export default async function RenewalHome() {

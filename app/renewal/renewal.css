@@ -110,9 +110,15 @@
 }
 
 /* ── SCROLL REVEAL ──
-   framer-motion을 쓰지 않는다. IntersectionObserver + 이 두 줄이면 충분하고
-   번들이 늘지 않는다. */
-.mt-root [data-reveal] {
+   framer-motion을 쓰지 않는다. IntersectionObserver + 이 몇 줄이면 충분하고
+   번들이 늘지 않는다.
+
+   ⚠️ 반드시 html.mt-js 아래에만 둔다.
+   숨김 상태를 무조건 적용하면 JS가 실행되지 않는 환경 — JS 끈 브라우저,
+   본문을 렌더링해서 읽는 크롤러 — 에서 페이지 전체가 opacity:0 인 빈 화면이 된다.
+   mt-js 클래스는 layout.tsx 의 인라인 스크립트가 파싱 중에 즉시 붙인다.
+   따라서 JS가 있으면 깜빡임 없이 애니메이션이 돌고, 없으면 그냥 다 보인다. */
+html.mt-js .mt-root [data-reveal] {
     opacity: 0;
     transform: translateY(16px);
     transition:
@@ -120,14 +126,14 @@
         transform 520ms var(--mt-ease);
 }
 
-.mt-root [data-reveal="in"] {
+html.mt-js .mt-root [data-reveal="in"] {
     opacity: 1;
     transform: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .mt-root [data-reveal],
-    .mt-root [data-reveal="in"] {
+    html.mt-js .mt-root [data-reveal],
+    html.mt-js .mt-root [data-reveal="in"] {
         opacity: 1;
         transform: none;
         transition: none;
@@ -160,12 +166,12 @@
 /* ── SECTION 02 수렴 애니메이션 ──
    Reveal이 data-reveal="in"을 붙이는 순간 선이 그려진다.
    JS는 관여하지 않는다. */
-.mt-root .mt-converge path {
+html.mt-js .mt-root .mt-converge path {
     stroke-dasharray: 60;
     stroke-dashoffset: 60;
 }
 
-.mt-root .mt-converge[data-reveal="in"] path {
+html.mt-js .mt-root .mt-converge[data-reveal="in"] path {
     animation: mt-draw 900ms var(--mt-ease) forwards;
 }
 
@@ -176,7 +182,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .mt-root .mt-converge path {
+    html.mt-js .mt-root .mt-converge path {
         stroke-dashoffset: 0;
         animation: none !important;
     }

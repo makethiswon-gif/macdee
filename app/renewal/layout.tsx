@@ -14,9 +14,16 @@ export const metadata: Metadata = {
     },
 };
 
+// 파싱 도중 동기 실행돼 html 에 mt-js 를 붙인다.
+// 이게 붙어야만 스크롤 리빌의 숨김 상태가 적용된다(renewal.css 참고).
+// JS가 없는 환경에서는 붙지 않으므로 본문이 그냥 다 보인다 —
+// 렌더링 방식 크롤러와 JS 끈 방문자에게 빈 화면이 나가는 것을 막는다.
+const JS_MARKER = "document.documentElement.classList.add('mt-js')";
+
 export default function RenewalLayout({ children }: { children: React.ReactNode }) {
     return (
         <div className="mt-root min-h-screen flex flex-col">
+            <script dangerouslySetInnerHTML={{ __html: JS_MARKER }} />
             <SiteHeader />
             <main className="flex-1">{children}</main>
             <SiteFooter />
