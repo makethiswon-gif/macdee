@@ -283,21 +283,37 @@ components/renewal/
 > 존중해 **본문 읽기 자체를 거부한다.** ChatGPT에서 "fetch 실패"로 나타난다.
 > 데모를 외부 AI에게 검토시키지 못하면 데모의 의미가 없으므로 방식을 바꿨다.
 
-현재 방식:
-1. `robots.txt` 에서 **색인 봇에만** `Disallow: /renewal` — Googlebot · Yeti · Bingbot
-2. AI 크롤러(GPTBot · ChatGPT-User · OAI-SearchBot · ClaudeBot · PerplexityBot)와
-   `User-agent: *` 는 그대로 허용 → 본문 읽기 가능
+> **2026-08-28 2차 수정 — robots.txt Disallow 도 폐기**
+> 색인 봇(Googlebot·Yeti·Bingbot)에만 `Disallow: /renewal` 을 걸었는데,
+> 외부 AI 리더가 **여전히** 본문을 못 읽었다. 같은 리더에서 `/` 는 정상,
+> `/renewal` 만 실패. robots.txt 에서 두 경로의 유일한 차이가 이 Disallow 였다.
+> robots 파서가 그룹 매칭을 보수적으로 하거나 경로 문자열만 보고 차단한 것으로 본다.
+>
+> 서빙되는 robots.txt 본문에는 이제 `/renewal` 이라는 **문자열 자체가 없다.**
+> 주석에도 쓰지 않는다 — 단순한 파서가 주석 줄을 오탐할 수 있다.
+> 설명은 `app/robots.txt/route.ts` 의 TypeScript 주석에만 남긴다.
+
+현재 방식 — 크롤 차단을 전부 뺀다:
+1. `robots.txt` 에 `/renewal` 관련 규칙 **없음**. 모든 크롤러가 읽을 수 있다
+2. `X-Robots-Tag` · `metadata.robots` **없음**
 3. `sitemap.xml` 에 절대 넣지 않는다
 4. 어디에서도 `/renewal` 로 링크하지 않는다 (링크가 없으면 발견 경로가 없다)
 5. **교체 시 `/renewal/*` → `/` 301 을 반드시 추가한다** (아래 4.3)
 
-`noindex` 헤더나 메타를 `/renewal` 에 다시 붙이지 말 것. 붙이는 순간 외부 AI 검토가 막힌다.
+`/renewal` 에 `noindex` 도 `Disallow` 도 다시 붙이지 말 것. 붙이는 순간 외부 AI 검토가 막힌다.
 
-### 6.1.1 잔여 위험
+### 6.1.1 잔여 위험 — 감수하기로 한 것
 
-robots.txt `Disallow` 는 색인을 100% 막지는 못한다. 외부에서 링크가 걸리면 구글이
-URL만 색인할 수 있다. 인바운드 링크와 sitemap 등재가 없는 임시 데모라 실질 위험은 낮고,
-교체 시점의 301 이 뒤처리를 담당한다.
+이제 구글이 `/renewal` 을 크롤하고 색인할 수 있다. 미완성 데모가 검색에 노출될 수 있다.
+
+감수하는 이유: 데모의 목적이 **외부 AI에게 검토받는 것**인데, 그걸 막는 차단은
+데모 자체를 무의미하게 만든다. 사용자가 "색인 여부는 별개이고 크롤러가 읽는 것이
+중요하다"고 명시했다.
+
+실질 위험이 낮은 근거: sitemap 미등재 + 인바운드 링크 0 → 구글의 발견 경로가 사실상 없다.
+발견되더라도 교체 시점의 301 이 뒤처리를 담당한다.
+
+**따라서 4.3 의 `/renewal/*` → `/` 301 은 선택이 아니라 필수다.**
 
 ### 6.2 교체 시점
 
@@ -410,7 +426,7 @@ message = [현재 상황] …
 
 | # | 위험 | 대응 |
 |---|---|---|
-| R1 | **`/renewal` 색인 사고** — 미완성 초안이 검색에 뜨고 교체 후 404 | 색인 봇만 robots.txt Disallow + sitemap 제외 + 인바운드 링크 없음 + 교체 시 301. noindex는 AI 크롤러를 막으므로 쓰지 않는다 |
+| R1 | **`/renewal` 색인 사고** — 미완성 초안이 검색에 뜨고 교체 후 404 | sitemap 제외 + 인바운드 링크 0 + 교체 시 301(필수). noindex·Disallow 는 외부 AI 리더까지 막으므로 쓰지 않는다 |
 | R2 | **`/makethisone` 301로 SEO 손실** — 대행사 실적 페이지가 사라짐 | 새 홈이 팀·파트너·포트폴리오를 전부 흡수한 뒤에만 301. 순서를 지킨다 |
 | R3 | **canonical 상속 버그 재발** — 루트에 canonical 넣으면 하위 전체 오염 | 신규 페이지마다 개별 선언. 코드 주석으로 이유 명시 |
 | R4 | **MACDEE 브랜드 검색 유입 손실** — "맥디" 검색 트래픽 | `Organization.alternateName`에 macdee/맥디 유지 |
