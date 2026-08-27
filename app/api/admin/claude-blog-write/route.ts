@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
 import { polishBlogBody } from "@/lib/ai/blog-polish";
+import { createAdminClient } from "@/lib/supabase/server";
+import { getWritingDNA, dnaDirective } from "@/lib/blog-writing-dna";
 
 // Opus 5 + adaptive thinking으로 한 편을 길게 뽑으므로 넉넉히
 export const maxDuration = 300;
@@ -16,7 +18,7 @@ export async function POST(request: Request) {
     if (!verifyAdmin(request)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     try {
-        const { content, field } = await request.json();
+        const { content, field, profileId, topic } = await request.json();
         if (!content || !content.trim()) {
             return NextResponse.json({ error: "내용을 입력해주세요." }, { status: 400 });
         }
@@ -24,6 +26,37 @@ export async function POST(request: Request) {
         const apiKey = process.env.ANTHROPIC_API_KEY;
         if (!apiKey) {
             return NextResponse.json({ error: "ANTHROPIC_API_KEY가 설정되지 않았습니다." }, { status: 500 });
+        }
+
+        // 변호사가 지정되면 그 블로그의 글쓰기 DNA로 문체·분량·강조를 덮어쓴다.
+        // 없으면 기존 기본값 그대로 (단독 사용 시 동작 유지).
+        let dnaBlock = "";
+        let lengthRule = "본문은 공백 포함 3,000~3,500자를 반드시 지킵니다.";
+        let emphasisRule = `  · ==형광펜== : 이 글의 결론, 결론이 갈리는 경계선. 글 전체에서 **2~3곳만**. 가장 아껴 쓰는 강조입니다.
+  · __밑줄__ : 판단의 근거가 되는 법조문·기준. 글 전체에서 **5~7곳**.
+  · **굵게** : 수치·기한·금액 등 눈으로 집어야 할 값. 글 전체에서 **10곳 이내**.`;
+
+        if (profileId) {
+            try {
+                const supabase = await createAdminClient();
+                const { data: profile } = await supabase
+                    .from("blog_profiles")
+                    .select("id, dna_salt")
+                    .eq("id", profileId)
+                    .single();
+
+                if (profile) {
+                    const dna = getWritingDNA(profile.id as string, (profile.dna_salt as string) || "", topic || "");
+                    dnaBlock = dnaDirective(dna);
+                    lengthRule = `본문은 공백 포함 ${dna.targetLength - 200}~${dna.targetLength + 200}자를 반드시 지킵니다.`;
+                    emphasisRule = `  · ==형광펜== : 이 글의 결론, 결론이 갈리는 경계선. 글 전체에서 **${dna.emphasis.highlight[0]}~${dna.emphasis.highlight[1]}곳만**.
+  · __밑줄__ : 판단의 근거가 되는 법조문·기준. 글 전체에서 **${dna.emphasis.underline[0]}~${dna.emphasis.underline[1]}곳**.
+  · **굵게** : 수치·기한·금액 등 눈으로 집어야 할 값. 글 전체에서 **${dna.emphasis.bold}곳 이내**.`;
+                    console.log(`[Blog Write] DNA ${profileId}: ${dna.voice.name} / ${dna.heading.name} / ${dna.structure.name} / ${dna.targetLength}자`);
+                }
+            } catch (e) {
+                console.warn("[Blog Write] DNA 조회 실패, 기본값 사용:", e);
+            }
         }
 
         const todayLabel = getKstDateLabel();
@@ -65,9 +98,7 @@ export async function POST(request: Request) {
 - 짧은 문장과 긴 문장을 섞어 리듬감을 줍니다. 한 문단은 2~4문장, 문단 사이는 빈 줄로 분리.
 - ## 소제목 4~6개로 구조화합니다.
 - 강조는 세 종류를 구분해 씁니다. 네이버 블로그에서 각각 형광펜·밑줄·굵게로 바뀝니다. 아래 개수를 넘기지 마세요. 과한 강조는 오히려 신뢰도를 떨어뜨립니다.
-  · ==형광펜== : 이 글의 결론, 결론이 갈리는 경계선. 글 전체에서 **2~3곳만**. 가장 아껴 쓰는 강조입니다.
-  · __밑줄__ : 판단의 근거가 되는 법조문·기준. 글 전체에서 **5~7곳**.
-  · **굵게** : 수치·기한·금액 등 눈으로 집어야 할 값. 글 전체에서 **10곳 이내**.
+${emphasisRule}
 - 한 문단에 강조가 두 종류 넘게 들어가지 않게 하세요. 강조가 없는 문단이 있어도 괜찮습니다.
 - 도입부는 독자가 처한 상황으로 곧장 들어갑니다. 용어의 사전적 정의로 시작하지 마세요. 다만 상황 묘사만으로 첫 문단을 다 쓰지 말고, 그 안에서 답을 먼저 주세요.
 - 마지막은 '이런 경우라면 이렇게 준비하시라'는 신뢰형 안내로 닫습니다. '지금 전화하세요' 같은 노골적 광고성 CTA·강압 표현은 쓰지 마세요.
@@ -104,7 +135,9 @@ export async function POST(request: Request) {
 - 위 네 개는 형태 견본일 뿐입니다. 그대로 쓰지 말고 이번 사건에 맞게 새로 지으세요.
 - 낚시성·과장·단정("무조건", "100%")은 금지입니다.
 
-[분량] 본문은 공백 포함 3,000~3,500자를 반드시 지킵니다. 모자라면 사례와 설명을 더 깊게, 넘치면 군더더기를 덜어내 범위 안에 맞추세요.
+[분량] ${lengthRule} 모자라면 사례와 설명을 더 깊게, 넘치면 군더더기를 덜어내 범위 안에 맞추세요.
+
+${dnaBlock}
 
 [출력 형식] 아래 구분자 형식을 정확히 지키고, 그 외의 말은 한마디도 붙이지 마세요. JSON이 아닙니다.
 ===TITLE===

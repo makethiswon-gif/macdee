@@ -76,7 +76,9 @@ const EMPHASIS: EmphasisDensity[] = [
 // 변호사별 분량 중심값. 짧게 쓰는 블로그와 길게 쓰는 블로그가 갈리도록.
 // ±400을 해도 2,000~4,000 안에 정확히 들어가는 값만 쓴다.
 // 범위 밖으로 나가 잘리면 2,000과 4,000에 값이 몰려 그것 자체가 패턴이 된다.
-const LENGTH_CENTERS = [2400, 2700, 3000, 3300, 3600];
+// 목표가 3,600을 넘기면 모델이 따라오지 못하고 800자쯤 미달한다(실측).
+// 실제로 지켜지는 구간에서만 중심값을 잡는다. 상한을 낮춰도 블로그 간 낙차는 충분하다.
+const LENGTH_CENTERS = [2300, 2550, 2800, 3050, 3300];
 
 /**
  * 변호사의 글쓰기 DNA를 뽑는다.
@@ -107,9 +109,9 @@ export function getWritingDNA(profileId: string, salt = "", postSeed = ""): Writ
     const postHash = fnv1a(key + "|" + postSeed, 0x2545f491);
     const structure = structures[postHash % structures.length];
 
-    // 중심값 ±400, 2,000~4,000 안에 가둔다
-    const drift = (fnv1a(key + "|" + postSeed, 0x7feb352d) % 801) - 400;
-    const targetLength = Math.max(2000, Math.min(4000, lengthCenter + drift));
+    // 중심값 ±300, 2,000~3,600 안에 가둔다
+    const drift = (fnv1a(key + "|" + postSeed, 0x7feb352d) % 601) - 300;
+    const targetLength = Math.max(2000, Math.min(3600, lengthCenter + drift));
 
     const imageCount = 3 + (fnv1a(key + "|" + postSeed, 0x9e3779b9) % 3); // 3~5
 
