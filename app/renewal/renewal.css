@@ -1,0 +1,183 @@
+/* ─────────────────────────────────────────────────────────────
+   MAKETHIS1 리뉴얼 디자인 시스템
+   이 파일은 app/renewal/layout.tsx 에서만 import 된다.
+   → /renewal 이하에서만 로드되고, 라이브 페이지에는 영향이 없다.
+   ───────────────────────────────────────────────────────────── */
+
+/* Pretendard 동적 서브셋 — 92개 조각 중 실제 쓰인 글자 범위만 내려받는다.
+   전체 한글 폰트(약 1.4MB)를 통째로 받지 않으므로 LCP에 안전하다. */
+@import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
+
+/* Inter — 영문 eyebrow/라벨 전용. 본문에는 쓰지 않으므로 3굵기만. */
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+
+.mt-root {
+    /* ── COLOR ──
+       액센트는 한 화면에 3곳 이하. 넓은 면적을 파란색으로 칠하지 않는다. */
+    --mt-bg: #fbfaf8;
+    --mt-surface: #ffffff;
+    --mt-ink: #0e1116;
+    --mt-charcoal: #2a2e35;
+    --mt-gray: #6a6f78;
+    --mt-gray-light: #9aa0a8;
+    --mt-line: #e3e1dc;
+    --mt-line-strong: #cfccc5;
+    --mt-accent: #2a4f8a;
+    --mt-accent-sub: #12305c;
+
+    /* 다크 섹션용 반전 토큰 */
+    --mt-dark-bg: #0e1116;
+    --mt-dark-line: #262a31;
+    --mt-dark-gray: #8b9199;
+
+    /* ── LAYOUT ── */
+    --mt-max: 1360px;
+
+    /* ── MOTION ── */
+    --mt-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+
+    background: var(--mt-bg);
+    color: var(--mt-ink);
+    font-family:
+        "Pretendard Variable", Pretendard, "Noto Sans KR", -apple-system,
+        BlinkMacSystemFont, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "tnum" 0;
+}
+
+/* 영문 라벨 전용 클래스 — Inter를 여기서만 쓴다 */
+.mt-root .mt-en {
+    font-family: Inter, "Pretendard Variable", sans-serif;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-variant-numeric: tabular-nums;
+}
+
+.mt-root .mt-num {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+}
+
+/* ── TYPE SCALE ──
+   한글은 영문보다 행간을 넉넉히. editorial 인상의 절반이 여기서 나온다. */
+.mt-root .mt-display {
+    font-size: clamp(2.6rem, 6.2vw, 5.2rem);
+    font-weight: 700;
+    line-height: 1.06;
+    letter-spacing: -0.03em;
+}
+
+.mt-root .mt-h1 {
+    font-size: clamp(2.1rem, 4.4vw, 3.6rem);
+    font-weight: 700;
+    line-height: 1.14;
+    letter-spacing: -0.025em;
+}
+
+.mt-root .mt-h2 {
+    font-size: clamp(1.7rem, 3vw, 2.6rem);
+    font-weight: 600;
+    line-height: 1.22;
+    letter-spacing: -0.02em;
+}
+
+.mt-root .mt-h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: -0.01em;
+}
+
+.mt-root .mt-body-lg {
+    font-size: 1.0625rem;
+    line-height: 1.85;
+    color: var(--mt-gray);
+}
+
+.mt-root .mt-body {
+    font-size: 0.9375rem;
+    line-height: 1.8;
+    color: var(--mt-gray);
+}
+
+.mt-root .mt-label {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    line-height: 1;
+}
+
+/* ── SCROLL REVEAL ──
+   framer-motion을 쓰지 않는다. IntersectionObserver + 이 두 줄이면 충분하고
+   번들이 늘지 않는다. */
+.mt-root [data-reveal] {
+    opacity: 0;
+    transform: translateY(16px);
+    transition:
+        opacity 520ms var(--mt-ease),
+        transform 520ms var(--mt-ease);
+}
+
+.mt-root [data-reveal="in"] {
+    opacity: 1;
+    transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mt-root [data-reveal],
+    .mt-root [data-reveal="in"] {
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
+    .mt-root * {
+        animation-duration: 0.001ms !important;
+        transition-duration: 0.001ms !important;
+    }
+}
+
+/* ── FOCUS ── 접근성(§41). 마우스 클릭에는 안 뜨고 키보드에만 뜬다. */
+.mt-root :focus-visible {
+    outline: 2px solid var(--mt-accent);
+    outline-offset: 3px;
+    border-radius: 2px;
+}
+
+/* ── SELECTION ── */
+.mt-root ::selection {
+    background: var(--mt-accent);
+    color: #fff;
+}
+
+/* ── 규칙선 ── 그림자 대신 1px 선으로 면을 나눈다 */
+.mt-root .mt-rule {
+    border: 0;
+    border-top: 1px solid var(--mt-line);
+}
+
+/* ── SECTION 02 수렴 애니메이션 ──
+   Reveal이 data-reveal="in"을 붙이는 순간 선이 그려진다.
+   JS는 관여하지 않는다. */
+.mt-root .mt-converge path {
+    stroke-dasharray: 60;
+    stroke-dashoffset: 60;
+}
+
+.mt-root .mt-converge[data-reveal="in"] path {
+    animation: mt-draw 900ms var(--mt-ease) forwards;
+}
+
+@keyframes mt-draw {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mt-root .mt-converge path {
+        stroke-dashoffset: 0;
+        animation: none !important;
+    }
+}

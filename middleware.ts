@@ -9,6 +9,9 @@ const PRIVATE_PREFIXES = [
     "/billing", "/profile", "/settings", "/migrate",
     "/consulting", "/tone", "/blog-write", "/site-builder", "/guide",
     "/makethisone/subscribe",
+    // 리뉴얼 데모 — 완성 전 초안이 색인되면 교체 후 404가 대량 발생한다(RENEWAL_PLAN R1).
+    // 홈페이지 교체 시 이 줄을 제거한다.
+    "/renewal",
 ];
 
 export async function middleware(request: NextRequest) {

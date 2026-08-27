@@ -1,0 +1,347 @@
+// MAKETHIS1 리뉴얼 — 사이트 공통 데이터
+//
+// 여기 들어간 사실은 전부 검증 가능한 것이어야 한다(§42).
+// 팀 6명·파트너 17곳·업력 수치는 현재 /makethisone 정적 페이지에서 이미 대외
+// 공표 중인 값을 그대로 가져온 것이다. 새 수치를 만들지 않는다.
+
+/* ═══════════════ 경로 ═══════════════
+   데모 기간에는 /renewal 접두어가 붙는다. 교체 시 DEMO_BASE만 ""로 바꾸면
+   전 페이지 링크가 최종 URL로 정렬된다. */
+
+export const DEMO_BASE = "/renewal";
+
+export function path(p: string): string {
+    if (p.startsWith("http") || p.startsWith("#")) return p;
+    // 라이브 페이지(매거진·진단 등)는 데모에서도 실제 URL을 그대로 쓴다
+    if (LIVE_PATHS.some((l) => p === l || p.startsWith(l + "/"))) return p;
+    return `${DEMO_BASE}${p === "/" ? "" : p}` || "/";
+}
+
+const LIVE_PATHS = ["/magazine", "/diagnose", "/terms", "/refund", "/login"];
+
+/* ═══════════════ 네비게이션 ═══════════════ */
+
+export interface NavChild {
+    label: string;
+    href: string;
+    desc: string;
+}
+
+export interface NavItem {
+    label: string;
+    href: string;
+    children?: NavChild[];
+}
+
+export const NAV: NavItem[] = [
+    {
+        label: "WHAT WE DO",
+        href: "/lawfirm-marketing",
+        children: [
+            { label: "Paid Media", href: "/naver-ads", desc: "네이버 파워링크 · Google Ads" },
+            { label: "SEO", href: "/lawfirm-seo", desc: "네이버 · 구글 검색 노출" },
+            { label: "AI Search / GEO", href: "/geo", desc: "AI 검색이 이해하는 구조" },
+            { label: "Content", href: "/lawfirm-blog", desc: "블로그 · 사례 · 칼럼" },
+            { label: "Website", href: "/lawfirm-website", desc: "홈페이지 · 랜딩페이지" },
+            { label: "Data & Conversion", href: "/conversion", desc: "상담 전환 · 수임 분석" },
+        ],
+    },
+    { label: "OUR SYSTEM", href: "/lawfirm-marketing#system" },
+    { label: "WORK", href: "/work" },
+    { label: "INSIGHTS", href: "/magazine" },
+    { label: "ABOUT", href: "/about" },
+];
+
+export const PRIMARY_CTA = { label: "마케팅 진단 요청", href: "/diagnose" };
+
+/* ═══════════════ HERO 채널 ═══════════════ */
+
+export const HERO_CHANNELS = [
+    "NAVER",
+    "GOOGLE",
+    "CHATGPT",
+    "YOUTUBE",
+    "SEO",
+    "GEO",
+    "CONTENT",
+    "WEB",
+];
+
+/* ═══════════════ SECTION 02 — 흩어진 대행사 ═══════════════ */
+
+export const SCATTERED_AGENCIES = [
+    { channel: "NAVER ADS", agency: "Agency A" },
+    { channel: "BLOG", agency: "Agency B" },
+    { channel: "WEBSITE", agency: "Agency C" },
+    { channel: "SEO", agency: "Agency D" },
+    { channel: "VIDEO", agency: "Agency E" },
+    { channel: "GOOGLE ADS", agency: "Agency F" },
+];
+
+/* ═══════════════ SECTION 03 — 마케팅 시스템 ═══════════════ */
+
+export interface SystemStep {
+    no: string;
+    en: string;
+    title: string;
+    desc: string;
+    tags: string[];
+}
+
+export const SYSTEM_STEPS: SystemStep[] = [
+    {
+        no: "01",
+        en: "DISCOVERY",
+        title: "발견됩니다.",
+        desc: "고객이 필요한 순간, 로펌이 검색되고 발견되도록 만듭니다.",
+        tags: ["NAVER", "GOOGLE", "CHATGPT", "GEMINI", "NAVER AI SEARCH", "YOUTUBE"],
+    },
+    {
+        no: "02",
+        en: "ACQUISITION",
+        title: "고객을 데려옵니다.",
+        desc: "유료 광고로 즉시 고객 접점을 만듭니다. 새로운 AI 광고 채널이 법률서비스를 허용하는 시점부터 같은 시스템 안으로 편입합니다.",
+        tags: ["NAVER POWERLINK", "GOOGLE ADS", "YOUTUBE ADS", "PERFORMANCE", "RETARGETING"],
+    },
+    {
+        no: "03",
+        en: "TRUST",
+        title: "선임할 이유를 만듭니다.",
+        desc: "찾아온 사람이 왜 이 로펌이어야 하는지 스스로 납득하게 만드는 근거를 쌓습니다.",
+        tags: ["BLOG", "WEBSITE", "CASE STUDY", "LEGAL CONTENT", "VIDEO", "FAQ", "BRANDING"],
+    },
+    {
+        no: "04",
+        en: "CONVERSION",
+        title: "방문자를 상담으로 바꿉니다.",
+        desc: "들어온 트래픽이 어디에서 이탈하는지 찾아내고, 상담까지 가는 경로를 다시 설계합니다.",
+        tags: ["LANDING PAGE", "PHONE", "KAKAO", "FORM", "UX", "CRO"],
+    },
+    {
+        no: "05",
+        en: "REVENUE",
+        title: "클릭이 아니라 사건을 봅니다.",
+        desc: "노출과 클릭이 아니라, 실제로 상담이 잡히고 사건이 들어왔는지를 성과로 봅니다.",
+        tags: ["LEAD", "QUALIFIED LEAD", "CONSULTATION", "CASE", "CPA", "ROAS"],
+    },
+    {
+        no: "06",
+        en: "OPTIMIZATION",
+        title: "데이터가 다시 전략이 됩니다.",
+        desc: "성과 데이터를 광고·콘텐츠·검색 전략·랜딩페이지·예산에 되돌려 계속 고쳐 나갑니다.",
+        tags: ["ANALYTICS", "BUDGET", "KEYWORD", "CONTENT PLAN", "A/B TEST"],
+    },
+];
+
+/* ═══════════════ SECTION 04 — 채널 그리드 ═══════════════ */
+
+export interface ChannelCategory {
+    key: string;
+    en: string;
+    title: string;
+    desc: string;
+    items: string[];
+    href: string;
+}
+
+export const CHANNELS: ChannelCategory[] = [
+    {
+        key: "paid",
+        en: "PAID MEDIA",
+        title: "오늘 고객을 확보합니다.",
+        desc: "검색량이나 클릭수가 아니라 실제 상담 성과를 기준으로 광고 예산을 조정합니다.",
+        items: [
+            "NAVER Powerlink",
+            "NAVER Ads",
+            "Google Ads",
+            "YouTube Ads",
+            "Retargeting",
+            "Performance Campaign",
+        ],
+        href: "/naver-ads",
+    },
+    {
+        key: "search",
+        en: "SEARCH",
+        title: "검색할 때 발견되게 만듭니다.",
+        desc: "광고를 끄면 사라지는 노출이 아니라, 남는 검색 자산을 만듭니다.",
+        items: [
+            "NAVER SEO",
+            "Google SEO",
+            "Technical SEO",
+            "Local SEO",
+            "Content Cluster",
+            "Internal Linking",
+            "Site Architecture",
+        ],
+        href: "/lawfirm-seo",
+    },
+    {
+        key: "ai",
+        en: "AI SEARCH",
+        title: "AI가 로펌을 이해할 수 있는 구조를 만듭니다.",
+        desc: "AI가 로펌의 전문성과 정보를 이해하고 발견하기 쉬운 구조를 설계합니다.",
+        items: [
+            "GEO",
+            "AEO",
+            "Entity Optimization",
+            "ChatGPT Search",
+            "Gemini",
+            "NAVER AI Search",
+            "AI Citation",
+        ],
+        href: "/geo",
+    },
+    {
+        key: "content",
+        en: "CONTENT",
+        title: "경험을 검색 자산으로 만듭니다.",
+        desc: "몇 건을 썼는지가 아니라, 어떤 검색 의도를 해결하고 어디로 연결되는지를 봅니다.",
+        items: [
+            "NAVER Blog",
+            "Case Content",
+            "Legal Column",
+            "FAQ",
+            "Legal Guide",
+            "Video",
+            "Short Form",
+        ],
+        href: "/lawfirm-blog",
+    },
+    {
+        key: "website",
+        en: "WEBSITE",
+        title: "홈페이지를 영업사원으로 만듭니다.",
+        desc: "보기 좋은 홈페이지가 아니라, 상담 전화가 오는 홈페이지를 만듭니다.",
+        items: [
+            "Website Design",
+            "Landing Page",
+            "Mobile UX",
+            "SEO Structure",
+            "GEO Structure",
+            "CRO",
+            "Content Management",
+        ],
+        href: "/lawfirm-website",
+    },
+    {
+        key: "data",
+        en: "DATA & CONVERSION",
+        title: "클릭이 아니라 사건을 분석합니다.",
+        desc: "어느 채널에서 온 사람이 실제로 사건을 맡겼는지 끝까지 추적합니다.",
+        items: [
+            "Phone",
+            "Form",
+            "Kakao",
+            "Lead Source",
+            "CPA",
+            "Qualified Lead",
+            "Case Acquisition",
+        ],
+        href: "/conversion",
+    },
+];
+
+/* ═══════════════ SECTION 06 — 팀 ═══════════════
+   사진은 /makethisone/team/*.webp 에 이미 있다. */
+
+export interface TeamMember {
+    name: string;
+    role: string;
+    badge: string;
+    background: string;
+    photo: string;
+}
+
+export const TEAM: TeamMember[] = [
+    {
+        name: "김나빈",
+        role: "Director",
+        badge: "해외 마케팅",
+        background: "Boston University Marketing · 글로벌 마케팅 전략",
+        photo: "/makethisone/team/kimnabin.webp",
+    },
+    {
+        name: "임유진",
+        role: "General Manager",
+        badge: "경제학 전공",
+        background: "아주대학교 경제학과 · 파트너 파트 마케팅 총괄",
+        photo: "/makethisone/team/imyujin.webp",
+    },
+    {
+        name: "임미영",
+        role: "Manager",
+        badge: "KBS 작가 출신",
+        background: "KBS 방송작가 출신 · 스토리텔링 기반 콘텐츠",
+        photo: "/makethisone/team/immiyoung.webp",
+    },
+    {
+        name: "문희원",
+        role: "Assistant Manager",
+        badge: "MBC 기자 출신",
+        background: "지역 MBC 기자 출신 · 취재 기반 콘텐츠 기획",
+        photo: "/makethisone/team/munheewon.webp",
+    },
+    {
+        name: "정경재",
+        role: "Editor",
+        badge: "법학 전공",
+        background: "아주대학교 법학과 · 법률 전문 콘텐츠 편집",
+        photo: "/makethisone/team/jungkyungjae.webp",
+    },
+    {
+        name: "신재선",
+        role: "Editor",
+        badge: "영문학 전공",
+        background: "중앙대학교 영문과 · 법률 콘텐츠 기획/작성",
+        photo: "/makethisone/team/shinjaeseon.webp",
+    },
+];
+
+export const DISCIPLINES = [
+    { en: "LEGAL", ko: "법률 콘텐츠 이해" },
+    { en: "EDITORIAL", ko: "기자 · 방송작가 출신 제작" },
+    { en: "PERFORMANCE", ko: "검색광고 · 데이터 분석" },
+    { en: "DESIGN", ko: "홈페이지 · 브랜드 · 크리에이티브" },
+    { en: "SEARCH", ko: "SEO · GEO · 검색 전략" },
+];
+
+/* ═══════════════ SECTION 09 — 파트너 ═══════════════
+   현재 /makethisone 에 실명으로 공개 중인 목록 그대로. */
+
+export const PARTNERS = [
+    "법무법인 BHSN",
+    "법무법인 아이엘",
+    "법무법인 양영&정훈",
+    "법무법인 새록",
+    "법무법인 오른",
+    "법무법인 해밀",
+    "법무법인 세안",
+    "법무법인 율빛",
+    "법무법인 류현",
+    "법무법인 그날",
+    "법무법인 안세",
+    "HANEUM Law",
+    "법률사무소 로앤탑",
+    "카라 법률사무소",
+    "이정도 변호사",
+    "Samsung Medison",
+    "KT",
+];
+
+// 이미 대외 공표 중인 수치만. 새로 만들지 않는다.
+export const PROOF_STATS = [
+    { value: "20", suffix: "+", label: "파트너 로펌" },
+    { value: "100", suffix: "+", label: "완료 프로젝트" },
+    { value: "7", suffix: "년+", label: "업력" },
+];
+
+/* ═══════════════ 회사 정보 ═══════════════ */
+
+export const COMPANY = {
+    brand: "MAKETHIS1",
+    legalName: "메이크디스원",
+    phone: "010-8935-3010",
+    address: "서울특별시 동대문구 왕산로5길 13",
+    site: "https://www.makethis1.com",
+};
