@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Check, Copy, Loader2, Lightbulb, PenLine, Save } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Check, Copy, Loader2, Lightbulb, PenLine, Save, ImageIcon } from "lucide-react";
 import { toNaverHtml } from "@/lib/blog-naver-html";
+import * as htmlToImage from "html-to-image";
 
 interface BlogSetting {
     id: string;
@@ -25,7 +26,7 @@ interface TopicCandidate {
     reason: string;
 }
 
-type Step = "idle" | "topics" | "writing" | "saving";
+type Step = "idle" | "topics" | "writing" | "saving" | "cards";
 
 export default function BlogPublishPage() {
     const [profiles, setProfiles] = useState<BlogSetting[]>([]);
@@ -38,6 +39,12 @@ export default function BlogPublishPage() {
     const [body, setBody] = useState("");
     const [polished, setPolished] = useState(false);
     const [savedId, setSavedId] = useState<string | null>(null);
+
+    const [cards, setCards] = useState<{ type: string; name: string; html: string }[]>([]);
+    const [cardUrls, setCardUrls] = useState<{ type: string; url: string }[]>([]);
+    const [imageCount, setImageCount] = useState(4);
+    const [progress, setProgress] = useState("");
+    const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
     const [step, setStep] = useState<Step>("idle");
     const [error, setError] = useState("");
@@ -63,6 +70,8 @@ export default function BlogPublishPage() {
         setTitle("");
         setBody("");
         setSavedId(null);
+        setCards([]);
+        setCardUrls([]);
         setDetail("");
         setError("");
     };
@@ -113,6 +122,7 @@ export default function BlogPublishPage() {
             setTitle(data.title || "");
             setBody(data.body || "");
             setPolished(!!data.polished);
+            if (data.dna?.imageCount) setImageCount(data.dna.imageCount);
         } catch (e) {
             setError(e instanceof Error ? e.message : "원고 생성에 실패했습니다.");
         }
@@ -144,6 +154,106 @@ export default function BlogPublishPage() {
         }
         setStep("idle");
     };
+
+    // 저장 → 카드 생성 → PNG 변환 → 업로드까지 한 번에.
+    // 이미지가 Storage에 남아야 발행기가 집어갈 수 있다.
+    const saveAndMakeCards = async () => {
+        if (!profileId || !title || !body) return;
+        setStep("saving");
+        setError("");
+        setCardUrls([]);
+        try {
+            // 1) 원고 저장 (이미 저장했으면 그대로 씀)
+            let postId = savedId;
+            if (!postId) {
+                setProgress("원고 저장 중…");
+                const res = await fetch("/api/admin/blog-posts", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ profileId, title, body, field: picked?.field || null, topic: picked?.topic || null }),
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || "저장에 실패했습니다.");
+                postId = data.id;
+                setSavedId(data.id);
+            }
+
+            // 2) 카드 생성에 필요한 변호사 상세 정보
+            setStep("cards");
+            setProgress("변호사 정보 확인 중…");
+            const pRes = await fetch(`/api/admin/blog-profiles?id=${profileId}`, { credentials: "include" });
+            const pData = await pRes.json();
+            const fullProfile = pData.profile;
+            if (!fullProfile) throw new Error("변호사 상세 정보를 불러오지 못했습니다.");
+
+            // 3) DNA가 정한 장수만큼. 카드 종류는 넷뿐이라 3장이면 상황 이미지를 뺀다.
+            const types = imageCount >= 4
+                ? ["thumbnail", "illustration", "info", "contact"]
+                : ["thumbnail", "info", "contact"];
+
+            setProgress(`카드 ${types.length}장 만드는 중… (~20초)`);
+            const results = await Promise.all(
+                types.map(async (t) => {
+                    const r = await fetch("/api/admin/blog-images/generate-design", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        credentials: "include",
+                        body: JSON.stringify({ profile: fullProfile, title, content: body, cardType: t }),
+                    });
+                    if (!r.ok) return null;
+                    const d = await r.json();
+                    return d.card || null;
+                })
+            );
+            const made = results.filter(Boolean) as { type: string; name: string; html: string }[];
+            if (made.length === 0) throw new Error("카드를 만들지 못했습니다.");
+            setCards(made);
+            setProgress("이미지로 변환하는 중…");
+        } catch (e) {
+            setError(e instanceof Error ? e.message : "카드 생성에 실패했습니다.");
+            setStep("idle");
+            setProgress("");
+        }
+    };
+
+    // 카드 HTML이 화면에 그려지면 PNG로 바꿔 업로드한다.
+    useEffect(() => {
+        if (cards.length === 0 || !savedId || step !== "cards") return;
+        let cancelled = false;
+        const run = async () => {
+            try {
+                await new Promise((r) => setTimeout(r, 600)); // 폰트·이미지 로딩 대기
+                const shots: { type: string; dataUrl: string }[] = [];
+                for (const c of cards) {
+                    const node = cardRefs.current[c.type];
+                    if (!node) continue;
+                    const dataUrl = await htmlToImage.toPng(node, { quality: 1, pixelRatio: 2, width: 800, height: 800 });
+                    shots.push({ type: c.type, dataUrl });
+                }
+                if (cancelled) return;
+                setProgress("업로드 중…");
+                const res = await fetch("/api/admin/blog-posts/images", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ postId: savedId, images: shots }),
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || "업로드에 실패했습니다.");
+                setCardUrls(data.images || []);
+                setProgress("");
+                setStep("idle");
+            } catch (e) {
+                if (cancelled) return;
+                setError(e instanceof Error ? e.message : "이미지 처리에 실패했습니다.");
+                setProgress("");
+                setStep("idle");
+            }
+        };
+        run();
+        return () => { cancelled = true; };
+    }, [cards, savedId, step]);
 
     const copyStyled = async () => {
         const html = toNaverHtml(body, title);
@@ -336,16 +446,30 @@ export default function BlogPublishPage() {
                             <button
                                 onClick={save}
                                 disabled={step !== "idle" || !!savedId}
-                                className={`${btn} bg-[#3563AE] hover:bg-[#2d559a] text-white`}
+                                className={`${btn} bg-[#1A2035] hover:bg-[#222a44] text-[#9CA3B0] hover:text-white`}
                             >
-                                {step === "saving" ? (
+                                {step === "saving" && !cards.length ? (
                                     <Loader2 size={14} className="animate-spin" />
                                 ) : savedId ? (
                                     <Check size={14} />
                                 ) : (
                                     <Save size={14} />
                                 )}
-                                {savedId ? "저장됨" : "저장"}
+                                {savedId ? "저장됨" : "원고만 저장"}
+                            </button>
+                            <button
+                                onClick={saveAndMakeCards}
+                                disabled={step !== "idle" || cardUrls.length > 0}
+                                className={`${btn} bg-[#3563AE] hover:bg-[#2d559a] text-white`}
+                            >
+                                {step === "cards" || step === "saving" ? (
+                                    <Loader2 size={14} className="animate-spin" />
+                                ) : cardUrls.length > 0 ? (
+                                    <Check size={14} />
+                                ) : (
+                                    <ImageIcon size={14} />
+                                )}
+                                {cardUrls.length > 0 ? `카드 ${cardUrls.length}장 완료` : `저장하고 카드 ${imageCount}장 만들기`}
                             </button>
                         </div>
                     </div>
@@ -362,8 +486,43 @@ export default function BlogPublishPage() {
                         rows={22}
                         className="w-full px-3.5 py-3 bg-[#0B0F1A] border border-[#1A2035] rounded-lg text-[13.5px] text-[#D1D5DE] leading-[1.85] focus:outline-none focus:border-[#3563AE] resize-y"
                     />
+
+                    {progress && (
+                        <p className="mt-3 text-[12.5px] text-[#3563AE] flex items-center gap-1.5">
+                            <Loader2 size={13} className="animate-spin" /> {progress}
+                        </p>
+                    )}
+
+                    {cardUrls.length > 0 && (
+                        <div className="mt-4">
+                            <p className="text-[11px] font-medium text-[#6B7280] mb-2">
+                                카드 이미지 {cardUrls.length}장 · 발행 대기
+                            </p>
+                            <div className="flex gap-2 flex-wrap">
+                                {cardUrls.map((c) => (
+                                    <a key={c.type} href={c.url} target="_blank" rel="noreferrer"
+                                       className="block w-[120px] h-[120px] rounded-lg overflow-hidden border border-[#1A2035] hover:border-[#3563AE] transition-colors">
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img src={c.url} alt={c.type} className="w-full h-full object-cover" />
+                                    </a>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
+
+            {/* PNG로 찍기 위한 숨은 렌더 영역 */}
+            <div style={{ position: "fixed", left: -20000, top: 0, pointerEvents: "none" }}>
+                {cards.map((c) => (
+                    <div
+                        key={c.type}
+                        ref={(el) => { cardRefs.current[c.type] = el; }}
+                        style={{ width: 800, height: 800 }}
+                        dangerouslySetInnerHTML={{ __html: c.html }}
+                    />
+                ))}
+            </div>
         </div>
     );
 }

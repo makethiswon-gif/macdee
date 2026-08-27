@@ -31,6 +31,7 @@ export async function POST(request: Request) {
         // 변호사가 지정되면 그 블로그의 글쓰기 DNA로 문체·분량·강조를 덮어쓴다.
         // 없으면 기존 기본값 그대로 (단독 사용 시 동작 유지).
         let dnaBlock = "";
+        let dnaInfo: { voice: string; heading: string; structure: string; imageCount: number } | null = null;
         let lengthRule = "본문은 공백 포함 3,000~3,500자를 반드시 지킵니다.";
         let emphasisRule = `  · ==형광펜== : 이 글의 결론, 결론이 갈리는 경계선. 글 전체에서 **2~3곳만**. 가장 아껴 쓰는 강조입니다.
   · __밑줄__ : 판단의 근거가 되는 법조문·기준. 글 전체에서 **5~7곳**.
@@ -48,6 +49,7 @@ export async function POST(request: Request) {
                 if (profile) {
                     const dna = getWritingDNA(profile.id as string, (profile.dna_salt as string) || "", topic || "");
                     dnaBlock = dnaDirective(dna);
+                    dnaInfo = { voice: dna.voice.name, heading: dna.heading.name, structure: dna.structure.name, imageCount: dna.imageCount };
                     lengthRule = `본문은 공백 포함 ${dna.targetLength - 200}~${dna.targetLength + 200}자를 반드시 지킵니다.`;
                     emphasisRule = `  · ==형광펜== : 이 글의 결론, 결론이 갈리는 경계선. 글 전체에서 **${dna.emphasis.highlight[0]}~${dna.emphasis.highlight[1]}곳만**.
   · __밑줄__ : 판단의 근거가 되는 법조문·기준. 글 전체에서 **${dna.emphasis.underline[0]}~${dna.emphasis.underline[1]}곳**.
@@ -203,6 +205,7 @@ ${dnaBlock}
             polished: polish.polished,
             polishModel: polish.model,
             polishReason: polish.reason ?? null,
+            dna: dnaInfo,
         });
     } catch (err) {
         console.error("[Claude Blog Write] Error:", err);

@@ -19,7 +19,7 @@ export interface WritingDNA {
     structures: WritingTrait[];     // 배정된 본문 구조 2~3개 — 이 안에서 글마다 선택
     structure: WritingTrait;        // 이번 글에 선택된 구조
     targetLength: number;           // 이번 글 목표 분량 (공백 포함)
-    imageCount: number;             // 이번 글 카드 장수 (3~5)
+    imageCount: number;             // 이번 글 카드 장수 (3~4)
 }
 
 export interface EmphasisDensity {
@@ -113,7 +113,8 @@ export function getWritingDNA(profileId: string, salt = "", postSeed = ""): Writ
     const drift = (fnv1a(key + "|" + postSeed, 0x7feb352d) % 601) - 300;
     const targetLength = Math.max(2000, Math.min(3600, lengthCenter + drift));
 
-    const imageCount = 3 + (fnv1a(key + "|" + postSeed, 0x9e3779b9) % 3); // 3~5
+    // 카드 종류가 썸네일·상황·정보·요약 넷뿐이라 3~4장 사이에서만 흔든다.
+    const imageCount = 3 + (fnv1a(key + "|" + postSeed, 0x9e3779b9) % 2); // 3~4
 
     return { voice, heading, emphasis, structures, structure, targetLength, imageCount };
 }
