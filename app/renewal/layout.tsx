@@ -3,14 +3,14 @@ import "./renewal.css";
 import SiteHeader from "@/components/renewal/SiteHeader";
 import SiteFooter from "@/components/renewal/SiteFooter";
 
-// ⚠️ 데모 구간 — 절대 색인되면 안 된다(RENEWAL_PLAN §6.1, R1).
-// 3중 차단 중 2번째: 페이지 메타. (1번은 middleware의 X-Robots-Tag,
-// 3번은 sitemap 미등록.)
+// ⚠️ robots 를 여기서 noindex 로 막지 말 것.
+// noindex 를 달면 색인만 막히는 게 아니라 OpenAI 계열 크롤러가 본문 읽기를
+// 거부한다(= ChatGPT "fetch 실패"). 데모 색인 차단은 robots.txt 에서
+// 색인 봇만 Disallow 하는 방식으로 처리한다.
 export const metadata: Metadata = {
-    robots: { index: false, follow: false, nocache: true },
     title: {
-        default: "MAKETHIS1 리뉴얼 데모",
-        template: "%s | MAKETHIS1 데모",
+        default: "MAKETHIS1 — 로펌 마케팅 통합 운영",
+        template: "%s | MAKETHIS1",
     },
 };
 

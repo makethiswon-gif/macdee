@@ -9,9 +9,11 @@ const PRIVATE_PREFIXES = [
     "/billing", "/profile", "/settings", "/migrate",
     "/consulting", "/tone", "/blog-write", "/site-builder", "/guide",
     "/makethisone/subscribe",
-    // 리뉴얼 데모 — 완성 전 초안이 색인되면 교체 후 404가 대량 발생한다(RENEWAL_PLAN R1).
-    // 홈페이지 교체 시 이 줄을 제거한다.
-    "/renewal",
+    // ⚠️ /renewal 을 여기 넣지 말 것.
+    // X-Robots-Tag: noindex 를 달면 OpenAI 계열 크롤러(GPTBot·ChatGPT-User·
+    // OAI-SearchBot)가 noindex 를 존중해 본문을 읽지 않고 "fetch 실패"로 처리한다.
+    // 데모의 색인 차단은 robots.txt 에서 색인 봇만 Disallow 하는 방식으로 한다
+    // (app/robots.txt/route.ts 참고).
 ];
 
 export async function middleware(request: NextRequest) {

@@ -16,10 +16,25 @@ import { CASES, SAMPLE_CASES } from "@/data/renewal/cases";
 
 export const revalidate = 600;
 
+const DEMO_URL = "https://www.makethis1.com/renewal";
+
+const DESCRIPTION =
+    "네이버 파워링크부터 Google Ads, 네이버 블로그와 홈페이지, SEO·GEO, AI 검색과 " +
+    "상담 전환 분석까지. MAKETHIS1이 로펌의 마케팅팀처럼 전체 마케팅을 통합 운영합니다.";
+
+// 루트 레이아웃의 title 템플릿(macdee)이 붙지 않도록 absolute 로 고정한다.
+// robots 는 지정하지 않는다 — 외부 크롤러가 본문을 읽을 수 있어야 한다.
 export const metadata: Metadata = {
-    title: "로펌 마케팅, 여기서 끝냅니다",
-    description: "MAKETHIS1 리뉴얼 데모 — 검색엔진 색인 제외 구간입니다.",
-    robots: { index: false, follow: false },
+    title: { absolute: "로펌 마케팅, 여기서 끝냅니다 | MAKETHIS1" },
+    description: DESCRIPTION,
+    alternates: { canonical: DEMO_URL },
+    openGraph: {
+        title: "로펌 마케팅, 여기서 끝냅니다 | MAKETHIS1",
+        description: DESCRIPTION,
+        url: DEMO_URL,
+        type: "website",
+        locale: "ko_KR",
+    },
 };
 
 export default async function RenewalHome() {

@@ -7,22 +7,30 @@ export function GET() {
     // robots.txt로 막으면 봇이 noindex를 못 읽어 색인 제거가 안 되므로, 검색봇에는 /api(비-HTML)만 차단한다.
     const robots = `# robots.txt — macdee (변호사 마케팅 자동화 플랫폼)
 # 비공개 앱 페이지는 noindex(X-Robots-Tag)로 처리. 여기서는 /api만 차단.
+#
+# /renewal — 리뉴얼 데모. 색인 봇(Googlebot·Yeti·Bingbot)만 Disallow 한다.
+# noindex 헤더를 쓰지 않는 이유: OpenAI 계열 크롤러가 noindex를 존중해
+# 본문 읽기를 거부하기 때문. AI 크롤러는 읽을 수 있어야 검토가 가능하다.
+# 홈페이지 교체 시 이 세 줄의 Disallow: /renewal 을 제거한다.
 
 # Google
 User-agent: Googlebot
 Disallow: /api
+Disallow: /renewal
 Allow: /
 Crawl-delay: 0
 
 # Naver
 User-agent: Yeti
 Disallow: /api
+Disallow: /renewal
 Allow: /
 Crawl-delay: 0
 
 # Bing
 User-agent: Bingbot
 Disallow: /api
+Disallow: /renewal
 Allow: /
 
 # ChatGPT / OpenAI
@@ -46,6 +54,11 @@ Allow: /
 
 # Google Gemini
 User-agent: Google-Extended
+Disallow: /api
+Allow: /
+
+# OpenAI 검색 인덱스
+User-agent: OAI-SearchBot
 Disallow: /api
 Allow: /
 
