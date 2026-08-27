@@ -2,78 +2,58 @@
 //
 // 사장님 PC에서만 돈다. 서버는 이 코드를 실행하지 않는다.
 // 로그인은 하지 않는다 — 이미 로그인된 크롬 프로필을 그대로 열어 쓴다.
-// 세션은 몇 달 유지되므로 로그인을 자동화해봐야 얻는 게 거의 없고,
-// 로그인은 네이버가 가장 촘촘히 보는 지점이라 8개 계정을 한꺼번에 걸게 된다.
 //
 // 사용법
-//   node publisher/publish.mjs list                     발행 대기 목록
-//   node publisher/publish.mjs inspect <postId>         편집기 구조 확인 (선택자 찾기용)
-//   node publisher/publish.mjs run <postId>             한 건 발행
-//   node publisher/publish.mjs run <postId> --dry       발행 버튼 직전까지만
+//   node publisher/publish.mjs list                 발행 대기 목록
+//   node publisher/publish.mjs run <postId>         발행
+//   node publisher/publish.mjs run <postId> --dry   발행 버튼 직전까지만
+//   node publisher/publish.mjs inspect <postId>     편집기 구조 덤프 (실패 시 진단용)
 //
-// 전제: 대상 크롬 프로필로 열려 있는 크롬 창을 먼저 닫아야 한다.
-//       크롬이 프로필 디렉터리를 잠그기 때문이다.
+// 전제: 대상 크롬 프로필 창을 먼저 닫아야 한다. 크롬이 프로필을 잠근다.
 
-import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
-// playwright-core는 브라우저를 내려받지 않는다. 사장님 PC에 설치된 크롬을 그대로 쓴다.
-// list 명령은 브라우저가 필요 없으므로 쓸 때만 불러온다.
 
 // ── 설정 ──────────────────────────────────────────────────────────
 
-const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname).replace(/^\/([A-Za-z]:)/, "$1"), "..");
+const ROOT = path.resolve(
+    path.dirname(new URL(import.meta.url).pathname).replace(/^\/([A-Za-z]:)/, "$1"),
+    ".."
+);
 const CHROME_USER_DATA = path.join(os.homedir(), "AppData", "Local", "Google", "Chrome", "User Data");
-const BASE_URL = process.env.MACDEE_URL || "https://www.makethis1.com";
 
 function loadEnv() {
     const f = path.join(ROOT, ".env.local");
-    if (!fs.existsSync(f)) return;
+    if (!fs.existsSync(f)) throw new Error(".env.local을 찾을 수 없습니다: " + f);
     for (const line of fs.readFileSync(f, "utf8").split(/\r?\n/)) {
         const m = line.match(/^([A-Za-z_0-9]+)=(.*)$/);
         if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, "");
     }
 }
 
-// 관리자 쿠키를 직접 만든다. 서버의 generateToken과 같은 형식이다.
-function adminCookie() {
-    const id = process.env.ADMIN_ID || "macdee";
-    const secret = process.env.ADMIN_TOKEN_SECRET;
-    if (!secret) throw new Error("ADMIN_TOKEN_SECRET이 .env.local에 없습니다.");
-    const payload = `${id}:${Date.now()}:${crypto.randomBytes(16).toString("hex")}`;
-    const sig = crypto.createHmac("sha256", secret).update(payload).digest("hex");
-    return `admin_token=${Buffer.from(`${payload}:${sig}`).toString("base64url")}`;
-}
-
-async function api(pathname, init = {}) {
-    const res = await fetch(BASE_URL + pathname, {
+// Supabase를 직접 읽고 쓴다. 관리자 토큰이 필요 없어 프로덕션 값과 맞출 일이 없다.
+function db(pathname, init = {}) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) throw new Error("Supabase 설정이 .env.local에 없습니다.");
+    return fetch(url + "/rest/v1/" + pathname, {
         ...init,
-        headers: { "Content-Type": "application/json", Cookie: adminCookie(), ...(init.headers || {}) },
+        headers: {
+            apikey: key,
+            Authorization: "Bearer " + key,
+            "Content-Type": "application/json",
+            ...(init.headers || {}),
+        },
+    }).then(async (r) => {
+        const text = await r.text();
+        if (!r.ok) throw new Error(`DB ${r.status}: ${text.slice(0, 200)}`);
+        return text ? JSON.parse(text) : null;
     });
-    const text = await res.text();
-    let data;
-    try {
-        data = JSON.parse(text);
-    } catch {
-        throw new Error(`${pathname} 응답을 읽지 못했습니다: ${text.slice(0, 200)}`);
-    }
-    if (res.status === 401) {
-        throw new Error(
-            [
-                "관리자 인증에 실패했습니다.",
-                "  .env.local의 ADMIN_ID / ADMIN_TOKEN_SECRET이 Vercel 프로덕션 값과 달라서입니다.",
-                "  Vercel → macdee → Settings → Environment Variables 에서 두 값을 확인해",
-                "  .env.local에 같은 값으로 맞춰주세요.",
-            ].join("\n")
-        );
-    }
-    if (!res.ok) throw new Error(data.error || `${pathname} ${res.status}`);
-    return data;
 }
 
 // ── 원고 → 네이버 HTML ────────────────────────────────────────────
-// lib/blog-naver-html.ts와 같은 규칙이다. 붙여넣기 테스트로 확인한 것만 쓴다.
+// lib/blog-naver-html.ts와 같은 규칙. 붙여넣기 테스트로 확인한 것만 쓴다.
 //   <p>는 문단 간격이 죽는다 → 간격은 <br>로 직접
 //   <blockquote>는 따옴표형으로 바뀐다 → border-left를 직접 지정
 //   <mark>는 배경이 사라진다 → background-color를 직접 지정
@@ -90,7 +70,7 @@ const inline = (s) =>
         .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
         .replace(/__(.+?)__/g, "<u>$1</u>");
 
-function toNaverHtml(body, title, imageUrls = []) {
+function toNaverHtml(body, imageUrls = []) {
     const out = [];
     const gap = (n) => {
         if (!out.length) return;
@@ -99,19 +79,14 @@ function toNaverHtml(body, title, imageUrls = []) {
         for (let i = have; i < n; i++) out.push("<br>");
     };
 
-    if (title) out.push(`<p style="${headingStyle(20)}">${inline(title)}</p>`);
-
-    // 첫 이미지는 도입부 위에 (썸네일 역할)
+    let imgIdx = 0;
     if (imageUrls[0]) {
-        gap(1);
         out.push(`<p><img src="${imageUrls[0]}" style="max-width:100%;" /></p>`);
+        imgIdx = 1;
     }
 
-    const lines = body.replace(/\r\n/g, "\n").split("\n");
     let para = [];
     let listType = null;
-    let imgIdx = 1;
-
     const flushPara = () => {
         if (!para.length) return;
         gap(2);
@@ -125,7 +100,7 @@ function toNaverHtml(body, title, imageUrls = []) {
         }
     };
 
-    for (const raw of lines) {
+    for (const raw of body.replace(/\r\n/g, "\n").split("\n")) {
         const line = raw.trim();
         if (!line) {
             flushPara();
@@ -143,7 +118,6 @@ function toNaverHtml(body, title, imageUrls = []) {
         if (h) {
             flushPara();
             closeList();
-            // 소제목 앞에 남은 카드 이미지를 하나씩 끼워 넣는다
             if (imageUrls[imgIdx]) {
                 gap(2);
                 out.push(`<p><img src="${imageUrls[imgIdx]}" style="max-width:100%;" /></p>`);
@@ -174,12 +148,10 @@ function toNaverHtml(body, title, imageUrls = []) {
     flushPara();
     closeList();
 
-    // 남은 이미지는 글 끝에
     for (; imgIdx < imageUrls.length; imgIdx++) {
         gap(2);
         out.push(`<p><img src="${imageUrls[imgIdx]}" style="max-width:100%;" /></p>`);
     }
-
     return out.join("\n");
 }
 
@@ -188,150 +160,289 @@ function toNaverHtml(body, title, imageUrls = []) {
 async function openProfile(profileDir) {
     const { chromium } = await import("playwright-core");
     const full = path.join(CHROME_USER_DATA, profileDir);
-    if (!fs.existsSync(full)) {
-        throw new Error(`크롬 프로필을 찾을 수 없습니다: ${full}`);
-    }
-    // Playwright는 User Data 루트를 받고, 프로필은 인자로 고른다.
-    return chromium.launchPersistentContext(CHROME_USER_DATA, {
-        channel: "chrome",
-        headless: false,
-        viewport: null,
-        args: [`--profile-directory=${profileDir}`],
-    });
-}
+    if (!fs.existsSync(full)) throw new Error(`크롬 프로필을 찾을 수 없습니다: ${full}`);
 
-async function gotoWritePage(page, blogId) {
-    const url = blogId
-        ? `https://blog.naver.com/${blogId}?Redirect=Write`
-        : "https://blog.naver.com/GoBlogWrite.naver";
-    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
-    await page.waitForTimeout(3000);
-}
-
-// ── 명령 ──────────────────────────────────────────────────────────
-
-async function cmdList() {
-    const { posts } = await api("/api/admin/blog-posts?status=ready");
-    if (!posts.length) return console.log("발행 대기 중인 원고가 없습니다.");
-    console.log(`발행 대기 ${posts.length}건\n`);
-    for (const p of posts) {
-        console.log(`  ${p.id}`);
-        console.log(`    ${p.title}`);
-        console.log(`    카드 ${(p.card_images || []).length}장 · ${p.field || "-"}\n`);
+    try {
+        return await chromium.launchPersistentContext(CHROME_USER_DATA, {
+            channel: "chrome",
+            headless: false,
+            viewport: null,
+            args: [`--profile-directory=${profileDir}`],
+        });
+    } catch (e) {
+        if (/lock|in use|ProcessSingleton/i.test(String(e))) {
+            throw new Error(
+                `크롬이 실행 중이라 프로필을 열 수 없습니다.\n  ${profileDir} 프로필로 열려 있는 크롬 창을 모두 닫고 다시 실행하세요.`
+            );
+        }
+        throw e;
     }
 }
+
+// 스마트에디터는 iframe 안에 있다. 모든 프레임에서 후보를 찾는다.
+async function findEditor(page) {
+    for (let attempt = 0; attempt < 20; attempt++) {
+        for (const frame of page.frames()) {
+            const found = await frame
+                .evaluate(() => {
+                    const pick = (els) =>
+                        els
+                            .map((e) => ({ e, r: e.getBoundingClientRect() }))
+                            .filter((x) => x.r.width > 200 && x.r.height > 60)
+                            .sort((a, b) => b.r.width * b.r.height - a.r.width * a.r.height)[0]?.e;
+
+                    const editables = [...document.querySelectorAll('[contenteditable="true"]')];
+                    const body = pick(editables);
+                    // 제목은 보통 본문보다 위에 있는 작은 편집 영역이거나 placeholder에 '제목'이 있다
+                    const titleEl =
+                        document.querySelector('input[placeholder*="제목"], textarea[placeholder*="제목"]') ||
+                        editables.find((e) => {
+                            const t = (e.getAttribute("data-placeholder") || e.textContent || "").trim();
+                            return /제목/.test(t);
+                        }) ||
+                        editables.find((e) => e !== body && e.getBoundingClientRect().top < (body?.getBoundingClientRect().top ?? 1e9));
+
+                    if (!body) return null;
+                    body.setAttribute("data-mcd-body", "1");
+                    if (titleEl) titleEl.setAttribute("data-mcd-title", "1");
+                    return { hasTitle: !!titleEl };
+                })
+                .catch(() => null);
+
+            if (found) return { frame, hasTitle: found.hasTitle };
+        }
+        await page.waitForTimeout(1000);
+    }
+    return null;
+}
+
+async function findPublishButton(page) {
+    for (const frame of page.frames()) {
+        const handle = await frame
+            .evaluateHandle(() => {
+                const cands = [...document.querySelectorAll('button, a, [role="button"]')];
+                return (
+                    cands.find((b) => /^\s*발행\s*$/.test(b.innerText || "")) ||
+                    cands.find((b) => /발행/.test(b.innerText || "")) ||
+                    null
+                );
+            })
+            .catch(() => null);
+        if (handle) {
+            const el = handle.asElement();
+            if (el) return { frame, el };
+        }
+    }
+    return null;
+}
+
+// ── 작업 ──────────────────────────────────────────────────────────
 
 async function loadJob(postId) {
-    const { posts } = await api(`/api/admin/blog-posts?`);
-    const post = posts.find((p) => p.id === postId);
+    const posts = await db(`blog_posts?id=eq.${postId}&select=*`);
+    const post = posts?.[0];
     if (!post) throw new Error(`원고를 찾을 수 없습니다: ${postId}`);
 
-    const { profiles } = await api("/api/admin/blog-settings");
-    const profile = profiles.find((p) => p.id === post.profile_id);
+    const profs = await db(
+        `blog_profiles?id=eq.${post.profile_id}&select=id,lawyer_name,chrome_profile,naver_blog_id,naver_category`
+    );
+    const profile = profs?.[0];
     if (!profile) throw new Error("변호사 설정을 찾을 수 없습니다.");
-    if (!profile.chromeProfile) {
-        throw new Error(`${profile.lawyerName}에 크롬 프로필이 지정되지 않았습니다. 발행 설정에서 먼저 지정하세요.`);
+    if (!profile.chrome_profile) {
+        throw new Error(
+            `${String(profile.lawyer_name).split("||")[0]}에 크롬 프로필이 지정되지 않았습니다.\n  /admin/blog-settings 에서 먼저 지정하세요.`
+        );
     }
     return { post, profile };
 }
 
-async function cmdInspect(postId) {
-    const { profile } = await loadJob(postId);
-    console.log(`프로필 ${profile.chromeProfile} (${profile.lawyerName}) 로 엽니다…`);
+const setStatus = (id, patch) =>
+    db(`blog_posts?id=eq.${id}`, { method: "PATCH", body: JSON.stringify(patch) });
 
-    const ctx = await openProfile(profile.chromeProfile);
-    const page = ctx.pages()[0] || (await ctx.newPage());
-    await gotoWritePage(page, profile.naverBlogId);
+async function cmdList() {
+    const posts = await db(
+        "blog_posts?status=in.(draft,ready)&select=id,title,status,field,card_images,profile_id&order=created_at.desc&limit=30"
+    );
+    if (!posts.length) return console.log("발행 대기 중인 원고가 없습니다.");
+    const profs = await db("blog_profiles?select=id,lawyer_name,chrome_profile");
+    const byId = Object.fromEntries(profs.map((p) => [p.id, p]));
 
-    // 편집기가 iframe 안에 있는지, 어떤 요소가 입력 대상인지 훑는다
-    const report = await page.evaluate(() => {
-        const frames = [...document.querySelectorAll("iframe")].map((f) => ({
-            id: f.id,
-            name: f.name,
-            src: (f.src || "").slice(0, 120),
-        }));
-        const editable = [...document.querySelectorAll('[contenteditable="true"]')].map((e) => ({
-            tag: e.tagName,
-            cls: (e.className || "").toString().slice(0, 90),
-        }));
-        const buttons = [...document.querySelectorAll("button, a[role=button]")]
-            .map((b) => (b.innerText || "").trim())
-            .filter((t) => t && t.length < 12)
-            .slice(0, 40);
-        return { url: location.href, title: document.title, frames, editable, buttons };
-    });
-
-    console.log("\n── 페이지 ──");
-    console.log(report.url);
-    console.log(report.title);
-    console.log("\n── iframe ──");
-    report.frames.forEach((f) => console.log(`  #${f.id || "-"} name=${f.name || "-"} ${f.src}`));
-    console.log("\n── contenteditable ──");
-    report.editable.forEach((e) => console.log(`  <${e.tag}> ${e.cls}`));
-    console.log("\n── 버튼 ──");
-    console.log("  " + report.buttons.join(" | "));
-    console.log("\n창을 열어두었습니다. 확인 후 직접 닫으세요.");
+    console.log(`대기 ${posts.length}건\n`);
+    for (const p of posts) {
+        const pr = byId[p.profile_id] || {};
+        console.log(`  ${p.id}  [${p.status}]`);
+        console.log(`    ${p.title}`);
+        console.log(
+            `    ${String(pr.lawyer_name || "?").split("||")[0]} · ${pr.chrome_profile || "프로필 미지정"} · 카드 ${(p.card_images || []).length}장\n`
+        );
+    }
 }
 
 async function cmdRun(postId, dry) {
     const { post, profile } = await loadJob(postId);
-    const html = toNaverHtml(post.body, post.title, (post.card_images || []).map((c) => c.url));
+    const images = (post.card_images || []).map((c) => c.url);
+    const html = toNaverHtml(post.body, images);
+    const lawyer = String(profile.lawyer_name).split("||")[0];
 
-    console.log(`${profile.lawyerName} · ${profile.chromeProfile}`);
+    console.log(`${lawyer} · ${profile.chrome_profile}`);
     console.log(`제목: ${post.title}`);
-    console.log(`카드: ${(post.card_images || []).length}장`);
-    console.log(`HTML: ${html.length}자\n`);
+    console.log(`카드: ${images.length}장 · HTML ${html.length}자\n`);
 
-    await api("/api/admin/blog-posts", {
-        method: "PATCH",
-        body: JSON.stringify({ id: post.id, status: "publishing" }),
-    });
+    await setStatus(post.id, { status: "publishing" });
+    const ctx = await openProfile(profile.chrome_profile);
 
-    const ctx = await openProfile(profile.chromeProfile);
     try {
         const page = ctx.pages()[0] || (await ctx.newPage());
-        await gotoWritePage(page, profile.naverBlogId);
-
-        // 클립보드에 서식 있는 HTML을 싣고 편집기에 붙여넣는다.
-        // 붙여넣기가 서식과 이미지를 모두 살린다는 것은 실제 테스트로 확인했다.
         await ctx.grantPermissions(["clipboard-read", "clipboard-write"], {
             origin: "https://blog.naver.com",
         });
+
+        const writeUrl = profile.naver_blog_id
+            ? `https://blog.naver.com/${profile.naver_blog_id}?Redirect=Write`
+            : "https://blog.naver.com/GoBlogWrite.naver";
+        console.log("글쓰기 페이지 여는 중…");
+        await page.goto(writeUrl, { waitUntil: "domcontentloaded", timeout: 60000 });
+        await page.waitForTimeout(4000);
+
+        // 이어쓰기 안내 팝업이 뜨면 취소
+        for (const label of ["취소", "아니오"]) {
+            const btn = page.locator(`button:has-text("${label}")`).first();
+            if (await btn.isVisible().catch(() => false)) {
+                await btn.click().catch(() => {});
+                await page.waitForTimeout(800);
+            }
+        }
+
+        console.log("편집기 찾는 중…");
+        const editor = await findEditor(page);
+        if (!editor) {
+            throw new Error(
+                "편집기를 찾지 못했습니다.\n  node publisher/publish.mjs inspect " +
+                    postId +
+                    " 을 실행해 구조를 확인하세요."
+            );
+        }
+        console.log(`  찾음 (제목칸 ${editor.hasTitle ? "있음" : "없음"})`);
+
+        // 제목
+        if (editor.hasTitle) {
+            const t = editor.frame.locator("[data-mcd-title]").first();
+            await t.click();
+            await page.waitForTimeout(300);
+            await page.keyboard.type(post.title, { delay: 15 });
+            console.log("제목 입력 완료");
+        } else {
+            console.log("⚠ 제목칸을 못 찾아 본문 맨 위에 제목을 넣습니다.");
+        }
+
+        // 본문 — 클립보드에 서식 있는 HTML을 싣고 붙여넣는다
+        const bodyHtml = editor.hasTitle
+            ? html
+            : `<p style="${headingStyle(20)}">${inline(post.title)}</p>\n<br>\n${html}`;
+
         await page.evaluate(async (h) => {
             const item = new ClipboardItem({
                 "text/html": new Blob([h], { type: "text/html" }),
-                "text/plain": new Blob([h.replace(/<[^>]+>/g, "")], { type: "text/plain" }),
+                "text/plain": new Blob([h.replace(/<[^>]+>/g, " ")], { type: "text/plain" }),
             });
             await navigator.clipboard.write([item]);
-        }, html);
+        }, bodyHtml);
 
-        console.log("클립보드에 원고를 실었습니다.");
-        console.log("편집기 선택자가 아직 확정되지 않아 여기서 멈춥니다.");
-        console.log("→ 열린 창의 본문에 커서를 두고 Ctrl+V 해보세요. 서식이 그대로 들어가면 성공입니다.");
-        console.log("→ inspect 결과를 알려주시면 이 뒤(카테고리 지정·발행 클릭)를 채웁니다.\n");
+        const b = editor.frame.locator("[data-mcd-body]").first();
+        await b.click();
+        await page.waitForTimeout(500);
+        await page.keyboard.press("Control+V");
+        console.log("본문 붙여넣기 완료. 이미지 업로드를 기다립니다…");
+        await page.waitForTimeout(Math.max(6000, images.length * 4000));
 
         if (dry) {
-            console.log("--dry 이므로 발행하지 않습니다. 창은 열어둡니다.");
+            console.log("\n--dry 이므로 발행하지 않습니다. 창을 열어두니 확인해보세요.");
+            await setStatus(post.id, { status: "ready" });
             return;
         }
 
-        // TODO: inspect 결과가 나오면 아래를 채운다
-        //   1) 제목 입력칸 클릭 후 title 입력
-        //   2) 본문 클릭 후 Ctrl+V
-        //   3) 발행 버튼 → 카테고리 선택 → 확인
-        //   4) 발행된 URL 회수
-        console.log("발행 단계는 아직 비어 있습니다. 상태를 ready로 되돌립니다.");
-        await api("/api/admin/blog-posts", {
-            method: "PATCH",
-            body: JSON.stringify({ id: post.id, status: "ready" }),
-        });
+        // 발행
+        console.log("발행 버튼 찾는 중…");
+        const pub = await findPublishButton(page);
+        if (!pub) {
+            throw new Error("발행 버튼을 찾지 못했습니다. --dry 로 확인 후 알려주세요.");
+        }
+        await pub.el.click();
+        await page.waitForTimeout(2500);
+
+        // 발행 설정 창에서 카테고리 선택 (있을 때만)
+        if (profile.naver_category) {
+            const cat = page.locator(`text="${profile.naver_category}"`).first();
+            if (await cat.isVisible().catch(() => false)) {
+                await cat.click().catch(() => {});
+                await page.waitForTimeout(600);
+                console.log(`카테고리 지정: ${profile.naver_category}`);
+            }
+        }
+
+        // 최종 발행 확인
+        const confirm = await findPublishButton(page);
+        if (confirm) {
+            await confirm.el.click();
+            console.log("발행 클릭. 결과를 기다립니다…");
+        }
+
+        await page.waitForTimeout(8000);
+        const finalUrl = page.url();
+        const published = /blog\.naver\.com\/[^/]+\/\d+/.test(finalUrl);
+
+        if (published) {
+            await setStatus(post.id, {
+                status: "published",
+                naver_url: finalUrl,
+                published_at: new Date().toISOString(),
+                error: null,
+            });
+            console.log(`\n✔ 발행 완료\n  ${finalUrl}`);
+        } else {
+            await setStatus(post.id, { status: "ready" });
+            console.log(`\n발행 여부를 확인하지 못했습니다. 창에서 직접 확인해주세요.\n  현재 주소: ${finalUrl}`);
+        }
     } catch (e) {
-        await api("/api/admin/blog-posts", {
-            method: "PATCH",
-            body: JSON.stringify({ id: post.id, status: "failed", error: String(e.message || e) }),
-        });
+        await setStatus(post.id, { status: "failed", error: String(e.message || e).slice(0, 500) });
         throw e;
     }
+}
+
+async function cmdInspect(postId) {
+    const { profile } = await loadJob(postId);
+    const ctx = await openProfile(profile.chrome_profile);
+    const page = ctx.pages()[0] || (await ctx.newPage());
+    const url = profile.naver_blog_id
+        ? `https://blog.naver.com/${profile.naver_blog_id}?Redirect=Write`
+        : "https://blog.naver.com/GoBlogWrite.naver";
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
+    await page.waitForTimeout(5000);
+
+    for (const frame of page.frames()) {
+        const r = await frame
+            .evaluate(() => ({
+                url: location.href.slice(0, 100),
+                editable: [...document.querySelectorAll('[contenteditable="true"]')].map((e) => {
+                    const b = e.getBoundingClientRect();
+                    return `${e.tagName}.${(e.className || "").toString().split(" ")[0]} ${Math.round(b.width)}x${Math.round(b.height)} ph="${e.getAttribute("data-placeholder") || ""}"`;
+                }),
+                inputs: [...document.querySelectorAll("input,textarea")]
+                    .map((e) => `${e.tagName} ph="${e.placeholder || ""}"`)
+                    .slice(0, 10),
+                buttons: [...document.querySelectorAll('button,a,[role="button"]')]
+                    .map((b) => (b.innerText || "").trim())
+                    .filter((t) => t && t.length < 12)
+                    .slice(0, 30),
+            }))
+            .catch(() => null);
+        if (!r || (!r.editable.length && !r.buttons.length)) continue;
+        console.log(`\n── 프레임 ${r.url}`);
+        if (r.editable.length) console.log("  편집영역: " + r.editable.join(" | "));
+        if (r.inputs.length) console.log("  입력칸  : " + r.inputs.join(" | "));
+        if (r.buttons.length) console.log("  버튼    : " + r.buttons.join(" | "));
+    }
+    console.log("\n창을 열어두었습니다. 확인 후 직접 닫으세요.");
 }
 
 // ── 진입점 ────────────────────────────────────────────────────────
@@ -342,15 +453,15 @@ const dry = process.argv.includes("--dry");
 
 try {
     if (cmd === "list") await cmdList();
-    else if (cmd === "inspect" && arg) await cmdInspect(arg);
     else if (cmd === "run" && arg) await cmdRun(arg, dry);
+    else if (cmd === "inspect" && arg) await cmdInspect(arg);
     else {
         console.log("사용법:");
         console.log("  node publisher/publish.mjs list");
-        console.log("  node publisher/publish.mjs inspect <postId>");
         console.log("  node publisher/publish.mjs run <postId> [--dry]");
+        console.log("  node publisher/publish.mjs inspect <postId>");
     }
 } catch (e) {
-    console.error("\n오류:", e.message || e);
+    console.error("\n오류: " + (e.message || e));
     process.exit(1);
 }
