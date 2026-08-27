@@ -36,7 +36,7 @@ export function Section({
     return (
         <section
             id={id}
-            className={`${tight ? "py-16 md:py-24" : "py-[88px] md:py-[140px]"} ${className}`}
+            className={`${tight ? "py-16 md:py-24" : "py-[88px] md:py-[140px]"} ${dark ? "mt-dark-glow" : ""} ${className}`}
             style={
                 dark
                     ? {
@@ -47,6 +47,8 @@ export function Section({
                           ["--mt-gray" as string]: "var(--mt-dark-gray)",
                           ["--mt-line" as string]: "var(--mt-dark-line)",
                           ["--mt-ink" as string]: "var(--mt-bg)",
+                          // 다크 위에서는 기존 홈과 동일하게 라이트 블루를 쓴다
+                          ["--mt-accent" as string]: "var(--mt-accent-on-dark)",
                       }
                     : undefined
             }

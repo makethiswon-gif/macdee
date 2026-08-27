@@ -105,7 +105,7 @@ export default function SiteHeader() {
 
                     <div className="flex items-center gap-3">
                         <Link
-                            href={PRIMARY_CTA.href}
+                            href={path(PRIMARY_CTA.href)}
                             className="hidden sm:inline-flex items-center h-[42px] px-5 text-[13px] font-medium rounded-[2px] transition-colors hover:opacity-85"
                             style={{ background: "var(--mt-ink)", color: "var(--mt-bg)" }}
                         >
@@ -173,7 +173,7 @@ export default function SiteHeader() {
                         ))}
 
                         <Link
-                            href={PRIMARY_CTA.href}
+                            href={path(PRIMARY_CTA.href)}
                             className="mt-8 w-full inline-flex items-center justify-center h-[52px] text-[14px] font-medium rounded-[2px]"
                             style={{ background: "var(--mt-ink)", color: "var(--mt-bg)" }}
                             onClick={() => setOpenMenu(false)}

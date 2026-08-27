@@ -11,7 +11,7 @@ export default function ChannelGrid() {
         <Section id="what-we-do">
             <Container>
                 <SectionHeader
-                    number="03"
+                    number="05"
                     eyebrow="One Team, Every Channel"
                     title={
                         <>

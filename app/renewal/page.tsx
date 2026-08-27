@@ -3,44 +3,110 @@ import { createServiceClient } from "@/lib/supabase/server";
 
 import HeroSection from "@/components/renewal/home/HeroSection";
 import ProblemSection from "@/components/renewal/home/ProblemSection";
-import MarketingSystem from "@/components/renewal/home/MarketingSystem";
-import ChannelGrid from "@/components/renewal/home/ChannelGrid";
-import FutureReady from "@/components/renewal/home/FutureReady";
-import WhyMakethis1 from "@/components/renewal/home/WhyMakethis1";
-import CaseStudies from "@/components/renewal/home/CaseStudies";
 import PartnerLogos from "@/components/renewal/home/PartnerLogos";
+import MarketingSystem from "@/components/renewal/home/MarketingSystem";
+import LeadToCase from "@/components/renewal/home/LeadToCase";
+import CaseStudies from "@/components/renewal/home/CaseStudies";
+import ChannelGrid from "@/components/renewal/home/ChannelGrid";
+import WhyMakethis1 from "@/components/renewal/home/WhyMakethis1";
+import FutureReady from "@/components/renewal/home/FutureReady";
 import InsightsPreview, { type InsightItem } from "@/components/renewal/home/InsightsPreview";
 import FinalCTA from "@/components/renewal/home/FinalCTA";
 
-import { CASES, SAMPLE_CASES } from "@/data/renewal/cases";
+import { CASES } from "@/data/renewal/cases";
+import { COMPANY } from "@/data/renewal/site";
+import { renewalRobots } from "./flags";
 
 export const revalidate = 600;
 
-const DEMO_URL = "https://www.makethis1.com/renewal";
-
+const URL = "https://www.makethis1.com/renewal";
+const TITLE = "로펌 마케팅, 여기서 끝냅니다 | MAKETHIS1";
 const DESCRIPTION =
     "네이버 파워링크부터 Google Ads, 네이버 블로그와 홈페이지, SEO·GEO, AI 검색과 " +
     "상담 전환 분석까지. MAKETHIS1이 로펌의 마케팅팀처럼 전체 마케팅을 통합 운영합니다.";
 
 // 루트 레이아웃의 title 템플릿(macdee)이 붙지 않도록 absolute 로 고정한다.
-// robots 는 지정하지 않는다 — 외부 크롤러가 본문을 읽을 수 있어야 한다.
 export const metadata: Metadata = {
-    title: { absolute: "로펌 마케팅, 여기서 끝냅니다 | MAKETHIS1" },
+    title: { absolute: TITLE },
     description: DESCRIPTION,
-    alternates: { canonical: DEMO_URL },
+    alternates: { canonical: URL },
+    robots: renewalRobots(),
     openGraph: {
-        title: "로펌 마케팅, 여기서 끝냅니다 | MAKETHIS1",
+        title: TITLE,
         description: DESCRIPTION,
-        url: DEMO_URL,
+        url: URL,
         type: "website",
         locale: "ko_KR",
+        siteName: COMPANY.brand,
     },
-    // 루트 레이아웃의 macdee 트위터 카드가 상속되지 않도록 덮어쓴다
-    twitter: {
-        card: "summary_large_image",
-        title: "로펌 마케팅, 여기서 끝냅니다 | MAKETHIS1",
-        description: DESCRIPTION,
-    },
+    twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
+};
+
+// 루트 레이아웃은 macdee 기준의 WebSite·Organization 을 전역 삽입한다.
+// 리뉴얼 route 에서는 MAKETHIS1 기준으로 다시 선언한다.
+//
+// ⚠️ 검증되지 않은 정보를 넣지 않는다.
+//    사업자등록번호·설립연도·수상 이력처럼 확인하지 못한 값은 비워둔다.
+//    전화·주소는 기존 홈에 이미 공개돼 있던 값이다.
+const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+        {
+            "@type": "WebSite",
+            "@id": `${URL}#website`,
+            url: URL,
+            name: COMPANY.brand,
+            alternateName: [COMPANY.legalName, "makethis1"],
+            description: DESCRIPTION,
+            inLanguage: "ko-KR",
+            publisher: { "@id": `${URL}#organization` },
+        },
+        {
+            "@type": ["Organization", "ProfessionalService"],
+            "@id": `${URL}#organization`,
+            name: COMPANY.brand,
+            legalName: COMPANY.legalName,
+            url: COMPANY.site,
+            description:
+                "변호사와 법무법인만 상대하는 마케팅 회사. 검색광고, SEO, AI 검색 대응, 콘텐츠, 홈페이지, 상담 전환 분석을 하나의 팀이 통합 운영합니다.",
+            areaServed: { "@type": "Country", name: "KR" },
+            knowsAbout: [
+                "로펌 마케팅",
+                "변호사 광고",
+                "법무법인 광고",
+                "네이버 파워링크",
+                "Google Ads",
+                "로펌 SEO",
+                "AI 검색 대응",
+                "변호사 블로그 마케팅",
+                "변호사 홈페이지 제작",
+                "상담 전환 분석",
+            ],
+            contactPoint: {
+                "@type": "ContactPoint",
+                telephone: "+82-10-8935-3010",
+                contactType: "sales",
+                availableLanguage: "Korean",
+            },
+            address: {
+                "@type": "PostalAddress",
+                addressCountry: "KR",
+                addressRegion: "서울특별시",
+                addressLocality: "동대문구",
+                streetAddress: "왕산로5길 13",
+            },
+        },
+        {
+            "@type": "WebPage",
+            "@id": `${URL}#webpage`,
+            url: URL,
+            name: TITLE,
+            description: DESCRIPTION,
+            inLanguage: "ko-KR",
+            isPartOf: { "@id": `${URL}#website` },
+            about: { "@id": `${URL}#organization` },
+        },
+    ],
 };
 
 export default async function RenewalHome() {
@@ -61,20 +127,29 @@ export default async function RenewalHome() {
         insights = [];
     }
 
-    // 실데이터가 있으면 실데이터, 없으면 샘플(경고 배너 강제 노출).
-    const cases = CASES.length ? CASES : SAMPLE_CASES;
-
     return (
         <>
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
+
+            {/* 순서 근거 — 증거가 미래보다 앞에 온다.
+                Hero → 문제 → 증거 → 시스템 → 차별화(수임까지) → 실제 사례
+                → 역량 → 팀 → Future Ready → Insights → CTA
+
+                Case Study 는 확인된 수치가 있는 사례만 넣는다. CASES 가 비어 있으면
+                섹션 자체가 사라진다. 샘플을 홈에 노출하지 않는다. */}
             <HeroSection />
             <ProblemSection />
-            <MarketingSystem />
-            <ChannelGrid />
-            <FutureReady />
-            <WhyMakethis1 />
-            <CaseStudies cases={cases} />
-            <InsightsPreview items={insights} />
             <PartnerLogos />
+            <MarketingSystem />
+            <LeadToCase />
+            <CaseStudies cases={CASES} />
+            <ChannelGrid />
+            <WhyMakethis1 />
+            <FutureReady />
+            <InsightsPreview items={insights} />
             <FinalCTA />
         </>
     );

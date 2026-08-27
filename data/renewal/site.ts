@@ -12,12 +12,25 @@ export const DEMO_BASE = "/renewal";
 
 export function path(p: string): string {
     if (p.startsWith("http") || p.startsWith("#")) return p;
-    // 라이브 페이지(매거진·진단 등)는 데모에서도 실제 URL을 그대로 쓴다
-    if (LIVE_PATHS.some((l) => p === l || p.startsWith(l + "/"))) return p;
-    return `${DEMO_BASE}${p === "/" ? "" : p}` || "/";
+
+    // "/#system" 처럼 앵커가 붙은 경로도 데모 베이스를 타야 한다
+    const hash = p.indexOf("#");
+    const base = hash === -1 ? p : p.slice(0, hash);
+    const frag = hash === -1 ? "" : p.slice(hash);
+
+    // 라이브 페이지(매거진 등)는 데모에서도 실제 URL을 그대로 쓴다
+    if (LIVE_PATHS.some((l) => base === l || base.startsWith(l + "/"))) return base + frag;
+
+    return `${DEMO_BASE}${base === "/" ? "" : base}${frag}`;
 }
 
-const LIVE_PATHS = ["/magazine", "/diagnose", "/terms", "/refund", "/login"];
+// 데모 안에서도 실제 URL 을 그대로 써야 하는 라이브 페이지.
+//
+// ⚠️ /diagnose 를 여기 넣지 말 것.
+//    /diagnose 는 "블로그 URL 넣으면 AI가 1분 만에 무료 진단" 하는 맥디 제품 화면이다.
+//    리뉴얼의 "마케팅 진단 요청"과는 전혀 다른 경험이라 톤이 무너진다.
+//    리뉴얼 CTA 는 /renewal/diagnose (로펌 마케팅 구조 진단) 로 간다.
+const LIVE_PATHS = ["/magazine", "/terms", "/refund", "/login"];
 
 /* ═══════════════ 네비게이션 ═══════════════ */
 
@@ -46,13 +59,13 @@ export const NAV: NavItem[] = [
             { label: "Data & Conversion", href: "/conversion", desc: "상담 전환 · 수임 분석" },
         ],
     },
-    { label: "OUR SYSTEM", href: "/lawfirm-marketing#system" },
+    { label: "OUR SYSTEM", href: "/#system" },
     { label: "WORK", href: "/work" },
     { label: "INSIGHTS", href: "/magazine" },
     { label: "ABOUT", href: "/about" },
 ];
 
-export const PRIMARY_CTA = { label: "마케팅 진단 요청", href: "/diagnose" };
+export const PRIMARY_CTA = { label: "마케팅 진단 요청", href: "/diagnose" }; // path() 가 /renewal/diagnose 로 바꾼다
 
 /* ═══════════════ HERO 채널 ═══════════════ */
 
@@ -182,13 +195,11 @@ export const CHANNELS: ChannelCategory[] = [
         title: "AI가 로펌을 이해할 수 있는 구조를 만듭니다.",
         desc: "AI가 로펌의 전문성과 정보를 이해하고 발견하기 쉬운 구조를 설계합니다.",
         items: [
-            "GEO",
-            "AEO",
-            "Entity Optimization",
-            "ChatGPT Search",
-            "Gemini",
-            "NAVER AI Search",
-            "AI Citation",
+            "로펌 정보 일관성",
+            "사건·인물·분야 정보 구조",
+            "질문형 콘텐츠와 FAQ",
+            "AI 답변 언급 모니터링",
+            "검색환경 변화 대응",
         ],
         href: "/geo",
     },
@@ -224,23 +235,32 @@ export const CHANNELS: ChannelCategory[] = [
         ],
         href: "/lawfirm-website",
     },
-    {
-        key: "data",
-        en: "DATA & CONVERSION",
-        title: "클릭이 아니라 사건을 분석합니다.",
-        desc: "어느 채널에서 온 사람이 실제로 사건을 맡겼는지 끝까지 추적합니다.",
-        items: [
-            "Phone",
-            "Form",
-            "Kakao",
-            "Lead Source",
-            "CPA",
-            "Qualified Lead",
-            "Case Acquisition",
-        ],
-        href: "/conversion",
-    },
 ];
+
+/* ═══════════════ 운영 기반 — Data & Conversion ═══════════════
+   이건 여섯 번째 서비스가 아니다. 위 네 영역 전부를 판단하게 해주는 기반이라
+   카드 하나로 늘어놓지 않고 별도 섹션으로 격상한다(LeadToCase).
+   메뉴에는 남겨둔다 — 찾는 사람이 있기 때문이다. */
+
+export const LEAD_TO_CASE = {
+    en: "Lead to Case",
+    title: "광고·검색·콘텐츠·홈페이지의 성과를 상담과 수임 데이터에 연결합니다.",
+    lead: "이 연결이 없으면 어느 채널이 잘 돌아가는지 판단할 근거가 없고, 예산을 어디로 옮겨야 하는지도 알 수 없습니다.",
+    href: "/conversion",
+    chain: [
+        { en: "CHANNEL", ko: "광고 · 검색 · 콘텐츠 · 홈페이지" },
+        { en: "VISIT", ko: "유입" },
+        { en: "LEAD", ko: "전화 · 카카오 · 폼" },
+        { en: "CONSULTATION", ko: "상담" },
+        { en: "CASE", ko: "수임" },
+    ],
+    points: [
+        "전화·카카오·폼이 각각 어느 채널에서 왔는지 구분됩니다",
+        "상담·유효 상담·수임의 정의를 하나로 맞춥니다",
+        "채널별 비용과 상담 기여를 같은 표에서 봅니다",
+        "그 표를 근거로 다음 달 예산을 옮깁니다",
+    ],
+};
 
 /* ═══════════════ SECTION 06 — 팀 ═══════════════
    사진은 /makethisone/team/*.webp 에 이미 있다. */

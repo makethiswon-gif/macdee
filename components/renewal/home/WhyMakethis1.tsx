@@ -11,13 +11,13 @@ export default function WhyMakethis1() {
         <Section>
             <Container>
                 <SectionHeader
-                    number="05"
+                    number="06"
                     eyebrow="Why MAKETHIS1"
                     title={
                         <>
-                            법률을 모르는 마케터에게
+                            법률·콘텐츠·광고·검색을 아는 사람들이
                             <br />
-                            법률 마케팅을 맡기지 않습니다.
+                            하나의 팀으로 움직입니다.
                         </>
                     }
                     lead="기자와 방송작가가 글을 쓰고, 법학 전공자가 검수하고, 퍼포먼스 담당이 예산을 조정합니다. 한 사람이 다 하지 않습니다."

@@ -32,7 +32,7 @@ export default function FinalCTA() {
                     <Reveal index={3}>
                         <div className="mt-12 flex flex-col sm:flex-row gap-3">
                             <a
-                                href={PRIMARY_CTA.href}
+                                href={path(PRIMARY_CTA.href)}
                                 className="inline-flex items-center justify-center gap-2 h-[52px] px-7 text-[14px] font-medium rounded-[2px] transition-opacity hover:opacity-85"
                                 style={{ background: "var(--mt-bg)", color: "var(--mt-dark-bg)" }}
                             >

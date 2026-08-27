@@ -19,7 +19,7 @@ export default function CaseStudies({ cases }: { cases: CaseStudy[] }) {
         <Section>
             <Container>
                 <SectionHeader
-                    number="06"
+                    number="04"
                     eyebrow="Case Studies"
                     title="무엇을 바꿨고, 무엇이 달라졌는지."
                     lead="로고를 모아두는 대신 구조를 공개합니다. 어떤 상태였고, 무엇을 했고, 어떤 지표가 움직였는지."

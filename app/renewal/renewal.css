@@ -24,13 +24,19 @@
     --mt-gray-light: #9aa0a8;
     --mt-line: #e3e1dc;
     --mt-line-strong: #cfccc5;
-    --mt-accent: #2a4f8a;
-    --mt-accent-sub: #12305c;
 
-    /* 다크 섹션용 반전 토큰 */
-    --mt-dark-bg: #0e1116;
-    --mt-dark-line: #262a31;
-    --mt-dark-gray: #8b9199;
+    /* ── HERITAGE ──
+       액센트는 기존 맥디 홈의 브랜드 블루를 그대로 이어받는다.
+       #3563AE(브랜드) / #8AB4F8(다크 위 링크) 둘 다 기존 홈에서 쓰던 값이다.
+       중성 회색 팔레트 위에 이 파랑만 얹혀서, 새 디자인이지만 같은 회사로 읽힌다. */
+    --mt-accent: #3563ae;
+    --mt-accent-sub: #2a4f8a;
+    --mt-accent-on-dark: #8ab4f8;
+
+    /* 다크 섹션 — 중성 검정이 아니라 기존 홈의 네이비 계열을 쓴다 */
+    --mt-dark-bg: #07111d;
+    --mt-dark-line: #1c2b40;
+    --mt-dark-gray: #8794a6;
 
     /* ── LAYOUT ── */
     --mt-max: 1360px;
@@ -51,7 +57,8 @@
 /* 영문 라벨 전용 클래스 — Inter를 여기서만 쓴다 */
 .mt-root .mt-en {
     font-family: Inter, "Pretendard Variable", sans-serif;
-    letter-spacing: 0.14em;
+    /* 기존 홈이 쓰던 0.18~0.26em 넓은 자간을 이어받는다 */
+    letter-spacing: 0.2em;
     text-transform: uppercase;
     font-variant-numeric: tabular-nums;
 }
@@ -186,4 +193,30 @@ html.mt-js .mt-root .mt-converge[data-reveal="in"] path {
         stroke-dashoffset: 0;
         animation: none !important;
     }
+}
+
+/* ── HERITAGE: 다크 섹션 글로우 ──
+   기존 홈 히어로의 radial brand-blue glow 를 아주 옅게 이어받는다.
+   장식이 아니라 "같은 회사" 라는 신호다. 넓은 면적을 파랗게 칠하지는 않는다. */
+.mt-root .mt-dark-glow {
+    position: relative;
+    isolation: isolate;
+}
+
+.mt-root .mt-dark-glow::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: radial-gradient(
+        circle at 12% 0%,
+        rgba(53, 99, 174, 0.22),
+        transparent 46%
+    );
+}
+
+/* 다크 섹션 안에서는 링크 액센트를 라이트 블루로 바꾼다(기존 홈과 동일) */
+.mt-root .mt-on-dark {
+    --mt-accent: var(--mt-accent-on-dark);
 }

@@ -2,12 +2,26 @@ import type { Metadata } from "next";
 import "./renewal.css";
 import SiteHeader from "@/components/renewal/SiteHeader";
 import SiteFooter from "@/components/renewal/SiteFooter";
+import { renewalRobots, DEMO_BADGE } from "./flags";
 
-// ⚠️ robots 를 여기서 noindex 로 막지 말 것.
-// noindex 를 달면 색인만 막히는 게 아니라 OpenAI 계열 크롤러가 본문 읽기를
-// 거부한다(= ChatGPT "fetch 실패"). 데모 색인 차단은 robots.txt 에서
-// 색인 봇만 Disallow 하는 방식으로 처리한다.
+// robots 는 flags.ts 한 곳에서만 켠다. 이유는 그 파일 주석 참고.
 export const metadata: Metadata = {
+    robots: renewalRobots(),
+    // 루트 레이아웃의 keywords 는 macdee 기준이다(변호사 광고 자동화, 맥디…).
+    // 상속을 끊지 않으면 리뉴얼 전 페이지에 macdee 키워드가 그대로 붙는다.
+    keywords: [
+        "로펌 마케팅",
+        "변호사 광고",
+        "법무법인 광고",
+        "변호사 네이버 광고",
+        "로펌 SEO",
+        "변호사 홈페이지 제작",
+        "변호사 블로그 마케팅",
+        "로펌 AI 검색",
+        "상담 전환 분석",
+        "MAKETHIS1",
+        "메이크디스원",
+    ],
     title: {
         default: "MAKETHIS1 — 로펌 마케팅 통합 운영",
         template: "%s | MAKETHIS1",
@@ -28,7 +42,8 @@ export default function RenewalLayout({ children }: { children: React.ReactNode 
             <main className="flex-1">{children}</main>
             <SiteFooter />
 
-            {/* 라이브와 헷갈리지 않도록. 교체 시 이 블록만 지우면 된다. */}
+            {/* 라이브와 헷갈리지 않도록. 배지는 실제 색인 상태를 그대로 쓴다.
+                교체 시 이 블록만 지우면 된다. */}
             <div
                 className="fixed bottom-4 left-4 z-40 px-3 py-1.5 text-[10px] font-medium pointer-events-none select-none rounded-[2px]"
                 style={{
@@ -37,7 +52,7 @@ export default function RenewalLayout({ children }: { children: React.ReactNode 
                     letterSpacing: "0.08em",
                 }}
             >
-                DEMO · NOINDEX
+                {DEMO_BADGE}
             </div>
         </div>
     );

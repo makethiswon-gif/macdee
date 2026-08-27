@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import HomePageClient from "./HomePageClient";
+import SiteJsonLd from "@/components/SiteJsonLd";
 
 export const dynamic = "force-dynamic";
 
@@ -93,6 +94,9 @@ const homeJsonLd = {
 export default function Home() {
     return (
         <>
+            {/* 사이트 전역 WebSite·Organization — 예전에는 루트 레이아웃에 있었다.
+                /renewal 까지 따라가는 문제가 있어 홈으로 옮겼다. */}
+            <SiteJsonLd />
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(homeJsonLd) }}

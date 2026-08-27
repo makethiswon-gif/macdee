@@ -34,10 +34,10 @@ export default function HeroSection() {
 
                 <Reveal index={3}>
                     <div className="mt-12 flex flex-col sm:flex-row gap-3">
-                        <Button href={PRIMARY_CTA.href} variant="primary">
+                        <Button href={path(PRIMARY_CTA.href)} variant="primary">
                             우리 로펌 마케팅 진단받기 <span aria-hidden>→</span>
                         </Button>
-                        <Button href={path("/lawfirm-marketing") + "#system"} variant="outline">
+                        <Button href={path("/#system")} variant="outline">
                             운영 시스템 보기
                         </Button>
                     </div>
