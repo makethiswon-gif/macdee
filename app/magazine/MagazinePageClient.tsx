@@ -67,14 +67,14 @@ function IntroSplash({ onComplete }: { onComplete: () => void }) {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.6, ease: [0.76, 0, 0.24, 1] as [number, number, number, number] }}
         >
-            {/* macdee. wordmark */}
+            {/* MAKETHIS1 wordmark */}
             <motion.p
                 initial={{ opacity: 0, y: 10 }}
                 animate={phase !== "scatter" ? { opacity: 0.15, y: 0 } : { opacity: 0, y: -20 }}
                 transition={{ duration: 0.5 }}
                 className="text-[13px] text-white tracking-[0.2em] uppercase font-medium"
             >
-                macdee.
+                MAKETHIS1
             </motion.p>
 
             {/* "insights" letters */}
@@ -120,7 +120,7 @@ function Header() {
             <div className="max-w-[1400px] mx-auto px-6 sm:px-10 lg:px-16">
                 <div className="flex items-center justify-between h-20">
                     <Link href="/magazine" className="flex items-center gap-3">
-                        <span className="text-white text-lg font-bold tracking-tight">macdee.</span>
+                        <span className="text-white text-lg font-bold tracking-tight">MAKETHIS1</span>
                         <span className="text-[11px] text-white/40 tracking-[0.15em] uppercase font-medium">insights</span>
                     </Link>
                     <nav className="flex items-center gap-8">
@@ -146,7 +146,7 @@ function HeroSection() {
                 <motion.div initial="hidden" animate="visible" variants={stagger}>
                     <motion.p variants={reveal} custom={0}
                         className="text-[#3563AE] text-[13px] tracking-[0.2em] uppercase font-medium">
-                        macdee insights
+                        MAKETHIS1 Insights
                     </motion.p>
 
                     <motion.h1 variants={reveal} custom={1}
@@ -160,7 +160,7 @@ function HeroSection() {
 
                     <motion.p variants={reveal} custom={2}
                         className="mt-8 text-[15px] text-white/25 max-w-lg leading-relaxed">
-                        macdee 개발팀과 법률 마케팅 전문가가 직접 쓰는
+                        MAKETHIS1 편집팀과 법률 마케팅 전문가가 직접 쓰는
                         <br />
                         시장 분석, 트렌드 리포트, 그리고 미래 전망.
                     </motion.p>
@@ -186,7 +186,7 @@ function ArticlesSection({ magazines }: { magazines: Magazine[] }) {
                             첫 번째 인사이트가 곧 도착합니다.
                         </motion.p>
                         <motion.p variants={reveal} className="text-[13px] text-white/15 mt-2">
-                            macdee 팀이 만드는 법률 마케팅의 새로운 관점을 기대하세요.
+                            MAKETHIS1 팀이 만드는 법률 마케팅의 새로운 관점을 기대하세요.
                         </motion.p>
                     </motion.div>
                 </div>
@@ -364,7 +364,7 @@ function Footer() {
             <div className="max-w-[1400px] mx-auto px-6 sm:px-10 lg:px-16 py-12">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
-                        <span className="text-lg font-bold text-white tracking-tight">macdee.</span>
+                        <span className="text-lg font-bold text-white tracking-tight">MAKETHIS1</span>
                         <span className="text-[11px] text-white/15">insights</span>
                     </div>
                     <div className="flex items-center gap-6">
@@ -372,7 +372,7 @@ function Footer() {
                         <Link href="/magazine" className="text-[12px] text-white/20 hover:text-white/50 transition-colors">인사이트</Link>
                         <Link href="/signup" className="text-[12px] text-white/20 hover:text-white/50 transition-colors">시작하기</Link>
                     </div>
-                    <p className="text-[11px] text-white/10">© 2026 macdee. All Rights Reserved.</p>
+                    <p className="text-[11px] text-white/10">© 2026 MAKETHIS1. All Rights Reserved.</p>
                 </div>
             </div>
         </footer>

@@ -7,6 +7,7 @@ import PartnerLogos from "@/components/renewal/home/PartnerLogos";
 import MarketingSystem from "@/components/renewal/home/MarketingSystem";
 import LeadToCase from "@/components/renewal/home/LeadToCase";
 import CaseStudies from "@/components/renewal/home/CaseStudies";
+import HowWeOperate from "@/components/renewal/home/HowWeOperate";
 import ChannelGrid from "@/components/renewal/home/ChannelGrid";
 import WhyMakethis1 from "@/components/renewal/home/WhyMakethis1";
 import FutureReady from "@/components/renewal/home/FutureReady";
@@ -145,7 +146,10 @@ export default async function RenewalHome() {
 
             {/* 순서 근거 — 증거가 미래보다 앞에 온다.
                 Hero → 문제 → 증거 → 시스템 → 차별화(수임까지) → 실제 사례
-                → 역량 → 팀 → Future Ready → Insights → CTA
+                → 운영 실체 → 역량 → 팀 → Future Ready → Insights → CTA
+
+                강한 인터랙션은 세 곳뿐이다 — Problem 수렴 / System 내러티브 /
+                Lead-to-Case 데이터 흐름. 나머지는 작은 reveal 과 hover 만 쓴다.
 
                 Case Study 는 확인된 수치가 있는 사례만 넣는다. CASES 가 비어 있으면
                 섹션 자체가 사라진다. 샘플을 홈에 노출하지 않는다. */}
@@ -155,6 +159,7 @@ export default async function RenewalHome() {
             <MarketingSystem />
             <LeadToCase />
             <CaseStudies cases={CASES} />
+            <HowWeOperate />
             <ChannelGrid />
             <WhyMakethis1 />
             <FutureReady />

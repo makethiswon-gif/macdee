@@ -38,12 +38,12 @@ export default async function MagazinePage() {
     const collectionJsonLd = {
         "@context": "https://schema.org",
         "@type": "CollectionPage",
-        name: "법률 마케팅 인사이트 매거진 | macdee insights",
-        description: "변호사 광고, 로펌 마케팅, 법무법인 광고 트렌드와 전략을 다루는 macdee insights 매거진.",
+        name: "법률 마케팅 인사이트 | MAKETHIS1 Insights",
+        description: "변호사 광고, 로펌 마케팅, 법무법인 광고 트렌드와 전략을 다루는 MAKETHIS1 Insights.",
         url: `${BASE_URL}/magazine`,
         publisher: {
             "@type": "Organization",
-            name: "macdee",
+            name: "MAKETHIS1",
             url: BASE_URL,
         },
         hasPart: magazines.map((m) => ({
@@ -52,7 +52,7 @@ export default async function MagazinePage() {
             description: m.excerpt,
             url: `${BASE_URL}/magazine/${m.slug}`,
             datePublished: m.published_at,
-            author: { "@type": "Person", name: m.author || "macdee 에디터" },
+            author: { "@type": "Person", name: m.author || "MAKETHIS1 편집팀" },
             ...(m.cover_image_url ? { image: m.cover_image_url } : {}),
         })),
     };

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./renewal.css";
 import SiteHeader from "@/components/renewal/SiteHeader";
 import SiteFooter from "@/components/renewal/SiteFooter";
-import { renewalRobots, DEMO_BADGE } from "./flags";
+import { renewalRobots, RENEWAL_SEARCH_NOINDEX, DEMO_BADGE } from "./flags";
 
 // robots 는 flags.ts 한 곳에서만 켠다. 이유는 그 파일 주석 참고.
 export const metadata: Metadata = {
@@ -37,6 +37,16 @@ const JS_MARKER = "document.documentElement.classList.add('mt-js')";
 export default function RenewalLayout({ children }: { children: React.ReactNode }) {
     return (
         <div className="mt-root min-h-screen flex flex-col">
+            {/* 검색엔진에만 색인 금지. 일반 robots 는 비워 둔다 —
+                거기에 noindex 를 넣으면 외부 AI 리더까지 본문을 안 읽는다.
+                (flags.ts 주석 참고) */}
+            {RENEWAL_SEARCH_NOINDEX && (
+                <>
+                    <meta name="googlebot" content="noindex, nofollow" />
+                    <meta name="Yeti" content="noindex, nofollow" />
+                    <meta name="bingbot" content="noindex, nofollow" />
+                </>
+            )}
             <script dangerouslySetInnerHTML={{ __html: JS_MARKER }} />
             <SiteHeader />
             <main className="flex-1">{children}</main>

@@ -12,7 +12,7 @@ export default function WhyMakethis1() {
         <Section>
             <Container>
                 <SectionHeader
-                    number="06"
+                    number="05"
                     eyebrow="Why MAKETHIS1"
                     title={
                         <>

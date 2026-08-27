@@ -3,7 +3,7 @@ import Reveal from "../Reveal";
 import { path } from "@/data/renewal/site";
 import type { CaseStudy } from "@/data/renewal/cases";
 
-// SECTION 07 — Case Study.
+// Case Study.
 // 로고 나열이 아니라 BEFORE → STRATEGY → RESULT 구조로 보여준다.
 //
 // 데이터가 없으면 섹션 자체가 사라진다. 빈 자리를 지어낸 숫자로 채우지 않는다(§42).
@@ -19,7 +19,7 @@ export default function CaseStudies({ cases }: { cases: CaseStudy[] }) {
         <Section>
             <Container>
                 <SectionHeader
-                    number="04"
+                    number="06"
                     eyebrow="Case Studies"
                     title="무엇을 바꿨고, 무엇이 달라졌는지."
                     lead="로고를 모아두는 대신 구조를 공개합니다. 어떤 상태였고, 무엇을 했고, 어떤 지표가 움직였는지."

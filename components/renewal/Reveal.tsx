@@ -5,31 +5,48 @@ import { useEffect, useRef, type ElementType, type ReactNode } from "react";
 // 스크롤 진입 시 한 번만 나타난다. 되감기 없음 — 스크롤을 올릴 때마다 다시
 // 사라지는 연출은 읽는 사람을 방해한다.
 //
-// framer-motion을 쓰지 않는 이유: 이 동작에 필요한 건 IntersectionObserver
-// 하나뿐이고, 새 마케팅 페이지에 애니메이션 라이브러리를 얹으면 §40 번들 목표가
-// 무너진다. 실제 트랜지션은 renewal.css의 [data-reveal] 두 줄이 담당한다.
+// 효과는 내용에 맞춰 고른다. 전부 아래에서 올라오게 하지 않는다.
+//   rise  기본. 문단·카드
+//   mask  큰 제목. 글자가 아래에서 밀려 올라온다
+//   line  구분선·강조선. 좌에서 우로 그어진다
+//   fade  사진·큰 블록. 위치 이동 없음
+//   scale 이미지. 살짝 줄어든 상태에서 제자리로
+//
+// 실제 트랜지션은 전부 renewal.css 에 있다. 여기서는 data 속성만 토글한다.
+// JS 가 없으면 hidden 상태가 아예 적용되지 않아 본문이 그대로 보인다.
+
+export type RevealVariant = "rise" | "mask" | "line" | "fade" | "scale";
 
 interface RevealProps {
     children: ReactNode;
-    /** 같은 그룹 안에서 순차 등장. 인덱스 × 70ms */
+    /** 같은 그룹 안에서 순차 등장. 인덱스 × stagger */
     index?: number;
+    /** 기본 70ms. 큰 연출은 늘린다 */
+    stagger?: number;
+    variant?: RevealVariant;
     as?: ElementType;
     className?: string;
 }
 
-export default function Reveal({ children, index = 0, as: Tag = "div", className = "" }: RevealProps) {
+export default function Reveal({
+    children,
+    index = 0,
+    stagger = 70,
+    variant = "rise",
+    as: Tag = "div",
+    className = "",
+}: RevealProps) {
     const ref = useRef<HTMLElement>(null);
 
     useEffect(() => {
         const el = ref.current;
         if (!el) return;
 
-        // 관찰 전에 이미 화면 안이면(새로고침·앵커 진입) 즉시 표시
         const io = new IntersectionObserver(
             (entries) => {
                 for (const entry of entries) {
                     if (!entry.isIntersecting) continue;
-                    el.setAttribute("data-reveal", "in");
+                    el.setAttribute("data-in", "1");
                     io.unobserve(el);
                 }
             },
@@ -43,11 +60,12 @@ export default function Reveal({ children, index = 0, as: Tag = "div", className
     return (
         <Tag
             ref={ref}
-            data-reveal=""
-            style={{ transitionDelay: `${index * 70}ms` }}
+            data-reveal={variant}
+            style={{ transitionDelay: `${index * stagger}ms` }}
             className={className}
         >
-            {children}
+            {/* mask 는 안쪽 요소를 밀어 올리므로 래퍼가 하나 더 필요하다 */}
+            {variant === "mask" ? <span>{children}</span> : children}
         </Tag>
     );
 }

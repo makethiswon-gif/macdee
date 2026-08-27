@@ -11,7 +11,7 @@ export default function ChannelGrid() {
         <Section id="what-we-do">
             <Container>
                 <SectionHeader
-                    number="05"
+                    number="04"
                     eyebrow="One Team, Every Channel"
                     title={
                         <>
@@ -41,8 +41,8 @@ export default function ChannelGrid() {
 
                                 <p className="mt-body mt-4 text-[14px]">{c.desc}</p>
 
-                                <ul className="mt-8 flex flex-wrap gap-x-4 gap-y-1.5">
-                                    {c.items.map((it) => (
+                                <ul className="mt-7 flex flex-wrap gap-x-4 gap-y-1.5">
+                                    {c.items.slice(0, 4).map((it) => (
                                         <li
                                             key={it}
                                             className="text-[12px]"
@@ -54,7 +54,7 @@ export default function ChannelGrid() {
                                 </ul>
 
                                 <span
-                                    className="mt-auto pt-10 inline-flex items-center gap-1.5 text-[13px] font-medium"
+                                    className="mt-auto pt-8 inline-flex items-center gap-1.5 text-[13px] font-medium"
                                     style={{ color: "var(--mt-ink)" }}
                                 >
                                     자세히 보기

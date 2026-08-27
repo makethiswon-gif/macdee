@@ -334,6 +334,43 @@ export const TEAM: TeamMember[] = [
     },
 ];
 
+/* ── 운영 체계 ──
+   "하나의 마케팅팀"이라는 약속의 실체.
+   누가 전체를 책임지고 무엇이 나뉘어 있는지 보여준다.
+
+   ⚠️ 실제 담당자가 없는 역할을 만들지 않는다.
+      owners 는 확인된 사람만 넣는다. 확인 안 된 역할은 아예 넣지 않는다.
+      Design/CRO 와 Data 담당은 아직 확인되지 않아 여기 없다 —
+      대표 확인 후 추가한다. */
+
+export interface OperatingRole {
+    en: string;
+    ko: string;
+    scope: string;
+    owners: string[];
+}
+
+export const OPERATING_ROLES: OperatingRole[] = [
+    {
+        en: "Account Strategy",
+        ko: "전체 전략과 예산을 한 사람이 책임집니다",
+        scope: "채널별 담당자가 각자 판단하지 않습니다. 어디에 얼마를 쓸지, 무엇을 멈출지 한 곳에서 정합니다.",
+        owners: ["김원영 · CEO"],
+    },
+    {
+        en: "Marketing Operation",
+        ko: "집행과 성과 관리",
+        scope: "광고 계정 운영, 예산 배분 실행, 성과 정리. 로펌과 직접 소통하는 창구이기도 합니다.",
+        owners: ["김나빈 · Director", "임유진 · General Manager"],
+    },
+    {
+        en: "Editorial",
+        ko: "쓰는 사람과 검수하는 사람이 다릅니다",
+        scope: "기자·방송작가 출신이 쓰고, 법학 전공자가 법률 표현을 확인합니다. 한 사람이 쓰고 스스로 검수하지 않습니다.",
+        owners: ["임미영 · KBS 작가 출신", "문희원 · MBC 기자 출신", "정경재 · 법학 전공", "신재선 · 콘텐츠 기획"],
+    },
+];
+
 export const DISCIPLINES = [
     { en: "LEGAL", ko: "법률 콘텐츠 이해" },
     { en: "EDITORIAL", ko: "기자 · 방송작가 출신 제작" },
@@ -361,12 +398,11 @@ export const PARTNERS = [
     "법률사무소 로앤탑",
     "카라 법률사무소",
     "이정도 변호사",
+    // 대표 확인(2026-08-28): 두 곳 모두 소규모 마케팅 대행을 실제로 수행한 고객사다.
+    // 대표 근무경력에도 같은 이름이 있어 한때 근무처로만 오해했으나, 고객사가 맞다.
+    "Samsung Medison",
+    "KT",
 ];
-
-// ⚠️ Samsung Medison 과 KT 를 여기 넣지 말 것.
-//    기존 /makethisone 파트너 목록에 섞여 있었지만, 같은 두 곳이 대표 근무경력에도
-//    그대로 있다. 고객사가 아니라 대표가 거쳐온 회사다.
-//    파트너로 표기하면 대기업을 고객으로 둔 것처럼 읽힌다. FOUNDER.career 로 옮겼다.
 
 // 이미 대외 공표 중인 수치만. 새로 만들지 않는다.
 export const PROOF_STATS = [

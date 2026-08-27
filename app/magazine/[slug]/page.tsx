@@ -146,12 +146,12 @@ export default async function MagazineArticlePage({
         wordCount,
         author: {
             "@type": "Person",
-            name: magazine.author || "macdee 에디터",
+            name: magazine.author || "MAKETHIS1 편집팀",
             url: `${baseUrl}/about`,
         },
         publisher: {
             "@type": "Organization",
-            name: "macdee",
+            name: "MAKETHIS1",
             url: baseUrl,
         },
         mainEntityOfPage: {
@@ -187,7 +187,7 @@ export default async function MagazineArticlePage({
             <header className="bg-[#0A0A0A] border-b border-white/[0.06] sticky top-0 z-10">
                 <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
                     <Link href="/magazine" className="flex items-center gap-2">
-                        <span className="text-lg font-bold tracking-tight text-white">macdee.</span>
+                        <span className="text-lg font-bold tracking-tight text-white">MAKETHIS1</span>
                         <span className="text-[10px] font-medium text-white/30 tracking-[0.1em] uppercase">insights</span>
                     </Link>
                     <Link href="/magazine" className="text-sm text-white/40 hover:text-white transition-colors">
@@ -252,9 +252,9 @@ export default async function MagazineArticlePage({
                 {/* Author */}
                 <div className="mt-8 p-6 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
                     <p className="text-xs text-white/20 mb-1">작성자</p>
-                    <p className="font-bold text-white">{magazine.author || "macdee 에디터"}</p>
+                    <p className="font-bold text-white">{magazine.author || "MAKETHIS1 편집팀"}</p>
                     <p className="text-sm text-white/25 mt-2">
-                        macdee 개발팀과 법률 마케팅 전문가가 작성한 인사이트 콘텐츠입니다.
+                        MAKETHIS1 편집팀과 법률 마케팅 전문가가 작성한 인사이트 콘텐츠입니다.
                     </p>
                 </div>
 
@@ -269,7 +269,7 @@ export default async function MagazineArticlePage({
             {/* Footer */}
             <footer className="bg-[#0A0A0A] border-t border-white/[0.06] text-white/20 py-8">
                 <div className="max-w-4xl mx-auto px-6 text-center text-sm">
-                    <p>© {new Date().getFullYear()} <Link href="/" className="hover:text-white/40 transition-colors">macdee</Link>. 변호사 마케팅 · 로펌 마케팅 AI 자동화 플랫폼</p>
+                    <p>© {new Date().getFullYear()} <Link href="/" className="hover:text-white/40 transition-colors">MAKETHIS1</Link>. 로펌 마케팅 · 변호사 광고</p>
                 </div>
             </footer>
         </div>
