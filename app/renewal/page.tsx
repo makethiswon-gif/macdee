@@ -14,7 +14,7 @@ import InsightsPreview, { type InsightItem } from "@/components/renewal/home/Ins
 import FinalCTA from "@/components/renewal/home/FinalCTA";
 
 import { CASES } from "@/data/renewal/cases";
-import { COMPANY } from "@/data/renewal/site";
+import { COMPANY, FOUNDER } from "@/data/renewal/site";
 import { renewalRobots } from "./flags";
 
 export const revalidate = 600;
@@ -69,6 +69,15 @@ const jsonLd = {
             url: COMPANY.site,
             description:
                 "변호사와 법무법인만 상대하는 마케팅 회사. 검색광고, SEO, AI 검색 대응, 콘텐츠, 홈페이지, 상담 전환 분석을 하나의 팀이 통합 운영합니다.",
+            founder: {
+                "@type": "Person",
+                name: FOUNDER.name,
+                jobTitle: FOUNDER.role,
+            },
+            // foundingDate 는 넣지 않는다.
+            // 기존 자산에 세 값이 서로 다르게 남아 있다 —
+            // 루트 레이아웃 2019 / makethisone 스키마 2023 / 공표 수치 "업력 7년+".
+            // 어느 쪽이 맞는지 확인되기 전에는 쓰지 않는다.
             areaServed: { "@type": "Country", name: "KR" },
             knowsAbout: [
                 "로펌 마케팅",

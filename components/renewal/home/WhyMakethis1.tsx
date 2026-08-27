@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { Container, Section, SectionHeader, ArrowLink } from "../primitives";
 import Reveal from "../Reveal";
+import Founder from "../Founder";
 import { TEAM, DISCIPLINES, path } from "@/data/renewal/site";
 
 // SECTION 06 — 왜 MAKETHIS1인가.
@@ -38,6 +39,11 @@ export default function WhyMakethis1() {
                             </div>
                         </Reveal>
                     ))}
+                </div>
+
+                {/* 대표 — 팀 그리드에 섞지 않는다 */}
+                <div className="mt-16 md:mt-24">
+                    <Founder />
                 </div>
 
                 {/* 팀 */}

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { Container, Section, SectionHeader, Eyebrow, Button } from "@/components/renewal/primitives";
 import Reveal from "@/components/renewal/Reveal";
+import Founder from "@/components/renewal/Founder";
 import { TEAM, DISCIPLINES, COMPANY, PROOF_STATS, PRIMARY_CTA, path } from "@/data/renewal/site";
 import { renewalRobots } from "../flags";
 
@@ -114,7 +115,11 @@ export default function Page() {
                 <Container>
                     <SectionHeader eyebrow="Team" title="누가 쓰고 누가 검수하는지 밝힙니다." />
 
-                    <div className="mt-14 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-x-6 gap-y-12">
+                    <div className="mt-14">
+                        <Founder />
+                    </div>
+
+                    <div className="mt-16 md:mt-20 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-x-6 gap-y-12">
                         {TEAM.map((m, i) => (
                             <Reveal key={m.name} index={i % 3}>
                                 <figure>

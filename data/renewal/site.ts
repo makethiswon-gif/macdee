@@ -265,6 +265,22 @@ export const LEAD_TO_CASE = {
 /* ═══════════════ SECTION 06 — 팀 ═══════════════
    사진은 /makethisone/team/*.webp 에 이미 있다. */
 
+/* ── 대표 ──
+   기존 /makethisone 의 founder-spotlight 에 이미 공개돼 있던 이력 그대로.
+   법률사무소 실무와 대기업 마케팅을 둘 다 거친 이력이 이 회사의 성립 근거라
+   팀 목록 안에 섞지 않고 앞에 따로 세운다. */
+
+export const FOUNDER = {
+    name: "김원영",
+    role: "CEO",
+    photo: "/makethisone/ceo.webp",
+    lead: "법률사무소 안에서 사건이 어떻게 들어오는지 보고, 대기업에서 마케팅을 배웠습니다.",
+    career: {
+        legal: ["법무법인 혜안", "법무법인 고구려", "JY법률사무소"],
+        marketing: ["삼성메디슨 영업 · 마케팅", "KT 유통 · 영업 · 마케팅"],
+    },
+};
+
 export interface TeamMember {
     name: string;
     role: string;
@@ -345,9 +361,12 @@ export const PARTNERS = [
     "법률사무소 로앤탑",
     "카라 법률사무소",
     "이정도 변호사",
-    "Samsung Medison",
-    "KT",
 ];
+
+// ⚠️ Samsung Medison 과 KT 를 여기 넣지 말 것.
+//    기존 /makethisone 파트너 목록에 섞여 있었지만, 같은 두 곳이 대표 근무경력에도
+//    그대로 있다. 고객사가 아니라 대표가 거쳐온 회사다.
+//    파트너로 표기하면 대기업을 고객으로 둔 것처럼 읽힌다. FOUNDER.career 로 옮겼다.
 
 // 이미 대외 공표 중인 수치만. 새로 만들지 않는다.
 export const PROOF_STATS = [
