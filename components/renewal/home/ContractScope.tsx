@@ -25,11 +25,11 @@ export default function ContractScope() {
         <Section id="scope">
             <Container>
                 <SectionHeader
-                    number="제2조"
+                    number="제4조"
                     eyebrow="Scope of Services"
                     serif
                     title="하나의 계약으로 운영되는 마케팅."
-                    lead="채널을 여섯 개로 나눠 팔지 않습니다. 아래 전부가 한 계약의 범위이고, 하나의 책임자가 하나의 예산으로 운영합니다."
+                    lead="세부 업무가 궁금하시다면 여기를 보십시오. 아래 전부가 한 계약의 범위이고, 하나의 책임자가 하나의 예산으로 운영합니다."
                 />
 
                 <div className="mt-14 md:mt-20" style={{ borderTop: "1px solid var(--mt-line-strong)" }}>

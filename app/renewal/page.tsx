@@ -2,12 +2,11 @@ import type { Metadata } from "next";
 import { createServiceClient } from "@/lib/supabase/server";
 
 import HeroSection from "@/components/renewal/home/HeroSection";
+import ClientJourney from "@/components/renewal/home/ClientJourney";
 import ProblemSection from "@/components/renewal/home/ProblemSection";
 import PartnerLogos from "@/components/renewal/home/PartnerLogos";
 import ContractScope from "@/components/renewal/home/ContractScope";
 import InvariantClause from "@/components/renewal/home/InvariantClause";
-import MarketingSystem from "@/components/renewal/home/MarketingSystem";
-import LeadToCase from "@/components/renewal/home/LeadToCase";
 import CaseStudies from "@/components/renewal/home/CaseStudies";
 import HowWeOperate from "@/components/renewal/home/HowWeOperate";
 import WhyMakethis1 from "@/components/renewal/home/WhyMakethis1";
@@ -145,23 +144,24 @@ export default async function RenewalHome() {
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
             />
 
-            {/* The Contract — 조(條) 구조 (docs/HOME_REDESIGN_PLAN.md).
-                Hero(선언) → 제1조 문제(수렴) → 증거(파트너) → 제2조 계약 범위(별지)
-                → 제3조 변해도 조항(장부) → 제4조 운영(6단계) → 제5조 성과(데이터 흐름)
+            {/* The Contract × 의뢰인 여정 — 조(條) 구조.
+                Hero(선언 + 결과 + 검증 수치) → 제1조 의뢰인 여정 3단계(+Lead to Case 통합)
+                → 제2조 맡기기 전/후 → 증거(파트너) → 제3조 변해도 조항(장부)
+                → 제4조 계약 범위(별지 — 세부 업무가 궁금한 방문자용)
                 → 첨부 1~3(사례·운영 체계·팀) → Insights → 서명란
 
-                강한 인터랙션은 세 곳뿐이다(§18) — 제1조 수렴 / 제3조 변해도 시퀀스 /
-                제5조 데이터 흐름. 나머지는 작은 reveal 과 hover 만 쓴다.
+                핵심 원칙: "많은 업무"가 아니라 "한 의뢰인이 사건을 맡기기까지의 흐름".
+                긴 스크롤 무대(수렴 260svh · 6단계 508svh · 변해도 230svh)는 전부
+                한 화면형으로 압축했다. 효과 없이 읽어도 구조가 이해된다.
 
                 Case Study 는 확인된 수치가 있는 사례만 넣는다. CASES 가 비어 있으면
                 섹션 자체가 사라진다. 샘플을 홈에 노출하지 않는다. */}
             <HeroSection />
+            <ClientJourney />
             <ProblemSection />
             <PartnerLogos />
-            <ContractScope />
             <InvariantClause />
-            <MarketingSystem />
-            <LeadToCase />
+            <ContractScope />
             <CaseStudies cases={CASES} />
             <HowWeOperate />
             <WhyMakethis1 />
