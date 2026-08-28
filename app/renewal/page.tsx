@@ -8,10 +8,12 @@ import ProblemSection from "@/components/renewal/home/ProblemSection";
 import PartnerLogos from "@/components/renewal/home/PartnerLogos";
 import ContractScope from "@/components/renewal/home/ContractScope";
 import InvariantClause from "@/components/renewal/home/InvariantClause";
+import CaseStudies from "@/components/renewal/home/CaseStudies";
 import WhyMakethis1 from "@/components/renewal/home/WhyMakethis1";
 import InsightsPreview, { type InsightItem } from "@/components/renewal/home/InsightsPreview";
 import FinalCTA from "@/components/renewal/home/FinalCTA";
 
+import { CASES } from "@/data/renewal/cases";
 import { COMPANY, FOUNDER, absUrl, ogImage } from "@/data/renewal/site";
 import { renewalRobots } from "./flags";
 
@@ -160,6 +162,7 @@ export default async function RenewalHome() {
             <ClientJourney />
             <ProblemSection />
             <PartnerLogos />
+            <CaseStudies cases={CASES} />
             <InvariantClause />
             <WhyMakethis1 />
             <InsightsPreview items={insights} />

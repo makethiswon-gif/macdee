@@ -16,11 +16,12 @@ export default function CaseStudies({ cases }: { cases: CaseStudy[] }) {
     const hasSample = cases.some((c) => c.isSample);
 
     return (
-        <Section>
+        <Section data-clause="첨부 1">
             <Container>
                 <SectionHeader
                     number="첨부 1"
                     eyebrow="Case Studies"
+                    serif
                     title="무엇을 바꿨고, 무엇이 달라졌는지."
                     lead="로고를 모아두는 대신 구조를 공개합니다. 어떤 상태였고, 무엇을 했고, 어떤 지표가 움직였는지."
                 />
@@ -107,6 +108,15 @@ export default function CaseStudies({ cases }: { cases: CaseStudy[] }) {
                                         </ul>
                                     </div>
                                 </div>
+
+                                {c.note && (
+                                    <p
+                                        className="mt-10 text-[12.5px] leading-relaxed max-w-[72ch]"
+                                        style={{ color: "var(--mt-gray)" }}
+                                    >
+                                        {c.note}
+                                    </p>
+                                )}
                             </article>
                         </Reveal>
                     ))}

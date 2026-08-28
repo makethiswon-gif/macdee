@@ -16,10 +16,10 @@ const COL_X = [10, 30, 50, 70, 90];
 
 export default function WhyMakethis1() {
     return (
-        <Section data-clause="첨부 1">
+        <Section data-clause="첨부 2">
             <Container>
                 <SectionHeader
-                    number="첨부 1"
+                    number="첨부 2"
                     eyebrow="Why MAKETHIS1"
                     serif
                     title={
