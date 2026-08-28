@@ -389,9 +389,9 @@ description: 네이버 파워링크, Google Ads, 블로그, 홈페이지, SEO·G
 | 8 | `/magazine` INSIGHTS 리스킨 | ✅ `/renewal/magazine` + `[slug]` 상세. canonical 은 최종 URL(/magazine)로 선언 — 데모 중복 색인 방지 + 교체 시 무수정. 조회수 증가는 교체 후에만 |
 | 9 | `/about` 회사·팀 | ✅ |
 | 10 | `/contact` + `/renewal/diagnose` | ✅ 진단 폼이 리드 경로. thanks 는 폼 내 완료 화면으로 대체 |
-| 11 | 메타 / 스키마 / sitemap | ⬜ |
-| 12 | 반응형 QA | ⬜ |
-| 13 | 성능 (LCP·CLS·INP) | ⬜ |
+| 11 | 메타 / 스키마 / sitemap | ✅ canonical·og:url 은 absUrl()(DEMO_BASE 스위치), JSON-LD 전 페이지 보강, OG 이미지 코드 생성(/renewal/og.png), sitemap 교체 스위치 내장 |
+| 12 | 반응형 QA | ✅ 375/768 전 페이지 오버플로 0 (마퀴·허니팟은 의도된 검출). 모바일 메뉴 열림/닫힘·스크롤 잠금 정상. dev 콘솔의 hydration 경고는 mt-js 인라인 스크립트로 인한 개발 모드 전용 노이즈 |
+| 13 | 성능 (LCP·CLS·INP) | ✅ 프로덕션 빌드 검증. 리뉴얼 청크에 framer-motion 없음(§40). H1 은 SSR HTML 에서 즉시 가시(폰트 swap). 커버 이미지 aspect-ratio 로 CLS 방지. 매거진 상세 generateStaticParams 로 ISR 활성 — 매 요청 500ms → 캐시 9ms |
 | 14 | 최종 QA → **홈페이지 교체** | ⬜ |
 
 ---

@@ -13,6 +13,12 @@ import { renewalRobots } from "../../flags";
 // 리뉴얼 헤더/푸터 아래에서 editorial 본문으로 보여준다.
 export const revalidate = 600;
 
+// 빈 배열 + 기본 dynamicParams(true) = 방문된 slug 만 온디맨드로 생성해 ISR 캐시.
+// 이게 없으면 매 요청이 Supabase 3쿼리를 다시 탄다(측정: 매 요청 ~500ms).
+export function generateStaticParams(): { slug: string }[] {
+    return [];
+}
+
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
 
 interface Magazine {
@@ -232,11 +238,13 @@ export default async function InsightArticlePage({
                                 className="mt-12 overflow-hidden rounded-[4px]"
                                 style={{ border: "1px solid var(--mt-line)" }}
                             >
+                                {/* aspect-ratio 로 자리를 먼저 잡는다 — 로드 시 본문이 밀리면(CLS)
+                                    안 된다. 비율이 다른 커버는 편집 크롭으로 간주한다. */}
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img
                                     src={magazine.cover_image_url}
                                     alt={magazine.title}
-                                    className="w-full h-auto"
+                                    className="w-full aspect-[16/9] object-cover"
                                 />
                             </div>
                         )}
