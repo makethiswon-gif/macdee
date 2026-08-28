@@ -28,7 +28,7 @@ export default function ContractScope() {
                     number="제4조"
                     eyebrow="Scope of Services"
                     serif
-                    title="하나의 계약으로 운영되는 마케팅."
+                    title="ONE CONTRACT, ALL MARKETING."
                     lead="세부 업무가 궁금하시다면 여기를 보십시오. 아래 전부가 한 계약의 범위이고, 하나의 책임자가 하나의 예산으로 운영합니다."
                 />
 
