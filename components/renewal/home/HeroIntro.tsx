@@ -13,7 +13,7 @@ import { useEffect } from "react";
 // 포커스를 잡지 않는다 — 오버레이는 aria-hidden + pointer-events:none 이고
 // 좌측 CTA 는 클릭(=스킵) 즉시 나타난다.
 
-const TOTAL_MS = 3500; // 데스크톱 타임라인(3.3s) + 여유. 모바일은 그보다 먼저 끝난다.
+const TOTAL_MS = 7200; // 데스크톱 타임라인(~6.6s, --iT:2) + 여유. 모바일은 그보다 먼저 끝난다.
 
 export default function HeroIntro() {
     useEffect(() => {

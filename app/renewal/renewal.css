@@ -385,15 +385,18 @@ html.mt-js .mt-root [data-reveal="scale"][data-in="1"] {
    기본 스타일 = 최종 상태. html[data-intro="play"] 가 붙어 있을 때만
    CSS 타임라인이 돈다. 속성 제거 = 어느 시점이든 즉시 최종 상태.
    transform/opacity 만 쓴다. 오버레이는 absolute → CLS 없음.
-   --iT 는 시간 배율: 데스크톱 1(총 ~3.3s), 모바일 0.68(총 ~2.2s).
+   --iT 는 시간 배율: 데스크톱 2(총 ~6.6s), 모바일 1.36(총 ~4.4s).
+   ("순식간에 지나간다" 피드백으로 2026-08-28 두 배로 늘림.
+    큰 동작은 지속시간도 --iT 를 타고, 직인·취소선·카피 등장 같은
+    액센트는 고정 지속시간으로 경쾌함을 유지한다.)
    ══════════════════════════════════════════════════ */
 
 .mt-root {
-    --iT: 1;
+    --iT: 2;
 }
 @media (max-width: 1023px) {
     .mt-root {
-        --iT: 0.68;
+        --iT: 1.36;
     }
 }
 
@@ -497,13 +500,13 @@ html[data-intro="play"] .mt-root .mt-hero-stats [data-reveal] {
 
 /* 계약서 — 조립(1.6s) 후 우측 정착(2.7s). 모바일은 제자리 등장만 */
 html[data-intro="play"] .mt-root .mt-contract {
-    animation: mt-contract-in-m 0.45s var(--mt-ease-system) calc(1.6s * var(--iT)) both;
+    animation: mt-contract-in-m calc(0.3s * var(--iT)) var(--mt-ease-system) calc(1.6s * var(--iT)) both;
 }
 @media (min-width: 1024px) {
     html[data-intro="play"] .mt-root .mt-contract {
         animation:
-            mt-contract-in 0.5s var(--mt-ease-system) calc(1.6s * var(--iT)) both,
-            mt-contract-settle 0.55s var(--mt-ease) calc(2.7s * var(--iT)) both;
+            mt-contract-in calc(0.3s * var(--iT)) var(--mt-ease-system) calc(1.6s * var(--iT)) both,
+            mt-contract-settle calc(0.32s * var(--iT)) var(--mt-ease) calc(2.7s * var(--iT)) both;
     }
 }
 @keyframes mt-contract-in-m {
@@ -535,7 +538,7 @@ html[data-intro="play"] .mt-root .mt-contract {
 
 /* 계약서 6개 영역 행 — 조립되며 순서대로 */
 html[data-intro="play"] .mt-root .mt-contract-row {
-    animation: mt-crow-in 0.35s var(--mt-ease) calc((1.72s + var(--i) * 0.06s) * var(--iT)) both;
+    animation: mt-crow-in calc(0.22s * var(--iT)) var(--mt-ease) calc((1.72s + var(--i) * 0.06s) * var(--iT)) both;
 }
 @keyframes mt-crow-in {
     from {
@@ -598,8 +601,8 @@ html[data-intro="play"] .mt-root .mt-stamp-blue::after {
     border-radius: 2px;
     box-shadow: 0 12px 26px -10px rgba(14, 17, 22, 0.12);
     animation:
-        mt-icard-in 0.45s var(--mt-ease) calc((0.05s + var(--i) * 0.12s) * var(--iT)) both,
-        mt-icard-merge 0.5s var(--mt-ease-system) calc((1.35s + var(--i) * 0.05s) * var(--iT)) forwards;
+        mt-icard-in calc(0.28s * var(--iT)) var(--mt-ease) calc((0.05s + var(--i) * 0.12s) * var(--iT)) both,
+        mt-icard-merge calc(0.3s * var(--iT)) var(--mt-ease-system) calc((1.35s + var(--i) * 0.05s) * var(--iT)) forwards;
 }
 @keyframes mt-icard-in {
     from {
@@ -628,8 +631,8 @@ html[data-intro="play"] .mt-root .mt-stamp-blue::after {
     stroke-dashoffset: 1;
     opacity: 0.5;
     animation:
-        mt-iline-draw 0.45s ease calc((0.95s + var(--i) * 0.07s) * var(--iT)) forwards,
-        mt-iline-fade 0.3s ease calc(1.55s * var(--iT)) forwards;
+        mt-iline-draw calc(0.28s * var(--iT)) ease calc((0.95s + var(--i) * 0.07s) * var(--iT)) forwards,
+        mt-iline-fade calc(0.18s * var(--iT)) ease calc(1.55s * var(--iT)) forwards;
 }
 @keyframes mt-iline-draw {
     to {
@@ -649,15 +652,15 @@ html[data-intro="play"] .mt-root .mt-stamp-blue::after {
    out 은 forwards 만 쓴다 — backwards 를 주면 in 이전에도 보인다. */
 .mt-root .mt-iquestion {
     animation:
-        mt-ilayer-in 0.4s var(--mt-ease) calc(0.15s * var(--iT)) both,
-        mt-ilayer-out 0.3s ease calc(1.3s * var(--iT)) forwards;
+        mt-ilayer-in calc(0.25s * var(--iT)) var(--mt-ease) calc(0.15s * var(--iT)) both,
+        mt-ilayer-out calc(0.18s * var(--iT)) ease calc(1.3s * var(--iT)) forwards;
 }
 
 /* 핵심 선언 (1.95s in → 2.6s out) */
 .mt-root .mt-istatement {
     animation:
-        mt-ilayer-in 0.35s var(--mt-ease) calc(1.95s * var(--iT)) both,
-        mt-ilayer-out 0.3s ease calc(2.6s * var(--iT)) forwards;
+        mt-ilayer-in calc(0.22s * var(--iT)) var(--mt-ease) calc(1.95s * var(--iT)) both,
+        mt-ilayer-out calc(0.18s * var(--iT)) ease calc(2.6s * var(--iT)) forwards;
 }
 @keyframes mt-ilayer-in {
     from {
@@ -694,8 +697,8 @@ html[data-intro="play"] .mt-root .mt-stamp-blue::after {
     color: var(--mt-ink);
     white-space: nowrap;
     animation:
-        mt-ichip-in 0.35s var(--mt-ease) calc(0.06s + var(--i) * 0.09s) both,
-        mt-ichip-merge 0.45s var(--mt-ease-system) calc(0.8s + var(--i) * 0.04s) forwards;
+        mt-ichip-in calc(0.26s * var(--iT)) var(--mt-ease) calc((0.06s + var(--i) * 0.09s) * var(--iT)) both,
+        mt-ichip-merge calc(0.33s * var(--iT)) var(--mt-ease-system) calc((0.8s + var(--i) * 0.04s) * var(--iT)) forwards;
 }
 @keyframes mt-ichip-in {
     from {
