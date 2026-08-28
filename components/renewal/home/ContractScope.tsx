@@ -38,7 +38,7 @@ export default function ContractScope() {
                         eyebrow="Scope of Services"
                         serif
                         title="ONE CONTRACT, ALL MARKETING."
-                        lead="세부 업무가 궁금하시다면 여기를 보십시오. 아래 전부가 한 계약의 범위이고, 하나의 책임자가 하나의 예산으로 운영합니다."
+                        lead="메이크디스원의 올인원 로펌 광고 솔루션, 아래 세부 업무가 모두 포함됩니다."
                     />
                 </Reveal>
             </Container>

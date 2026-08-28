@@ -381,79 +381,71 @@ html.mt-js .mt-root [data-reveal="scale"][data-in="1"] {
 }
 
 /* ══════════════════════════════════════════════════
-   HERO INTRO — "여러 업체가 하나의 계약으로"
-   기본 스타일 = 최종 상태. html[data-intro="play"] 가 붙어 있을 때만
-   CSS 타임라인이 돈다. 속성 제거 = 어느 시점이든 즉시 최종 상태.
-   transform/opacity 만 쓴다. 오버레이는 absolute → CLS 없음.
-   --iT 는 시간 배율: 데스크톱 2(총 ~6.6s), 모바일 1.36(총 ~4.4s).
-   ("순식간에 지나간다" 피드백으로 2026-08-28 두 배로 늘림.
-    큰 동작은 지속시간도 --iT 를 타고, 직인·취소선·카피 등장 같은
-    액센트는 고정 지속시간으로 경쾌함을 유지한다.)
+   ONE 인트로 화면 — LAB Concept 01 "ONE → EVERYTHING → ONE"
+   어둠 속 점 하나(=계약)가 여섯 직능으로 분열해 궤도를 돌다
+   다시 하나로 붕괴하고, 파란 마침표가 되어 문장을 끝낸다.
+   장면은 전부 캔버스(IntroScreen.tsx) — CSS 는 레이어·페이드만 담당.
+   재생 여부는 프리페인트 스크립트(html[data-intro="play"])가 정한다.
+   아래 홈페이지는 처음부터 완성 상태 — 인트로가 걷히면 그대로 드러난다.
    ══════════════════════════════════════════════════ */
 
-.mt-root {
-    --iT: 2;
-}
-@media (max-width: 1023px) {
-    .mt-root {
-        --iT: 1.36;
-    }
-}
-
-/* ── 인트로 레이어: 독립 풀스크린 인트로 화면 ──
-   play 중에만 존재하는 불투명 오버레이. 아래의 홈페이지는 처음부터
-   완성 상태로 렌더되고, 인트로가 페이드아웃되면 그대로 드러난다. */
-.mt-root .mt-intro-layer {
+.mt-root .mt-ione {
     display: none;
     position: fixed;
     inset: 0;
     z-index: 60;
-    background: var(--mt-bg);
+    background: #050a12;
+    transition:
+        opacity 0.9s var(--mt-ease),
+        visibility 0.9s;
 }
-html[data-intro="play"] .mt-root .mt-intro-layer {
+html[data-intro="play"] .mt-root .mt-ione {
     display: block;
-    animation: mt-intro-fade calc(0.6s * var(--iT)) var(--mt-ease) calc(2.8s * var(--iT)) forwards;
 }
-@keyframes mt-intro-fade {
-    to {
-        opacity: 0;
-        visibility: hidden;
-    }
+.mt-root .mt-ione.mt-ione-out {
+    opacity: 0;
+    visibility: hidden;
 }
-
-/* 인트로 중앙 계약서 */
-.mt-root .mt-icontract {
+/* 캔버스가 그리기 전(하이드레이션 전)에도 점 하나는 살아 있게 */
+.mt-root .mt-ione::before {
+    content: "";
     position: absolute;
     left: 50%;
     top: 50%;
-    transform: translate(-50%, -50%);
-    width: min(320px, 84vw);
-    background: var(--mt-surface);
-    border: 1px solid var(--mt-line-strong);
-    border-radius: 2px;
-    padding: 22px 22px 16px;
-    box-shadow:
-        0 18px 40px -18px rgba(14, 17, 22, 0.18),
-        0 2px 6px rgba(14, 17, 22, 0.05);
-    opacity: 0;
+    width: 5px;
+    height: 5px;
+    margin: -2.5px 0 0 -2.5px;
+    border-radius: 50%;
+    background: #fbfaf8;
 }
-html[data-intro="play"] .mt-root .mt-icontract {
-    animation: mt-icontract-in calc(0.3s * var(--iT)) var(--mt-ease-system) calc(1.55s * var(--iT)) both;
+.mt-root .mt-ione canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
 }
-@keyframes mt-icontract-in {
+.mt-root .mt-ione-skip {
+    position: absolute;
+    left: 50%;
+    bottom: 32px;
+    transform: translateX(-50%);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    color: rgba(135, 148, 166, 0.8);
+    white-space: nowrap;
+    animation: mt-ione-skip-in 0.7s ease 2s both;
+}
+@keyframes mt-ione-skip-in {
     from {
         opacity: 0;
-        transform: translate(-50%, -46%) scale(0.94);
     }
     to {
         opacity: 1;
-        transform: translate(-50%, -50%) scale(1);
     }
 }
-/* 혹시 play 가 붙은 채 reduced-motion 이면 레이어 자체를 없앤다(이중 안전장치 —
-   전역 reduce 규칙이 애니메이션을 즉시 종료시키지만 잔상도 남기지 않는다) */
+/* play 가 붙은 채 reduced-motion 이면 레이어 자체를 없앤다(이중 안전장치) */
 @media (prefers-reduced-motion: reduce) {
-    html[data-intro="play"] .mt-root .mt-intro-layer {
+    html[data-intro="play"] .mt-root .mt-ione {
         display: none !important;
     }
 }
@@ -509,180 +501,6 @@ html[data-intro="play"] .mt-root .mt-icontract {
     border: 2px solid var(--mt-accent);
     opacity: 0.14;
     filter: blur(1.5px);
-}
-
-/* ══════════ PLAY 타임라인 ══════════
-   페이지 본문(히어로 카피·계약서 카드)은 인트로와 무관하게 항상 완성 상태다.
-   아래 규칙은 전부 오버레이 내부 요소에만 적용된다. */
-
-/* 직인 — 스케일 반동으로 찍히고 잉크가 번진다 (2.05s) */
-html[data-intro="play"] .mt-root .mt-stamp-blue {
-    animation: mt-stamp-pop 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) calc(2.05s * var(--iT)) both;
-}
-@keyframes mt-stamp-pop {
-    0% {
-        opacity: 0;
-        transform: rotate(-10deg) scale(1.55);
-    }
-    62% {
-        opacity: 0.95;
-        transform: rotate(-10deg) scale(0.94);
-    }
-    100% {
-        opacity: 0.92;
-        transform: rotate(-10deg) scale(1);
-    }
-}
-html[data-intro="play"] .mt-root .mt-stamp-blue::after {
-    animation: mt-stamp-ink 0.6s ease calc(2.1s * var(--iT)) both;
-}
-@keyframes mt-stamp-ink {
-    0% {
-        opacity: 0;
-        transform: scale(1.18);
-    }
-    45% {
-        opacity: 0.32;
-    }
-    100% {
-        opacity: 0.14;
-        transform: scale(1);
-    }
-}
-
-/* ── 오버레이 요소 (레이어 자체가 play 게이트라 별도 가드 불필요) ── */
-
-/* 업체 카드 — 흩어져 등장(0~0.8s) → 중앙 수렴·소멸(1.35s~) */
-.mt-root .mt-icard {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 204px;
-    margin: -42px 0 0 -102px;
-    padding: 13px 16px;
-    background: var(--mt-surface);
-    border: 1px solid var(--mt-line);
-    border-radius: 2px;
-    box-shadow: 0 12px 26px -10px rgba(14, 17, 22, 0.12);
-    animation:
-        mt-icard-in calc(0.28s * var(--iT)) var(--mt-ease) calc((0.05s + var(--i) * 0.12s) * var(--iT)) both,
-        mt-icard-merge calc(0.3s * var(--iT)) var(--mt-ease-system) calc((1.35s + var(--i) * 0.05s) * var(--iT)) forwards;
-}
-@keyframes mt-icard-in {
-    from {
-        opacity: 0;
-        transform: translate(var(--sx), calc(var(--sy) + 18px)) rotate(var(--sr));
-    }
-    to {
-        opacity: 1;
-        transform: translate(var(--sx), var(--sy)) rotate(var(--sr));
-    }
-}
-@keyframes mt-icard-merge {
-    from {
-        opacity: 1;
-        transform: translate(var(--sx), var(--sy)) rotate(var(--sr)) scale(1);
-    }
-    to {
-        opacity: 0;
-        transform: translate(0, 0) rotate(0deg) scale(0.5);
-    }
-}
-
-/* 파란 연결선 — 카드에서 중앙으로 그려졌다가(0.95s~) 수렴과 함께 사라진다 */
-.mt-root .mt-ilines line {
-    stroke-dasharray: 1;
-    stroke-dashoffset: 1;
-    opacity: 0.5;
-    animation:
-        mt-iline-draw calc(0.28s * var(--iT)) ease calc((0.95s + var(--i) * 0.07s) * var(--iT)) forwards,
-        mt-iline-fade calc(0.18s * var(--iT)) ease calc(1.55s * var(--iT)) forwards;
-}
-@keyframes mt-iline-draw {
-    to {
-        stroke-dashoffset: 0;
-    }
-}
-@keyframes mt-iline-fade {
-    from {
-        opacity: 0.5;
-    }
-    to {
-        opacity: 0;
-    }
-}
-
-/* 중앙 질문 (0.15s in → 1.3s out).
-   out 은 forwards 만 쓴다 — backwards 를 주면 in 이전에도 보인다. */
-.mt-root .mt-iquestion {
-    animation:
-        mt-ilayer-in calc(0.25s * var(--iT)) var(--mt-ease) calc(0.15s * var(--iT)) both,
-        mt-ilayer-out calc(0.18s * var(--iT)) ease calc(1.3s * var(--iT)) forwards;
-}
-
-/* 핵심 선언 (1.95s in → 2.6s out) */
-.mt-root .mt-istatement {
-    animation:
-        mt-ilayer-in calc(0.22s * var(--iT)) var(--mt-ease) calc(1.95s * var(--iT)) both,
-        mt-ilayer-out calc(0.18s * var(--iT)) ease calc(2.6s * var(--iT)) forwards;
-}
-@keyframes mt-ilayer-in {
-    from {
-        opacity: 0;
-        transform: translate(-50%, calc(-50% + 12px));
-    }
-    to {
-        opacity: 1;
-        transform: translate(-50%, -50%);
-    }
-}
-@keyframes mt-ilayer-out {
-    from {
-        opacity: 1;
-    }
-    to {
-        opacity: 0;
-    }
-}
-
-/* 모바일 키워드 칩 — 등장(0.06s~) → 수렴·소멸(0.8s~). 칩 타이밍은
-   모바일 전용이라 --iT 를 다시 곱하지 않는다(이미 짧게 설계). */
-.mt-root .mt-ichip {
-    position: absolute;
-    left: 50%;
-    top: 38%;
-    padding: 8px 14px;
-    background: var(--mt-surface);
-    border: 1px solid var(--mt-line);
-    border-radius: 2px;
-    box-shadow: 0 8px 18px -8px rgba(14, 17, 22, 0.12);
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--mt-ink);
-    white-space: nowrap;
-    animation:
-        mt-ichip-in calc(0.26s * var(--iT)) var(--mt-ease) calc((0.06s + var(--i) * 0.09s) * var(--iT)) both,
-        mt-ichip-merge calc(0.33s * var(--iT)) var(--mt-ease-system) calc((0.8s + var(--i) * 0.04s) * var(--iT)) forwards;
-}
-@keyframes mt-ichip-in {
-    from {
-        opacity: 0;
-        transform: translate(calc(-50% + var(--sx)), calc(-50% + var(--sy) + 14px));
-    }
-    to {
-        opacity: 1;
-        transform: translate(calc(-50% + var(--sx)), calc(-50% + var(--sy)));
-    }
-}
-@keyframes mt-ichip-merge {
-    from {
-        opacity: 1;
-        transform: translate(calc(-50% + var(--sx)), calc(-50% + var(--sy)));
-    }
-    to {
-        opacity: 0;
-        transform: translate(-50%, -50%) scale(0.5);
-    }
 }
 
 /* ══════════════════════════════════════════════════
