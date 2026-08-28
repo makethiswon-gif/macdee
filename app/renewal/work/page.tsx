@@ -4,7 +4,8 @@ import Reveal from "@/components/renewal/Reveal";
 import CaseStudies from "@/components/renewal/home/CaseStudies";
 import PartnerGroups from "@/components/renewal/PartnerGroups";
 import { CASES } from "@/data/renewal/cases";
-import { PROOF_STATS, PRIMARY_CTA, path } from "@/data/renewal/site";
+import { PROOF_STATS, PRIMARY_CTA, path, absUrl, ogImage } from "@/data/renewal/site";
+import { breadcrumbJsonLd, graph, organizationId } from "@/lib/renewal/schema";
 import { renewalRobots } from "../flags";
 
 // Work.
@@ -16,7 +17,7 @@ import { renewalRobots } from "../flags";
 //    공개 사례는 고객사 동의 범위에서 순차 공개한다는 원칙을 짧게 밝힌다.
 //    경쟁사 사례를 일반화해 깎아내리지 않는다.
 
-const URL = "https://www.makethis1.com/renewal/work";
+const URL = absUrl("/work");
 const TITLE = "Case Study | MAKETHIS1";
 const DESC =
     "무엇을 바꿨고 무엇이 달라졌는지 구조를 공개합니다. 측정된 수치가 확인된 사례부터 순차적으로 등록합니다.";
@@ -26,15 +27,35 @@ export const metadata: Metadata = {
     description: DESC,
     alternates: { canonical: URL },
     robots: renewalRobots(),
-    openGraph: { title: TITLE, description: DESC, url: URL, type: "website", locale: "ko_KR" },
+    openGraph: { title: TITLE, description: DESC, url: URL, type: "website", locale: "ko_KR", images: [ogImage()] },
     twitter: { card: "summary_large_image", title: TITLE, description: DESC },
 };
+
+const jsonLd = graph(
+    {
+        "@type": "CollectionPage",
+        "@id": `${URL}#webpage`,
+        url: URL,
+        name: TITLE,
+        description: DESC,
+        inLanguage: "ko-KR",
+        about: { "@id": organizationId() },
+    },
+    breadcrumbJsonLd([
+        { name: "홈", path: "/" },
+        { name: "Case Study", path: "/work" },
+    ])
+);
 
 export default function Page() {
     const hasCases = CASES.length > 0;
 
     return (
         <>
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
             <section className="pt-[120px] md:pt-[168px] pb-14 md:pb-20">
                 <Container>
                     <Reveal>

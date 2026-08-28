@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Container, Section, Eyebrow, Button, ArrowLink } from "@/components/renewal/primitives";
 import Reveal from "@/components/renewal/Reveal";
-import { COMPANY, PRIMARY_CTA, path } from "@/data/renewal/site";
+import { COMPANY, PRIMARY_CTA, path, absUrl, ogImage } from "@/data/renewal/site";
+import { breadcrumbJsonLd, graph, organizationId } from "@/lib/renewal/schema";
 import { renewalRobots } from "../flags";
 
 // 문의.
@@ -10,7 +11,7 @@ import { renewalRobots } from "../flags";
 // 상담 담당도 두 곳을 봐야 한다. 상세 요청은 전부 /renewal/diagnose 로 보낸다.
 // 여기는 "바로 통화하고 싶은 사람"을 위한 페이지다.
 
-const URL = "https://www.makethis1.com/renewal/contact";
+const URL = absUrl("/contact");
 const TITLE = "문의 | MAKETHIS1";
 const DESC = "로펌 마케팅 관련 문의와 제안 요청을 받습니다. 전화 또는 진단 요청 양식으로 연락 주십시오.";
 
@@ -19,13 +20,33 @@ export const metadata: Metadata = {
     description: DESC,
     alternates: { canonical: URL },
     robots: renewalRobots(),
-    openGraph: { title: TITLE, description: DESC, url: URL, type: "website", locale: "ko_KR" },
+    openGraph: { title: TITLE, description: DESC, url: URL, type: "website", locale: "ko_KR", images: [ogImage()] },
     twitter: { card: "summary_large_image", title: TITLE, description: DESC },
 };
+
+const jsonLd = graph(
+    {
+        "@type": "ContactPage",
+        "@id": `${URL}#webpage`,
+        url: URL,
+        name: TITLE,
+        description: DESC,
+        inLanguage: "ko-KR",
+        about: { "@id": organizationId() },
+    },
+    breadcrumbJsonLd([
+        { name: "홈", path: "/" },
+        { name: "문의", path: "/contact" },
+    ])
+);
 
 export default function Page() {
     return (
         <>
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
             <section className="pt-[120px] md:pt-[168px] pb-14 md:pb-20">
                 <Container>
                     <Reveal>

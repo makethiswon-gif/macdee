@@ -3,7 +3,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { Container, Eyebrow } from "@/components/renewal/primitives";
 import Reveal from "@/components/renewal/Reveal";
 import InsightsIndex, { type InsightListItem } from "@/components/renewal/InsightsIndex";
-import { COMPANY } from "@/data/renewal/site";
+import { COMPANY, ogImage } from "@/data/renewal/site";
 import { renewalRobots } from "../flags";
 
 // INSIGHTS 리스킨 (Phase 8).
@@ -34,6 +34,7 @@ export const metadata: Metadata = {
         type: "website",
         locale: "ko_KR",
         siteName: COMPANY.brand,
+        images: [ogImage()],
     },
 };
 

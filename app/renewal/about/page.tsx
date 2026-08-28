@@ -3,7 +3,8 @@ import Image from "next/image";
 import { Container, Section, SectionHeader, Eyebrow, Button } from "@/components/renewal/primitives";
 import Reveal from "@/components/renewal/Reveal";
 import Founder from "@/components/renewal/Founder";
-import { TEAM, DISCIPLINES, COMPANY, PROOF_STATS, PRIMARY_CTA, path } from "@/data/renewal/site";
+import { TEAM, DISCIPLINES, COMPANY, FOUNDER, PROOF_STATS, PRIMARY_CTA, path, absUrl, ogImage } from "@/data/renewal/site";
+import { breadcrumbJsonLd, graph, organizationId } from "@/lib/renewal/schema";
 import { renewalRobots } from "../flags";
 
 // 회사 · 팀.
@@ -14,7 +15,7 @@ import { renewalRobots } from "../flags";
 // 운영 정책(온보딩 기간, 회의 주기, 검수 절차, 이해상충 정책 등)은
 // 아직 확정되지 않았으므로 이 페이지에 쓰지 않는다. 확정 후 추가한다.
 
-const URL = "https://www.makethis1.com/renewal/about";
+const URL = absUrl("/about");
 const TITLE = "회사 소개 · 팀 | MAKETHIS1";
 const DESC =
     "법률·콘텐츠·광고·검색을 아는 사람들이 하나의 팀으로 움직입니다. 기자와 방송작가가 쓰고, 법학 전공자가 검수합니다.";
@@ -24,13 +25,50 @@ export const metadata: Metadata = {
     description: DESC,
     alternates: { canonical: URL },
     robots: renewalRobots(),
-    openGraph: { title: TITLE, description: DESC, url: URL, type: "website", locale: "ko_KR" },
+    openGraph: { title: TITLE, description: DESC, url: URL, type: "website", locale: "ko_KR", images: [ogImage()] },
     twitter: { card: "summary_large_image", title: TITLE, description: DESC },
 };
+
+// AboutPage + 실재 구성원. 홈의 Organization 을 @id 로 참조하되,
+// 팀 구성(founder·employee)은 이 페이지가 근거 화면이므로 여기서 붙인다.
+// 전원 /makethisone 에 이미 공개된 사람들이다 — 새 인물을 만들지 않는다(§42).
+const jsonLd = graph(
+    {
+        "@type": "AboutPage",
+        "@id": `${URL}#webpage`,
+        url: URL,
+        name: TITLE,
+        description: DESC,
+        inLanguage: "ko-KR",
+        about: { "@id": organizationId() },
+    },
+    {
+        "@type": "Organization",
+        "@id": organizationId(),
+        name: COMPANY.brand,
+        legalName: COMPANY.legalName,
+        url: COMPANY.site,
+        founder: { "@type": "Person", name: FOUNDER.name, jobTitle: FOUNDER.role },
+        employee: TEAM.map((m) => ({
+            "@type": "Person",
+            name: m.name,
+            jobTitle: m.role,
+            description: m.background,
+        })),
+    },
+    breadcrumbJsonLd([
+        { name: "홈", path: "/" },
+        { name: "회사 소개", path: "/about" },
+    ])
+);
 
 export default function Page() {
     return (
         <>
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
             <section className="pt-[120px] md:pt-[168px] pb-14 md:pb-20">
                 <Container>
                     <Reveal>

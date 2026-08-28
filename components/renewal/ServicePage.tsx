@@ -236,6 +236,27 @@ export function serviceJsonLd(service: ServiceContent, url: string) {
                     acceptedAnswer: { "@type": "Answer", text: f.a },
                 })),
             },
+            // 화면의 breadcrumb nav 와 동일한 경로. url 에서 잘라내므로
+            // 데모(/renewal/*)와 최종(/*) 어느 쪽에서도 맞는다.
+            {
+                "@type": "BreadcrumbList",
+                "@id": `${url}#breadcrumb`,
+                itemListElement: [
+                    {
+                        "@type": "ListItem",
+                        position: 1,
+                        name: "홈",
+                        item: url.replace(/\/[^/]+$/, "") || url,
+                    },
+                    {
+                        "@type": "ListItem",
+                        position: 2,
+                        name: "로펌 통합 마케팅",
+                        item: `${url.replace(/\/[^/]+$/, "")}/lawfirm-marketing`,
+                    },
+                    { "@type": "ListItem", position: 3, name: service.metaTitle, item: url },
+                ],
+            },
         ],
     };
 }

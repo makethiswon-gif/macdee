@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Container, Section, Eyebrow, Button } from "@/components/renewal/primitives";
 import Reveal from "@/components/renewal/Reveal";
 import DiagnoseForm from "@/components/renewal/DiagnoseForm";
+import { absUrl, ogImage } from "@/data/renewal/site";
+import { breadcrumbJsonLd, graph, organizationId } from "@/lib/renewal/schema";
 import { renewalRobots } from "../flags";
 
 // P0-1 — 리뉴얼의 메인 CTA 목적지.
@@ -11,7 +13,7 @@ import { renewalRobots } from "../flags";
 // 여기는 사람이 광고·검색·홈페이지 구조를 보고 회신하는 요청 창구다.
 // 자동·즉시·무료를 앞세우지 않는다.
 
-const URL = "https://www.makethis1.com/renewal/diagnose";
+const URL = absUrl("/diagnose");
 const TITLE = "로펌 마케팅 구조 진단 | MAKETHIS1";
 const DESC =
     "현재 운영 중인 광고, 블로그, 홈페이지를 함께 분석해 어디에서 고객이 빠져나가고 있는지 먼저 확인합니다.";
@@ -21,7 +23,7 @@ export const metadata: Metadata = {
     description: DESC,
     alternates: { canonical: URL },
     robots: renewalRobots(),
-    openGraph: { title: TITLE, description: DESC, url: URL, type: "website", locale: "ko_KR" },
+    openGraph: { title: TITLE, description: DESC, url: URL, type: "website", locale: "ko_KR", images: [ogImage()] },
     twitter: { card: "summary_large_image", title: TITLE, description: DESC },
 };
 
@@ -48,9 +50,29 @@ const WHAT_WE_LOOK_AT = [
     },
 ];
 
+const jsonLd = graph(
+    {
+        "@type": "ContactPage",
+        "@id": `${URL}#webpage`,
+        url: URL,
+        name: TITLE,
+        description: DESC,
+        inLanguage: "ko-KR",
+        about: { "@id": organizationId() },
+    },
+    breadcrumbJsonLd([
+        { name: "홈", path: "/" },
+        { name: "마케팅 진단", path: "/diagnose" },
+    ])
+);
+
 export default function Page() {
     return (
         <>
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
             <section className="pt-[120px] md:pt-[168px] pb-14 md:pb-20">
                 <Container>
                     <Reveal>

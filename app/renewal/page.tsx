@@ -15,12 +15,12 @@ import InsightsPreview, { type InsightItem } from "@/components/renewal/home/Ins
 import FinalCTA from "@/components/renewal/home/FinalCTA";
 
 import { CASES } from "@/data/renewal/cases";
-import { COMPANY, FOUNDER } from "@/data/renewal/site";
+import { COMPANY, FOUNDER, absUrl, ogImage } from "@/data/renewal/site";
 import { renewalRobots } from "./flags";
 
 export const revalidate = 600;
 
-const URL = "https://www.makethis1.com/renewal";
+const URL = absUrl("/");
 const TITLE = "로펌 마케팅, 여기서 끝냅니다 | MAKETHIS1";
 const DESCRIPTION =
     "네이버 파워링크부터 Google Ads, 네이버 블로그와 홈페이지, SEO·GEO, AI 검색과 " +
@@ -39,6 +39,7 @@ export const metadata: Metadata = {
         type: "website",
         locale: "ko_KR",
         siteName: COMPANY.brand,
+        images: [ogImage()],
     },
     twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
 };

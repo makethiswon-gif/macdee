@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Container, Section, SectionHeader, Eyebrow, Button } from "@/components/renewal/primitives";
 import Reveal from "@/components/renewal/Reveal";
-import { CHANNELS, SYSTEM_STEPS, PRIMARY_CTA, path } from "@/data/renewal/site";
+import { CHANNELS, SYSTEM_STEPS, PRIMARY_CTA, path, absUrl, ogImage } from "@/data/renewal/site";
+import { breadcrumbJsonLd, graph, organizationId } from "@/lib/renewal/schema";
 import { renewalRobots } from "../flags";
 
 // WHAT WE DO 허브. 6개 영역으로 들어가는 입구이자, 홈의 #system 을 대신 받는 곳.
 
-const URL = "https://www.makethis1.com/renewal/lawfirm-marketing";
+const URL = absUrl("/lawfirm-marketing");
 const TITLE = "로펌 통합 마케팅 | MAKETHIS1";
 const DESC =
     "광고·검색·콘텐츠·홈페이지를 각각 다른 업체에 맡기지 않습니다. 하나의 전략과 하나의 예산으로 발견부터 수임까지 운영합니다.";
@@ -17,13 +18,44 @@ export const metadata: Metadata = {
     description: DESC,
     alternates: { canonical: URL },
     robots: renewalRobots(),
-    openGraph: { title: TITLE, description: DESC, url: URL, type: "website", locale: "ko_KR" },
+    openGraph: { title: TITLE, description: DESC, url: URL, type: "website", locale: "ko_KR", images: [ogImage()] },
     twitter: { card: "summary_large_image", title: TITLE, description: DESC },
 };
+
+// WHAT WE DO 허브 — 6개 서비스로 들어가는 목차이므로 ItemList 를 붙인다.
+const jsonLd = graph(
+    {
+        "@type": "CollectionPage",
+        "@id": `${URL}#webpage`,
+        url: URL,
+        name: TITLE,
+        description: DESC,
+        inLanguage: "ko-KR",
+        about: { "@id": organizationId() },
+    },
+    {
+        "@type": "ItemList",
+        "@id": `${URL}#services`,
+        itemListElement: CHANNELS.map((c, i) => ({
+            "@type": "ListItem",
+            position: i + 1,
+            name: c.title,
+            url: absUrl(c.href),
+        })),
+    },
+    breadcrumbJsonLd([
+        { name: "홈", path: "/" },
+        { name: "로펌 통합 마케팅", path: "/lawfirm-marketing" },
+    ])
+);
 
 export default function Page() {
     return (
         <>
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
             <section className="pt-[120px] md:pt-[168px] pb-14 md:pb-20">
                 <Container>
                     <Reveal>

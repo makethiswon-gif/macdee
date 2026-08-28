@@ -20,10 +20,37 @@ export function path(p: string): string {
     const base = hash === -1 ? p : p.slice(0, hash);
     const frag = hash === -1 ? "" : p.slice(hash);
 
-    // 라이브 페이지(매거진 등)는 데모에서도 실제 URL을 그대로 쓴다
+    // 라이브 페이지(약관 등)는 데모에서도 실제 URL을 그대로 쓴다
     if (LIVE_PATHS.some((l) => base === l || base.startsWith(l + "/"))) return base + frag;
 
-    return `${DEMO_BASE}${base === "/" ? "" : base}${frag}`;
+    // 교체 후(DEMO_BASE="")에는 path("/") 가 빈 문자열이 된다.
+    // href="" 는 현재 페이지를 가리키므로 "/" 로 보정한다.
+    return `${DEMO_BASE}${base === "/" ? "" : base}${frag}` || "/";
+}
+
+/* ═══════════════ canonical / OG 절대 URL ═══════════════
+   메타데이터의 canonical·og:url 은 전부 이 함수를 거친다.
+   데모 기간에는 /renewal 이 붙은 자기 URL, 교체 후에는 최종 URL 이 된다 —
+   교체 작업이 "DEMO_BASE 를 '' 로 바꾼다" 하나로 정리되도록.
+   (매거진은 예외 — 라이브 카운터파트가 있어 항상 최종 URL 을 하드코딩한다.) */
+
+export const SITE_BASE = "https://www.makethis1.com";
+
+export function absUrl(p: string): string {
+    const rel = path(p);
+    return `${SITE_BASE}${rel === "/" ? "" : rel}`;
+}
+
+/** 공용 OG 이미지 — app/renewal/og.png 라우트가 코드로 그린다.
+    파일 컨벤션(opengraph-image)을 쓰지 않는 이유는 그 라우트 주석 참고.
+    매거진 상세처럼 자체 커버가 있는 페이지는 이걸 쓰지 않는다. */
+export function ogImage() {
+    return {
+        url: absUrl("/og.png"),
+        width: 1200,
+        height: 630,
+        alt: "MAKETHIS1 — 로펌 마케팅 통합 운영",
+    };
 }
 
 // 데모 안에서도 실제 URL 을 그대로 써야 하는 라이브 페이지.

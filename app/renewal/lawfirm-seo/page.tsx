@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import ServicePage, { serviceJsonLd } from "@/components/renewal/ServicePage";
 import { getService } from "@/data/renewal/services";
+import { absUrl, ogImage } from "@/data/renewal/site";
 import { renewalRobots } from "../flags";
 
 const SLUG = "lawfirm-seo";
-const URL = `https://www.makethis1.com/renewal/${SLUG}`;
+const URL = absUrl(`/${SLUG}`);
 const service = getService(SLUG)!;
 
 export const metadata: Metadata = {
@@ -18,6 +19,7 @@ export const metadata: Metadata = {
         url: URL,
         type: "website",
         locale: "ko_KR",
+        images: [ogImage()],
     },
     twitter: {
         card: "summary_large_image",

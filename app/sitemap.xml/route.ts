@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { isPublicLawyerSlug } from "@/lib/public-content";
+import { DEMO_BASE } from "@/data/renewal/site";
 
 // 빌드 시점 고정 방지 — 1시간마다 재생성(ISR)해 새 글이 재배포 없이 sitemap에 반영되도록.
 export const revalidate = 3600;
@@ -70,13 +71,47 @@ export async function GET() {
         <changefreq>daily</changefreq>
         <priority>0.9</priority>
     </url>
-    <url>
+    `;
+
+        // ── 리뉴얼 교체 스위치 ──
+        // DEMO_BASE 가 "" 가 되는 순간(=교체):
+        //   /makethisone 제거(→ / 301), 신규 마케팅 페이지들이 등재된다.
+        // 데모 기간에는 이 블록이 기존 출력과 완전히 동일하게 동작한다.
+        // ⚠️ /renewal 경로는 어떤 경우에도 여기 넣지 않는다(RENEWAL_PLAN §6.1).
+        const swapped = DEMO_BASE === "";
+        if (!swapped) {
+            xml += `<url>
         <loc>${baseUrl}/makethisone</loc>
         <lastmod>${new Date(aboutLastmod).toISOString()}</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.95</priority>
     </url>
     `;
+        } else {
+            // 실제로 존재하는 페이지만. /google-ads 는 별도 페이지가 없다 —
+            // Paid Media 가 /naver-ads 하나로 네이버·구글 광고를 함께 다룬다.
+            const marketingPages = [
+                "/lawfirm-marketing",
+                "/naver-ads",
+                "/lawfirm-seo",
+                "/geo",
+                "/lawfirm-blog",
+                "/lawfirm-website",
+                "/conversion",
+                "/work",
+                "/contact",
+                "/diagnose",
+            ];
+            for (const p of marketingPages) {
+                xml += `<url>
+        <loc>${baseUrl}${p}</loc>
+        <lastmod>${new Date(aboutLastmod).toISOString()}</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.85</priority>
+    </url>
+    `;
+            }
+        }
 
         // Lawyer blog listing pages (/blog/[lawyer-slug]) — high priority entry points
         for (const lawyer of lawyers || []) {
