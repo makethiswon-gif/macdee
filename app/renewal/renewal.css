@@ -1205,6 +1205,169 @@ html.mt-js .mt-root .mt-pstamp {
 }
 
 /* ══════════════════════════════════════════════════
+   CLIENT PORTAL — /portal
+   같은 디자인 언어(잉크·세리프·모노·파란 실)로 앱 표면만 추가한다.
+   ══════════════════════════════════════════════════ */
+
+.mt-root .pt-card {
+    background: var(--mt-surface);
+    border: 1px solid var(--mt-line);
+    border-radius: 2px;
+}
+.mt-root .pt-tab {
+    position: relative;
+    padding: 14px 2px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--mt-gray);
+    cursor: pointer;
+    background: none;
+    border: none;
+}
+.mt-root .pt-tab[aria-selected="true"] {
+    color: var(--mt-ink);
+}
+.mt-root .pt-tab::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 2px;
+    background: var(--mt-accent);
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform var(--mt-t-micro) var(--mt-ease);
+}
+.mt-root .pt-tab[aria-selected="true"]::after {
+    transform: scaleX(1);
+}
+
+.mt-root .pt-pill {
+    display: inline-block;
+    padding: 3px 8px 2px;
+    font-size: 10.5px;
+    font-weight: 500;
+    border-radius: 2px;
+    border: 1px solid var(--mt-line-strong);
+    color: var(--mt-gray);
+    white-space: nowrap;
+}
+.mt-root .pt-pill-blue {
+    border-color: var(--mt-accent);
+    color: var(--mt-accent);
+}
+.mt-root .pt-pill-ink {
+    border-color: var(--mt-ink);
+    color: var(--mt-ink);
+}
+
+.mt-root .pt-input,
+.mt-root .pt-textarea,
+.mt-root .pt-select {
+    width: 100%;
+    background: var(--mt-surface);
+    border: 1px solid var(--mt-line-strong);
+    border-radius: 2px;
+    padding: 11px 14px;
+    font-size: 14px;
+    color: var(--mt-ink);
+}
+.mt-root .pt-textarea {
+    min-height: 140px;
+    line-height: 1.7;
+    resize: vertical;
+}
+.mt-root .pt-input:focus,
+.mt-root .pt-textarea:focus,
+.mt-root .pt-select:focus {
+    outline: 2px solid var(--mt-accent);
+    outline-offset: 1px;
+}
+
+.mt-root .pt-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 44px;
+    padding: 0 20px;
+    font-size: 13.5px;
+    font-weight: 500;
+    border-radius: 2px;
+    border: 1px solid var(--mt-ink);
+    background: var(--mt-ink);
+    color: var(--mt-bg);
+    cursor: pointer;
+    transition: opacity var(--mt-t-micro) linear;
+}
+.mt-root .pt-btn:hover {
+    opacity: 0.85;
+}
+.mt-root .pt-btn:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+.mt-root .pt-btn-ghost {
+    background: transparent;
+    color: var(--mt-ink);
+    border-color: var(--mt-line-strong);
+}
+.mt-root .pt-btn-ghost:hover {
+    opacity: 1;
+    border-color: var(--mt-ink);
+}
+
+/* 메시지 버블 */
+.mt-root .pt-msg {
+    max-width: 78%;
+    padding: 10px 14px;
+    border-radius: 2px;
+    font-size: 13.5px;
+    line-height: 1.7;
+    border: 1px solid var(--mt-line);
+    background: var(--mt-surface);
+}
+.mt-root .pt-msg-admin {
+    border-color: var(--mt-accent);
+    background: rgba(53, 99, 174, 0.05);
+}
+
+/* 로딩 점 — 파란 실 언어의 최소 스피너 */
+@keyframes pt-blink {
+    0%, 100% { opacity: 0.25; }
+    50% { opacity: 1; }
+}
+.mt-root .pt-dots span {
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    margin: 0 2px;
+    border-radius: 50%;
+    background: var(--mt-accent);
+    animation: pt-blink 1s ease infinite;
+}
+.mt-root .pt-dots span:nth-child(2) { animation-delay: 0.15s; }
+.mt-root .pt-dots span:nth-child(3) { animation-delay: 0.3s; }
+
+.mt-root .pt-code {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11.5px;
+    line-height: 1.7;
+    background: var(--mt-surface);
+    border: 1px solid var(--mt-line);
+    border-radius: 2px;
+    padding: 16px;
+    overflow-x: auto;
+    white-space: pre;
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+/* ══════════════════════════════════════════════════
    ARTICLE PROSE — /renewal/magazine/[slug] 본문
    마크다운 렌더러(lib/renewal/markdown.ts)는 시맨틱 태그만 내보낸다.
    스타일은 전부 여기서. 다크 테마 잔재 없이 editorial 라이트로.

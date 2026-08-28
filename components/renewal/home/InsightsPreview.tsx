@@ -44,7 +44,7 @@ function Meta({ item, accent = false }: { item: InsightItem; accent?: boolean })
     );
 }
 
-export default function InsightsPreview({ items }: { items: InsightItem[] }) {
+export default function InsightsPreview({ items, total }: { items: InsightItem[]; total?: number }) {
     if (!items.length) return null;
 
     const [lead, ...rest] = items;
@@ -56,6 +56,15 @@ export default function InsightsPreview({ items }: { items: InsightItem[] }) {
                     <div>
                         <div className="flex items-center gap-3 mb-6">
                             <Eyebrow>Insights</Eyebrow>
+                            {/* 규모 신호 — DB 실측값이라 항상 참(§42) */}
+                            {typeof total === "number" && total > 0 && (
+                                <>
+                                    <span className="w-6 h-px" style={{ background: "var(--mt-line-strong)" }} />
+                                    <span className="mt-en mt-label mt-num" style={{ color: "var(--mt-accent)" }}>
+                                        발행 {total}편
+                                    </span>
+                                </>
+                            )}
                         </div>
                         <Reveal variant="mask">
                             <h2 className="mt-h2">대격변의 시대, 변화의 흐름을 메이크디스원이 설명드립니다.</h2>

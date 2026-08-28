@@ -122,16 +122,18 @@ const jsonLd = {
 export default async function RenewalHome() {
     // 실제 매거진을 그대로 읽는다. 데모라고 가짜 글을 만들지 않는다.
     let insights: InsightItem[] = [];
+    let insightsTotal = 0;
     try {
         const supabase = createServiceClient();
-        const { data } = await supabase
+        const { data, count } = await supabase
             .from("magazines")
-            .select("id, title, slug, excerpt, category, published_at")
+            .select("id, title, slug, excerpt, category, published_at", { count: "exact" })
             .eq("status", "published")
             .order("published_at", { ascending: false, nullsFirst: false })
             .order("created_at", { ascending: false })
             .limit(3);
         insights = data || [];
+        insightsTotal = count ?? 0;
     } catch {
         // DB가 안 붙어도 데모 화면은 떠야 한다. 섹션만 조용히 빠진다.
         insights = [];
@@ -165,7 +167,7 @@ export default async function RenewalHome() {
             <CaseStudies cases={CASES} />
             <InvariantClause />
             <WhyMakethis1 />
-            <InsightsPreview items={insights} />
+            <InsightsPreview items={insights} total={insightsTotal} />
             <FinalCTA />
         </>
     );

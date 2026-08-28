@@ -113,6 +113,15 @@ export default function ContractScope() {
                                 항목입니다. 하는 것과 하겠다는 것을 구분해 적습니다.
                             </p>
 
+                            {/* 변호사 광고의 특수성 — 일반 대행사와 갈라지는 지점 */}
+                            <p
+                                className="mt-pi mt-3 text-[13px] font-medium"
+                                style={{ color: "var(--mt-ink)", ["--a" as string]: 0.9, ["--o0" as string]: 0.4 }}
+                            >
+                                위 모든 광고와 콘텐츠는 변호사법과 대한변호사협회 광고 규정 안에서
+                                집행합니다. 법률 표현 검수는 법학 전공자가 합니다.
+                            </p>
+
                             {/* 모든 별지가 완성된 뒤 활성화되는 CTA — 클릭은 항상 가능 */}
                             <div
                                 className="mt-pi mt-6"
