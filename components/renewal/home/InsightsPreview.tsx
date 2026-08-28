@@ -58,7 +58,7 @@ export default function InsightsPreview({ items }: { items: InsightItem[] }) {
                             <Eyebrow>Insights</Eyebrow>
                         </div>
                         <Reveal variant="mask">
-                            <h2 className="mt-h2">검색과 광고가 어떻게 움직이는지 계속 봅니다.</h2>
+                            <h2 className="mt-h2">대격변의 시대, 변화의 흐름을 맥디가 설명드립니다.</h2>
                         </Reveal>
                     </div>
                     <Reveal variant="rise" index={1}>

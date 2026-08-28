@@ -27,7 +27,7 @@ export default function ClientJourney() {
                             사건을 맡기기까지.
                         </>
                     }
-                    lead="우리가 관리하는 것은 광고가 아니라 이 여정 전체입니다. 단계마다 다른 업체가 맡으면 사이가 비고, 그 사이에서 의뢰인이 사라집니다."
+                    lead="우리가 관리하는 것은 의뢰인이 로펌을 찾는 모든 과정입니다."
                 />
 
                 <ol className="mt-14 md:mt-20 grid grid-cols-1 lg:grid-cols-3 gap-x-10 gap-y-12">
