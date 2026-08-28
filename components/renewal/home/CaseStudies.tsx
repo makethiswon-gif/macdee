@@ -109,6 +109,41 @@ export default function CaseStudies({ cases }: { cases: CaseStudy[] }) {
                                     </div>
                                 </div>
 
+                                {/* 어떻게 매출로 이어졌나 — 파란 실을 따라가는 성장 경로 */}
+                                {c.growth && c.growth.length > 0 && (
+                                    <div className="mt-12 md:mt-14">
+                                        <p className="mt-en mt-label mb-7" style={{ color: "var(--mt-gray)" }}>
+                                            Growth Path — 어떻게 매출로 이어졌나
+                                        </p>
+                                        <ol className="relative pl-7">
+                                            <span
+                                                aria-hidden
+                                                className="absolute left-[3px] top-2 bottom-3 w-px"
+                                                style={{ background: "var(--mt-accent)", opacity: 0.45 }}
+                                            />
+                                            {c.growth.map((g, gi) => (
+                                                <Reveal key={g.en} as="li" index={gi} className="relative pb-9 last:pb-0">
+                                                    <span
+                                                        aria-hidden
+                                                        className="absolute -left-7 top-[5px] w-[7px] h-[7px] rounded-full"
+                                                        style={{
+                                                            background: "var(--mt-accent)",
+                                                            boxShadow: "0 0 0 3px rgba(53,99,174,0.14)",
+                                                        }}
+                                                    />
+                                                    <p className="mt-en text-[9.5px] font-medium" style={{ color: "var(--mt-accent)" }}>
+                                                        {g.en}
+                                                    </p>
+                                                    <h4 className="mt-2 text-[15.5px] font-semibold" style={{ color: "var(--mt-ink)" }}>
+                                                        {g.title}
+                                                    </h4>
+                                                    <p className="mt-body mt-2 text-[13.5px] max-w-[64ch]">{g.desc}</p>
+                                                </Reveal>
+                                            ))}
+                                        </ol>
+                                    </div>
+                                )}
+
                                 {c.note && (
                                     <p
                                         className="mt-10 text-[12.5px] leading-relaxed max-w-[72ch]"
