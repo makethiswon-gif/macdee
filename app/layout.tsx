@@ -85,8 +85,11 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // suppressHydrationWarning: 리뉴얼/포털의 프리페인트 스크립트가 html 에
+  // mt-js·data-intro 를 붙인다(테마 스크립트와 같은 표준 패턴). 이 속성 차이로
+  // dev 하이드레이션 경고가 뜨는 것을 막는다 — 렌더 동작에는 영향 없음.
   return (
-    <html lang="ko">
+    <html lang="ko" suppressHydrationWarning>
       <body className="antialiased">
         {children}
         <Toaster

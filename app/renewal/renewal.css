@@ -400,13 +400,55 @@ html.mt-js .mt-root [data-reveal="scale"][data-in="1"] {
     }
 }
 
-/* ── 인트로 레이어: play 중에만 존재 ── */
+/* ── 인트로 레이어: 독립 풀스크린 인트로 화면 ──
+   play 중에만 존재하는 불투명 오버레이. 아래의 홈페이지는 처음부터
+   완성 상태로 렌더되고, 인트로가 페이드아웃되면 그대로 드러난다. */
 .mt-root .mt-intro-layer {
     display: none;
-    z-index: 10;
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: var(--mt-bg);
 }
 html[data-intro="play"] .mt-root .mt-intro-layer {
     display: block;
+    animation: mt-intro-fade calc(0.6s * var(--iT)) var(--mt-ease) calc(2.8s * var(--iT)) forwards;
+}
+@keyframes mt-intro-fade {
+    to {
+        opacity: 0;
+        visibility: hidden;
+    }
+}
+
+/* 인트로 중앙 계약서 */
+.mt-root .mt-icontract {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: min(320px, 84vw);
+    background: var(--mt-surface);
+    border: 1px solid var(--mt-line-strong);
+    border-radius: 2px;
+    padding: 22px 22px 16px;
+    box-shadow:
+        0 18px 40px -18px rgba(14, 17, 22, 0.18),
+        0 2px 6px rgba(14, 17, 22, 0.05);
+    opacity: 0;
+}
+html[data-intro="play"] .mt-root .mt-icontract {
+    animation: mt-icontract-in calc(0.3s * var(--iT)) var(--mt-ease-system) calc(1.55s * var(--iT)) both;
+}
+@keyframes mt-icontract-in {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -46%) scale(0.94);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
 }
 /* 혹시 play 가 붙은 채 reduced-motion 이면 레이어 자체를 없앤다(이중 안전장치 —
    전역 reduce 규칙이 애니메이션을 즉시 종료시키지만 잔상도 남기지 않는다) */
@@ -469,87 +511,9 @@ html[data-intro="play"] .mt-root .mt-intro-layer {
     filter: blur(1.5px);
 }
 
-/* ══════════ PLAY 타임라인 ══════════ */
-
-/* 좌측 카피 — 계약서가 정착한 뒤 왼쪽에서 들어온다 (2.7s~) */
-html[data-intro="play"] .mt-root .mt-hero-copy .mt-hero-in {
-    animation-name: mt-intro-hero-in;
-    animation-duration: 0.45s;
-    animation-timing-function: var(--mt-ease);
-    animation-fill-mode: both;
-    animation-delay: calc(2.7s * var(--iT) + var(--mt-hero-delay, 0ms) * 0.6);
-}
-@keyframes mt-intro-hero-in {
-    from {
-        opacity: 0;
-        transform: translateX(-18px);
-    }
-    to {
-        opacity: 1;
-        transform: none;
-    }
-}
-/* 좌측 취소선도 카피 등장 이후로 미룬다 */
-html[data-intro="play"] .mt-root .mt-hero-copy .mt-strike::after {
-    animation-delay: calc(2.95s * var(--iT) + var(--strike-delay, 0ms) * 0.25);
-}
-/* 하단 수치도 인트로가 끝난 뒤 */
-html[data-intro="play"] .mt-root .mt-hero-stats [data-reveal] {
-    transition-delay: calc(2.9s * var(--iT)) !important;
-}
-
-/* 계약서 — 조립(1.6s) 후 우측 정착(2.7s). 모바일은 제자리 등장만 */
-html[data-intro="play"] .mt-root .mt-contract {
-    animation: mt-contract-in-m calc(0.3s * var(--iT)) var(--mt-ease-system) calc(1.6s * var(--iT)) both;
-}
-@media (min-width: 1024px) {
-    html[data-intro="play"] .mt-root .mt-contract {
-        animation:
-            mt-contract-in calc(0.3s * var(--iT)) var(--mt-ease-system) calc(1.6s * var(--iT)) both,
-            mt-contract-settle calc(0.32s * var(--iT)) var(--mt-ease) calc(2.7s * var(--iT)) both;
-    }
-}
-@keyframes mt-contract-in-m {
-    from {
-        opacity: 0;
-        transform: translateY(10px) scale(0.96);
-    }
-    to {
-        opacity: 1;
-        transform: none;
-    }
-}
-@keyframes mt-contract-in {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
-}
-@keyframes mt-contract-settle {
-    from {
-        transform: translateX(-24%) scale(0.98);
-    }
-    to {
-        transform: none;
-    }
-}
-
-/* 계약서 6개 영역 행 — 조립되며 순서대로 */
-html[data-intro="play"] .mt-root .mt-contract-row {
-    animation: mt-crow-in calc(0.22s * var(--iT)) var(--mt-ease) calc((1.72s + var(--i) * 0.06s) * var(--iT)) both;
-}
-@keyframes mt-crow-in {
-    from {
-        opacity: 0;
-        transform: translateY(6px);
-    }
-    to {
-        opacity: 1;
-        transform: none;
-    }
-}
+/* ══════════ PLAY 타임라인 ══════════
+   페이지 본문(히어로 카피·계약서 카드)은 인트로와 무관하게 항상 완성 상태다.
+   아래 규칙은 전부 오버레이 내부 요소에만 적용된다. */
 
 /* 직인 — 스케일 반동으로 찍히고 잉크가 번진다 (2.05s) */
 html[data-intro="play"] .mt-root .mt-stamp-blue {
@@ -592,7 +556,7 @@ html[data-intro="play"] .mt-root .mt-stamp-blue::after {
 .mt-root .mt-icard {
     position: absolute;
     left: 50%;
-    top: 46%;
+    top: 50%;
     width: 204px;
     margin: -42px 0 0 -102px;
     padding: 13px 16px;

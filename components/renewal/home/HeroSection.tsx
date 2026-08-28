@@ -176,8 +176,9 @@ export default function HeroSection() {
                         </Reveal>
                     </div>
 
-                    {/* ── 인트로 오버레이 — play 중에만 존재. 레이아웃에 관여하지 않는다 ── */}
-                    <div className="mt-intro-layer absolute inset-0 pointer-events-none select-none" aria-hidden="true">
+                    {/* ── 인트로 화면 — 독립 풀스크린 오버레이(play 중에만).
+                        끝나거나 스킵하면 페이드아웃되고, 완성된 홈페이지가 드러난다 ── */}
+                    <div className="mt-intro-layer mt-grid-bg pointer-events-none select-none" aria-hidden="true">
                         {/* 데스크톱: 업체 카드 5장 */}
                         <div className="hidden lg:block absolute inset-0">
                             {INTRO_CARDS.map((c, i) => (
@@ -219,7 +220,7 @@ export default function HeroSection() {
                                         x1={p.x}
                                         y1={p.y}
                                         x2="50"
-                                        y2="46"
+                                        y2="50"
                                         stroke="var(--mt-accent)"
                                         strokeWidth="1"
                                         vectorEffect="non-scaling-stroke"
@@ -230,7 +231,7 @@ export default function HeroSection() {
                             </svg>
 
                             {/* 중앙 질문 (0~1.4s) */}
-                            <div className="mt-iquestion absolute left-1/2 top-[46%] -translate-x-1/2 -translate-y-1/2 text-center w-[min(560px,80%)]">
+                            <div className="mt-iquestion absolute left-1/2 top-[34%] -translate-x-1/2 -translate-y-1/2 text-center w-[min(560px,80%)]">
                                 <p className="mt-serif font-semibold text-[clamp(1.4rem,2.4vw,1.9rem)] leading-[1.5]" style={{ color: "var(--mt-ink)" }}>
                                     이 모든 업체를
                                     <br />
@@ -238,8 +239,8 @@ export default function HeroSection() {
                                 </p>
                             </div>
 
-                            {/* 핵심 선언 (1.95~2.65s) */}
-                            <div className="mt-istatement absolute left-1/2 top-[46%] -translate-x-1/2 -translate-y-1/2 text-center w-[min(720px,88%)]">
+                            {/* 핵심 선언 (1.95~2.65s) — 계약서 아래 */}
+                            <div className="mt-istatement absolute left-1/2 top-[82%] -translate-x-1/2 -translate-y-1/2 text-center w-[min(720px,88%)]">
                                 <p className="mt-serif font-bold text-[clamp(1.7rem,3vw,2.5rem)] leading-[1.4]" style={{ color: "var(--mt-ink)" }}>
                                     여러 업체를 관리하는 일,
                                     <br />이 계약으로 끝납니다.
@@ -266,6 +267,40 @@ export default function HeroSection() {
                                     {k}
                                 </span>
                             ))}
+                        </div>
+
+                        {/* 중앙 계약서 — 수렴의 종착점. 직인이 여기 찍힌다 */}
+                        <div className="mt-icontract">
+                            <p className="mt-en mt-label" style={{ color: "var(--mt-accent)" }}>
+                                One Contract
+                            </p>
+                            <ul className="mt-3">
+                                {CONTRACT_SCOPE.map((a) => (
+                                    <li
+                                        key={a.en}
+                                        className="mt-en flex items-baseline justify-between text-[10px] font-medium py-[6px]"
+                                        style={{ borderTop: "1px solid var(--mt-line)", color: "var(--mt-ink)" }}
+                                    >
+                                        {a.en}
+                                        <span className="mt-num text-[8.5px]" style={{ color: "var(--mt-gray-light)" }}>
+                                            {a.no.replace("별지 ", "")}
+                                        </span>
+                                    </li>
+                                ))}
+                            </ul>
+                            <div
+                                className="mt-3 pt-3 flex items-end justify-between"
+                                style={{ borderTop: "1px solid var(--mt-line-strong)" }}
+                            >
+                                <Logo size={12} />
+                                <span className="mt-stamp-blue" style={{ width: 82, height: 82, fontSize: 7.5 }}>
+                                    ONE CONTRACT
+                                    <br />
+                                    ONE TEAM
+                                    <br />
+                                    MAKETHIS1
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>
