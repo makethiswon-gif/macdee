@@ -331,6 +331,33 @@ components/renewal/
 | GSC | 신규 sitemap 제출 + 주요 URL 색인 요청 |
 | 네이버 | 서치어드바이저 재수집 요청 |
 
+### 6.2.1 교체 실행 순서 (2026-08-28 준비 완료 상태 기준)
+
+Phase 11 에서 canonical·og:url·sitemap 이 전부 `DEMO_BASE` 스위치에 걸려 있으므로
+교체는 아래 순서로 진행한다:
+
+1. **`DEMO_BASE = ""`** (`data/renewal/site.ts`) — 내부 링크·canonical·og:url·sitemap
+   (신규 페이지 등재 + /makethisone 제거)이 일괄 전환된다.
+2. **디렉터리 이동** — 컴포넌트 무수정, 경로만:
+   - `app/renewal/page.tsx` → `app/page.tsx` (기존 홈 + `HomePageClient.tsx` 는 `_legacy/` 보관)
+   - `about` `contact` `work` `lawfirm-marketing` `naver-ads` `lawfirm-seo` `geo`
+     `lawfirm-blog` `lawfirm-website` `conversion` → 각 `app/<slug>/`
+   - `magazine`, `magazine/[slug]` → `app/magazine/` 대체 (기존 파일 `_legacy/`)
+   - `og.png` → `app/og.png` (API `/api/renewal/diagnose` 는 그대로 둔다 — 폼이 이 경로를 쓴다)
+3. **레이아웃 병합** — `app/renewal/layout.tsx` 의 renewal.css·헤더/푸터를 루트로 올리고
+   데모 배지·검색봇 noindex 메타·`flags.ts` 를 제거한다.
+   루트 레이아웃의 macdee 타이틀/키워드/`SoftwareApplication`·가격 스키마를 걷어낸다.
+   **verification 4건은 절대 유지.**
+4. **리다이렉트 추가** (`next.config.ts`, §4.3 표 그대로) — `/makethisone/subscribe`
+   제외 규칙을 와일드카드보다 먼저 놓는다. `/renewal/*` → `/` 301 필수.
+5. **배포 후 확인** — 리다이렉트 전수, sitemap 에 신규 페이지·`/makethisone` 부재,
+   `/magazine/[slug]` 무작위 3편 200, `/makethisone/subscribe` 정상.
+6. **GSC sitemap 재제출 + 주요 URL 색인 요청, 네이버 서치어드바이저 재수집.**
+
+⚠️ 미확정 결정 1건: 기존 `/diagnose` (맥디 무료 AI 진단 제품 화면)를 어디로 보낼지.
+리뉴얼 `/renewal/diagnose` 가 `/diagnose` 를 차지하므로 기존 화면은
+이동(예: `/dashboard` 내부)하거나 폐기해야 한다 — 대표 결정 필요.
+
 ### 6.3 절대 건드리지 않는 것
 
 - `app/layout.tsx`의 `verification` 블록 (Google 2건 + 네이버 2건)
@@ -392,7 +419,7 @@ description: 네이버 파워링크, Google Ads, 블로그, 홈페이지, SEO·G
 | 11 | 메타 / 스키마 / sitemap | ✅ canonical·og:url 은 absUrl()(DEMO_BASE 스위치), JSON-LD 전 페이지 보강, OG 이미지 코드 생성(/renewal/og.png), sitemap 교체 스위치 내장 |
 | 12 | 반응형 QA | ✅ 375/768 전 페이지 오버플로 0 (마퀴·허니팟은 의도된 검출). 모바일 메뉴 열림/닫힘·스크롤 잠금 정상. dev 콘솔의 hydration 경고는 mt-js 인라인 스크립트로 인한 개발 모드 전용 노이즈 |
 | 13 | 성능 (LCP·CLS·INP) | ✅ 프로덕션 빌드 검증. 리뉴얼 청크에 framer-motion 없음(§40). H1 은 SSR HTML 에서 즉시 가시(폰트 swap). 커버 이미지 aspect-ratio 로 CLS 방지. 매거진 상세 generateStaticParams 로 ISR 활성 — 매 요청 500ms → 캐시 9ms |
-| 14 | 최종 QA → **홈페이지 교체** | ⬜ |
+| 14 | 최종 QA → **홈페이지 교체** | 🟡 QA ✅ (내부 링크 79개 전수 200 · 진단 API 검증 400 정상 · 404 정상 · robots 에 renewal 문자열 없음 · 하드코딩 /renewal 은 DEMO_BASE 정의 한 곳뿐). **교체 실행만 남음 — §6.2.1 절차 확정, 대표 승인 대기** |
 
 ---
 
