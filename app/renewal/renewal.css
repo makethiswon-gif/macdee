@@ -381,6 +381,344 @@ html.mt-js .mt-root [data-reveal="scale"][data-in="1"] {
 }
 
 /* ══════════════════════════════════════════════════
+   HERO INTRO — "여러 업체가 하나의 계약으로"
+   기본 스타일 = 최종 상태. html[data-intro="play"] 가 붙어 있을 때만
+   CSS 타임라인이 돈다. 속성 제거 = 어느 시점이든 즉시 최종 상태.
+   transform/opacity 만 쓴다. 오버레이는 absolute → CLS 없음.
+   --iT 는 시간 배율: 데스크톱 1(총 ~3.3s), 모바일 0.68(총 ~2.2s).
+   ══════════════════════════════════════════════════ */
+
+.mt-root {
+    --iT: 1;
+}
+@media (max-width: 1023px) {
+    .mt-root {
+        --iT: 0.68;
+    }
+}
+
+/* ── 인트로 레이어: play 중에만 존재 ── */
+.mt-root .mt-intro-layer {
+    display: none;
+    z-index: 10;
+}
+html[data-intro="play"] .mt-root .mt-intro-layer {
+    display: block;
+}
+/* 혹시 play 가 붙은 채 reduced-motion 이면 레이어 자체를 없앤다(이중 안전장치 —
+   전역 reduce 규칙이 애니메이션을 즉시 종료시키지만 잔상도 남기지 않는다) */
+@media (prefers-reduced-motion: reduce) {
+    html[data-intro="play"] .mt-root .mt-intro-layer {
+        display: none !important;
+    }
+}
+
+/* ── 최종 비주얼: 계약서 카드 ── */
+.mt-root .mt-contract {
+    background: var(--mt-surface);
+    border: 1px solid var(--mt-line-strong);
+    border-radius: 2px;
+    padding: 26px 26px 20px;
+    /* 미세한 종이 결 + 낮게 깔린 그림자 */
+    background-image: repeating-linear-gradient(
+        0deg,
+        rgba(14, 17, 22, 0.015) 0px,
+        rgba(14, 17, 22, 0.015) 1px,
+        transparent 1px,
+        transparent 4px
+    );
+    box-shadow:
+        0 18px 40px -18px rgba(14, 17, 22, 0.18),
+        0 2px 6px rgba(14, 17, 22, 0.05);
+}
+
+/* 파란 직인 — ONE CONTRACT / ONE TEAM / MAKETHIS1 */
+.mt-root .mt-stamp-blue {
+    position: relative;
+    width: 96px;
+    height: 96px;
+    flex-shrink: 0;
+    margin: -6px -4px 0 0;
+    border: 2px solid var(--mt-accent);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--mt-accent);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 8.5px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    line-height: 1.7;
+    transform: rotate(-10deg);
+    opacity: 0.92;
+    user-select: none;
+}
+/* 잉크 번짐 — 흐린 테두리 한 겹 */
+.mt-root .mt-stamp-blue::after {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    border: 2px solid var(--mt-accent);
+    opacity: 0.14;
+    filter: blur(1.5px);
+}
+
+/* ══════════ PLAY 타임라인 ══════════ */
+
+/* 좌측 카피 — 계약서가 정착한 뒤 왼쪽에서 들어온다 (2.7s~) */
+html[data-intro="play"] .mt-root .mt-hero-copy .mt-hero-in {
+    animation-name: mt-intro-hero-in;
+    animation-duration: 0.45s;
+    animation-timing-function: var(--mt-ease);
+    animation-fill-mode: both;
+    animation-delay: calc(2.7s * var(--iT) + var(--mt-hero-delay, 0ms) * 0.6);
+}
+@keyframes mt-intro-hero-in {
+    from {
+        opacity: 0;
+        transform: translateX(-18px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+/* 좌측 취소선도 카피 등장 이후로 미룬다 */
+html[data-intro="play"] .mt-root .mt-hero-copy .mt-strike::after {
+    animation-delay: calc(2.95s * var(--iT) + var(--strike-delay, 0ms) * 0.25);
+}
+/* 하단 수치도 인트로가 끝난 뒤 */
+html[data-intro="play"] .mt-root .mt-hero-stats [data-reveal] {
+    transition-delay: calc(2.9s * var(--iT)) !important;
+}
+
+/* 계약서 — 조립(1.6s) 후 우측 정착(2.7s). 모바일은 제자리 등장만 */
+html[data-intro="play"] .mt-root .mt-contract {
+    animation: mt-contract-in-m 0.45s var(--mt-ease-system) calc(1.6s * var(--iT)) both;
+}
+@media (min-width: 1024px) {
+    html[data-intro="play"] .mt-root .mt-contract {
+        animation:
+            mt-contract-in 0.5s var(--mt-ease-system) calc(1.6s * var(--iT)) both,
+            mt-contract-settle 0.55s var(--mt-ease) calc(2.7s * var(--iT)) both;
+    }
+}
+@keyframes mt-contract-in-m {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+@keyframes mt-contract-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+@keyframes mt-contract-settle {
+    from {
+        transform: translateX(-24%) scale(0.98);
+    }
+    to {
+        transform: none;
+    }
+}
+
+/* 계약서 6개 영역 행 — 조립되며 순서대로 */
+html[data-intro="play"] .mt-root .mt-contract-row {
+    animation: mt-crow-in 0.35s var(--mt-ease) calc((1.72s + var(--i) * 0.06s) * var(--iT)) both;
+}
+@keyframes mt-crow-in {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* 직인 — 스케일 반동으로 찍히고 잉크가 번진다 (2.05s) */
+html[data-intro="play"] .mt-root .mt-stamp-blue {
+    animation: mt-stamp-pop 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) calc(2.05s * var(--iT)) both;
+}
+@keyframes mt-stamp-pop {
+    0% {
+        opacity: 0;
+        transform: rotate(-10deg) scale(1.55);
+    }
+    62% {
+        opacity: 0.95;
+        transform: rotate(-10deg) scale(0.94);
+    }
+    100% {
+        opacity: 0.92;
+        transform: rotate(-10deg) scale(1);
+    }
+}
+html[data-intro="play"] .mt-root .mt-stamp-blue::after {
+    animation: mt-stamp-ink 0.6s ease calc(2.1s * var(--iT)) both;
+}
+@keyframes mt-stamp-ink {
+    0% {
+        opacity: 0;
+        transform: scale(1.18);
+    }
+    45% {
+        opacity: 0.32;
+    }
+    100% {
+        opacity: 0.14;
+        transform: scale(1);
+    }
+}
+
+/* ── 오버레이 요소 (레이어 자체가 play 게이트라 별도 가드 불필요) ── */
+
+/* 업체 카드 — 흩어져 등장(0~0.8s) → 중앙 수렴·소멸(1.35s~) */
+.mt-root .mt-icard {
+    position: absolute;
+    left: 50%;
+    top: 46%;
+    width: 204px;
+    margin: -42px 0 0 -102px;
+    padding: 13px 16px;
+    background: var(--mt-surface);
+    border: 1px solid var(--mt-line);
+    border-radius: 2px;
+    box-shadow: 0 12px 26px -10px rgba(14, 17, 22, 0.12);
+    animation:
+        mt-icard-in 0.45s var(--mt-ease) calc((0.05s + var(--i) * 0.12s) * var(--iT)) both,
+        mt-icard-merge 0.5s var(--mt-ease-system) calc((1.35s + var(--i) * 0.05s) * var(--iT)) forwards;
+}
+@keyframes mt-icard-in {
+    from {
+        opacity: 0;
+        transform: translate(var(--sx), calc(var(--sy) + 18px)) rotate(var(--sr));
+    }
+    to {
+        opacity: 1;
+        transform: translate(var(--sx), var(--sy)) rotate(var(--sr));
+    }
+}
+@keyframes mt-icard-merge {
+    from {
+        opacity: 1;
+        transform: translate(var(--sx), var(--sy)) rotate(var(--sr)) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translate(0, 0) rotate(0deg) scale(0.5);
+    }
+}
+
+/* 파란 연결선 — 카드에서 중앙으로 그려졌다가(0.95s~) 수렴과 함께 사라진다 */
+.mt-root .mt-ilines line {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    opacity: 0.5;
+    animation:
+        mt-iline-draw 0.45s ease calc((0.95s + var(--i) * 0.07s) * var(--iT)) forwards,
+        mt-iline-fade 0.3s ease calc(1.55s * var(--iT)) forwards;
+}
+@keyframes mt-iline-draw {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+@keyframes mt-iline-fade {
+    from {
+        opacity: 0.5;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+/* 중앙 질문 (0.15s in → 1.3s out).
+   out 은 forwards 만 쓴다 — backwards 를 주면 in 이전에도 보인다. */
+.mt-root .mt-iquestion {
+    animation:
+        mt-ilayer-in 0.4s var(--mt-ease) calc(0.15s * var(--iT)) both,
+        mt-ilayer-out 0.3s ease calc(1.3s * var(--iT)) forwards;
+}
+
+/* 핵심 선언 (1.95s in → 2.6s out) */
+.mt-root .mt-istatement {
+    animation:
+        mt-ilayer-in 0.35s var(--mt-ease) calc(1.95s * var(--iT)) both,
+        mt-ilayer-out 0.3s ease calc(2.6s * var(--iT)) forwards;
+}
+@keyframes mt-ilayer-in {
+    from {
+        opacity: 0;
+        transform: translate(-50%, calc(-50% + 12px));
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+    }
+}
+@keyframes mt-ilayer-out {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+/* 모바일 키워드 칩 — 등장(0.06s~) → 수렴·소멸(0.8s~). 칩 타이밍은
+   모바일 전용이라 --iT 를 다시 곱하지 않는다(이미 짧게 설계). */
+.mt-root .mt-ichip {
+    position: absolute;
+    left: 50%;
+    top: 38%;
+    padding: 8px 14px;
+    background: var(--mt-surface);
+    border: 1px solid var(--mt-line);
+    border-radius: 2px;
+    box-shadow: 0 8px 18px -8px rgba(14, 17, 22, 0.12);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--mt-ink);
+    white-space: nowrap;
+    animation:
+        mt-ichip-in 0.35s var(--mt-ease) calc(0.06s + var(--i) * 0.09s) both,
+        mt-ichip-merge 0.45s var(--mt-ease-system) calc(0.8s + var(--i) * 0.04s) forwards;
+}
+@keyframes mt-ichip-in {
+    from {
+        opacity: 0;
+        transform: translate(calc(-50% + var(--sx)), calc(-50% + var(--sy) + 14px));
+    }
+    to {
+        opacity: 1;
+        transform: translate(calc(-50% + var(--sx)), calc(-50% + var(--sy)));
+    }
+}
+@keyframes mt-ichip-merge {
+    from {
+        opacity: 1;
+        transform: translate(calc(-50% + var(--sx)), calc(-50% + var(--sy)));
+    }
+    to {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.5);
+    }
+}
+
+/* ══════════════════════════════════════════════════
    서명란 — 직인 모티프. --mt-stamp 는 이 블록에서만 쓴다.
    ══════════════════════════════════════════════════ */
 
