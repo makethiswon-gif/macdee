@@ -50,7 +50,7 @@ export default function InsightsPreview({ items }: { items: InsightItem[] }) {
     const [lead, ...rest] = items;
 
     return (
-        <Section>
+        <Section data-clause="Insights">
             <Container>
                 <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
                     <div>
@@ -67,12 +67,18 @@ export default function InsightsPreview({ items }: { items: InsightItem[] }) {
                 </div>
 
                 <div className="mt-14 md:mt-18 grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] gap-12 lg:gap-20">
-                    {/* 큰 기사 */}
+                    {/* 큰 기사 — 문서철: 뒤에 겹친 보조 문서가 정렬되며 한 장이 앞으로 나온다.
+                        화면 진입 시 1회, 이후 정지(무한 슬라이드·마키 없음) */}
                     <Reveal variant="rise">
+                        <div className="mt-paperstack">
                         <Link
                             href={path(`/magazine/${lead.slug}`)}
-                            className="group block pt-9"
-                            style={{ borderTop: "2px solid var(--mt-ink)" }}
+                            className="group block p-7 md:p-9 rounded-[2px]"
+                            style={{
+                                background: "var(--mt-surface)",
+                                border: "1px solid var(--mt-line)",
+                                borderTop: "2px solid var(--mt-ink)",
+                            }}
                         >
                             <Meta item={lead} accent />
                             <h3 className="mt-6 text-[clamp(1.35rem,2.3vw,1.85rem)] font-semibold leading-[1.38] tracking-tight">
@@ -93,6 +99,7 @@ export default function InsightsPreview({ items }: { items: InsightItem[] }) {
                                 </span>
                             </span>
                         </Link>
+                        </div>
                     </Reveal>
 
                     {/* 목록 */}

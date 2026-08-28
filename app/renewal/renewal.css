@@ -722,6 +722,465 @@ html[data-intro="play"] .mt-root .mt-stamp-blue::after {
 }
 
 /* ══════════════════════════════════════════════════
+   ONE BLUE THREAD — 페이지 공통 모션 시스템
+   네 가지 시각 언어만 쓴다: 파란 선(연결) · 파란 점(의뢰인/현재 위치)
+   · 문서 정렬(통합) · 파란 직인(완료).
+   전부 --p(스크롤 진행 0→1) 기반 CSS 계산 — 빠른 스크롤 즉시 반영,
+   역스크롤 자연 역재생. 기본값 var(--p,1)=최종 상태라
+   JS 실패·reduced-motion·스테이지 밖에서는 항상 완성 화면이다.
+   ══════════════════════════════════════════════════ */
+
+/* ── 스크롤 무대 (useScrollProgress 가 --p 를 쓴다) ── */
+.mt-root .mt-stage {
+    --p: 0;
+}
+@media (min-width: 1024px) {
+    .mt-root .mt-stage-pin {
+        position: sticky;
+        top: 0;
+        min-height: 100svh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+}
+html:not(.mt-js) .mt-root .mt-stage {
+    --p: 1;
+}
+html:not(.mt-js) .mt-root .mt-stage,
+html:not(.mt-js) .mt-root .mt-stage-track {
+    height: auto !important;
+}
+@media (prefers-reduced-motion: reduce) {
+    .mt-root .mt-stage {
+        --p: 1 !important;
+    }
+    .mt-root .mt-stage-track {
+        height: auto !important;
+    }
+    .mt-root .mt-stage-pin {
+        position: static !important;
+        min-height: 0 !important;
+    }
+}
+
+/* ── 진행 아이템: --a(시작 p) --w(구간 폭) --o0(대기 불투명도) --dy(이동) ── */
+html.mt-js .mt-root .mt-pi {
+    --t: clamp(0, calc((var(--p, 1) - var(--a, 0)) / var(--w, 0.05)), 1);
+    opacity: calc(var(--o0, 0) + (1 - var(--o0, 0)) * var(--t));
+    transform: translateY(calc(var(--dy, 10px) * (1 - var(--t))));
+}
+/* 줄 단위 마스크 리빌(진행형) — 바깥 overflow hidden, 안쪽이 밀려 올라온다 */
+.mt-root .mt-pmask {
+    display: block;
+    overflow: hidden;
+    padding-bottom: 0.12em;
+    margin-bottom: -0.12em;
+}
+html.mt-js .mt-root .mt-pmask > * {
+    --t: clamp(0, calc((var(--p, 1) - var(--a, 0)) / var(--w, 0.08)), 1);
+    display: block;
+    transform: translateY(calc(105% * (1 - var(--t))));
+}
+/* 선 긋기(가로) */
+html.mt-js .mt-root .mt-pline {
+    --t: clamp(0, calc((var(--p, 1) - var(--a, 0)) / var(--w, 0.08)), 1);
+    transform: scaleX(var(--t));
+    transform-origin: left center;
+}
+/* 링크 밑줄 1회 긋기 — 진행형(다시 깜빡이지 않는다) */
+.mt-root .mt-plink {
+    position: relative;
+}
+.mt-root .mt-plink .mt-plink-bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -2px;
+    height: 1px;
+    background: currentColor;
+}
+html.mt-js .mt-root .mt-plink .mt-plink-bar {
+    --t: clamp(0, calc((var(--p, 1) - var(--a, 0)) / var(--w, 0.06)), 1);
+    transform: scaleX(var(--t));
+    transform-origin: left center;
+}
+
+/* ── 파란 실 조각: 섹션 사이를 잇는 세로 선 ── */
+.mt-root .mt-thread-v {
+    width: 1px;
+    background: var(--mt-accent);
+    opacity: 0.7;
+}
+html.mt-js .mt-root [data-reveal="line"].mt-thread-v {
+    transform-origin: top center;
+    scale: 1 0;
+}
+html.mt-js .mt-root [data-reveal="line"][data-in="1"].mt-thread-v {
+    scale: 1 1;
+}
+
+/* ══════════ 제1조 CLIENT JOURNEY — 의뢰인 점의 이동 ══════════ */
+
+/* 카드: 대기 50% → 활성 100% + 8px 상승 → 지나가면 100% 유지 */
+html.mt-js .mt-root .mt-jcard {
+    --on: clamp(0, calc((var(--p, 1) - var(--a, 0)) / 0.04), 1);
+    --off: clamp(0, calc((var(--p, 1) - var(--a, 0) - 0.22) / 0.05), 1);
+    opacity: calc(0.5 + 0.5 * var(--on));
+    transform: translateY(calc(-8px * (var(--on) - var(--off))));
+}
+
+/* 데스크톱 수평 트랙: 파란 진행선 + 의뢰인 점 */
+html.mt-js .mt-root .mt-jtrack-fill {
+    --x: calc(
+        16.5% * clamp(0, calc((var(--p, 1) - 0.02) / 0.06), 1) +
+        33.5% * clamp(0, calc((var(--p, 1) - 0.28) / 0.06), 1) +
+        33.3% * clamp(0, calc((var(--p, 1) - 0.54) / 0.06), 1)
+    );
+    width: var(--x);
+}
+html.mt-js .mt-root .mt-jdot {
+    left: calc(
+        16.5% * clamp(0, calc((var(--p, 1) - 0.02) / 0.06), 1) +
+        33.5% * clamp(0, calc((var(--p, 1) - 0.28) / 0.06), 1) +
+        33.3% * clamp(0, calc((var(--p, 1) - 0.54) / 0.06), 1)
+    );
+    /* 마지막 단계 뒤에는 아래(리드 박스)로 내려가며 사라진다 */
+    opacity: calc(1 - clamp(0, calc((var(--p, 1) - 0.8) / 0.04), 1));
+}
+.mt-root .mt-jdot {
+    position: absolute;
+    top: -5px;
+    width: 11px;
+    height: 11px;
+    margin-left: -5px;
+    border-radius: 50%;
+    background: var(--mt-accent);
+    box-shadow: 0 0 0 3px rgba(53, 99, 174, 0.15);
+}
+.mt-root .mt-jdot-label {
+    position: absolute;
+    top: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--mt-accent);
+    white-space: nowrap;
+}
+/* 리드 박스로 내려가는 세로 커넥터 + 점 */
+html.mt-js .mt-root .mt-jdrop-line {
+    --t: clamp(0, calc((var(--p, 1) - 0.78) / 0.08), 1);
+    transform: scaleY(var(--t));
+    transform-origin: top center;
+}
+html.mt-js .mt-root .mt-jdrop-dot {
+    --t: clamp(0, calc((var(--p, 1) - 0.78) / 0.1), 1);
+    top: calc(var(--t) * 100% - 5px);
+    opacity: clamp(0, calc((var(--p, 1) - 0.79) / 0.02), 1);
+}
+.mt-root .mt-jdrop-dot {
+    position: absolute;
+    left: -5px;
+}
+
+/* 01 검색 결과 정렬: 세 항목이 가운데 한 줄로 모이며 결과로 바뀐다 */
+html.mt-js .mt-root .mt-jsr {
+    --tin: clamp(0, calc((var(--p, 1) - var(--a, 0)) / 0.03), 1);
+    --m: clamp(0, calc((var(--p, 1) - var(--am, 1)) / 0.04), 1);
+    opacity: calc(var(--tin) * (1 - var(--m)));
+    transform: translateY(calc(6px * (1 - var(--tin)) + var(--my, 0px) * var(--m)));
+}
+html:not(.mt-js) .mt-root .mt-jsr {
+    opacity: 0; /* JS 없음 = 최종 상태: 정렬 완료라 개별 항목은 숨고 결과만 남는다 */
+}
+
+/* 03 문의 경로 수렴: 서로 다른 방향에서 상담 노드로 */
+html.mt-js .mt-root .mt-jconv {
+    --tin: clamp(0, calc((var(--p, 1) - var(--a, 0)) / 0.03), 1);
+    --m: clamp(0, calc((var(--p, 1) - var(--am, 1)) / 0.05), 1);
+    opacity: calc(var(--tin) * (1 - var(--m) * 0.55));
+    transform: translate(
+        calc(var(--sx, 0px) * (1 - var(--m))),
+        calc(var(--sy, 0px) * (1 - var(--m)) + 6px * (1 - var(--tin)))
+    );
+}
+
+/* 모바일 세로 경로 */
+.mt-root .mt-jvline {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--mt-line);
+}
+html.mt-js .mt-root .mt-jvfill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1px;
+    height: 100%;
+    background: var(--mt-accent);
+    transform: scaleY(var(--p, 1));
+    transform-origin: top center;
+}
+html.mt-js .mt-root .mt-jvdot {
+    top: calc(var(--p, 1) * 100% - 5px);
+}
+.mt-root .mt-jvdot {
+    position: absolute;
+    left: -5px;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: var(--mt-accent);
+    box-shadow: 0 0 0 3px rgba(53, 99, 174, 0.15);
+}
+
+/* JS 없음 — 장식 점·선은 아예 숨긴다 (본문은 최종 상태로 전부 가시) */
+html:not(.mt-js) .mt-root .mt-jdot,
+html:not(.mt-js) .mt-root .mt-jvdot,
+html:not(.mt-js) .mt-root .mt-jvfill,
+html:not(.mt-js) .mt-root .mt-jtrack-fill,
+html:not(.mt-js) .mt-root .mt-jdrop-line {
+    display: none;
+}
+
+/* 상담⇢수임 점선 조각 */
+.mt-root .mt-dashseg {
+    display: inline-block;
+    width: 26px;
+    height: 1px;
+    margin: 0 2px;
+    vertical-align: middle;
+    border-top: 1px dashed var(--mt-accent);
+}
+
+/* 피드백 루프 — 데이터가 앞 단계로 돌아가는 얇은 선 */
+html.mt-js .mt-root .mt-jloop path {
+    --t: clamp(0, calc((var(--p, 1) - 0.93) / 0.07), 1);
+    stroke-dasharray: 0.03 0.02;
+    stroke-dashoffset: calc(1 - var(--t));
+    opacity: calc(var(--t) * 0.8);
+}
+
+/* ══════════ 제2조 BEFORE/AFTER — 문서 정렬 전환 ══════════ */
+
+html.mt-js .mt-root .mt-bchip {
+    --tin: clamp(0, calc((var(--p, 1) - var(--a, 0)) / 0.05), 1);
+    --m: clamp(0, calc((var(--p, 1) - 0.42) / 0.12), 1);
+    opacity: calc(var(--tin) * (1 - var(--m)));
+    transform: translate(
+        calc(var(--sx, 0px) * (1 - var(--m) * 0.5)),
+        calc(var(--sy, 0px) * (1 - var(--m) * 0.5) + 10px * (1 - var(--tin)))
+    ) rotate(calc(var(--sr, 0deg) * (1 - var(--m))));
+}
+html:not(.mt-js) .mt-root .mt-bchip {
+    opacity: 0; /* 최종 상태 = 정렬 완료 */
+}
+
+/* ══════════ 제3조 WHATEVER CHANGES — 배경 플랫폼 워드 ══════════ */
+
+.mt-root .mt-bgword {
+    position: absolute;
+    right: 2%;
+    top: 8%;
+    font-family: "IBM Plex Mono", monospace;
+    font-weight: 500;
+    font-size: clamp(3rem, 9vw, 8rem);
+    letter-spacing: 0.04em;
+    color: var(--mt-bg);
+    opacity: 0;
+    pointer-events: none;
+    white-space: nowrap;
+}
+html.mt-js .mt-root .mt-bgword {
+    --d: calc(var(--p, 1) * 6 - var(--i, 0));
+    opacity: calc(0.07 * clamp(0, var(--d), 1) * clamp(0, calc(1.6 - var(--d)), 1));
+    transform: translateY(calc(10px * (1 - clamp(0, var(--d), 1))));
+}
+
+/* 장부 행 순차 활성화 + 상태 마커 */
+html.mt-js .mt-root .mt-lrow {
+    --t: clamp(0, calc((var(--p, 1) - var(--a, 0)) / 0.04), 1);
+    opacity: calc(0.45 + 0.55 * var(--t));
+}
+.mt-root .mt-lmark {
+    display: inline-block;
+    width: 14px;
+    margin-right: 10px;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+.mt-root .mt-lmark-solid {
+    height: 2px;
+    background: var(--mt-accent);
+}
+.mt-root .mt-lmark-dash {
+    height: 0;
+    border-top: 2px dashed var(--mt-accent);
+}
+.mt-root .mt-lmark-circle {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    border: 1.5px solid var(--mt-accent);
+}
+.mt-root .mt-lmark-outline {
+    width: 9px;
+    height: 9px;
+    border: 1px solid var(--mt-gray);
+}
+
+/* ══════════ 제4조 SCOPE — 계약서가 별지를 펼친다 ══════════ */
+
+html.mt-js .mt-root .mt-annex {
+    --t: clamp(0, calc((var(--p, 1) - var(--a, 0)) / 0.05), 1);
+    opacity: calc(0.35 + 0.65 * var(--t));
+    transform: translateY(calc(14px * (1 - var(--t))));
+}
+html.mt-js .mt-root .mt-annex .mt-annex-rule {
+    transform: scaleX(var(--t));
+    transform-origin: left center;
+}
+html.mt-js .mt-root .mt-annex .mt-aitem {
+    --ti: clamp(0, calc((var(--p, 1) - var(--ai, 0)) / 0.02), 1);
+    opacity: var(--ti);
+}
+
+/* ══════════ 첨부 1 — ONE TEAM 연결 + 사진 리빌 (1회 실행형) ══════════ */
+
+html.mt-js .mt-root .mt-team-lines line,
+html.mt-js .mt-root .mt-team-lines path {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    transition: stroke-dashoffset 0.7s var(--mt-ease-system);
+}
+html.mt-js .mt-root [data-in="1"] .mt-team-lines line,
+html.mt-js .mt-root [data-in="1"] .mt-team-lines path {
+    stroke-dashoffset: 0;
+}
+html.mt-js .mt-root .mt-team-node {
+    opacity: 0;
+    transition: opacity 0.4s var(--mt-ease) 0.55s;
+}
+html.mt-js .mt-root [data-in="1"] .mt-team-node {
+    opacity: 1;
+}
+
+/* 사진: 문서 마스크가 열리듯 clip-path 리빌, 흑백 → 정상 채도 */
+.mt-root .mt-photo-reveal img {
+    filter: grayscale(0);
+}
+html.mt-js .mt-root .mt-photo-reveal {
+    clip-path: inset(0 0 0 0);
+    transition: clip-path 0.6s var(--mt-ease-system) var(--md, 0ms);
+}
+html.mt-js .mt-root .mt-photo-reveal img {
+    transition: filter 0.5s ease calc(var(--md, 0ms) + 350ms);
+}
+html.mt-js .mt-root [data-reveal]:not([data-in="1"]) .mt-photo-reveal {
+    clip-path: inset(0 0 100% 0);
+}
+html.mt-js .mt-root [data-reveal]:not([data-in="1"]) .mt-photo-reveal img {
+    filter: grayscale(1);
+}
+
+/* ══════════ INSIGHTS — 문서철 (1회 실행형) ══════════ */
+
+.mt-root .mt-paperstack {
+    position: relative;
+}
+.mt-root .mt-paperstack::before,
+.mt-root .mt-paperstack::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--mt-surface);
+    border: 1px solid var(--mt-line);
+    border-radius: 2px;
+    z-index: -1;
+}
+.mt-root .mt-paperstack::before {
+    transform: rotate(0.9deg) translate(5px, 7px);
+}
+.mt-root .mt-paperstack::after {
+    transform: rotate(-0.7deg) translate(-4px, 4px);
+}
+html.mt-js .mt-root .mt-paperstack::before,
+html.mt-js .mt-root .mt-paperstack::after {
+    transition: transform 0.7s var(--mt-ease-system) 0.15s;
+}
+html.mt-js .mt-root [data-reveal]:not([data-in="1"]) .mt-paperstack::before {
+    transform: rotate(2.4deg) translate(14px, 18px);
+}
+html.mt-js .mt-root [data-reveal]:not([data-in="1"]) .mt-paperstack::after {
+    transform: rotate(-2deg) translate(-12px, 12px);
+}
+
+/* 사진 캡션: 사진이 열린 뒤 이름·직함 */
+html.mt-js .mt-root .mt-photo-cap {
+    transition: opacity 0.4s ease calc(var(--md, 0ms) + 480ms);
+}
+html.mt-js .mt-root [data-reveal]:not([data-in="1"]) .mt-photo-cap {
+    opacity: 0;
+}
+
+/* ══════════ 서명란 — 진행형 직인 (한 번만 찍힌다) ══════════ */
+html.mt-js .mt-root .mt-pstamp {
+    --t1: clamp(0, calc((var(--p, 1) - 0.7) / 0.06), 1);
+    --t2: clamp(0, calc((var(--p, 1) - 0.76) / 0.05), 1);
+    opacity: calc(var(--t1) * 0.9);
+    transform: rotate(-8deg) scale(calc(1.45 - 0.5 * var(--t1) + 0.05 * var(--t2)));
+}
+
+/* ══════════ 전역 파란 진행 레일 (데스크톱) ══════════ */
+
+.mt-root .mt-rail-global {
+    position: fixed;
+    right: 22px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 30;
+    pointer-events: none;
+    display: none;
+}
+@media (min-width: 1280px) {
+    html.mt-js .mt-root .mt-rail-global {
+        display: block;
+    }
+}
+.mt-root .mt-rail-global .bar {
+    position: relative;
+    width: 1px;
+    height: 220px;
+    background: var(--mt-line-strong);
+    margin: 10px auto 0;
+}
+.mt-root .mt-rail-global .fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1px;
+    height: 100%;
+    background: var(--mt-accent);
+    transform: scaleY(var(--gp, 0));
+    transform-origin: top center;
+}
+.mt-root .mt-rail-global .label {
+    display: block;
+    text-align: center;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    color: var(--mt-gray);
+    writing-mode: vertical-rl;
+    margin: 0 auto;
+    min-height: 3.5em;
+}
+
+/* ══════════════════════════════════════════════════
    서명란 — 직인 모티프. --mt-stamp 는 이 블록에서만 쓴다.
    ══════════════════════════════════════════════════ */
 

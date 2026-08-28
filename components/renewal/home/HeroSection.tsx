@@ -105,7 +105,7 @@ function ContractCard() {
 
 export default function HeroSection() {
     return (
-        <section className="mt-grid-bg relative pt-[124px] md:pt-[164px] pb-14 md:pb-20 min-h-[86svh] flex flex-col justify-center">
+        <section data-clause="전문" className="mt-grid-bg relative pt-[124px] md:pt-[164px] pb-14 md:pb-20 min-h-[86svh] flex flex-col justify-center">
             <script dangerouslySetInnerHTML={{ __html: INTRO_BOOT }} />
             <HeroIntro />
 
@@ -170,6 +170,10 @@ export default function HeroSection() {
                     {/* ── 우측 — 계약서 (최종 비주얼, 인트로의 종착점) ── */}
                     <div className="mt-12 lg:mt-0 max-w-[400px] lg:max-w-none">
                         <ContractCard />
+                        {/* 계약서 아래에서 파란 실이 다음 섹션(의뢰인 여정)으로 이어진다 */}
+                        <Reveal variant="line" className="mt-thread-v block w-px h-12 md:h-14 mx-auto mt-6">
+                            <span aria-hidden />
+                        </Reveal>
                     </div>
 
                     {/* ── 인트로 오버레이 — play 중에만 존재. 레이아웃에 관여하지 않는다 ── */}

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { createServiceClient } from "@/lib/supabase/server";
 
 import HeroSection from "@/components/renewal/home/HeroSection";
+import GlobalThread from "@/components/renewal/home/GlobalThread";
 import ClientJourney from "@/components/renewal/home/ClientJourney";
 import ProblemSection from "@/components/renewal/home/ProblemSection";
 import PartnerLogos from "@/components/renewal/home/PartnerLogos";
@@ -153,6 +154,7 @@ export default async function RenewalHome() {
 
                 Case Study 섹션과 운영 체계(How we operate) 섹션은 홈에서 뺐다
                 (대표 지시 2026-08-28). Case Study 는 /work 가 담당한다. */}
+            <GlobalThread />
             <HeroSection />
             <ClientJourney />
             <ProblemSection />

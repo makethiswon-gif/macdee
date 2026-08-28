@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
+import type { ReactNode, HTMLAttributes } from "react";
 
 /* ═══════════════ CONTAINER ═══════════════ */
 
@@ -26,16 +26,18 @@ export function Section({
     dark = false,
     className = "",
     tight = false,
+    ...rest
 }: {
     children: ReactNode;
     id?: string;
     dark?: boolean;
     className?: string;
     tight?: boolean;
-}) {
+} & Omit<HTMLAttributes<HTMLElement>, "className" | "id" | "style">) {
     return (
         <section
             id={id}
+            {...rest}
             className={`${tight ? "py-16 md:py-24" : "py-[88px] md:py-[140px]"} ${dark ? "mt-dark-glow" : ""} ${className}`}
             style={
                 dark
