@@ -8,10 +8,15 @@
    전체 한글 폰트(약 1.4MB)를 통째로 받지 않으므로 LCP에 안전하다. */
 @import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 
-/* Inter — 영문 eyebrow/라벨 전용. 본문에는 쓰지 않으므로 3굵기만. */
-@import "@fontsource/inter/400.css";
-@import "@fontsource/inter/500.css";
-@import "@fontsource/inter/600.css";
+/* IBM Plex Mono — 영문 eyebrow/라벨/숫자 전용 (The Contract 개편, Inter 대체).
+   계약서 타자기·장부 무드. 본문에는 쓰지 않으므로 2굵기만. */
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+
+/* Noto Serif KR — 선언문·조 제목 전용. 법률 문서의 세리프 권위.
+   본문에는 절대 쓰지 않는다(낡아 보인다). 600·700만 로딩. */
+@import "@fontsource/noto-serif-kr/600.css";
+@import "@fontsource/noto-serif-kr/700.css";
 
 .mt-root {
     /* ── COLOR ──
@@ -37,6 +42,14 @@
     --mt-dark-bg: #07111d;
     --mt-dark-line: #1c2b40;
     --mt-dark-gray: #8794a6;
+
+    /* 직인 레드 — 서명란 도장 모티프 한 곳 전용. 액센트로 세지 않는다.
+       다크 배경 위에서는 대비를 위해 살짝 밝힌 값을 쓴다. */
+    --mt-stamp: #9e2b25;
+    --mt-stamp-on-dark: #c4574e;
+
+    /* 선언문 세리프 — .mt-serif 가 쓴다 */
+    --mt-serif: "Noto Serif KR", "Pretendard Variable", Pretendard, serif;
 
     /* ── LAYOUT ── */
     --mt-max: 1360px;
@@ -72,13 +85,19 @@
     overflow-x: clip;
 }
 
-/* 영문 라벨 전용 클래스 — Inter를 여기서만 쓴다 */
+/* 영문 라벨 전용 클래스 — IBM Plex Mono 를 여기서만 쓴다.
+   모노는 이미 폭이 넓으므로 자간은 Inter 시절(0.2em)보다 줄인다. */
 .mt-root .mt-en {
-    font-family: Inter, "Pretendard Variable", sans-serif;
-    /* 기존 홈이 쓰던 0.18~0.26em 넓은 자간을 이어받는다 */
-    letter-spacing: 0.2em;
+    font-family: "IBM Plex Mono", "Pretendard Variable", monospace;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
     font-variant-numeric: tabular-nums;
+}
+
+/* 선언문·조 제목 전용 세리프. 굵기는 클래스를 쓰는 쪽에서 정한다. */
+.mt-root .mt-serif {
+    font-family: var(--mt-serif);
+    letter-spacing: -0.01em;
 }
 
 .mt-root .mt-num {
@@ -637,6 +656,93 @@ html:not(.mt-js) .mt-root .mt-flow-node {
     .mt-root .mt-flow-return path {
         opacity: 1;
     }
+}
+
+/* ══════════════════════════════════════════════════
+   HERO — 질문 취소선 (The Contract)
+   다섯 줄이 순서대로 나타난 뒤(mt-hero-in) 취소선이 그어진다.
+   CSS 애니메이션만 쓰므로 JS 실패와 무관하게 항상 완료 상태에 도달한다.
+   ══════════════════════════════════════════════════ */
+
+.mt-root .mt-strike {
+    position: relative;
+    display: inline-block;
+}
+.mt-root .mt-strike::after {
+    content: "";
+    position: absolute;
+    left: -1px;
+    right: -1px;
+    top: 55%;
+    height: 1px;
+    background: var(--mt-stamp);
+    opacity: 0.75;
+    transform: scaleX(0);
+    transform-origin: left center;
+    animation: mt-strike-in 420ms var(--mt-ease) forwards;
+    animation-delay: var(--strike-delay, 1100ms);
+}
+@keyframes mt-strike-in {
+    to {
+        transform: scaleX(1);
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .mt-root .mt-strike::after {
+        animation: none;
+        transform: scaleX(1);
+    }
+}
+
+/* ══════════════════════════════════════════════════
+   제3조 — 변해도 조항 (InvariantClause)
+   기존 스크롤 무대(--p)를 재사용한다. 윗줄들만 스크롤에 따라 살아나고
+   고정 선언("계약은 하나입니다")은 항상 보인다.
+   지나간 줄은 흐리게 남는다 — 사라지면 리듬(변해도. 변해도.)이 안 읽힌다.
+   ══════════════════════════════════════════════════ */
+
+.mt-root .mt-inv {
+    --step: calc(var(--p) * var(--n, 3));
+}
+.mt-root .mt-inv-line {
+    --d: calc(var(--step) - var(--i));
+    --rise: clamp(0, calc(var(--d) + 1), 1);
+    --fall: clamp(0, var(--d), 1);
+    /* 미래 0.15 → 활성 1 → 지나감 0.34 */
+    opacity: calc(0.15 + 0.85 * var(--rise) - 0.66 * var(--fall));
+    will-change: opacity;
+}
+html:not(.mt-js) .mt-root .mt-inv-line {
+    opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+    .mt-root .mt-inv-line {
+        opacity: 1 !important;
+    }
+}
+
+/* ══════════════════════════════════════════════════
+   서명란 — 직인 모티프. --mt-stamp 는 이 블록에서만 쓴다.
+   ══════════════════════════════════════════════════ */
+
+.mt-root .mt-stamp-mark {
+    width: 76px;
+    height: 76px;
+    border: 2px solid var(--mt-stamp-on-dark);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--mt-stamp-on-dark);
+    font-family: var(--mt-serif);
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 1.35;
+    transform: rotate(-8deg);
+    opacity: 0.9;
+    flex-shrink: 0;
+    user-select: none;
 }
 
 /* ══════════════════════════════════════════════════

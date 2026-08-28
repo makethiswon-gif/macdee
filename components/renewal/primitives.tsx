@@ -80,6 +80,7 @@ export function SectionHeader({
     lead,
     align = "left",
     className = "",
+    serif = false,
 }: {
     number?: string;
     eyebrow?: string;
@@ -87,6 +88,8 @@ export function SectionHeader({
     lead?: ReactNode;
     align?: "left" | "center";
     className?: string;
+    /** The Contract 개편 — 조(條) 제목은 세리프로 선언한다. 홈 조항 섹션만 켠다. */
+    serif?: boolean;
 }) {
     return (
         <div
@@ -109,7 +112,7 @@ export function SectionHeader({
                 </div>
             )}
 
-            <h2 className="mt-h2" style={{ color: "var(--mt-ink)" }}>
+            <h2 className={`mt-h2 ${serif ? "mt-serif" : ""}`} style={{ color: "var(--mt-ink)" }}>
                 {title}
             </h2>
 

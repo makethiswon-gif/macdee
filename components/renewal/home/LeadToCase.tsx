@@ -44,7 +44,7 @@ export default function LeadToCase() {
             }}
         >
             <Container>
-                <SectionHeader number="03" eyebrow={en} title={title} lead={lead} />
+                <SectionHeader number="제5조" eyebrow={en} serif title={title} lead={lead} />
             </Container>
 
             {/* ── 데이터 흐름 ── */}

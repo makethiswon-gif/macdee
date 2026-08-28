@@ -55,10 +55,6 @@ export default function InsightsPreview({ items }: { items: InsightItem[] }) {
                 <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
                     <div>
                         <div className="flex items-center gap-3 mb-6">
-                            <span className="mt-en mt-label mt-num" style={{ color: "var(--mt-accent)" }}>
-                                07
-                            </span>
-                            <span className="w-6 h-px" style={{ background: "var(--mt-line-strong)" }} />
                             <Eyebrow>Insights</Eyebrow>
                         </div>
                         <Reveal variant="mask">

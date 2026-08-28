@@ -269,6 +269,161 @@ export const CHANNELS: ChannelCategory[] = [
     },
 ];
 
+/* ═══════════════ The Contract 개편 (docs/HOME_REDESIGN_PLAN.md) ═══════════════
+   ⚠️ §42 — 확정된 것과 조건부인 것을 badge 로 구분한다.
+      조건부 품목을 배지 없이 쓰면 확정 서비스처럼 읽힌다. */
+
+/* ── HERO — 질문 취소선 ── */
+
+export const HERO_QUESTIONS = [
+    "파워링크는 광고대행사에게",
+    "Google Ads는 또 다른 업체에게",
+    "블로그는 블로그 대행사에게",
+    "홈페이지는 제작사에게",
+    "SEO는 SEO 업체에게 맡기고 있습니까?",
+];
+
+export const HERO_ANSWER = "이제 그 모든 마케팅을 하나의 팀에서 운영합니다.";
+
+/* ── 제2조 — 계약 범위 (별지 6개) ── */
+
+export interface AnnexItem {
+    label: string;
+    /** 조건부 품목만 갖는다: "필요 시" | "허용 시 편입" | "등장 시 검토" */
+    badge?: string;
+}
+
+export interface Annex {
+    no: string;
+    en: string;
+    href: string; // 해당 서비스 상세 — ChannelGrid 가 갖던 내부링크 축을 이어받는다
+    items: AnnexItem[];
+}
+
+export const CONTRACT_SCOPE: Annex[] = [
+    {
+        no: "별지 제1호",
+        en: "PAID MEDIA",
+        href: "/naver-ads",
+        items: [
+            { label: "네이버 파워링크" },
+            { label: "네이버 광고" },
+            { label: "Google Ads" },
+            { label: "YouTube Ads" },
+            { label: "Meta Ads", badge: "필요 시" },
+            { label: "ChatGPT Ads", badge: "허용 시 편입" },
+            { label: "AI 광고 플랫폼", badge: "등장 시 검토" },
+        ],
+    },
+    {
+        no: "별지 제2호",
+        en: "SEARCH",
+        href: "/lawfirm-seo",
+        items: [
+            { label: "네이버 SEO" },
+            { label: "Google SEO" },
+            { label: "기술 SEO" },
+            { label: "지역 검색 최적화" },
+            { label: "검색 콘텐츠 전략" },
+            { label: "사건별 키워드·콘텐츠 클러스터" },
+        ],
+    },
+    {
+        no: "별지 제3호",
+        en: "AI SEARCH",
+        href: "/geo",
+        items: [
+            { label: "GEO" },
+            { label: "AEO" },
+            { label: "ChatGPT 검색 대응" },
+            { label: "Google AI 검색 대응" },
+            { label: "네이버 AI 검색 대응" },
+            { label: "로펌·변호사 Entity 구축" },
+            { label: "AI 인용형 콘텐츠 구조 설계" },
+        ],
+    },
+    {
+        no: "별지 제4호",
+        en: "CONTENT",
+        href: "/lawfirm-blog",
+        items: [
+            { label: "네이버 블로그 운영" },
+            { label: "홈페이지 전문 콘텐츠" },
+            { label: "실제 사건·사례 콘텐츠" },
+            { label: "판례 콘텐츠" },
+            { label: "FAQ" },
+            { label: "영상 기획·재가공" },
+            { label: "숏폼" },
+        ],
+    },
+    {
+        no: "별지 제5호",
+        en: "WEBSITE",
+        href: "/lawfirm-website",
+        items: [
+            { label: "홈페이지 제작·개편" },
+            { label: "사건별 랜딩페이지" },
+            { label: "콘텐츠 등록·관리" },
+            { label: "모바일 최적화" },
+            { label: "전환 UX 개선" },
+            { label: "SEO·GEO 기술 작업" },
+        ],
+    },
+    {
+        no: "별지 제6호",
+        en: "CONVERSION",
+        href: "/conversion",
+        items: [
+            { label: "전화" },
+            { label: "상담폼" },
+            { label: "카카오톡" },
+            { label: "광고별 유입 추적" },
+            { label: "유효상담 분석" },
+            { label: "사건별 상담 CPA" },
+            { label: "수임 데이터 연계" },
+            { label: "마케팅 성과 분석" },
+        ],
+    },
+];
+
+/* ── 제3조 — 변해도 조항 ── */
+
+export const INVARIANT_LINES = [
+    "네이버가 변해도.",
+    "Google이 변해도.",
+    "ChatGPT와 AI 검색이 새로운 고객 접점이 되어도.",
+];
+
+export const INVARIANT_HOLD = "계약은 하나입니다. 우리가 먼저 대응하고, 기존 시스템에 연결합니다.";
+
+export const INVARIANT_CLOSE =
+    "새로운 플랫폼이 등장할 때마다, 로펌이 다시 광고업체를 찾아다닐 필요가 없습니다.";
+
+export interface LedgerRow {
+    channel: string;
+    status: "운영 중" | "조건부" | "대기" | "관찰";
+    note?: string;
+}
+
+export const CHANNEL_LEDGER: LedgerRow[] = [
+    { channel: "NAVER Powerlink · NAVER Ads", status: "운영 중" },
+    { channel: "Google Ads · YouTube Ads", status: "운영 중" },
+    { channel: "NAVER SEO · Google SEO", status: "운영 중" },
+    { channel: "GEO · AEO — ChatGPT · Gemini · 네이버 AI", status: "운영 중" },
+    { channel: "Meta Ads", status: "조건부", note: "필요 시" },
+    {
+        channel: "ChatGPT Ads",
+        status: "대기",
+        note: "2026.6 한국 파일럿 시작 · 법률서비스 광고 허용 시 즉시 편입",
+    },
+    { channel: "신규 AI 광고 플랫폼", status: "관찰", note: "등장 시 기존 시스템에 연결" },
+];
+
+// 사실 각주 — 검증: OpenAI 2026-06-19 한국 광고 파일럿 시작(무료·Go 요금제 노출).
+// 법률서비스 카테고리 허용 여부는 미확인 → "허용 시 편입" 조건부 유지(§42).
+export const LEDGER_FOOTNOTE =
+    "ChatGPT 광고는 2026년 6월 한국에서 파일럿을 시작했습니다. 법률서비스 광고 허용 범위가 확대되는 시점에 신규 채널로 편입해 운영할 계획입니다.";
+
 /* ═══════════════ 운영 기반 — Data & Conversion ═══════════════
    이건 여섯 번째 서비스가 아니다. 위 네 영역 전부를 판단하게 해주는 기반이라
    카드 하나로 늘어놓지 않고 별도 섹션으로 격상한다(LeadToCase).

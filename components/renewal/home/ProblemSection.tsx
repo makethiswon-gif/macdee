@@ -47,13 +47,14 @@ export default function ProblemSection() {
         >
             <Container className="pt-[88px] md:pt-[140px]">
                 <SectionHeader
-                    number="01"
+                    number="제1조"
                     eyebrow="The Problem"
+                    serif
                     title={
                         <>
-                            마케팅 업체가 많아질수록
+                            파워링크, 블로그, 홈페이지, SEO —
                             <br />
-                            마케팅은 더 복잡해집니다.
+                            왜 전부 다른 업체입니까?
                         </>
                     }
                 />

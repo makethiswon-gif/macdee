@@ -24,16 +24,11 @@ export default function MarketingSystem() {
         <section id="system" className="py-[88px] md:py-[140px]">
             <Container>
                 <SectionHeader
-                    number="02"
+                    number="제4조"
                     eyebrow="Marketing System"
-                    title={
-                        <>
-                            고객이 로펌을 발견하는 순간부터
-                            <br />
-                            사건을 맡기는 순간까지.
-                        </>
-                    }
-                    lead="각 단계를 다른 회사가 맡으면 사이가 비고, 그 사이에서 고객이 사라집니다."
+                    serif
+                    title="우리가 관리하는 것은 광고가 아닙니다."
+                    lead="고객이 로펌을 처음 발견하는 순간부터 검색하고, 비교하고, 신뢰하고, 상담하고, 사건을 맡기기까지 — 그 전체 과정을 관리합니다. 각 단계를 다른 회사가 맡으면 사이가 비고, 그 사이에서 고객이 사라집니다."
                 />
             </Container>
 

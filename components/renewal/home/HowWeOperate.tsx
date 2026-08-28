@@ -18,6 +18,7 @@ export default function HowWeOperate() {
         <Section tight>
             <Container>
                 <SectionHeader
+                    number="첨부 2"
                     eyebrow="How we operate"
                     title="한 사람이 다 하지 않습니다."
                     lead="대행사에 맡겼을 때 흔히 벌어지는 일은, 담당자 한 명이 광고도 하고 글도 쓰고 보고서도 만드는 것입니다. 그러면 무엇 하나도 깊어지지 않습니다."
