@@ -78,6 +78,10 @@
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
     font-feature-settings: "tnum" 0;
+    /* 한글은 단어(어절) 단위로만 줄바꿈 — "사람들이"가 "사람/들이"로
+       꺾이지 않는다. 긴 URL 등은 overflow-wrap 이 안전망 */
+    word-break: keep-all;
+    overflow-wrap: break-word;
 
     /* 가로 스크롤 방지.
        overflow: hidden 이 아니라 clip 을 쓴다 —
@@ -381,12 +385,12 @@ html.mt-js .mt-root [data-reveal="scale"][data-in="1"] {
 }
 
 /* ══════════════════════════════════════════════════
-   ONE 인트로 화면 — LAB Concept 01 "ONE → EVERYTHING → ONE"
-   어둠 속 점 하나(=계약)가 여섯 직능으로 분열해 궤도를 돌다
-   다시 하나로 붕괴하고, 파란 마침표가 되어 문장을 끝낸다.
-   장면은 전부 캔버스(IntroScreen.tsx) — CSS 는 레이어·페이드만 담당.
+   BROKEN WEBSITE 인트로 — LAB Concept 03
+   사이트가 처음부터 고장나 있다. 스크롤을 내리는 만큼 조각들이
+   제자리에 박히고, 100% 정렬 순간 스위스 그리드 포스터로 스냅 →
+   MAKE THIS ONE. 직인 → 페이드 → 완성된 홈이 드러난다.
+   동작은 전부 IntroScreen.tsx — CSS 는 레이어·조각 베이스·UI 담당.
    재생 여부는 프리페인트 스크립트(html[data-intro="play"])가 정한다.
-   아래 홈페이지는 처음부터 완성 상태 — 인트로가 걷히면 그대로 드러난다.
    ══════════════════════════════════════════════════ */
 
 .mt-root .mt-ione {
@@ -395,6 +399,8 @@ html.mt-js .mt-root [data-reveal="scale"][data-in="1"] {
     inset: 0;
     z-index: 60;
     background: #050a12;
+    overscroll-behavior: contain;
+    touch-action: none;
     transition:
         opacity 0.9s var(--mt-ease),
         visibility 0.9s;
@@ -406,34 +412,102 @@ html[data-intro="play"] .mt-root .mt-ione {
     opacity: 0;
     visibility: hidden;
 }
-/* 캔버스가 그리기 전(하이드레이션 전)에도 점 하나는 살아 있게 */
-.mt-root .mt-ione::before {
-    content: "";
+
+/* 깨진 조각 — JS 가 매 프레임 transform/glitch 를 계산한다.
+   하이드레이션 전에는 opacity 0 (정렬된 상태가 미리 보이는 것을 막는다) */
+.mt-root .mt-ibrk-frag {
     position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 5px;
-    height: 5px;
-    margin: -2.5px 0 0 -2.5px;
-    border-radius: 50%;
-    background: #fbfaf8;
+    margin: 0;
+    opacity: 0;
+    white-space: nowrap;
+    will-change: transform, opacity;
+    cursor: pointer;
 }
-.mt-root .mt-ione canvas {
+.mt-root .mt-ibrk-frame {
+    border: 1px solid rgba(135, 148, 166, 0.35);
+    background: #0a1019;
+}
+.mt-root .mt-ibrk-frame canvas {
+    display: block;
+}
+.mt-root .mt-ibrk-err {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    padding: 5px 9px;
+    border: 1px dashed rgba(201, 123, 106, 0.55);
+}
+
+/* 노이즈 스캔라인 */
+.mt-root .mt-ibrk-noise {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
+    pointer-events: none;
+    mix-blend-mode: screen;
 }
+
+/* 수리 진행 미터 — 상단 파란 헤어라인 하나로만 말한다 */
+.mt-root .mt-ibrk-meter {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 2px;
+    width: 0;
+    background: var(--mt-accent-on-dark, #8ab4f8);
+    box-shadow: 0 0 14px rgba(138, 180, 248, 0.8);
+    transition: width 0.15s linear;
+}
+.mt-root .mt-ibrk-read {
+    position: absolute;
+    top: 16px;
+    left: 18px;
+    margin: 0;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    color: #8794a6;
+}
+.mt-root .mt-ibrk-skip {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    padding: 10px 14px;
+    background: none;
+    border: 1px solid rgba(135, 148, 166, 0.35);
+    border-radius: 2px;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: #8794a6;
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+}
+.mt-root .mt-ibrk-skip:hover {
+    color: #fbfaf8;
+    border-color: rgba(251, 250, 248, 0.5);
+}
+
+/* 스크롤 안내 — 한글, 잘 보이게 */
 .mt-root .mt-ione-skip {
     position: absolute;
     left: 50%;
-    bottom: 32px;
+    bottom: 30px;
     transform: translateX(-50%);
-    font-size: 12px;
-    letter-spacing: 0.06em;
-    color: rgba(135, 148, 166, 0.8);
+    margin: 0;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: rgba(251, 250, 248, 0.85);
     white-space: nowrap;
-    animation: mt-ione-skip-in 0.7s ease 2s both;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+    animation: mt-ione-skip-in 0.7s ease 1.2s both;
+}
+.mt-root .mt-ibrk-arr {
+    display: inline-block;
+    margin-right: 8px;
+    color: var(--mt-accent-on-dark, #8ab4f8);
+    animation: mt-ibrk-arr-bob 1.6s ease-in-out infinite;
 }
 @keyframes mt-ione-skip-in {
     from {
@@ -443,6 +517,60 @@ html[data-intro="play"] .mt-root .mt-ione {
         opacity: 1;
     }
 }
+@keyframes mt-ibrk-arr-bob {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(4px);
+    }
+}
+
+/* 100% 직인 — 정렬 순간 우하단에 찍힌다 */
+.mt-root .mt-ibrk-stamp {
+    position: absolute;
+    right: clamp(16px, 6vw, 72px);
+    bottom: clamp(60px, 12vh, 110px);
+    padding: 12px 18px;
+    border: 2px solid var(--mt-accent-on-dark, #8ab4f8);
+    border-radius: 2px;
+    font-size: clamp(15px, 1.6vw, 21px);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #fbfaf8;
+    transform: rotate(-6deg) scale(1.4);
+    opacity: 0;
+    pointer-events: none;
+}
+.mt-root .mt-ibrk-stamp-on {
+    animation: mt-ibrk-stamp-pop 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) 0.15s both;
+}
+@keyframes mt-ibrk-stamp-pop {
+    0% {
+        opacity: 0;
+        transform: rotate(-6deg) scale(1.4);
+    }
+    62% {
+        opacity: 1;
+        transform: rotate(-6deg) scale(0.95);
+    }
+    100% {
+        opacity: 0.95;
+        transform: rotate(-6deg) scale(1);
+    }
+}
+
+/* 모바일 — 조각 수 축소·두꺼운 미터 */
+@media (max-width: 1023px) {
+    .mt-root .mt-ibrk-desk {
+        display: none;
+    }
+    .mt-root .mt-ibrk-meter {
+        height: 3px;
+    }
+}
+
 /* play 가 붙은 채 reduced-motion 이면 레이어 자체를 없앤다(이중 안전장치) */
 @media (prefers-reduced-motion: reduce) {
     html[data-intro="play"] .mt-root .mt-ione {

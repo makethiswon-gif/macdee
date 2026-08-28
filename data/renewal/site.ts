@@ -461,7 +461,7 @@ export const INVARIANT_LINES = [
     "ChatGPT와 AI 검색이 새로운 고객 접점이 되어도.",
 ];
 
-export const INVARIANT_HOLD = "계약은 하나입니다. 우리가 변화에 대응하고, 기존 시스템을 발전시킵니다.";
+export const INVARIANT_HOLD = "우리가 변화에 대응하고, 기존 시스템을 발전시킵니다.";
 
 export const INVARIANT_CLOSE =
     "새로운 플랫폼이 등장할 때마다, 로펌이 다시 광고업체를 찾아다닐 필요가 없습니다.";

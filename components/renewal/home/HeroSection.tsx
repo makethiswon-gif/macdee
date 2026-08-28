@@ -69,10 +69,12 @@ function ContractCard() {
 
 export default function HeroSection() {
     return (
-        <section data-clause="전문" className="mt-grid-bg relative pt-[124px] md:pt-[164px] pb-14 md:pb-20 min-h-[86svh] flex flex-col justify-center">
+        <>
             <script dangerouslySetInnerHTML={{ __html: INTRO_BOOT }} />
+            {/* 섹션(mt-grid-bg)은 isolation: isolate 라 인트로가 안에 있으면
+                헤더(z-50)에 덮인다 — 반드시 섹션 밖 형제로 둔다 */}
             <IntroScreen />
-
+        <section data-clause="전문" className="mt-grid-bg relative pt-[124px] md:pt-[164px] pb-14 md:pb-20 min-h-[86svh] flex flex-col justify-center">
             <Container>
                 <div className="relative lg:grid lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-16 lg:items-center">
                     {/* ── 좌측 — 카피 (기본 가시, 인트로 중엔 늦게 슬라이드-인) ── */}
@@ -86,7 +88,7 @@ export default function HeroSection() {
                                 로펌 마케팅,
                             </span>
                             <span className="mt-hero-in block" style={{ ["--mt-hero-delay" as string]: "120ms" }}>
-                                이제 한 곳이면 됩니다.
+                                메이크디스원으로
                             </span>
                         </h1>
 
@@ -158,5 +160,6 @@ export default function HeroSection() {
                 </Container>
             </div>
         </section>
+        </>
     );
 }
