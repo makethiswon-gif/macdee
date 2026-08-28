@@ -6,7 +6,7 @@ import Reveal from "../Reveal";
 import { useScrollProgress } from "../useScrollProgress";
 import { JOURNEY, path } from "@/data/renewal/site";
 
-// 제1조 — 의뢰인 여정 (ONE BLUE THREAD).
+// 제2조 — 의뢰인 여정 (ONE BLUE THREAD).
 //
 // 카드 3장 fade-in 이 아니라, 한 명의 의뢰인(파란 점)이
 // 발견 → 선택할 이유 → 상담 → LEAD TO CASE 로 이동하는 이야기다.
@@ -187,14 +187,14 @@ export default function ClientJourney() {
     const stageRef = useScrollProgress<HTMLDivElement>();
 
     return (
-        <section id="system" data-clause="제1조" className="pt-[88px] md:pt-[140px] pb-[88px] md:pb-[140px]">
+        <section id="system" data-clause="제2조" className="pt-[88px] md:pt-[140px] pb-[88px] md:pb-[140px]">
             <Container>
                 {/* 섹션 진입 — 제목 줄 단위 마스크 리빌 */}
                 <div className="max-w-[820px]">
                     <div className="flex items-center gap-3 mb-6">
                         <Reveal as="span" variant="rise">
                             <span className="mt-en mt-label mt-num" style={{ color: "var(--mt-accent)" }}>
-                                제1조
+                                제2조
                             </span>
                         </Reveal>
                         <span className="w-6 h-px" style={{ background: "var(--mt-line-strong)" }} />

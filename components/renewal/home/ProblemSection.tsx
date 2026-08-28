@@ -5,7 +5,7 @@ import Reveal from "../Reveal";
 import { useScrollProgress } from "../useScrollProgress";
 import { BEFORE_AFTER } from "@/data/renewal/site";
 
-// 제2조 — 맡기기 전 / 맡긴 후 (ONE BLUE THREAD 짧은 전환).
+// 제3조 — 맡기기 전 / 맡긴 후 (ONE BLUE THREAD 짧은 전환).
 //
 // 스크롤 전반부: 업체·보고서·연락 창구 조각이 서로 다른 위치와 각도로 흩어져 있다.
 // 후반부: 조각이 사라지며 하나의 기준선(하나의 창구 · 하나의 성과표 · ONE STRATEGY)
@@ -67,7 +67,7 @@ export default function ProblemSection() {
 
     return (
         <section
-            data-clause="제2조"
+            data-clause="제3조"
             className="mt-dark-glow py-[88px] md:py-[140px]"
             style={{
                 background: "var(--mt-dark-bg)",
@@ -81,7 +81,7 @@ export default function ProblemSection() {
             <div ref={stageRef} className="mt-stage">
                 <Container>
                     <SectionHeader
-                        number="제2조"
+                        number="제3조"
                         eyebrow="Before · After"
                         serif
                         title={

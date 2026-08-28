@@ -11,7 +11,7 @@ import {
     LEDGER_FOOTNOTE,
 } from "@/data/renewal/site";
 
-// 제3조 — 변해도 조항 (ONE BLUE THREAD 짧은 전환).
+// 제4조 — 변해도 조항 (ONE BLUE THREAD 짧은 전환).
 //
 // 스크롤에 따라 배경의 플랫폼 워드가 차례로 바뀌지만
 // 중앙 선언("계약은 하나입니다…")은 고정된다 — 변하는 것과 변하지 않는 것.
@@ -48,7 +48,7 @@ export default function InvariantClause() {
 
     return (
         <section
-            data-clause="제3조"
+            data-clause="제4조"
             className="mt-dark-glow"
             style={{
                 background: "var(--mt-dark-bg)",
@@ -72,7 +72,7 @@ export default function InvariantClause() {
                 <Container className="relative">
                     <div className="flex items-center gap-3 mb-12">
                         <span className="mt-en mt-label mt-num" style={{ color: "var(--mt-accent)" }}>
-                            제3조
+                            제4조
                         </span>
                         <span className="w-6 h-px" style={{ background: "var(--mt-line)" }} />
                         <span className="mt-en mt-label" style={{ color: "var(--mt-gray)" }}>

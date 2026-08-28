@@ -156,11 +156,11 @@ export default async function RenewalHome() {
                 (대표 지시 2026-08-28). Case Study 는 /work 가 담당한다. */}
             <GlobalThread />
             <HeroSection />
+            <ContractScope />
             <ClientJourney />
             <ProblemSection />
             <PartnerLogos />
             <InvariantClause />
-            <ContractScope />
             <WhyMakethis1 />
             <InsightsPreview items={insights} />
             <FinalCTA />

@@ -6,7 +6,7 @@ import Reveal from "../Reveal";
 import { useScrollProgress } from "../useScrollProgress";
 import { CONTRACT_SCOPE, path } from "@/data/renewal/site";
 
-// 제4조 — 계약 범위 (ONE BLUE THREAD 핵심 스크롤 이벤트).
+// 제1조 — 계약 범위 (ONE BLUE THREAD 핵심 스크롤 이벤트).
 //
 // 닫힌 계약 문서(헤더)에서 시작해, 스크롤 진행에 따라 여섯 별지가
 // 순차적으로 펼쳐진다: 번호 → 상단 선 그리기 → 품목 순차 → 조건부 배지.
@@ -29,11 +29,11 @@ export default function ContractScope() {
     const stageRef = useScrollProgress<HTMLDivElement>();
 
     return (
-        <section id="scope" data-clause="제4조" className="pt-[88px] md:pt-[140px] pb-[88px] md:pb-[140px]">
+        <section id="scope" data-clause="제1조" className="pt-[88px] md:pt-[140px] pb-[88px] md:pb-[140px]">
             <Container>
                 <Reveal>
                     <SectionHeader
-                        number="제4조"
+                        number="제1조"
                         eyebrow="Scope of Services"
                         serif
                         title="ONE CONTRACT, ALL MARKETING."
