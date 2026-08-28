@@ -354,9 +354,26 @@ Phase 11 에서 canonical·og:url·sitemap 이 전부 `DEMO_BASE` 스위치에 �
    `/magazine/[slug]` 무작위 3편 200, `/makethisone/subscribe` 정상.
 6. **GSC sitemap 재제출 + 주요 URL 색인 요청, 네이버 서치어드바이저 재수집.**
 
-⚠️ 미확정 결정 1건: 기존 `/diagnose` (맥디 무료 AI 진단 제품 화면)를 어디로 보낼지.
-리뉴얼 `/renewal/diagnose` 가 `/diagnose` 를 차지하므로 기존 화면은
-이동(예: `/dashboard` 내부)하거나 폐기해야 한다 — 대표 결정 필요.
+### 6.2.2 교체 시 보존 목록 (대표 지시 2026-08-29 — 절대 원칙)
+
+교체는 **마케팅 표면만** 바꾼다. 아래는 전부 그대로 동작해야 한다:
+
+- **관리자 화면 전부**: `/admin/*` 및 `/api/admin/*` — 라우트·인증(admin_token)·기능 무변경
+- **AI 맥디(제품) 전부**: `/login` `/signup` `/dashboard/*` `/billing/*` `/contents/*`
+  `/publish` `/blog-write` `/profile` `/settings` `/site-builder` 등 로그인 후 쓰는
+  모든 제품 화면과 해당 API — 기존 구독자가 로그인해서 계속 쓸 수 있어야 한다
+- 고객 블로그/사이트 호스팅: `/blog/*` `/site/*`
+- Client Portal: `/portal` 및 `/api/portal/*`
+- 결제(Toss)·cron·발행 파이프라인 등 모든 `/api/*`
+
+교체 작업이 건드리는 것은 오직: 마케팅 페이지 라우트 이동, 루트 레이아웃의
+마케팅 메타/스키마, next.config 리다이렉트 추가, sitemap 스위치.
+
+⚠️ 이 원칙과 충돌하는 미확정 1건: 기존 `/diagnose` 는 **맥디 제품 화면**이다.
+리뉴얼 `/renewal/diagnose` 를 `/diagnose` 로 올리면 제품 화면을 덮게 되므로,
+보존 원칙에 따라 다음 중 하나로 정해야 한다 — ① 맥디 진단을 `/dashboard/diagnose`
+등으로 이동 ② 리뉴얼 진단을 다른 경로(예: `/consult`)로 올리고 `/diagnose` 는
+제품용으로 유지. 대표 결정 필요.
 
 ### 6.3 절대 건드리지 않는 것
 
