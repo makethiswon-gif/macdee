@@ -1,67 +1,72 @@
-import { Container, Button, Eyebrow, Stat } from "../primitives";
+import { Container, Button, Stat } from "../primitives";
 import Reveal from "../Reveal";
 import Logo from "../Logo";
 import IntroScreen from "./IntroScreen";
 import {
-    HERO_QUESTIONS,
-    HERO_RESULT,
+    HERO_OVERLINE,
+    HERO_BODY,
+    HERO_BEFORE,
+    HERO_CARD_TITLE,
+    HERO_CARD_ITEMS,
+    HERO_CARD_FOOT,
     PROOF_STATS,
     PRIMARY_CTA,
-    CONTRACT_SCOPE,
     path,
 } from "@/data/renewal/site";
 
-// HERO — The Contract.
+// HERO — "필요한 전부, 한 팀".
 //
-// 인트로는 독립 풀스크린 시네마(IntroScreen.tsx, LAB Concept 01)가 담당한다.
-// 이 섹션의 기본(서버 HTML + CSS) 상태가 곧 최종 상태 — 인트로가 걷히면
-// 완성된 히어로가 그대로 드러난다. JS 실패/reduced-motion 이면 인트로 없이
-// 바로 이 화면이다.
+// 첫 화면 5초 안에 "로펌 마케팅 전부를 한 팀이 운영한다"가 읽혀야 한다.
+// 좌: 선언 + 한 줄 Before→After + CTA. 우: "메이크디스원이 맡는 일" 카드 —
+// 여섯 영역이 차례로 켜지며(체크인 펄스) 한 팀 운영을 형태로 보여준다.
+// 기본(서버 HTML + CSS) 상태가 곧 최종 상태 — JS/모션 없이도 전부 읽힌다.
 
 // 프리페인트 부트 — 파싱 중 실행되어 첫 페인트 전에 재생 여부를 정한다.
-// 인트로 화면이므로 홈을 새로 열 때마다 재생한다(reduced-motion 만 제외).
+// 같은 세션에서는 한 번만 재생한다(sessionStorage). reduced-motion 미재생.
 const INTRO_BOOT =
     "(function(){try{var r=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;" +
-    "if(!r){document.documentElement.setAttribute('data-intro','play');}}catch(e){}})()";
+    "if(!r&&!sessionStorage.getItem('renewalIntroSeen')){" +
+    "document.documentElement.setAttribute('data-intro','play');" +
+    "sessionStorage.setItem('renewalIntroSeen','1');}}catch(e){}})()";
 
-function ContractCard() {
+function ScopeCard() {
     return (
-        <aside className="mt-contract relative" aria-label="ONE CONTRACT — 계약 범위 요약">
-            <p className="mt-en mt-label" style={{ color: "var(--mt-accent)" }}>
-                One Contract
+        <aside className="mt-contract relative" aria-label={HERO_CARD_TITLE}>
+            <p className="mt-label" style={{ color: "var(--mt-accent)", letterSpacing: "0.08em" }}>
+                {HERO_CARD_TITLE}
             </p>
 
             <ul className="mt-5">
-                {CONTRACT_SCOPE.map((a, i) => (
+                {HERO_CARD_ITEMS.map((it, i) => (
                     <li
-                        key={a.en}
-                        className="mt-contract-row mt-en flex items-baseline justify-between gap-4 py-[9px] text-[11px] font-medium"
+                        key={it.ko}
+                        className="mt-scope-row flex items-center justify-between gap-4 py-[10px] text-[13px] font-medium"
                         style={{
                             borderTop: "1px solid var(--mt-line)",
                             color: "var(--mt-ink)",
                             ["--i" as string]: i,
                         }}
                     >
-                        {a.en}
-                        <span className="mt-num text-[9px]" style={{ color: "var(--mt-gray-light)" }}>
-                            {a.no.replace("별지 ", "")}
+                        <span className="flex items-center gap-2.5">
+                            {/* 체크인 점 — 차례로 파랗게 켜진다 */}
+                            <span className="mt-scope-dot" aria-hidden />
+                            {it.ko}
+                        </span>
+                        <span className="mt-en mt-num text-[9px]" style={{ color: "var(--mt-gray-light)" }}>
+                            {it.no}
                         </span>
                     </li>
                 ))}
             </ul>
 
             <div
-                className="mt-6 pt-4 flex items-end justify-between"
+                className="mt-6 pt-4 flex items-center justify-between gap-4"
                 style={{ borderTop: "1px solid var(--mt-line-strong)" }}
             >
+                <p className="text-[12.5px] font-medium" style={{ color: "var(--mt-ink)" }}>
+                    {HERO_CARD_FOOT}
+                </p>
                 <Logo size={13} />
-                <span className="mt-stamp-blue" aria-hidden>
-                    ONE CONTRACT
-                    <br />
-                    ONE TEAM
-                    <br />
-                    MAKETHIS1
-                </span>
             </div>
         </aside>
     );
@@ -74,69 +79,72 @@ export default function HeroSection() {
             {/* 섹션(mt-grid-bg)은 isolation: isolate 라 인트로가 안에 있으면
                 헤더(z-50)에 덮인다 — 반드시 섹션 밖 형제로 둔다 */}
             <IntroScreen />
-        <section data-clause="전문" className="mt-grid-bg relative pt-[124px] md:pt-[164px] pb-14 md:pb-20 min-h-[86svh] flex flex-col justify-center">
+        <section data-clause="HOME" className="mt-grid-bg relative pt-[124px] md:pt-[164px] pb-14 md:pb-20 min-h-[86svh] flex flex-col justify-center">
             <Container>
                 <div className="relative lg:grid lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-16 lg:items-center">
-                    {/* ── 좌측 — 카피 (기본 가시, 인트로 중엔 늦게 슬라이드-인) ── */}
-                    <div className="mt-hero-copy">
+                    {/* ── 좌측 — 선언 ── */}
+                    <div>
                         <div className="mt-hero-in">
-                            <Eyebrow>Law Firm Marketing · One Team</Eyebrow>
+                            <span className="mt-en mt-label inline-block" style={{ color: "var(--mt-gray)" }}>
+                                {HERO_OVERLINE}
+                            </span>
                         </div>
 
-                        <h1 className="mt-serif mt-display mt-8 max-w-[16ch]" style={{ lineHeight: 1.16 }}>
+                        <h1 className="mt-serif mt-display mt-8 max-w-[17ch]" style={{ lineHeight: 1.16 }}>
                             <span className="mt-hero-in block" style={{ ["--mt-hero-delay" as string]: "60ms" }}>
-                                로펌 마케팅,
+                                로펌 마케팅에 필요한 모든 것.
                             </span>
                             <span className="mt-hero-in block" style={{ ["--mt-hero-delay" as string]: "120ms" }}>
-                                메이크디스원으로
+                                메이크디스원 하나면&nbsp;됩니다.
                             </span>
                         </h1>
 
-                        <ul className="mt-10 flex flex-col gap-1.5" aria-label="지금까지의 분산 발주">
-                            {HERO_QUESTIONS.map((q, i) => (
-                                <li
-                                    key={q}
-                                    className="mt-hero-in text-[14px] md:text-[14.5px]"
-                                    style={{
-                                        ["--mt-hero-delay" as string]: `${200 + i * 70}ms`,
-                                        color: "var(--mt-gray)",
-                                    }}
-                                >
-                                    <span
-                                        className="mt-strike"
-                                        style={{ ["--strike-delay" as string]: `${900 + i * 160}ms` }}
-                                    >
-                                        {q}
-                                    </span>
-                                </li>
-                            ))}
-                            <li
-                                className="mt-hero-in mt-3 text-[15.5px] md:text-[16.5px] font-semibold max-w-[560px] leading-[1.65]"
-                                style={{
-                                    ["--mt-hero-delay" as string]: "580ms",
-                                    color: "var(--mt-ink)",
-                                }}
-                            >
-                                {HERO_RESULT}
-                            </li>
-                        </ul>
+                        <p
+                            className="mt-hero-in mt-8 text-[15.5px] md:text-[16.5px] leading-[1.75] max-w-[560px]"
+                            style={{ ["--mt-hero-delay" as string]: "220ms", color: "var(--mt-charcoal)" }}
+                        >
+                            {HERO_BODY}
+                        </p>
 
-                        <div className="mt-hero-in" style={{ ["--mt-hero-delay" as string]: "660ms" }}>
-                            <div className="mt-12 flex flex-col sm:flex-row gap-3">
+                        {/* 한 줄 Before → After */}
+                        <p
+                            className="mt-hero-in mt-7 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[13.5px]"
+                            style={{ ["--mt-hero-delay" as string]: "300ms" }}
+                        >
+                            <span style={{ color: "var(--mt-gray)" }}>
+                                {HERO_BEFORE.map((b, i) => (
+                                    <span key={b}>
+                                        {i > 0 && <span aria-hidden> · </span>}
+                                        <span className="line-through decoration-[1px]" style={{ textDecorationColor: "var(--mt-gray-light)" }}>
+                                            {b}
+                                        </span>
+                                    </span>
+                                ))}
+                            </span>
+                            <span aria-hidden style={{ color: "var(--mt-accent)" }}>
+                                →
+                            </span>
+                            <span className="mt-en font-semibold" style={{ color: "var(--mt-ink)", letterSpacing: "0.04em" }}>
+                                MAKETHIS1<span style={{ color: "var(--mt-accent)" }}>.</span>
+                            </span>
+                        </p>
+
+                        <div className="mt-hero-in" style={{ ["--mt-hero-delay" as string]: "380ms" }}>
+                            <div className="mt-10 flex flex-col sm:flex-row gap-3">
                                 <Button href={path(PRIMARY_CTA.href)} variant="primary">
-                                    우리 로펌 마케팅 진단받기 <span aria-hidden>→</span>
+                                    마케팅 진단받기 <span aria-hidden>→</span>
                                 </Button>
-                                <Button href={path("/#system")} variant="outline">
-                                    어떻게 하는지 보기
+                                <Button href={path("/#plans")} variant="outline">
+                                    세 가지 운영안 보기
                                 </Button>
                             </div>
                         </div>
                     </div>
 
-                    {/* ── 우측 — 계약서 (최종 비주얼, 인트로의 종착점) ── */}
+                    {/* ── 우측 — 맡는 일 카드 ── */}
                     <div className="mt-12 lg:mt-0 max-w-[400px] lg:max-w-none">
-                        <ContractCard />
-                        {/* 계약서 아래에서 파란 실이 다음 섹션(의뢰인 여정)으로 이어진다 */}
+                        <ScopeCard />
+                        {/* 카드 아래에서 파란 실이 다음 섹션으로 이어진다 */}
                         <Reveal variant="line" className="mt-thread-v block w-px h-12 md:h-14 mx-auto mt-6">
                             <span aria-hidden />
                         </Reveal>

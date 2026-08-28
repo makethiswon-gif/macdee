@@ -6,11 +6,12 @@ import GlobalThread from "@/components/renewal/home/GlobalThread";
 import ClientJourney from "@/components/renewal/home/ClientJourney";
 import ProblemSection from "@/components/renewal/home/ProblemSection";
 import PartnerLogos from "@/components/renewal/home/PartnerLogos";
-import ContractScope from "@/components/renewal/home/ContractScope";
+import ServicesSection from "@/components/renewal/home/ServicesSection";
 import InvariantClause from "@/components/renewal/home/InvariantClause";
 import CaseStudies from "@/components/renewal/home/CaseStudies";
 import WhyMakethis1 from "@/components/renewal/home/WhyMakethis1";
 import InsightsPreview, { type InsightItem } from "@/components/renewal/home/InsightsPreview";
+import PlansSection from "@/components/renewal/home/PlansSection";
 import FinalCTA from "@/components/renewal/home/FinalCTA";
 
 import { CASES } from "@/data/renewal/cases";
@@ -20,10 +21,10 @@ import { renewalRobots } from "./flags";
 export const revalidate = 600;
 
 const URL = absUrl("/");
-const TITLE = "로펌 마케팅, 여기서 끝냅니다 | MAKETHIS1";
+const TITLE = "로펌 마케팅에 필요한 모든 것 | MAKETHIS1";
 const DESCRIPTION =
-    "네이버 파워링크부터 Google Ads, 네이버 블로그와 홈페이지, SEO·GEO, AI 검색과 " +
-    "상담 전환 분석까지. 로펌에 필요한 마케팅은 MAKETHIS1이 전부 해결합니다.";
+    "검색광고, 블로그, SEO, AI 검색, 홈페이지, 상담 분석까지. " +
+    "여러 업체를 따로 찾고 관리할 필요 없이 메이크디스원 한 팀이 전부 운영합니다.";
 
 // 루트 레이아웃의 title 템플릿(macdee)이 붙지 않도록 absolute 로 고정한다.
 export const metadata: Metadata = {
@@ -146,21 +147,16 @@ export default async function RenewalHome() {
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
             />
 
-            {/* The Contract × 의뢰인 여정 — 조(條) 구조.
-                Hero(선언 + 결과 + 검증 수치) → 제1조 의뢰인 여정 3단계(+Lead to Case 통합)
-                → 제2조 맡기기 전/후 → 증거(파트너) → 제3조 변해도 조항(장부)
-                → 제4조 계약 범위(별지 — 세부 업무가 궁금한 방문자용)
-                → 첨부 1(팀) → Insights → 서명란
+            {/* "필요한 전부, 한 팀" 구조 (대표 지시 2026-08-29 — 계약서 은유 폐기).
+                Hero(선언 + 맡는 일 카드 + 검증 수치) → 서비스 범위 01~06
+                → 의뢰인 여정 3단계 → 맡기기 전/후 → 증거(파트너) → 사례
+                → 새 채널 대응(축소) → 팀 → Insights → 세 가지 운영안(#plans) → CTA
 
-                핵심 원칙: "많은 업무"가 아니라 "한 의뢰인이 사건을 맡기기까지의 흐름".
-                긴 스크롤 무대(수렴 260svh · 6단계 508svh · 변해도 230svh)는 전부
-                한 화면형으로 압축했다. 효과 없이 읽어도 구조가 이해된다.
-
-                Case Study 섹션과 운영 체계(How we operate) 섹션은 홈에서 뺐다
-                (대표 지시 2026-08-28). Case Study 는 /work 가 담당한다. */}
+                핵심 원칙: 첫 화면 5초 안에 "필요한 마케팅 전부를 한 팀이 운영해
+                간단해진다"가 읽혀야 한다. 효과 없이 읽어도 구조가 이해된다. */}
             <GlobalThread />
             <HeroSection />
-            <ContractScope />
+            <ServicesSection />
             <ClientJourney />
             <ProblemSection />
             <PartnerLogos />
@@ -168,6 +164,7 @@ export default async function RenewalHome() {
             <InvariantClause />
             <WhyMakethis1 />
             <InsightsPreview items={insights} total={insightsTotal} />
+            <PlansSection />
             <FinalCTA />
         </>
     );

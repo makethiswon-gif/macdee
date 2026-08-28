@@ -269,30 +269,26 @@ export const CHANNELS: ChannelCategory[] = [
     },
 ];
 
-/* ═══════════════ The Contract 개편 (docs/HOME_REDESIGN_PLAN.md) ═══════════════
+/* ═══════════════ 홈 개편 — "필요한 전부, 한 팀" (대표 지시 2026-08-29) ═══════════════
+   계약서·조항 은유는 폐기했다. 사용자 노출 문구에 계약/별지/서명/직인을 쓰지 않는다.
    ⚠️ §42 — 확정된 것과 조건부인 것을 badge 로 구분한다.
       조건부 품목을 배지 없이 쓰면 확정 서비스처럼 읽힌다. */
 
-/* ── HERO — 질문 취소선 ── */
+/* ── HERO ── */
 
-export const HERO_QUESTIONS = [
-    "파워링크는 광고대행사에게",
-    "Google Ads는 또 다른 업체에게",
-    "블로그는 블로그 대행사에게",
-    "홈페이지는 제작사에게",
-    "SEO는 SEO 업체에게 맡기고 있습니까?",
-];
+export const HERO_OVERLINE = "LAW FIRM MARKETING, MADE SIMPLE.";
 
-export const HERO_ANSWER = "이제 그 모든 마케팅을 하나의 팀에서 운영합니다.";
+export const HERO_BODY =
+    "검색광고, 블로그, SEO, AI 검색, 홈페이지, 상담 분석까지. 여러 업체를 따로 찾고 관리할 필요 없이 한 팀이 전부 운영합니다.";
 
-// 결과 중심 서브카피 — 채널 열거가 아니라 의뢰인에게 생기는 변화를 말한다.
-// 카피 확정: 대표 수정본 2026-08-28.
-export const HERO_RESULT =
-    "의뢰인이 찾고, 믿고, 상담하도록 — 광고·검색·콘텐츠·홈페이지를 하나의 전략으로 연결합니다.";
+// 기존 취소선 질문 5줄을 한 줄 Before→After 로 압축했다.
+export const HERO_BEFORE = ["광고대행사", "블로그 업체", "제작사", "SEO 업체"];
 
-/* ── 제1조 — 의뢰인 여정 3단계 ──
-   "많은 업무"가 아니라 "한 의뢰인이 사건을 맡기기까지의 흐름"으로 말한다.
-   세부 업무는 라벨로만 붙이고, 전체 품목은 별지(제4조)가 담당한다. */
+// 히어로 우측 카드 — "메이크디스원이 맡는 일"
+export const HERO_CARD_TITLE = "메이크디스원이 맡는 일";
+export const HERO_CARD_FOOT = "한 팀에서 함께 운영합니다.";
+
+/* ── 의뢰인 여정 3단계 ── */
 
 export interface JourneyStep {
     no: string;
@@ -301,72 +297,67 @@ export interface JourneyStep {
     labels: string[];
 }
 
-// 카피 확정: 대표 수정본 2026-08-28 — 제목은 명사형, 설명은 "~도록" 리듬.
+// 카피 확정: 대표 수정본 2026-08-29.
 export const JOURNEY: JourneyStep[] = [
     {
         no: "01",
-        title: "발견",
-        desc: "네이버·구글·AI 검색에서 법률 문제를 찾는 순간, 우리 로펌이 보이도록.",
-        labels: ["광고", "SEO", "GEO"],
+        title: "보이게 합니다",
+        desc: "네이버·Google 광고와 일반 검색, AI 검색에서 로펌이 발견되게 합니다.",
+        labels: ["광고", "SEO", "AI 검색"],
     },
     {
         no: "02",
-        title: "선택할 이유",
-        desc: "홈페이지와 콘텐츠로, 찾아온 사람이 왜 이 로펌이어야 하는지 스스로 납득하도록.",
+        title: "선택할 이유를 만듭니다",
+        desc: "사건 경험, 변호사 소개, 전문 콘텐츠와 홈페이지에서 신뢰할 근거를 보여줍니다.",
         labels: ["콘텐츠", "홈페이지"],
     },
     {
         no: "03",
-        title: "상담과 사건으로 연결",
-        desc: "전화·카카오·폼 유입이 어느 채널에서 왔는지 확인하고, 실제 상담이 생기는 곳에 예산을 집중.",
+        title: "상담이 생긴 곳에 더 씁니다",
+        desc: "전화·카카오톡·상담폼의 유입 경로를 확인하고 실제 상담이 생기는 채널에 예산을 옮깁니다.",
         labels: ["상담 경로", "데이터 분석"],
     },
 ];
 
-// 3단계 끝에 붙는 압축 데이터 흐름 — 기존 LeadToCase 대형 섹션을 대체한다.
+// 3단계 끝에 붙는 압축 데이터 흐름.
 export const JOURNEY_CHAIN = ["전화 · 카카오 · 폼", "상담", "수임"];
 export const JOURNEY_NOTE = "수임 데이터는 로펌이 제공한 범위 안에서만 연결합니다.";
 
-/* ── 제2조 — 맡기기 전 / 맡긴 후 ──
-   기존 260svh 수렴 애니메이션을 한 화면 비교로 압축한 것. */
+/* ── 맡기기 전 / 메이크디스원과 일하면 ── */
 
 export const BEFORE_AFTER = {
+    title: ["업체 다섯 곳을 관리하는 대신,", "메이크디스원 한 팀과 일하십시오."],
     before: {
         label: "맡기기 전",
-        items: [
-            "광고대행사 · 블로그 업체 · 홈페이지 제작사 · SEO 업체가 따로 움직입니다",
-            "업체마다 성과 기준이 달라 무엇이 잘되는지 알 수 없습니다",
-            "보고서와 연락 창구가 여러 개입니다",
-        ],
+        items: ["업체마다 따로 연락", "보고서도 따로 확인", "성과 기준도 제각각"],
     },
     after: {
-        label: "맡긴 후",
-        items: [
-            "하나의 전략, 하나의 예산으로 전 채널이 움직입니다",
-            "성과는 노출·클릭이 아니라 상담과 수임 기준으로 판단합니다",
-            "모든 콘텐츠는 블로그, 홈페이지, SNS 등 모든 채널에서 유기적으로 재생산됩니다",
-        ],
+        label: "메이크디스원과 일하면",
+        items: ["담당 창구 하나", "월간 운영 계획 하나", "상담 기준 성과표 하나"],
     },
 };
 
-/* ── 제2조 — 계약 범위 (별지 6개) ── */
+/* ── 서비스 범위 — 01~06 ──
+   한글 업무명이 주 제목, 영어는 작은 보조 레이블. */
 
-export interface AnnexItem {
+export interface ServiceItem {
     label: string;
     /** 조건부 품목만 갖는다: "필요 시" | "허용 시 편입" | "등장 시 검토" */
     badge?: string;
 }
 
-export interface Annex {
+export interface Service {
     no: string;
+    ko: string;
     en: string;
-    href: string; // 해당 서비스 상세 — ChannelGrid 가 갖던 내부링크 축을 이어받는다
-    items: AnnexItem[];
+    href: string; // 해당 서비스 상세 — 내부링크 축
+    items: ServiceItem[];
 }
 
-export const CONTRACT_SCOPE: Annex[] = [
+export const SERVICES: Service[] = [
     {
-        no: "별지 제1호",
+        no: "01",
+        ko: "광고 운영",
         en: "PAID MEDIA",
         href: "/naver-ads",
         items: [
@@ -380,7 +371,8 @@ export const CONTRACT_SCOPE: Annex[] = [
         ],
     },
     {
-        no: "별지 제2호",
+        no: "02",
+        ko: "네이버·Google 검색",
         en: "SEARCH",
         href: "/lawfirm-seo",
         items: [
@@ -393,7 +385,8 @@ export const CONTRACT_SCOPE: Annex[] = [
         ],
     },
     {
-        no: "별지 제3호",
+        no: "03",
+        ko: "AI 검색",
         en: "AI SEARCH",
         href: "/geo",
         items: [
@@ -407,7 +400,8 @@ export const CONTRACT_SCOPE: Annex[] = [
         ],
     },
     {
-        no: "별지 제4호",
+        no: "04",
+        ko: "법률 콘텐츠",
         en: "CONTENT",
         href: "/lawfirm-blog",
         items: [
@@ -421,7 +415,8 @@ export const CONTRACT_SCOPE: Annex[] = [
         ],
     },
     {
-        no: "별지 제5호",
+        no: "05",
+        ko: "홈페이지",
         en: "WEBSITE",
         href: "/lawfirm-website",
         items: [
@@ -434,7 +429,8 @@ export const CONTRACT_SCOPE: Annex[] = [
         ],
     },
     {
-        no: "별지 제6호",
+        no: "06",
+        ko: "상담·수임 분석",
         en: "CONVERSION",
         href: "/conversion",
         items: [
@@ -453,18 +449,15 @@ export const CONTRACT_SCOPE: Annex[] = [
     },
 ];
 
-/* ── 제3조 — 변해도 조항 ── */
+// 히어로 우측 카드 항목 — SERVICES 와 같은 여섯 영역의 짧은 이름.
+export const HERO_CARD_ITEMS = SERVICES.map((s) => ({ ko: s.ko, no: s.no }));
 
-export const INVARIANT_LINES = [
-    "네이버가 변해도.",
-    "Google이 변해도.",
-    "ChatGPT와 AI 검색이 새로운 고객 접점이 되어도.",
-];
+/* ── 새 채널 대응 (구 Whatever Changes — 대폭 축소) ── */
 
-export const INVARIANT_HOLD = "우리가 변화에 대응하고, 기존 시스템을 발전시킵니다.";
+export const NEW_CHANNEL_TITLE = ["새 광고 채널이 생겨도", "다시 업체를 찾을 필요 없습니다."];
 
-export const INVARIANT_CLOSE =
-    "새로운 플랫폼이 등장할 때마다, 로펌이 다시 광고업체를 찾아다닐 필요가 없습니다.";
+export const NEW_CHANNEL_BODY =
+    "메이크디스원이 매체와 광고 규정을 검토하고, 실제로 쓸 수 있는 채널만 기존 운영에 연결합니다.";
 
 export interface LedgerRow {
     channel: string;
@@ -472,6 +465,7 @@ export interface LedgerRow {
     note?: string;
 }
 
+// 상세 현황 — 접힌 상세 정보로만 노출한다. ChatGPT Ads 를 메인 판매 문구로 쓰지 않는다.
 export const CHANNEL_LEDGER: LedgerRow[] = [
     { channel: "NAVER Powerlink · NAVER Ads", status: "운영 중" },
     { channel: "Google Ads · YouTube Ads", status: "운영 중" },
@@ -481,15 +475,92 @@ export const CHANNEL_LEDGER: LedgerRow[] = [
     {
         channel: "ChatGPT Ads",
         status: "대기",
-        note: "2026.6 한국 파일럿 시작 · 법률서비스 광고 허용 시 즉시 편입",
+        note: "2026.6 한국 파일럿 시작 · 법률서비스 광고 허용 시 검토",
     },
-    { channel: "신규 AI 광고 플랫폼", status: "관찰", note: "등장 시 기존 시스템에 연결" },
+    { channel: "신규 AI 광고 플랫폼", status: "관찰", note: "등장 시 기존 운영에 연결" },
 ];
 
 // 사실 각주 — 검증: OpenAI 2026-06-19 한국 광고 파일럿 시작(무료·Go 요금제 노출).
-// 법률서비스 카테고리 허용 여부는 미확인 → "허용 시 편입" 조건부 유지(§42).
+// 법률서비스 카테고리 허용 여부는 미확인 → "허용 시" 조건부 유지(§42).
 export const LEDGER_FOOTNOTE =
-    "ChatGPT 광고는 2026년 6월 한국에서 파일럿을 시작했습니다. 법률서비스 광고 허용 범위가 확대되는 시점에 신규 채널로 편입해 운영할 계획입니다.";
+    "ChatGPT 광고는 2026년 6월 한국에서 파일럿을 시작했습니다. 법률서비스 광고 허용 범위가 확대되는 시점에 채널 편입을 검토합니다.";
+
+/* ── #plans — 세 가지 운영안 ──
+   ⚠️ 금액은 대표가 지정한 공개 기준가(2026-08-29). 임의로 바꾸지 않는다.
+   SaaS 가격표가 아니라 미니 견적서 톤 — 보장 표현을 쓰지 않는다. */
+
+export interface Plan {
+    key: string;
+    en: string;
+    ko: string;
+    price: string;
+    priceNote: string;
+    desc: string;
+    includesLabel: string;
+    includes: string[];
+    featured?: boolean;
+    badge?: string;
+}
+
+export const PLANS: Plan[] = [
+    {
+        key: "standard",
+        en: "STANDARD",
+        ko: "운영 통합",
+        price: "약 월 500만원",
+        priceNote: "광고 매체비 별도",
+        desc: "여러 업체로 나뉜 마케팅을 한 팀에 모아 안정적으로 운영합니다.",
+        includesLabel: "포함",
+        includes: [
+            "네이버 파워링크·Google Ads",
+            "네이버 블로그",
+            "홈페이지 기본 관리",
+            "기본 SEO·GEO",
+            "마케팅 데이터 분석",
+        ],
+    },
+    {
+        key: "growth",
+        en: "GROWTH",
+        ko: "성장 확장",
+        price: "약 월 800~900만원",
+        priceNote: "광고 매체비 별도",
+        desc: "기본 운영에 더해 사건 분야와 검색 유입을 지속적으로 확장합니다.",
+        includesLabel: "STANDARD 전체 +",
+        includes: [
+            "사건 분야별 랜딩페이지",
+            "SEO 콘텐츠 클러스터",
+            "실제 사건·판례 콘텐츠",
+            "GEO·AI 검색 대응 고도화",
+            "광고 A/B 테스트와 CRO",
+            "경쟁 로펌 모니터링",
+            "영상 재가공",
+        ],
+        featured: true,
+        badge: "주력 운영안",
+    },
+    {
+        key: "market-leader",
+        en: "MARKET LEADER",
+        ko: "시장 선점",
+        price: "월 1,500만원부터",
+        priceNote: "광고 매체비 별도",
+        desc: "특정 지역 또는 사건 분야에서 높은 시장 점유를 목표로 사실상 외부 마케팅 본부처럼 움직입니다.",
+        includesLabel: "GROWTH 전체 +",
+        includes: [
+            "대규모 키워드·콘텐츠 맵",
+            "다수의 사건별 랜딩페이지",
+            "변호사 개인 브랜딩",
+            "YouTube·Shorts 기획",
+            "PR·언론 전략",
+            "경쟁 로펌 심층 분석",
+            "전략회의와 적극적인 예산 재배분",
+        ],
+    },
+];
+
+export const PLANS_FOOTNOTE =
+    "광고 매체비는 별도입니다. 실제 범위와 비용은 사건 분야, 지역, 경쟁 상황, 현재 홈페이지와 콘텐츠 상태를 확인한 후 확정합니다.";
 
 /* ═══════════════ 운영 기반 — Data & Conversion ═══════════════
    이건 여섯 번째 서비스가 아니다. 위 네 영역 전부를 판단하게 해주는 기반이라

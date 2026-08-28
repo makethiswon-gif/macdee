@@ -50,7 +50,7 @@ export default function InsightsPreview({ items, total }: { items: InsightItem[]
     const [lead, ...rest] = items;
 
     return (
-        <Section data-clause="Insights">
+        <Section data-clause="INSIGHTS">
             <Container>
                 <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
                     <div>

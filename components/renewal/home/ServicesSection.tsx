@@ -5,14 +5,14 @@ import { Container, SectionHeader } from "../primitives";
 import Reveal from "../Reveal";
 import ScrollHint from "../ScrollHint";
 import { useScrollProgress } from "../useScrollProgress";
-import { CONTRACT_SCOPE, path } from "@/data/renewal/site";
+import { SERVICES, path } from "@/data/renewal/site";
 
-// 제1조 — 계약 범위 (ONE BLUE THREAD 핵심 스크롤 이벤트).
+// 서비스 범위 — 01~06.
 //
-// 닫힌 계약 문서(헤더)에서 시작해, 스크롤 진행에 따라 여섯 별지가
-// 순차적으로 펼쳐진다: 번호 → 상단 선 그리기 → 품목 순차 → 조건부 배지.
-// 전부 --p 의 순수 함수 — 역스크롤 역재생, 이탈 후 최종 상태 유지.
-// 데스크톱만 짧은 sticky(185svh). 모바일은 세로 흐름에서 enter 진행.
+// 한글 업무명이 주 제목, 영어는 작은 보조 레이블. 스크롤 진행에 따라
+// 여섯 줄이 차례로 펼쳐진다(기존 unfold 모션 유지): 번호 → 상단 선 →
+// 품목 순차 → 조건부 배지. 전부 --p 의 순수 함수 — 역스크롤 역재생.
+// 모바일은 품목이 길어지지 않도록 세부 업무를 접어둔다(<details>).
 // CTA 는 처음부터 클릭 가능하고(접근성) 시각적 강조만 뒤에 붙는다.
 
 function Badge({ children }: { children: string }) {
@@ -26,19 +26,42 @@ function Badge({ children }: { children: string }) {
     );
 }
 
-export default function ContractScope() {
+function ItemList({ items }: { items: (typeof SERVICES)[number]["items"] }) {
+    return (
+        <ul className="flex flex-wrap items-center gap-x-2 gap-y-2 text-[13.5px] leading-relaxed">
+            {items.map((it, j) => (
+                <li key={it.label} className="flex items-center" style={{ color: "var(--mt-charcoal)" }}>
+                    {j > 0 && (
+                        <span aria-hidden className="mx-2" style={{ color: "var(--mt-line-strong)" }}>
+                            ·
+                        </span>
+                    )}
+                    <span>{it.label}</span>
+                    {it.badge && <Badge>{it.badge}</Badge>}
+                </li>
+            ))}
+        </ul>
+    );
+}
+
+export default function ServicesSection() {
     const stageRef = useScrollProgress<HTMLDivElement>();
 
     return (
-        <section id="scope" data-clause="제1조" className="pt-[88px] md:pt-[140px] pb-[88px] md:pb-[140px]">
+        <section id="scope" data-clause="SERVICES" className="pt-[88px] md:pt-[140px] pb-[88px] md:pb-[140px]">
             <Container>
                 <Reveal>
                     <SectionHeader
-                        number="제1조"
-                        eyebrow="Scope of Services"
+                        eyebrow="Services"
                         serif
-                        title="ONE CONTRACT, ALL MARKETING."
-                        lead="메이크디스원의 올인원 로펌 광고 솔루션, 아래 세부 업무가 모두 포함됩니다."
+                        title={
+                            <>
+                                광고부터 상담 분석까지,
+                                <br />
+                                필요한 일은 이 안에 다 있습니다.
+                            </>
+                        }
+                        lead="채널별 업체에 업무를 나누는 방식이 아닙니다. 로펌의 목표와 예산에 맞춰 필요한 영역을 한 팀이 함께 운영합니다."
                     />
                 </Reveal>
             </Container>
@@ -47,15 +70,15 @@ export default function ContractScope() {
                 <div className="mt-stage-pin">
                     <Container className="pt-12 lg:pt-0">
                         <div className="mb-6 hidden lg:block">
-                            <ScrollHint>아래로 스크롤하면, 계약 별지가 펼쳐집니다</ScrollHint>
+                            <ScrollHint>아래로 스크롤하면, 여섯 영역이 차례로 펼쳐집니다</ScrollHint>
                         </div>
                         <div>
-                            {CONTRACT_SCOPE.map((annex, i) => {
+                            {SERVICES.map((svc, i) => {
                                 const a = 0.05 + i * 0.14;
                                 return (
                                     <div
-                                        key={annex.no}
-                                        className="mt-annex relative grid grid-cols-1 md:grid-cols-[220px_1fr] gap-x-10 gap-y-3 py-6 lg:py-5"
+                                        key={svc.no}
+                                        className="mt-annex relative grid grid-cols-1 md:grid-cols-[240px_1fr] gap-x-10 gap-y-3 py-6 lg:py-5"
                                         style={{ ["--a" as string]: a }}
                                     >
                                         <span
@@ -65,14 +88,17 @@ export default function ContractScope() {
                                         />
                                         <div>
                                             <p className="mt-en mt-num text-[10px] font-medium" style={{ color: "var(--mt-accent)" }}>
-                                                {annex.no}
+                                                {svc.no}
                                             </p>
-                                            <Link href={path(annex.href)} className="group mt-2 inline-flex items-center gap-1.5">
+                                            <Link href={path(svc.href)} className="group mt-2 inline-flex items-baseline gap-2.5">
+                                                <span className="text-[16px] font-semibold" style={{ color: "var(--mt-ink)" }}>
+                                                    <span className="mt-underline">{svc.ko}</span>
+                                                </span>
                                                 <span
-                                                    className="mt-en text-[13px] font-medium"
-                                                    style={{ color: "var(--mt-ink)", letterSpacing: "0.1em" }}
+                                                    className="mt-en text-[9px] font-medium"
+                                                    style={{ color: "var(--mt-gray-light)", letterSpacing: "0.12em" }}
                                                 >
-                                                    <span className="mt-underline">{annex.en}</span>
+                                                    {svc.en}
                                                 </span>
                                                 <span
                                                     aria-hidden
@@ -84,8 +110,9 @@ export default function ContractScope() {
                                             </Link>
                                         </div>
 
-                                        <ul className="flex flex-wrap items-center gap-x-2 gap-y-2 text-[13.5px] leading-relaxed">
-                                            {annex.items.map((it, j) => (
+                                        {/* 데스크톱 — 품목 순차 등장 */}
+                                        <ul className="hidden md:flex flex-wrap items-center gap-x-2 gap-y-2 text-[13.5px] leading-relaxed">
+                                            {svc.items.map((it, j) => (
                                                 <li
                                                     key={it.label}
                                                     className="mt-aitem flex items-center"
@@ -104,6 +131,19 @@ export default function ContractScope() {
                                                 </li>
                                             ))}
                                         </ul>
+
+                                        {/* 모바일 — 세부 업무는 접어서 목록이 길어지지 않게 */}
+                                        <details className="md:hidden mt-svc-details">
+                                            <summary
+                                                className="text-[12.5px] font-medium cursor-pointer select-none"
+                                                style={{ color: "var(--mt-gray)" }}
+                                            >
+                                                세부 업무 {svc.items.length}개 보기
+                                            </summary>
+                                            <div className="mt-3">
+                                                <ItemList items={svc.items} />
+                                            </div>
+                                        </details>
                                     </div>
                                 );
                             })}
@@ -126,7 +166,6 @@ export default function ContractScope() {
                                 집행합니다. 법률 표현 검수는 법학 전공자가 합니다.
                             </p>
 
-                            {/* 모든 별지가 완성된 뒤 활성화되는 CTA — 클릭은 항상 가능 */}
                             <div
                                 className="mt-pi mt-6"
                                 style={{ ["--a" as string]: 0.92, ["--o0" as string]: 0.35, ["--dy" as string]: "6px" }}
@@ -137,7 +176,7 @@ export default function ContractScope() {
                                     style={{ color: "var(--mt-ink)" }}
                                 >
                                     <span className="relative">
-                                        한 계약에서 실제로 하는 일 보기
+                                        실제로 하는 일 자세히 보기
                                         <span className="mt-plink-bar" style={{ ["--a" as string]: 0.95 }} aria-hidden />
                                     </span>
                                     <span className="transition-transform duration-200 group-hover:translate-x-1" aria-hidden>

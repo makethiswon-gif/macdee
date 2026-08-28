@@ -62,7 +62,7 @@ function IndexGroup({
 
 export default function PartnerLogos() {
     return (
-        <Section tight data-clause="색인">
+        <Section tight data-clause="CLIENTS">
             <Container>
                 <Reveal>
                     <Eyebrow>Selected Clients</Eyebrow>

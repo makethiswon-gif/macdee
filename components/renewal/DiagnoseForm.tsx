@@ -37,12 +37,27 @@ const TRACKING = [
     "잘 모르겠다",
 ];
 
+// 홈 #plans 카드에서 넘어온 ?plan= 값 → 폼 표기. 모르는 값은 무시한다.
+const PLAN_LABELS: Record<string, string> = {
+    standard: "STANDARD · 운영 통합",
+    growth: "GROWTH · 성장 확장",
+    "market-leader": "MARKET LEADER · 시장 선점",
+};
+
 type State = "idle" | "sending" | "done" | "error";
 
 export default function DiagnoseForm() {
     const [state, setState] = useState<State>("idle");
     const [error, setError] = useState("");
     const [channels, setChannels] = useState<string[]>([]);
+
+    // #plans 의 세 CTA 가 ?plan=standard|growth|market-leader 를 전달한다.
+    // 첫 렌더는 서버와 동일(빈 값) — 마운트 후 쿼리를 읽어 반영한다.
+    const [plan, setPlan] = useState("");
+    useEffect(() => {
+        const q = new URLSearchParams(window.location.search).get("plan") ?? "";
+        if (PLAN_LABELS[q]) setPlan(q);
+    }, []);
 
     // 추가 정보(선택)는 모바일에서 접어 초기 길이를 줄인다.
     // 첫 렌더는 서버와 동일하게 접힌 상태(false) — 하이드레이션 불일치를 피한다.
@@ -152,6 +167,25 @@ export default function DiagnoseForm() {
                             이메일
                         </label>
                         <input id="email" name="email" type="email" className={field} />
+                    </div>
+                    <div className="sm:col-span-2">
+                        <label className={label} htmlFor="plan">
+                            관심 운영안 <span style={{ color: "var(--mt-gray)" }}>(선택)</span>
+                        </label>
+                        <select
+                            id="plan"
+                            name="plan"
+                            className={field}
+                            value={plan}
+                            onChange={(e) => setPlan(e.target.value)}
+                        >
+                            <option value="">아직 정하지 않음</option>
+                            {Object.entries(PLAN_LABELS).map(([k, v]) => (
+                                <option key={k} value={k}>
+                                    {v}
+                                </option>
+                            ))}
+                        </select>
                     </div>
                 </div>
             </fieldset>

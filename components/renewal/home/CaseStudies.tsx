@@ -16,14 +16,13 @@ export default function CaseStudies({ cases }: { cases: CaseStudy[] }) {
     const hasSample = cases.some((c) => c.isSample);
 
     return (
-        <Section data-clause="첨부 1">
+        <Section data-clause="CASES">
             <Container>
                 <SectionHeader
-                    number="첨부 1"
                     eyebrow="Case Studies"
                     serif
                     title="무엇을 바꿨고, 무엇이 달라졌는지."
-                    lead="로고를 모아두는 대신 구조를 공개합니다. 어떤 상태였고, 무엇을 했고, 어떤 지표가 움직였는지."
+                    lead="어떤 상태였고, 무엇을 했고, 어떤 지표가 움직였는지 그대로 보여드립니다."
                 />
 
                 {hasSample && (

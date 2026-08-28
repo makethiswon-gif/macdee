@@ -7,7 +7,7 @@ import ScrollHint from "../ScrollHint";
 import { useScrollProgress } from "../useScrollProgress";
 import { BEFORE_AFTER } from "@/data/renewal/site";
 
-// 제3조 — 맡기기 전 / 맡긴 후 (LAB Concept 01 "ONE → EVERYTHING → ONE" 이식).
+// 맡기기 전 / 메이크디스원과 일하면 (LAB Concept 01 수렴 시네마 이식).
 //
 // 흩어져 표류하던 업체 조각들이 스크롤 진행(--p)에 따라 궤도로 끌려 들어오고,
 // 파란 선으로 이어진 뒤, 하나의 파란 점(MAKETHIS1)으로 붕괴한다.
@@ -19,7 +19,7 @@ import { BEFORE_AFTER } from "@/data/renewal/site";
 // rAF 는 화면에 보일 때만 돈다(IntersectionObserver).
 
 const VENDORS = ["광고대행사", "블로그 업체", "홈페이지 제작사", "SEO 업체", "보고서 4건", "연락 창구 5개"];
-const RESULTS = ["하나의 전략", "하나의 창구", "하나의 성과표"];
+const RESULTS = ["담당 창구 하나", "운영 계획 하나", "성과표 하나"];
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const clamp = (v: number, a: number, b: number) => (v < a ? a : v > b ? b : v);
@@ -205,7 +205,7 @@ export default function ProblemSection() {
 
     return (
         <section
-            data-clause="제3조"
+            data-clause="BEFORE · AFTER"
             className="mt-dark-glow py-[88px] md:py-[140px]"
             style={{
                 background: "var(--mt-dark-bg)",
@@ -219,14 +219,13 @@ export default function ProblemSection() {
             <div ref={stageRef} className="mt-stage">
                 <Container>
                     <SectionHeader
-                        number="제3조"
                         eyebrow="Before · After"
                         serif
                         title={
                             <>
-                                파워링크, 블로그, 홈페이지, SEO —
+                                {BEFORE_AFTER.title[0]}
                                 <br />
-                                왜 전부 다른 업체입니까?
+                                {BEFORE_AFTER.title[1]}
                             </>
                         }
                     />

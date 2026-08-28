@@ -385,12 +385,12 @@ html.mt-js .mt-root [data-reveal="scale"][data-in="1"] {
 }
 
 /* ══════════════════════════════════════════════════
-   BROKEN WEBSITE 인트로 — LAB Concept 03
-   사이트가 처음부터 고장나 있다. 스크롤을 내리는 만큼 조각들이
-   제자리에 박히고, 100% 정렬 순간 스위스 그리드 포스터로 스냅 →
-   MAKE THIS ONE. 직인 → 페이드 → 완성된 홈이 드러난다.
-   동작은 전부 IntroScreen.tsx — CSS 는 레이어·조각 베이스·UI 담당.
+   인트로 — "따로 하던 마케팅을 한 팀으로."
+   여섯 마케팅 요소가 표류하다 하나의 운영 라인으로 정렬되고,
+   파란 펄스가 라인을 관통하면 카피 → 페이드 → 완성된 홈.
+   동작은 전부 IntroScreen.tsx — CSS 는 레이어·칩·카피 담당.
    재생 여부는 프리페인트 스크립트(html[data-intro="play"])가 정한다.
+   같은 세션에서는 한 번만 재생한다.
    ══════════════════════════════════════════════════ */
 
 .mt-root .mt-ione {
@@ -413,61 +413,77 @@ html[data-intro="play"] .mt-root .mt-ione {
     visibility: hidden;
 }
 
-/* 깨진 조각 — JS 가 매 프레임 transform/glitch 를 계산한다.
-   하이드레이션 전에는 opacity 0 (정렬된 상태가 미리 보이는 것을 막는다) */
-.mt-root .mt-ibrk-frag {
-    position: absolute;
-    margin: 0;
-    opacity: 0;
-    white-space: nowrap;
-    will-change: transform, opacity;
-    cursor: pointer;
-}
-.mt-root .mt-ibrk-frame {
-    border: 1px solid rgba(135, 148, 166, 0.35);
-    background: #0a1019;
-}
-.mt-root .mt-ibrk-frame canvas {
-    display: block;
-}
-.mt-root .mt-ibrk-err {
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    padding: 5px 9px;
-    border: 1px dashed rgba(201, 123, 106, 0.55);
-}
-
-/* 노이즈 스캔라인 */
-.mt-root .mt-ibrk-noise {
+/* 흐름 캔버스 — 연결선과 파란 펄스를 그린다 */
+.mt-root .mt-iflow-canvas {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
     pointer-events: none;
-    mix-blend-mode: screen;
 }
 
-/* 수리 진행 미터 — 상단 파란 헤어라인 하나로만 말한다 */
-.mt-root .mt-ibrk-meter {
+/* 마케팅 요소 칩 — JS 가 매 프레임 transform 을 계산한다.
+   하이드레이션 전에는 opacity 0 (정렬 전 상태 노출 방지) */
+.mt-root .mt-iflow-chip {
     position: absolute;
-    top: 0;
     left: 0;
-    height: 2px;
-    width: 0;
-    background: var(--mt-accent-on-dark, #8ab4f8);
-    box-shadow: 0 0 14px rgba(138, 180, 248, 0.8);
-    transition: width 0.15s linear;
+    top: 0;
+    padding: 9px 15px;
+    background: #0a1019;
+    border: 1px solid rgba(135, 148, 166, 0.35);
+    border-radius: 2px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #fbfaf8;
+    white-space: nowrap;
+    opacity: 0;
+    will-change: transform, opacity;
+    transition: border-color 0.3s ease;
 }
-.mt-root .mt-ibrk-read {
+@media (max-width: 767px) {
+    .mt-root .mt-iflow-chip {
+        padding: 7px 12px;
+        font-size: 12px;
+    }
+}
+
+/* 마지막 카피 — 라인 완성 후 나타난다 */
+.mt-root .mt-iflow-fin {
     position: absolute;
-    top: 16px;
-    left: 18px;
-    margin: 0;
-    font-family: "IBM Plex Mono", monospace;
-    font-size: 10px;
-    letter-spacing: 0.16em;
-    color: #8794a6;
+    left: 50%;
+    top: 66%;
+    transform: translate(-50%, 0) translateY(14px);
+    text-align: center;
+    width: min(720px, 90vw);
+    opacity: 0;
+    transition:
+        opacity 0.55s var(--mt-ease),
+        transform 0.55s var(--mt-ease);
 }
+@media (max-width: 767px) {
+    .mt-root .mt-iflow-fin {
+        top: 74%;
+    }
+}
+.mt-root .mt-iflow-fin-on {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+.mt-root .mt-iflow-fin-h {
+    margin: 0;
+    font-size: clamp(1.3rem, 2.6vw, 2rem);
+    font-weight: 600;
+    line-height: 1.5;
+    color: #fbfaf8;
+}
+.mt-root .mt-iflow-fin-b {
+    margin: 14px 0 0;
+    font-size: clamp(1rem, 1.6vw, 1.3rem);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: #fbfaf8;
+}
+
 .mt-root .mt-ibrk-skip {
     position: absolute;
     top: 10px;
@@ -527,50 +543,6 @@ html[data-intro="play"] .mt-root .mt-ione {
     }
 }
 
-/* 100% 직인 — 정렬 순간 우하단에 찍힌다 */
-.mt-root .mt-ibrk-stamp {
-    position: absolute;
-    right: clamp(16px, 6vw, 72px);
-    bottom: clamp(60px, 12vh, 110px);
-    padding: 12px 18px;
-    border: 2px solid var(--mt-accent-on-dark, #8ab4f8);
-    border-radius: 2px;
-    font-size: clamp(15px, 1.6vw, 21px);
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    color: #fbfaf8;
-    transform: rotate(-6deg) scale(1.4);
-    opacity: 0;
-    pointer-events: none;
-}
-.mt-root .mt-ibrk-stamp-on {
-    animation: mt-ibrk-stamp-pop 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) 0.15s both;
-}
-@keyframes mt-ibrk-stamp-pop {
-    0% {
-        opacity: 0;
-        transform: rotate(-6deg) scale(1.4);
-    }
-    62% {
-        opacity: 1;
-        transform: rotate(-6deg) scale(0.95);
-    }
-    100% {
-        opacity: 0.95;
-        transform: rotate(-6deg) scale(1);
-    }
-}
-
-/* 모바일 — 조각 수 축소·두꺼운 미터 */
-@media (max-width: 1023px) {
-    .mt-root .mt-ibrk-desk {
-        display: none;
-    }
-    .mt-root .mt-ibrk-meter {
-        height: 3px;
-    }
-}
-
 /* play 가 붙은 채 reduced-motion 이면 레이어 자체를 없앤다(이중 안전장치) */
 @media (prefers-reduced-motion: reduce) {
     html[data-intro="play"] .mt-root .mt-ione {
@@ -578,7 +550,7 @@ html[data-intro="play"] .mt-root .mt-ione {
     }
 }
 
-/* ── 최종 비주얼: 계약서 카드 ── */
+/* ── 히어로 우측: "메이크디스원이 맡는 일" 카드 (종이 질감) ── */
 .mt-root .mt-contract {
     background: var(--mt-surface);
     border: 1px solid var(--mt-line-strong);
@@ -597,38 +569,95 @@ html[data-intro="play"] .mt-root .mt-ione {
         0 2px 6px rgba(14, 17, 22, 0.05);
 }
 
-/* 파란 직인 — ONE CONTRACT / ONE TEAM / MAKETHIS1 */
-.mt-root .mt-stamp-blue {
-    position: relative;
-    width: 96px;
-    height: 96px;
+/* 카드 행의 체크인 점 — 위에서부터 차례로 파랗게 켜진다.
+   기본 상태 = 최종 상태(파란 점). 모션 환경에서만 켜지는 연출이 붙는다 */
+.mt-root .mt-scope-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
     flex-shrink: 0;
-    margin: -6px -4px 0 0;
-    border: 2px solid var(--mt-accent);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    color: var(--mt-accent);
-    font-family: "IBM Plex Mono", monospace;
-    font-size: 8.5px;
-    font-weight: 500;
-    letter-spacing: 0.08em;
-    line-height: 1.7;
-    transform: rotate(-10deg);
-    opacity: 0.92;
-    user-select: none;
+    background: var(--mt-accent);
 }
-/* 잉크 번짐 — 흐린 테두리 한 겹 */
-.mt-root .mt-stamp-blue::after {
-    content: "";
-    position: absolute;
-    inset: -3px;
-    border-radius: 50%;
-    border: 2px solid var(--mt-accent);
-    opacity: 0.14;
-    filter: blur(1.5px);
+@media (prefers-reduced-motion: no-preference) {
+    html.mt-js .mt-root .mt-scope-dot {
+        animation: mt-scope-dot-in 0.4s var(--mt-ease) calc(0.5s + var(--i, 0) * 0.14s) both;
+    }
+}
+@keyframes mt-scope-dot-in {
+    from {
+        background: var(--mt-line-strong);
+        transform: scale(0.6);
+    }
+    60% {
+        transform: scale(1.35);
+    }
+    to {
+        background: var(--mt-accent);
+        transform: scale(1);
+    }
+}
+
+/* ── #plans — 미니 견적서 카드 ── */
+.mt-root .mt-plan {
+    background: var(--mt-surface);
+    border: 1px solid var(--mt-line-strong);
+    border-radius: 2px;
+    /* 종이 결 — 히어로 카드와 같은 질감 */
+    background-image: repeating-linear-gradient(
+        0deg,
+        rgba(14, 17, 22, 0.012) 0px,
+        rgba(14, 17, 22, 0.012) 1px,
+        transparent 1px,
+        transparent 4px
+    );
+    box-shadow: 0 12px 30px -16px rgba(14, 17, 22, 0.12);
+}
+/* GROWTH — 주력 운영안만 파란 상단 선으로 강조 */
+.mt-root .mt-plan[data-featured] {
+    border-top: 2px solid var(--mt-accent);
+    box-shadow: 0 18px 40px -18px rgba(14, 17, 22, 0.18);
+}
+.mt-root .mt-plan-cta {
+    border: 1px solid var(--mt-line-strong);
+    color: var(--mt-ink);
+}
+.mt-root .mt-plan-cta:hover {
+    border-color: var(--mt-ink);
+}
+.mt-root .mt-plan[data-featured] .mt-plan-cta {
+    background: var(--mt-ink);
+    border-color: var(--mt-ink);
+    color: var(--mt-bg);
+}
+.mt-root .mt-plan[data-featured] .mt-plan-cta:hover {
+    opacity: 0.88;
+}
+
+/* ── 접힘 상세 (<details>) — 서비스 모바일·채널 현황 공용 ── */
+.mt-root details.mt-svc-details > summary,
+.mt-root details.mt-ledger-details > summary {
+    list-style: none;
+}
+.mt-root details.mt-svc-details > summary::-webkit-details-marker,
+.mt-root details.mt-ledger-details > summary::-webkit-details-marker {
+    display: none;
+}
+.mt-root details.mt-svc-details > summary::after {
+    content: "▾";
+    margin-left: 6px;
+    font-size: 10px;
+    display: inline-block;
+    transition: transform 0.2s ease;
+}
+.mt-root details.mt-svc-details[open] > summary::after {
+    transform: rotate(180deg);
+}
+.mt-root details.mt-ledger-details .mt-ledger-caret {
+    display: inline-block;
+    transition: transform 0.2s ease;
+}
+.mt-root details.mt-ledger-details[open] .mt-ledger-caret {
+    transform: rotate(180deg);
 }
 
 /* ══════════════════════════════════════════════════

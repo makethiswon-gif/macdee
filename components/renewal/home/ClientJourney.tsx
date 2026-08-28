@@ -7,7 +7,7 @@ import ScrollHint from "../ScrollHint";
 import { useScrollProgress } from "../useScrollProgress";
 import { JOURNEY, path } from "@/data/renewal/site";
 
-// 제2조 — 의뢰인 여정 (ONE BLUE THREAD).
+// 의뢰인 여정 (ONE BLUE THREAD).
 //
 // 카드 3장 fade-in 이 아니라, 한 명의 의뢰인(파란 점)이
 // 발견 → 선택할 이유 → 상담 → LEAD TO CASE 로 이동하는 이야기다.
@@ -188,18 +188,12 @@ export default function ClientJourney() {
     const stageRef = useScrollProgress<HTMLDivElement>();
 
     return (
-        <section id="system" data-clause="제2조" className="pt-[88px] md:pt-[140px] pb-[88px] md:pb-[140px]">
+        <section id="system" data-clause="JOURNEY" className="pt-[88px] md:pt-[140px] pb-[88px] md:pb-[140px]">
             <Container>
                 {/* 섹션 진입 — 제목 줄 단위 마스크 리빌 */}
                 <div className="max-w-[820px]">
                     <div className="flex items-center gap-3 mb-6">
                         <Reveal as="span" variant="rise">
-                            <span className="mt-en mt-label mt-num" style={{ color: "var(--mt-accent)" }}>
-                                제2조
-                            </span>
-                        </Reveal>
-                        <span className="w-6 h-px" style={{ background: "var(--mt-line-strong)" }} />
-                        <Reveal as="span" variant="rise" index={1}>
                             <span className="mt-en mt-label" style={{ color: "var(--mt-gray)" }}>
                                 Client Journey
                             </span>
@@ -207,15 +201,16 @@ export default function ClientJourney() {
                     </div>
                     <h2 className="mt-h2 mt-serif" style={{ color: "var(--mt-ink)" }}>
                         <Reveal as="span" variant="mask">
-                            <span className="block">한 의뢰인이 로펌을 발견하고</span>
+                            <span className="block">의뢰인이 검색한 순간부터</span>
                         </Reveal>
                         <Reveal as="span" variant="mask" index={1} stagger={140}>
-                            <span className="block">사건을 맡기기까지.</span>
+                            <span className="block">상담이 들어온 뒤까지.</span>
                         </Reveal>
                     </h2>
                     <Reveal variant="rise" index={2} stagger={160}>
                         <p className="mt-body-lg mt-7 max-w-[640px]">
-                            우리가 관리하는 것은 의뢰인이 로펌을 찾는 모든 과정입니다.
+                            메이크디스원은 채널을 따로 보지 않습니다. 어디서 찾았고, 무엇을 보고
+                            문의했는지 한 흐름으로 봅니다.
                         </p>
                     </Reveal>
                 </div>
