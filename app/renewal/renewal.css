@@ -639,6 +639,100 @@ html:not(.mt-js) .mt-root .mt-flow-node {
     }
 }
 
+/* ══════════════════════════════════════════════════
+   ARTICLE PROSE — /renewal/magazine/[slug] 본문
+   마크다운 렌더러(lib/renewal/markdown.ts)는 시맨틱 태그만 내보낸다.
+   스타일은 전부 여기서. 다크 테마 잔재 없이 editorial 라이트로.
+   ══════════════════════════════════════════════════ */
+
+.mt-root .mt-article {
+    font-size: 1.0625rem;
+    line-height: 1.95;
+    color: var(--mt-charcoal);
+    /* 본문 숫자는 표 정렬이 필요 없다. 비례 숫자 그대로 둔다. */
+}
+
+.mt-root .mt-article p {
+    margin: 0 0 1.6em;
+}
+
+.mt-root .mt-article h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1.42;
+    letter-spacing: -0.015em;
+    color: var(--mt-ink);
+    margin: 2.8em 0 1em;
+    padding-top: 1.4em;
+    border-top: 1px solid var(--mt-line);
+}
+
+.mt-root .mt-article h3 {
+    font-size: 1.1875rem;
+    font-weight: 600;
+    line-height: 1.5;
+    letter-spacing: -0.01em;
+    color: var(--mt-ink);
+    margin: 2.2em 0 0.8em;
+}
+
+.mt-root .mt-article strong {
+    font-weight: 600;
+    color: var(--mt-ink);
+}
+
+.mt-root .mt-article a {
+    color: var(--mt-accent);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+}
+.mt-root .mt-article a:hover {
+    color: var(--mt-accent-sub);
+}
+
+.mt-root .mt-article ul,
+.mt-root .mt-article ol {
+    margin: 0 0 1.6em;
+    padding-left: 1.35em;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45em;
+}
+.mt-root .mt-article ul {
+    list-style: disc;
+}
+.mt-root .mt-article ol {
+    list-style: decimal;
+}
+.mt-root .mt-article li::marker {
+    color: var(--mt-gray-light);
+}
+
+.mt-root .mt-article blockquote {
+    margin: 2.2em 0;
+    padding: 1.5em 1.75em;
+    background: var(--mt-surface);
+    border: 1px solid var(--mt-line);
+    border-left: 2px solid var(--mt-accent);
+    border-radius: 2px;
+}
+.mt-root .mt-article blockquote p {
+    margin: 0;
+    font-size: 0.9375rem;
+    line-height: 1.85;
+    color: var(--mt-gray);
+}
+
+.mt-root .mt-article img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 4px;
+    margin: 2.4em 0;
+    border: 1px solid var(--mt-line);
+}
+
 /* ── 밑줄 hover. 링크 제목용 micro interaction ── */
 .mt-root .mt-underline {
     background-image: linear-gradient(currentColor, currentColor);

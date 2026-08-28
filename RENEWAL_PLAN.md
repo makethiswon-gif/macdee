@@ -386,7 +386,7 @@ description: 네이버 파워링크, Google Ads, 블로그, 홈페이지, SEO·G
 | 5 | 홈 10개 섹션 | ✅ `/renewal` |
 | 6 | 서비스 페이지 템플릿 + 6개 | ✅ 공용 템플릿 + naver-ads/lawfirm-seo/geo/lawfirm-blog/lawfirm-website/conversion |
 | 7 | `/work` Case Study | ✅ 뼈대. 실데이터 없어 정책 안내 상태 |
-| 8 | `/magazine` INSIGHTS 리스킨 | ⬜ |
+| 8 | `/magazine` INSIGHTS 리스킨 | ✅ `/renewal/magazine` + `[slug]` 상세. canonical 은 최종 URL(/magazine)로 선언 — 데모 중복 색인 방지 + 교체 시 무수정. 조회수 증가는 교체 후에만 |
 | 9 | `/about` 회사·팀 | ✅ |
 | 10 | `/contact` + `/renewal/diagnose` | ✅ 진단 폼이 리드 경로. thanks 는 폼 내 완료 화면으로 대체 |
 | 11 | 메타 / 스키마 / sitemap | ⬜ |

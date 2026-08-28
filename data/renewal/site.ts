@@ -8,7 +8,9 @@
    데모 기간에는 /renewal 접두어가 붙는다. 교체 시 DEMO_BASE만 ""로 바꾸면
    전 페이지 링크가 최종 URL로 정렬된다. */
 
-export const DEMO_BASE = "/renewal";
+// string 명시 — 리터럴 타입으로 좁혀지면 "교체 후인가(=== '')" 비교가
+// 타입 에러가 된다(매거진 상세의 조회수 가드가 이 비교를 쓴다).
+export const DEMO_BASE: string = "/renewal";
 
 export function path(p: string): string {
     if (p.startsWith("http") || p.startsWith("#")) return p;
@@ -30,7 +32,10 @@ export function path(p: string): string {
 //    /diagnose 는 "블로그 URL 넣으면 AI가 1분 만에 무료 진단" 하는 맥디 제품 화면이다.
 //    리뉴얼의 "마케팅 진단 요청"과는 전혀 다른 경험이라 톤이 무너진다.
 //    리뉴얼 CTA 는 /renewal/diagnose (로펌 마케팅 구조 진단) 로 간다.
-const LIVE_PATHS = ["/magazine", "/terms", "/refund", "/login"];
+//
+// /magazine 은 리스킨(/renewal/magazine)이 생기면서 여기서 빠졌다.
+// 데모 내비게이션은 이제 데모 매거진으로 간다. URL 자체는 교체 때까지 불변이다.
+const LIVE_PATHS = ["/terms", "/refund", "/login"];
 
 /* ═══════════════ 네비게이션 ═══════════════ */
 

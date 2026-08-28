@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { Container, Section, Eyebrow, ArrowLink } from "../primitives";
 import Reveal from "../Reveal";
+import { path } from "@/data/renewal/site";
 
 // SECTION 07 — Insights.
 //
 // 카드 세 장을 나란히 두면 앞뒤 섹션과 똑같은 그리드가 또 반복된다.
 // 매거진처럼 보이게 비대칭으로 짠다 — 왼쪽에 큰 기사 하나, 오른쪽에 목록 둘.
-// URL 은 /magazine 그대로다. 라벨만 INSIGHTS.
+// URL 은 /magazine 그대로다. 라벨만 INSIGHTS. 데모에서는 path() 가
+// 리스킨(/renewal/magazine)으로 보낸다.
 
 export interface InsightItem {
     id: string;
@@ -64,7 +66,7 @@ export default function InsightsPreview({ items }: { items: InsightItem[] }) {
                         </Reveal>
                     </div>
                     <Reveal variant="rise" index={1}>
-                        <ArrowLink href="/magazine">전체 보기</ArrowLink>
+                        <ArrowLink href={path("/magazine")}>전체 보기</ArrowLink>
                     </Reveal>
                 </div>
 
@@ -72,7 +74,7 @@ export default function InsightsPreview({ items }: { items: InsightItem[] }) {
                     {/* 큰 기사 */}
                     <Reveal variant="rise">
                         <Link
-                            href={`/magazine/${lead.slug}`}
+                            href={path(`/magazine/${lead.slug}`)}
                             className="group block pt-9"
                             style={{ borderTop: "2px solid var(--mt-ink)" }}
                         >
@@ -102,7 +104,7 @@ export default function InsightsPreview({ items }: { items: InsightItem[] }) {
                         {rest.map((a, i) => (
                             <Reveal key={a.id} as="li" variant="rise" index={i + 1}>
                                 <Link
-                                    href={`/magazine/${a.slug}`}
+                                    href={path(`/magazine/${a.slug}`)}
                                     className="group block py-8"
                                     style={{ borderTop: "1px solid var(--mt-line)" }}
                                 >
