@@ -422,66 +422,46 @@ html[data-intro="play"] .mt-root .mt-ione {
     pointer-events: none;
 }
 
-/* 마케팅 요소 칩 — JS 가 매 프레임 transform 을 계산한다.
-   하이드레이션 전에는 opacity 0 (정렬 전 상태 노출 방지) */
-.mt-root .mt-iflow-chip {
-    position: absolute;
-    left: 0;
-    top: 0;
-    padding: 9px 15px;
-    background: #0a1019;
-    border: 1px solid rgba(135, 148, 166, 0.35);
-    border-radius: 2px;
-    font-size: 13px;
-    font-weight: 500;
-    color: #fbfaf8;
-    white-space: nowrap;
-    opacity: 0;
-    will-change: transform, opacity;
-    transition: border-color 0.3s ease;
-}
-@media (max-width: 767px) {
-    .mt-root .mt-iflow-chip {
-        padding: 7px 12px;
-        font-size: 12px;
-    }
-}
-
-/* 마지막 카피 — 라인 완성 후 나타난다 */
+/* 마지막 카피 — 중앙의 한 획(파란 실)을 사이에 두고 위/아래로 나타난다 */
 .mt-root .mt-iflow-fin {
     position: absolute;
-    left: 50%;
-    top: 66%;
-    transform: translate(-50%, 0) translateY(14px);
+    inset: 0;
     text-align: center;
-    width: min(720px, 90vw);
+    pointer-events: none;
     opacity: 0;
-    transition:
-        opacity 0.55s var(--mt-ease),
-        transform 0.55s var(--mt-ease);
-}
-@media (max-width: 767px) {
-    .mt-root .mt-iflow-fin {
-        top: 74%;
-    }
+    transition: opacity 0.6s var(--mt-ease);
 }
 .mt-root .mt-iflow-fin-on {
     opacity: 1;
-    transform: translate(-50%, 0);
 }
 .mt-root .mt-iflow-fin-h {
+    position: absolute;
+    left: 50%;
+    bottom: calc(50% + 30px);
+    transform: translateX(-50%) translateY(8px);
+    width: min(760px, 92vw);
     margin: 0;
-    font-size: clamp(1.3rem, 2.6vw, 2rem);
+    font-size: clamp(1.35rem, 2.8vw, 2.15rem);
     font-weight: 600;
     line-height: 1.5;
     color: #fbfaf8;
+    transition: transform 0.6s var(--mt-ease);
 }
 .mt-root .mt-iflow-fin-b {
-    margin: 14px 0 0;
-    font-size: clamp(1rem, 1.6vw, 1.3rem);
+    position: absolute;
+    left: 50%;
+    top: calc(50% + 28px);
+    transform: translateX(-50%) translateY(-8px);
+    margin: 0;
+    font-size: clamp(1.05rem, 1.7vw, 1.35rem);
     font-weight: 700;
     letter-spacing: 0.06em;
     color: #fbfaf8;
+    transition: transform 0.6s var(--mt-ease);
+}
+.mt-root .mt-iflow-fin-on .mt-iflow-fin-h,
+.mt-root .mt-iflow-fin-on .mt-iflow-fin-b {
+    transform: translateX(-50%) translateY(0);
 }
 
 .mt-root .mt-ibrk-skip {
