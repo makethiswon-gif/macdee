@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Container, SectionHeader } from "../primitives";
 import Reveal from "../Reveal";
+import ScrollHint from "../ScrollHint";
 import { useScrollProgress } from "../useScrollProgress";
 import { CONTRACT_SCOPE, path } from "@/data/renewal/site";
 
@@ -45,6 +46,9 @@ export default function ContractScope() {
             <div ref={stageRef} className="mt-stage mt-stage-track lg:h-[185svh]">
                 <div className="mt-stage-pin">
                     <Container className="pt-12 lg:pt-0">
+                        <div className="mb-6 hidden lg:block">
+                            <ScrollHint>아래로 스크롤하면, 계약 별지가 펼쳐집니다</ScrollHint>
+                        </div>
                         <div>
                             {CONTRACT_SCOPE.map((annex, i) => {
                                 const a = 0.05 + i * 0.14;

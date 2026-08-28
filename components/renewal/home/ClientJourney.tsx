@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Container } from "../primitives";
 import Reveal from "../Reveal";
+import ScrollHint from "../ScrollHint";
 import { useScrollProgress } from "../useScrollProgress";
 import { JOURNEY, path } from "@/data/renewal/site";
 
@@ -224,6 +225,9 @@ export default function ClientJourney() {
             <div ref={stageRef} className="mt-stage mt-stage-track lg:h-[165svh]">
                 <div className="mt-stage-pin">
                     <Container className="pt-14 lg:pt-0">
+                        <div className="mb-8 hidden lg:block">
+                            <ScrollHint>아래로 스크롤하면, 의뢰인이 한 단계씩 이동합니다</ScrollHint>
+                        </div>
                         <div className="relative pl-7 lg:pl-0">
                             {/* 모바일: 세로 경로 */}
                             <div className="lg:hidden absolute left-1 top-2 bottom-2" aria-hidden="true">

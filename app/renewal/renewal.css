@@ -965,19 +965,54 @@ html.mt-js .mt-root .mt-jloop path {
     opacity: calc(var(--t) * 0.8);
 }
 
-/* ══════════ 제2조 BEFORE/AFTER — 문서 정렬 전환 ══════════ */
+/* ══════════ 스크롤 힌트 — 한글, 잘 보이게. 스크롤이 시작되면 사라진다 ══════════ */
 
-html.mt-js .mt-root .mt-bchip {
-    --tin: clamp(0, calc((var(--p, 1) - var(--a, 0)) / 0.05), 1);
-    --m: clamp(0, calc((var(--p, 1) - 0.42) / 0.12), 1);
-    opacity: calc(var(--tin) * (1 - var(--m)));
-    transform: translate(
-        calc(var(--sx, 0px) * (1 - var(--m) * 0.5)),
-        calc(var(--sy, 0px) * (1 - var(--m) * 0.5) + 10px * (1 - var(--tin)))
-    ) rotate(calc(var(--sr, 0deg) * (1 - var(--m))));
+.mt-root .mt-shint {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--mt-gray);
 }
-html:not(.mt-js) .mt-root .mt-bchip {
-    opacity: 0; /* 최종 상태 = 정렬 완료 */
+html.mt-js .mt-root .mt-shint {
+    opacity: calc(1 - clamp(0, calc(var(--p, 1) / 0.05), 1));
+    transition: opacity 0.25s linear;
+}
+.mt-root .mt-shint .mt-shint-arr {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border: 1px solid var(--mt-accent);
+    border-radius: 50%;
+    color: var(--mt-accent);
+    font-size: 12px;
+    animation: mt-shint-bounce 1.6s ease-in-out infinite;
+    flex-shrink: 0;
+}
+@keyframes mt-shint-bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(5px); }
+}
+
+/* ══════════ 제3조 — ONE 수렴 시네마 (Concept 01 이식) ══════════ */
+
+.mt-root .mt-conv-canvas {
+    display: block;
+    width: 100%;
+    height: 380px;
+    border: 1px solid var(--mt-line);
+    border-radius: 2px;
+}
+@media (max-width: 767px) {
+    .mt-root .mt-conv-canvas {
+        height: 300px;
+    }
+}
+html:not(.mt-js) .mt-root .mt-conv-canvas {
+    display: none; /* JS 없이는 빈 프레임만 남는다 — 본문 카피가 서사를 대신한다 */
 }
 
 /* ══════════ 제3조 WHATEVER CHANGES — 배경 플랫폼 워드 ══════════ */
