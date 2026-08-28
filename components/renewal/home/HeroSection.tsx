@@ -4,32 +4,33 @@ import { HERO_CHANNELS, PRIMARY_CTA, path } from "@/data/renewal/site";
 
 // SECTION 00 — 3초 안에 "무엇을 하는 회사인가"를 이해시킨다.
 //
-// 모션은 절제한다. H1 가독성이 효과보다 우선이다.
-//   eyebrow → H1 첫 줄 → H1 둘째 줄 → sub → CTA 순으로 시차를 둔다.
-//   H1 은 mask reveal — 글자가 아래에서 밀려 올라온다.
-//   배경은 아주 옅은 격자만. 마우스 추적도 parallax 도 쓰지 않는다.
+// 핵심(H1·설명·CTA)은 JS hydration 과 IntersectionObserver 를 기다리지 않는다.
+//   예전에는 Reveal(mask/rise) 로 감싸 data-in 이 붙어야 보였고,
+//   느린 기기에서 헤더·격자만 뜬 채 핵심 가치 제안이 ~1.2s 늦게 나타났다.
+//   지금은 최초 HTML/CSS 상태에서 그대로 읽히고, mt-hero-in 이 transform 만
+//   아주 짧게 움직인다(opacity 0 없음 → LCP 후보 H1 이 지연되지 않는다).
 //
-// LCP 요소는 H1 이다. 여기에 무거운 애니메이션을 걸지 않는다 —
-// mask 는 transform 하나뿐이고 이미지도 없다.
+// eyebrow → H1 두 줄 → 설명 → CTA 순으로 미세한 시차만 준다.
+// 규칙선·채널 marquee 같은 비핵심 장식은 기존 Reveal 스크롤 모션을 유지한다.
 
 export default function HeroSection() {
     return (
         <section className="mt-grid-bg relative pt-[124px] md:pt-[164px] pb-14 md:pb-20 min-h-[86svh] flex flex-col justify-center">
             <Container>
-                <Reveal variant="rise">
+                <div className="mt-hero-in">
                     <Eyebrow>Law Firm Marketing Department</Eyebrow>
-                </Reveal>
+                </div>
 
                 <h1 className="mt-display mt-8 max-w-[16ch]">
-                    <Reveal variant="mask" index={1} stagger={110}>
+                    <span className="mt-hero-in block" style={{ ["--mt-hero-delay" as string]: "60ms" }}>
                         로펌 마케팅,
-                    </Reveal>
-                    <Reveal variant="mask" index={2} stagger={110}>
+                    </span>
+                    <span className="mt-hero-in block" style={{ ["--mt-hero-delay" as string]: "120ms" }}>
                         여기서 끝냅니다.
-                    </Reveal>
+                    </span>
                 </h1>
 
-                <Reveal variant="rise" index={4} stagger={90}>
+                <div className="mt-hero-in" style={{ ["--mt-hero-delay" as string]: "180ms" }}>
                     <p className="mt-body-lg mt-10 max-w-[560px]">
                         네이버 파워링크부터 Google Ads, 네이버 블로그와 홈페이지, SEO·GEO,
                         AI 검색과 상담 전환 분석까지.
@@ -38,9 +39,9 @@ export default function HeroSection() {
                             로펌에 필요한 마케팅은 MAKETHIS1이 전부 해결합니다.
                         </strong>
                     </p>
-                </Reveal>
+                </div>
 
-                <Reveal variant="rise" index={5} stagger={90}>
+                <div className="mt-hero-in" style={{ ["--mt-hero-delay" as string]: "240ms" }}>
                     <div className="mt-12 flex flex-col sm:flex-row gap-3">
                         <Button href={path(PRIMARY_CTA.href)} variant="primary">
                             우리 로펌 마케팅 진단받기 <span aria-hidden>→</span>
@@ -49,7 +50,7 @@ export default function HeroSection() {
                             운영 시스템 보기
                         </Button>
                     </div>
-                </Reveal>
+                </div>
             </Container>
 
             {/* 채널 표기 — 로고를 늘어놓지 않는다. 느리게 흐르는 텍스트 한 줄. */}

@@ -280,6 +280,32 @@ html.mt-js .mt-root [data-reveal="scale"][data-in="1"] {
 }
 
 /* ══════════════════════════════════════════════════
+   HERO 핵심 진입 — JS/IO 를 기다리지 않는다
+   H1·설명·CTA 는 최초 HTML/CSS 페인트에서 그대로 읽힌다.
+   [data-reveal] 과 달리 mt-js 게이트도, IntersectionObserver 도 타지 않는다.
+   opacity 를 0 으로 두지 않아 LCP 후보인 H1 이 지연되지 않고,
+   transform 만 12px 짧게 움직여 절제된 진입감만 남긴다.
+   JS 실패·크롤러·reduced-motion 어디서도 본문이 가려지지 않는다.
+   ══════════════════════════════════════════════════ */
+.mt-root .mt-hero-in {
+    animation: mt-hero-in var(--mt-t-reveal) var(--mt-ease) both;
+    animation-delay: var(--mt-hero-delay, 0ms);
+}
+@keyframes mt-hero-in {
+    from {
+        transform: translateY(12px);
+    }
+    to {
+        transform: translateY(0);
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .mt-root .mt-hero-in {
+        animation: none;
+    }
+}
+
+/* ══════════════════════════════════════════════════
    스크롤 연동 무대 (--p 를 쓰는 구간)
    ══════════════════════════════════════════════════ */
 
