@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import Logo from "./Logo";
 import { NAV, PRIMARY_CTA, path } from "@/data/renewal/site";
 
 export default function SiteHeader() {
@@ -49,11 +50,11 @@ export default function SiteHeader() {
                 <div className="flex items-center justify-between h-[72px] md:h-[84px]">
                     <Link
                         href={path("/")}
-                        className="mt-en text-[15px] md:text-[16px] font-semibold"
-                        style={{ color: "var(--mt-ink)", letterSpacing: "0.06em" }}
+                        aria-label="MAKETHIS1 홈"
+                        style={{ color: "var(--mt-ink)" }}
                         onClick={() => setOpenMenu(false)}
                     >
-                        MAKETHIS1
+                        <Logo size={18} />
                     </Link>
 
                     {/* ── Desktop ── */}

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Container } from "./primitives";
+import Logo from "./Logo";
 import { COMPANY, NAV, path } from "@/data/renewal/site";
 
 export default function SiteFooter() {
@@ -12,14 +13,14 @@ export default function SiteFooter() {
                 color: "var(--mt-bg)",
                 ["--mt-gray" as string]: "var(--mt-dark-gray)",
                 ["--mt-line" as string]: "var(--mt-dark-line)",
+                // 다크 위에서 로고 마침표가 살도록 라이트 블루로 재정의
+                ["--mt-accent" as string]: "var(--mt-accent-on-dark)",
             }}
         >
             <Container className="py-20 md:py-28">
                 <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr_1fr_1fr] gap-12 lg:gap-10">
                     <div>
-                        <p className="mt-en text-[16px] font-semibold" style={{ letterSpacing: "0.06em" }}>
-                            {COMPANY.brand}
-                        </p>
+                        <Logo size={18} />
                         <p className="mt-body mt-5 max-w-[300px] text-[14px] leading-[1.75]">
                             로펌은 사건에 집중하십시오.
                             <br />

@@ -22,7 +22,7 @@ export default function FinalCTA() {
                         <h2 className="mt-serif mt-h1 mt-8">
                             로펌은 사건에 집중하십시오.
                             <br />
-                            마케팅은 맥디가 끝까지 책임집니다.
+                            마케팅은 메이크디스원이 끝까지 책임집니다.
                         </h2>
                     </Reveal>
 
@@ -49,9 +49,9 @@ export default function FinalCTA() {
                                     우리 로펌 마케팅 진단받기 <span aria-hidden>→</span>
                                 </a>
                                 <span className="mt-stamp-mark hidden sm:flex" aria-hidden>
-                                    TEAM
+                                    메이크
                                     <br />
-                                    macdee
+                                    디스원
                                 </span>
                             </div>
                         </div>
