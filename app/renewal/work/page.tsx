@@ -7,11 +7,14 @@ import { CASES } from "@/data/renewal/cases";
 import { PROOF_STATS, PRIMARY_CTA, path } from "@/data/renewal/site";
 import { renewalRobots } from "../flags";
 
-// Case Study.
+// Work.
 //
-// ⚠️ 확인된 성과 수치가 없으면 사례를 만들지 않는다(§42).
-// 지금은 CASES 가 비어 있고, 그 사실을 숨기지 않고 그대로 쓴다.
-// 숫자를 지어내는 것보다 "아직 공개할 수치가 없다"고 쓰는 편이 신뢰에 낫다.
+// ⚠️ 확인된 성과 수치가 없으면 사례를 만들지 않는다(§42). CASES 는 지금 비어 있고,
+//    그 사실을 숨기지 않는다.
+// 다만 페이지의 중심은 "사례가 없다는 사과"가 아니라 "검증 가능한 근거"다.
+//    공표 수치(20+/100+/7년+)와 실제 고객 목록을 먼저 보여주고,
+//    공개 사례는 고객사 동의 범위에서 순차 공개한다는 원칙을 짧게 밝힌다.
+//    경쟁사 사례를 일반화해 깎아내리지 않는다.
 
 const URL = "https://www.makethis1.com/renewal/work";
 const TITLE = "Case Study | MAKETHIS1";
@@ -28,6 +31,8 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
+    const hasCases = CASES.length > 0;
+
     return (
         <>
             <section className="pt-[120px] md:pt-[168px] pb-14 md:pb-20">
@@ -39,56 +44,15 @@ export default function Page() {
                         <h1 className="mt-h1 mt-7 max-w-[20ch]">무엇을 바꿨고, 무엇이 달라졌는지.</h1>
                     </Reveal>
                     <Reveal index={2}>
-                        <p className="mt-body-lg mt-8 max-w-[600px]">
-                            로고를 모아두는 대신 구조를 공개합니다. 어떤 상태였고, 무엇을 했고, 어떤 지표가
-                            움직였는지.
+                        <p className="mt-body-lg mt-8 max-w-[620px]">
+                            보여드릴 수 있는 근거부터 공개합니다. 함께한 로펌과 기업, 7년간 이어온 운영이
+                            먼저 있습니다. 개별 성과는 고객사가 동의한 범위에서 사례로 정리해 나갑니다.
                         </p>
                     </Reveal>
                 </Container>
             </section>
 
-            {CASES.length > 0 ? (
-                <CaseStudies cases={CASES} />
-            ) : (
-                <Section tight>
-                    <Container>
-                        <Reveal>
-                            <div
-                                className="pt-12 max-w-[720px]"
-                                style={{ borderTop: "1px solid var(--mt-line)" }}
-                            >
-                                <p className="mt-en mt-label" style={{ color: "var(--mt-gray)" }}>
-                                    현재 상태
-                                </p>
-                                <h2 className="mt-h2 mt-6">공개할 수 있는 성과 수치를 정리하는 중입니다.</h2>
-                                <div className="mt-9 flex flex-col gap-5">
-                                    <p className="mt-body">
-                                        마케팅 대행에서 성과 수치는 고객사의 영업 정보와 붙어 있습니다.
-                                        공개하려면 어느 범위까지 밝힐 수 있는지 고객사와 먼저 합의해야 합니다.
-                                        그 합의가 끝난 사례부터 순서대로 올립니다.
-                                    </p>
-                                    <p className="mt-body">
-                                        그전까지는 숫자를 만들지 않습니다. 검색해서 나오는 로펌 마케팅 사례의
-                                        상당수가 검증되지 않은 수치라는 점을 알고 있고, 거기에 하나를 더 보태지
-                                        않으려 합니다.
-                                    </p>
-                                    <p className="mt-body">
-                                        지금 확인하실 수 있는 것은 실제로 함께 일한 로펌 목록과, 어떤 방식으로
-                                        운영하는지입니다. 구체적인 사례는 상담 자리에서 범위를 정해 말씀드립니다.
-                                    </p>
-                                </div>
-
-                                <div className="mt-10 flex flex-wrap gap-x-8 gap-y-3">
-                                    <ArrowLink href={path("/lawfirm-marketing")}>운영 방식 보기</ArrowLink>
-                                    <ArrowLink href={path("/about")}>팀 보기</ArrowLink>
-                                </div>
-                            </div>
-                        </Reveal>
-                    </Container>
-                </Section>
-            )}
-
-            {/* 실제로 확인 가능한 것 — 파트너와 공표 수치 */}
+            {/* 첫 본문 — 검증 가능한 근거: 공표 수치 + 실제 고객(로펌/기업 구분) */}
             <Section dark tight>
                 <Container>
                     <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-12 lg:gap-20">
@@ -125,16 +89,43 @@ export default function Page() {
                             <PartnerGroups />
                         </Reveal>
                     </div>
-
-                    <Reveal index={3}>
-                        <div className="mt-16">
-                            <Button href={path(PRIMARY_CTA.href)} variant="outline">
-                                {PRIMARY_CTA.label} <span aria-hidden>→</span>
-                            </Button>
-                        </div>
-                    </Reveal>
                 </Container>
             </Section>
+
+            {hasCases ? (
+                <CaseStudies cases={CASES} />
+            ) : (
+                <Section tight>
+                    <Container>
+                        <Reveal>
+                            <div
+                                className="pt-12 max-w-[720px]"
+                                style={{ borderTop: "1px solid var(--mt-line)" }}
+                            >
+                                <p className="mt-en mt-label" style={{ color: "var(--mt-gray)" }}>
+                                    Case Studies
+                                </p>
+                                <h2 className="mt-h2 mt-6">공개 사례는 고객사 동의 범위에서 정리합니다.</h2>
+                                <p className="mt-body mt-8 max-w-[620px]">
+                                    성과 수치는 고객사의 영업 정보와 맞닿아 있어, 공개 범위를 먼저 합의한
+                                    사례부터 순서대로 등록합니다. 지금 확인이 필요하시면 상담에서 공개 가능한
+                                    범위의 사례를 직접 보여드립니다.
+                                </p>
+
+                                <div className="mt-11 flex flex-col sm:flex-row sm:items-center gap-6 sm:gap-9">
+                                    <Button href={path(PRIMARY_CTA.href)}>
+                                        {PRIMARY_CTA.label} <span aria-hidden>→</span>
+                                    </Button>
+                                    <div className="flex flex-wrap gap-x-8 gap-y-3">
+                                        <ArrowLink href={path("/lawfirm-marketing")}>운영 방식 보기</ArrowLink>
+                                        <ArrowLink href={path("/about")}>팀 보기</ArrowLink>
+                                    </div>
+                                </div>
+                            </div>
+                        </Reveal>
+                    </Container>
+                </Section>
+            )}
         </>
     );
 }
