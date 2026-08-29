@@ -13,19 +13,31 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const profileId = url.searchParams.get("profile_id");
     const status = url.searchParams.get("status");
+    // full=1 — 블로그 공장 검수 패널용: 본문까지 포함해 내려준다
+    const full = url.searchParams.get("full") === "1";
 
     try {
         const supabase = await createAdminClient();
-        let query = supabase
-            .from("blog_posts")
-            .select("id, profile_id, title, field, topic, status, naver_url, error, card_images, published_at, created_at")
-            .order("created_at", { ascending: false })
-            .limit(100);
+        // site_synced_at 은 마이그레이션 014 이후에만 존재 — 없으면 빼고 다시 읽는다
+        const cols = full
+            ? "id, profile_id, title, body, draft_body, field, topic, status, naver_url, error, card_images, published_at, created_at, updated_at"
+            : "id, profile_id, title, field, topic, status, naver_url, error, card_images, published_at, created_at";
 
-        if (profileId) query = query.eq("profile_id", profileId);
-        if (status) query = query.eq("status", status);
+        const run = (select: string) => {
+            let query = supabase
+                .from("blog_posts")
+                .select(select)
+                .order("created_at", { ascending: false })
+                .limit(100);
+            if (profileId) query = query.eq("profile_id", profileId);
+            if (status) query = query.eq("status", status);
+            return query;
+        };
 
-        const { data, error } = await query;
+        let { data, error } = await run(full ? `${cols}, site_synced_at` : cols);
+        if (error && full && /site_synced_at/.test(error.message)) {
+            ({ data, error } = await run(cols));
+        }
         if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
         return NextResponse.json({ posts: data || [] });
@@ -81,7 +93,7 @@ export async function PATCH(request: Request) {
         if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
         // 화이트리스트 — 발행기가 쓰는 필드까지 여기서 열어둔다
-        const allowed = ["title", "body", "field", "topic", "card_images", "status", "naver_url", "error", "published_at"] as const;
+        const allowed = ["title", "body", "field", "topic", "card_images", "status", "naver_url", "error", "published_at", "site_synced_at"] as const;
         const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
         for (const key of allowed) {
             if (key in rest) patch[key] = rest[key];

@@ -8,6 +8,12 @@
 //   node publisher/publish.mjs run <postId>         발행
 //   node publisher/publish.mjs run <postId> --dry   발행 버튼 직전까지만
 //   node publisher/publish.mjs inspect <postId>     편집기 구조 덤프 (실패 시 진단용)
+//   node publisher/publish.mjs watch                상주 모드 — 승인(approved)된 원고를
+//                                                   자동으로 집어가 발행한다 (블로그 공장)
+//
+// watch 환경변수
+//   PUBLISH_HOURS=9-18     발행 허용 시간대 (기본 9-18, KST)
+//   PUBLISH_GAP_MIN=5-15   발행 간 간격(분, 랜덤 범위 — 계정 보호)
 //
 // 전제: 대상 크롬 프로필 창을 먼저 닫아야 한다. 크롬이 프로필을 잠근다.
 
@@ -243,9 +249,11 @@ async function loadJob(postId) {
     const post = posts?.[0];
     if (!post) throw new Error(`원고를 찾을 수 없습니다: ${postId}`);
 
+    // lawyer_id 는 마이그레이션 014 이후에만 있다 — 없으면 빼고 다시 읽는다
+    const profSelect = "id,lawyer_name,chrome_profile,naver_blog_id,naver_category";
     const profs = await db(
-        `blog_profiles?id=eq.${post.profile_id}&select=id,lawyer_name,chrome_profile,naver_blog_id,naver_category`
-    );
+        `blog_profiles?id=eq.${post.profile_id}&select=${profSelect},lawyer_id`
+    ).catch(() => db(`blog_profiles?id=eq.${post.profile_id}&select=${profSelect}`));
     const profile = profs?.[0];
     if (!profile) throw new Error("변호사 설정을 찾을 수 없습니다.");
     if (!profile.chrome_profile) {
@@ -259,9 +267,47 @@ async function loadJob(postId) {
 const setStatus = (id, patch) =>
     db(`blog_posts?id=eq.${id}`, { method: "PATCH", body: JSON.stringify(patch) });
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// ── 맥디 변호사 블로그 반영 (블로그 공장 4단계) ──────────────────
+// app/api/admin/blog-posts/sync-site 와 같은 규칙. 발행 성공 직후 호출된다.
+// 프로필에 lawyer_id 매핑이 없으면 조용히 건너뛴다(관리 화면에서 연결).
+
+const toSiteMarkdown = (body) =>
+    body.replace(/==(.+?)==/g, "**$1**").replace(/__(.+?)__/g, "**$1**");
+
+async function syncSite(post, profile) {
+    if (!profile.lawyer_id) return false;
+    const excerptSrc = post.body.replace(/[#*_=`>-]/g, "").replace(/\s+/g, " ").trim();
+    const row = {
+        lawyer_id: profile.lawyer_id,
+        channel: "blog",
+        title: post.title,
+        slug: "bp-" + String(post.id).replace(/-/g, "").slice(0, 12),
+        body: toSiteMarkdown(post.body),
+        meta_description: excerptSrc.length > 155 ? excerptSrc.slice(0, 154) + "…" : excerptSrc,
+        tags: post.field ? [post.field] : [],
+        status: "published",
+        source_post_id: post.id,
+        updated_at: new Date().toISOString(),
+    };
+    const existing = await db(`contents?source_post_id=eq.${post.id}&select=id`).catch(() => null);
+    if (existing && existing[0]) {
+        await db(`contents?id=eq.${existing[0].id}`, { method: "PATCH", body: JSON.stringify(row) });
+    } else {
+        await db("contents", {
+            method: "POST",
+            body: JSON.stringify(row),
+            headers: { Prefer: "return=minimal" },
+        });
+    }
+    await setStatus(post.id, { site_synced_at: new Date().toISOString() });
+    return true;
+}
+
 async function cmdList() {
     const posts = await db(
-        "blog_posts?status=in.(draft,ready)&select=id,title,status,field,card_images,profile_id&order=created_at.desc&limit=30"
+        "blog_posts?status=in.(draft,ready,approved)&select=id,title,status,field,card_images,profile_id&order=created_at.desc&limit=30"
     );
     if (!posts.length) return console.log("발행 대기 중인 원고가 없습니다.");
     const profs = await db("blog_profiles?select=id,lawyer_name,chrome_profile");
@@ -399,6 +445,14 @@ async function cmdRun(postId, dry) {
                 error: null,
             });
             console.log(`\n✔ 발행 완료\n  ${finalUrl}`);
+
+            // 맥디 변호사 블로그에도 반영 — 실패해도 발행 결과는 유지한다
+            try {
+                const synced = await syncSite(post, profile);
+                console.log(synced ? "✔ 맥디 블로그 반영 완료" : "· 맥디 변호사 미연결 — 반영 건너뜀");
+            } catch (e) {
+                console.error("⚠ 맥디 블로그 반영 실패: " + (e.message || e));
+            }
         } else {
             await setStatus(post.id, { status: "ready" });
             console.log(`\n발행 여부를 확인하지 못했습니다. 창에서 직접 확인해주세요.\n  현재 주소: ${finalUrl}`);
@@ -445,6 +499,52 @@ async function cmdInspect(postId) {
     console.log("\n창을 열어두었습니다. 확인 후 직접 닫으세요.");
 }
 
+// ── watch — 승인된 원고를 상주하며 자동 발행 (블로그 공장) ───────
+
+function parseRange(str, defA, defB) {
+    const m = String(str || "").match(/^(\d+)\s*-\s*(\d+)$/);
+    return m ? [Number(m[1]), Number(m[2])] : [defA, defB];
+}
+
+async function cmdWatch() {
+    const [h0, h1] = parseRange(process.env.PUBLISH_HOURS, 9, 18);
+    const [g0, g1] = parseRange(process.env.PUBLISH_GAP_MIN, 5, 15);
+    console.log(`watch 시작 — 발행 시간대 ${h0}~${h1}시(KST), 발행 간격 ${g0}~${g1}분`);
+    console.log("승인(approved)된 원고를 오래된 것부터 하나씩 발행합니다. Ctrl+C 로 종료.\n");
+
+    for (;;) {
+        const kstHour = new Date(Date.now() + 9 * 3600e3).getUTCHours();
+        if (kstHour < h0 || kstHour >= h1) {
+            await sleep(5 * 60e3);
+            continue;
+        }
+
+        const posts = await db(
+            "blog_posts?status=eq.approved&select=id,title&order=created_at.asc&limit=1"
+        ).catch((e) => {
+            console.error("조회 실패: " + (e.message || e));
+            return null;
+        });
+
+        if (!posts || posts.length === 0) {
+            await sleep(30e3);
+            continue;
+        }
+
+        console.log(`\n[watch] 발행 시작: ${posts[0].title}`);
+        try {
+            await cmdRun(posts[0].id, false);
+        } catch (e) {
+            // cmdRun 이 이미 failed 로 기록했다 — 다음 건으로 넘어간다
+            console.error("[watch] 실패: " + (e.message || e));
+        }
+
+        const gap = (g0 + Math.random() * Math.max(0, g1 - g0)) * 60e3;
+        console.log(`[watch] 다음 발행까지 ${(gap / 60000).toFixed(1)}분 대기 (계정 보호)`);
+        await sleep(gap);
+    }
+}
+
 // ── 진입점 ────────────────────────────────────────────────────────
 
 loadEnv();
@@ -455,11 +555,13 @@ try {
     if (cmd === "list") await cmdList();
     else if (cmd === "run" && arg) await cmdRun(arg, dry);
     else if (cmd === "inspect" && arg) await cmdInspect(arg);
+    else if (cmd === "watch") await cmdWatch();
     else {
         console.log("사용법:");
         console.log("  node publisher/publish.mjs list");
         console.log("  node publisher/publish.mjs run <postId> [--dry]");
         console.log("  node publisher/publish.mjs inspect <postId>");
+        console.log("  node publisher/publish.mjs watch");
     }
 } catch (e) {
     console.error("\n오류: " + (e.message || e));
