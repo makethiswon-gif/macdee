@@ -21,7 +21,7 @@ export default function CaseStudies({ cases }: { cases: CaseStudy[] }) {
                 <SectionHeader
                     eyebrow="Case Studies"
                     serif
-                    title="무엇을 바꿨고, 무엇이 달라졌는지."
+                    title={<>무엇을 바꿨고, 무엇이&nbsp;달라졌는지.</>}
                     lead="어떤 상태였고, 무엇을 했고, 어떤 지표가 움직였는지 그대로 보여드립니다."
                 />
 

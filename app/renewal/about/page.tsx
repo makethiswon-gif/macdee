@@ -76,7 +76,7 @@ export default function Page() {
                     </Reveal>
                     <Reveal index={1}>
                         <h1 className="mt-h1 mt-7 max-w-[20ch]">
-                            법률·콘텐츠·광고·검색을 아는 사람들
+                            법률·콘텐츠·광고·검색을 아는&nbsp;사람들
                             <br />
                             메이크디스원입니다.
                         </h1>

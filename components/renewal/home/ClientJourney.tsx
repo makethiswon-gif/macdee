@@ -210,7 +210,7 @@ export default function ClientJourney() {
                     <Reveal variant="rise" index={2} stagger={160}>
                         <p className="mt-body-lg mt-7 max-w-[640px]">
                             메이크디스원은 채널을 따로 보지 않습니다. 어디서 찾았고, 무엇을 보고
-                            문의했는지 한 흐름으로 봅니다.
+                            문의했는지 한 흐름으로&nbsp;봅니다.
                         </p>
                     </Reveal>
                 </div>

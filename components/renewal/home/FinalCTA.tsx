@@ -37,6 +37,8 @@ export default function FinalCTA() {
                         </p>
 
                         <h2 className="mt-serif mt-h1 mt-8" style={{ color: "var(--mt-bg)" }}>
+                            {/* 모바일에서 "로펌은 사건에 / 집중하십시오."로 꺾이는 것은 자연스러운
+                                한국어 행갈이 — 뒤 단어를 묶으면 "로펌은"이 외톨이가 되어 더 나쁘다 */}
                             <span className="mt-pmask" style={{ ["--a" as string]: 0.1 }}>
                                 <span>로펌은 사건에 집중하십시오.</span>
                             </span>

@@ -81,7 +81,9 @@ export default function HeroSection() {
             <IntroScreen />
         <section data-clause="HOME" className="mt-grid-bg relative pt-[124px] md:pt-[164px] pb-14 md:pb-20 min-h-[86svh] flex flex-col justify-center">
             <Container>
-                <div className="relative lg:grid lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-16 lg:items-center">
+                {/* lg 구간에서 카드 340px — 좌측 칼럼을 넓혀 "메이크디스원 하나로"가
+                    한 줄에 들어가게 한다. xl 부터는 원래 400px */}
+                <div className="relative lg:grid lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_400px] lg:gap-16 lg:items-center">
                     {/* ── 좌측 — 선언 ── */}
                     <div>
                         <div className="mt-hero-in">
@@ -90,9 +92,16 @@ export default function HeroSection() {
                             </span>
                         </div>
 
-                        <h1 className="mt-serif mt-display mt-8 max-w-[17ch]" style={{ lineHeight: 1.16 }}>
+                        {/* mt-display(최대 5.2rem)로는 "메이크디스원 하나로"(10자)가 칼럼에
+                            물리적으로 안 들어가 브랜드명이 두 줄로 꺾인다 — 이 H1 만 크기를
+                            보정해 모든 구간에서 온전한 줄로 유지. "필요한 모든 것."은 NBSP
+                            한 덩어리라 좁아지면 통째로 내려간다(외톨이 줄 방지) */}
+                        <h1
+                            className="mt-serif mt-display mt-8 max-w-[32ch]"
+                            style={{ lineHeight: 1.16, fontSize: "clamp(2.2rem, 4.6vw, 3.8rem)" }}
+                        >
                             <span className="mt-hero-in block" style={{ ["--mt-hero-delay" as string]: "60ms" }}>
-                                로펌 마케팅에 필요한 모든 것.
+                                로펌 마케팅에 필요한&nbsp;모든&nbsp;것.
                             </span>
                             <span className="mt-hero-in block" style={{ ["--mt-hero-delay" as string]: "120ms" }}>
                                 메이크디스원 하나로

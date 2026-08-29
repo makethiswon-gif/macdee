@@ -326,7 +326,8 @@ export const JOURNEY_NOTE = "수임 데이터는 로펌이 제공한 범위 안�
 /* ── 맡기기 전 / 메이크디스원과 일하면 ── */
 
 export const BEFORE_AFTER = {
-    title: ["마케팅 채널 통합이 필요한 이유"],
+    //   — "이유"가 외톨이 줄로 떨어지지 않게 앞 단어와 묶는다
+    title: ["마케팅 채널 통합이 필요한 이유"],
     before: {
         label: "맡기기 전",
         items: ["업체마다 따로 연락", "보고서도 따로 확인", "성과 기준도 제각각"],
@@ -454,7 +455,7 @@ export const HERO_CARD_ITEMS = SERVICES.map((s) => ({ ko: s.ko, no: s.no }));
 
 /* ── 새 채널 대응 (구 Whatever Changes — 대폭 축소) ── */
 
-export const NEW_CHANNEL_TITLE = ["새 광고 채널이 생겨도", "다시 업체를 찾을 필요 없습니다."];
+export const NEW_CHANNEL_TITLE = ["새 광고 채널이 생겨도", "다시 업체를 찾을 필요 없습니다."];
 
 export const NEW_CHANNEL_BODY =
     "메이크디스원이 매체와 광고 규정을 검토하고, 실제로 쓸 수 있는 채널만 기존 운영에 연결합니다.";
@@ -599,7 +600,7 @@ export const FOUNDER = {
     name: "김원영",
     role: "CEO",
     photo: "/makethisone/ceo.webp",
-    lead: "법률사무소 안에서 사건이 어떻게 들어오는지 보고, 대기업에서 마케팅을 배웠습니다.",
+    lead: "법률사무소 안에서 사건이 어떻게 들어오는지 보고, 대기업에서 마케팅을 배웠습니다.",
     career: {
         legal: ["법무법인 혜안", "법무법인 고구려", "JY법률사무소"],
         marketing: ["삼성메디슨 영업 · 마케팅", "KT 유통 · 영업 · 마케팅"],

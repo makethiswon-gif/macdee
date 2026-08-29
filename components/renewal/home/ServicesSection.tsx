@@ -61,7 +61,12 @@ export default function ServicesSection() {
                                 모두 준비했습니다.
                             </>
                         }
-                        lead="채널별로 업체를 나누지 마세요. 로펌의 목표와 예산에 맞춰 필요한 영역을 한 팀이 함께 운영합니다."
+                        lead={
+                            <>
+                                채널별로 업체를 나누지 마세요. 로펌의 목표와 예산에 맞춰 필요한 영역을 한
+                                팀이 함께&nbsp;운영합니다.
+                            </>
+                        }
                     />
                 </Reveal>
             </Container>
