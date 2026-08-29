@@ -257,22 +257,30 @@ export default function IntroScreen() {
                     <canvas className="mt-ibrk-cv" width={150} height={200} />
                 </div>
 
-                <p className="mt-ibrk-frag" data-x="6" data-y="43" data-mx="6" data-my="38" style={{ fontSize: small_css(13.5, 12), fontWeight: 500, color: "#aab6c6" }}>
-                    광고 운영 · 네이버·Google 검색 · AI 검색 · 법률 콘텐츠 · 홈페이지 · 상담·수임 분석
+                {/* Services 섹션 카피 — 홈 01~06 섹션과 같은 문장 */}
+                <p className="mt-ibrk-frag mt-en" data-x="6" data-y="42" data-mx="6" data-my="36" style={{ ...mono, fontSize: 9.5, letterSpacing: "0.22em", color: AC }}>
+                    SERVICES
+                </p>
+                <p className="mt-ibrk-frag mt-serif" data-x="6" data-y="47" data-mx="6" data-my="41" style={{ fontSize: "clamp(19px,2.2vw,29px)", fontWeight: 600, lineHeight: 1.3, color: "#fbfaf8" }}>
+                    광고의 처음부터 끝, 모두 준비했습니다.
+                </p>
+                <p className="mt-ibrk-frag" data-x="6" data-y="54" data-mx="6" data-my="48" style={{ fontSize: small_css(14, 12.5), color: "#aab6c6" }}>
+                    채널별로 업체를 나누지 마세요.
+                </p>
+                <p className="mt-ibrk-frag mt-ibrk-desk" data-x="6" data-y="58.5" style={{ fontSize: 14, color: "#aab6c6" }}>
+                    로펌의 목표와 예산에 맞춰 필요한 영역을 한 팀이 함께 운영합니다.
                 </p>
 
-                <p className="mt-ibrk-frag mt-ibrk-desk" data-x="6" data-y="51" style={{ width: 180, height: 1, background: "rgba(135,148,166,0.5)" }} />
+                <p className="mt-ibrk-frag mt-ibrk-desk" data-x="6" data-y="66" style={{ width: 180, height: 1, background: "rgba(135,148,166,0.5)" }} />
 
-                <div className="mt-ibrk-frag" data-x="6" data-y="57" data-mx="6" data-my="50">
-                    <p style={{ ...mono, fontSize: 11, letterSpacing: "0.08em", color: "#fbfaf8" }}>CASE 01 — 호남 지역 종합 로펌</p>
-                    <p style={{ ...mono, fontSize: 10, marginTop: 4, color: "#8794a6" }}>연 매출 10억대 → 100억대</p>
-                </div>
-                <div className="mt-ibrk-frag" data-x="6" data-y="66" data-mx="6" data-my="60">
-                    <p style={{ ...mono, fontSize: 11, letterSpacing: "0.08em", color: "#fbfaf8" }}>CASE 02 — 가사·상속 법률사무소 K</p>
-                    <p style={{ ...mono, fontSize: 10, marginTop: 4, color: "#8794a6" }}>5년 매출 약 8배 · ChatGPT 인용</p>
-                </div>
+                <p className="mt-ibrk-frag mt-ibrk-desk" data-x="6" data-y="70" style={{ ...mono, fontSize: 11.5, letterSpacing: "0.04em", color: "#d5dae2" }}>
+                    01 광고 운영&nbsp;&nbsp;02 네이버·Google 검색&nbsp;&nbsp;03 AI 검색&nbsp;&nbsp;04 법률 콘텐츠&nbsp;&nbsp;05 홈페이지&nbsp;&nbsp;06 상담·수임 분석
+                </p>
+                <p className="mt-ibrk-frag lg:hidden" data-x="6" data-y="70" data-mx="6" data-my="56" style={{ ...mono, fontSize: 10.5, letterSpacing: "0.02em", color: "#d5dae2" }}>
+                    광고 · 검색 · AI 검색 · 콘텐츠 · 홈페이지 · 상담 분석
+                </p>
 
-                <p className="mt-ibrk-frag" data-x="6" data-y="76" data-mx="6" data-my="70" style={{ ...mono, fontSize: 10.5, letterSpacing: "0.06em", color: "#8794a6" }}>
+                <p className="mt-ibrk-frag" data-x="6" data-y="78" data-mx="6" data-my="66" style={{ ...mono, fontSize: 10.5, letterSpacing: "0.06em", color: "#8794a6" }}>
                     20+ 파트너 로펌&nbsp;&nbsp;·&nbsp;&nbsp;100+ 완료 프로젝트&nbsp;&nbsp;·&nbsp;&nbsp;7년+ 업력
                 </p>
 
