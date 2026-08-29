@@ -67,8 +67,10 @@ export default function ServicesSection() {
             </Container>
 
             <div ref={stageRef} className="mt-stage mt-stage-track lg:h-[185svh]">
-                <div className="mt-stage-pin">
-                    <Container className="pt-12 lg:pt-0">
+                {/* 기본 pin 은 세로 중앙 정렬이라 목록이 접힌 초반에 위쪽이 통째로
+                    빈다 — 이 섹션은 상단 정렬로 붙여 헤더와의 간격을 없앤다 */}
+                <div className="mt-stage-pin" style={{ justifyContent: "flex-start" }}>
+                    <Container className="pt-12 lg:pt-24">
                         <div className="mb-6 hidden lg:block">
                             <ScrollHint>아래로 스크롤하면, 여섯 영역이 차례로 펼쳐집니다</ScrollHint>
                         </div>
