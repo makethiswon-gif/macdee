@@ -279,7 +279,7 @@ export const CHANNELS: ChannelCategory[] = [
 export const HERO_OVERLINE = "LAW FIRM MARKETING, MADE SIMPLE.";
 
 export const HERO_BODY =
-    "검색광고, 블로그, SEO, AI 검색, 홈페이지, 상담 분석까지. 여러 업체를 따로 찾고 관리할 필요 없이 한 팀이 전부 운영합니다.";
+    "검색광고, 블로그, SEO, AI 검색, 홈페이지, 상담 분석까지. 메이크디스원의 통합 솔루션으로.";
 
 // 기존 취소선 질문 5줄을 한 줄 Before→After 로 압축했다.
 export const HERO_BEFORE = ["광고대행사", "블로그 업체", "제작사", "SEO 업체"];
@@ -297,24 +297,24 @@ export interface JourneyStep {
     labels: string[];
 }
 
-// 카피 확정: 대표 수정본 2026-08-29.
+// 카피 확정: 대표 수정본 2026-08-29 (2차).
 export const JOURNEY: JourneyStep[] = [
     {
         no: "01",
-        title: "보이게 합니다",
+        title: "보이도록",
         desc: "네이버·Google 광고와 일반 검색, AI 검색에서 로펌이 발견되게 합니다.",
         labels: ["광고", "SEO", "AI 검색"],
     },
     {
         no: "02",
-        title: "선택할 이유를 만듭니다",
+        title: "선택할 이유 제작",
         desc: "사건 경험, 변호사 소개, 전문 콘텐츠와 홈페이지에서 신뢰할 근거를 보여줍니다.",
         labels: ["콘텐츠", "홈페이지"],
     },
     {
         no: "03",
-        title: "상담이 생긴 곳에 더 씁니다",
-        desc: "전화·카카오톡·상담폼의 유입 경로를 확인하고 실제 상담이 생기는 채널에 예산을 옮깁니다.",
+        title: "예산의 유연한 분배",
+        desc: "전화·카카오톡·상담폼의 유입 경로를 확인하고 실제 상담이 생기는 채널에 예산을 추가합니다.",
         labels: ["상담 경로", "데이터 분석"],
     },
 ];
@@ -326,7 +326,7 @@ export const JOURNEY_NOTE = "수임 데이터는 로펌이 제공한 범위 안�
 /* ── 맡기기 전 / 메이크디스원과 일하면 ── */
 
 export const BEFORE_AFTER = {
-    title: ["업체 다섯 곳을 관리하는 대신,", "메이크디스원 한 팀과 일하십시오."],
+    title: ["마케팅 채널 통합이 필요한 이유"],
     before: {
         label: "맡기기 전",
         items: ["업체마다 따로 연락", "보고서도 따로 확인", "성과 기준도 제각각"],

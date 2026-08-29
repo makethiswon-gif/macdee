@@ -221,13 +221,11 @@ export default function ProblemSection() {
                     <SectionHeader
                         eyebrow="Before · After"
                         serif
-                        title={
-                            <>
-                                {BEFORE_AFTER.title[0]}
-                                <br />
-                                {BEFORE_AFTER.title[1]}
-                            </>
-                        }
+                        title={BEFORE_AFTER.title.map((line, i) => (
+                            <span key={line} className={i > 0 ? "block" : undefined}>
+                                {line}
+                            </span>
+                        ))}
                     />
 
                     <div className="mt-8">

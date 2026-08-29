@@ -95,7 +95,7 @@ export default function HeroSection() {
                                 로펌 마케팅에 필요한 모든 것.
                             </span>
                             <span className="mt-hero-in block" style={{ ["--mt-hero-delay" as string]: "120ms" }}>
-                                메이크디스원 하나면&nbsp;됩니다.
+                                메이크디스원 하나로
                             </span>
                         </h1>
 
