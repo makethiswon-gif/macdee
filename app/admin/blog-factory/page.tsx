@@ -28,6 +28,8 @@ import {
     Undo2,
     Settings2,
     ImageIcon,
+    Lightbulb,
+    PenLine,
 } from "lucide-react";
 import { toNaverHtml } from "@/lib/blog-naver-html";
 import { BLOG_FACTORY_SQL } from "@/lib/blog-factory-sql";
@@ -70,6 +72,12 @@ interface Lawyer {
     id: string;
     name: string;
     office_name: string | null;
+}
+
+interface Topic {
+    topic: string;
+    field: string;
+    angle: string;
 }
 
 /* ── 유틸 ── */
@@ -143,6 +151,11 @@ export default function BlogFactoryPage() {
     const logRef = useRef<HTMLDivElement>(null);
 
     const [showSettings, setShowSettings] = useState(false);
+
+    // 1건 만들기 모달 — 주제를 직접 고르고(선택) 사건 내용을 붙여 실행
+    const [picker, setPicker] = useState<{ profileId: string; topics: Topic[]; loading: boolean } | null>(null);
+    const [pickerTopic, setPickerTopic] = useState<Topic | null>(null);
+    const [pickerDetail, setPickerDetail] = useState("");
 
     const selected = posts.find((p) => p.id === selectedId) || null;
     const profileOf = useCallback(
@@ -267,6 +280,76 @@ export default function BlogFactoryPage() {
         []
     );
 
+    // 원고 1건 생성 — 배치·개별 실행이 공유하는 단위 작업
+    const generateOne = useCallback(
+        async (p: Profile, t: Topic, detail?: string) => {
+            say(`  ✍ 원고: ${t.topic.slice(0, 34)}…`);
+            const content = detail?.trim()
+                ? detail.trim()
+                : `${t.topic}\n\n[다룰 관점]\n${t.angle || ""}`;
+            const w = await post("/api/admin/claude-blog-write", {
+                content,
+                field: t.field,
+                profileId: p.id,
+                topic: t.topic,
+            });
+            if (!w.title || !w.body) throw new Error("원고가 비어 있습니다.");
+
+            const s = await post("/api/admin/blog-posts", {
+                profileId: p.id,
+                title: w.title,
+                body: w.body,
+                draftBody: w.draftBody || null,
+                field: t.field,
+                topic: t.topic,
+            });
+
+            say(`  🖼 카드 생성 중…`);
+            const n = await makeCardsFor(s.id, p.id, w.title, w.body, w.dna?.imageCount || 4);
+            say(`  ✔ 완료 — 카드 ${n}장, 검수 대기`);
+            return s.id as string;
+        },
+        [say, makeCardsFor]
+    );
+
+    // 주제 골라 1건 만들기 — 모달에서 실행
+    const runSingle = useCallback(async () => {
+        if (!picker || !pickerTopic || running) return;
+        const p = profiles.find((x) => x.id === picker.profileId);
+        if (!p) return;
+        cancelRef.current = false;
+        setRunning(true);
+        const detail = pickerDetail;
+        setPicker(null);
+        try {
+            say(`── ${p.lawyerName} — 1건 만들기`);
+            const id = await generateOne(p, pickerTopic, detail);
+            await loadAll();
+            setSelectedId(id); // 바로 검수 패널로
+        } catch (e) {
+            say(`  ✖ 실패 — ${e instanceof Error ? e.message : e}`);
+        } finally {
+            setRunning(false);
+            loadAll();
+        }
+    }, [picker, pickerTopic, pickerDetail, running, profiles, generateOne, say, loadAll]);
+
+    const openPicker = useCallback(
+        async (profileId: string) => {
+            setPickerTopic(null);
+            setPickerDetail("");
+            setPicker({ profileId, topics: [], loading: true });
+            try {
+                const d = await post("/api/admin/blog-posts/topics", { profileId, count: 6 });
+                setPicker({ profileId, topics: d.topics || [], loading: false });
+            } catch (e) {
+                say(`✖ 주제 추천 실패 — ${e instanceof Error ? e.message : e}`);
+                setPicker(null);
+            }
+        },
+        [say]
+    );
+
     const runBatch = useCallback(async () => {
         if (running) return;
         cancelRef.current = false;
@@ -290,7 +373,7 @@ export default function BlogFactoryPage() {
                 if (cancelRef.current) break;
                 say(`── ${p.lawyerName} · ${p.officeName} — ${need}건`);
 
-                let topics: { topic: string; field: string; angle: string }[] = [];
+                let topics: Topic[] = [];
                 try {
                     const d = await post("/api/admin/blog-posts/topics", { profileId: p.id, count: Math.min(need + 2, 8) });
                     topics = d.topics || [];
@@ -303,27 +386,7 @@ export default function BlogFactoryPage() {
                 for (const t of topics) {
                     if (done >= need || cancelRef.current) break;
                     try {
-                        say(`  ✍ 원고: ${t.topic.slice(0, 34)}…`);
-                        const w = await post("/api/admin/claude-blog-write", {
-                            content: `${t.topic}\n\n[다룰 관점]\n${t.angle}`,
-                            field: t.field,
-                            profileId: p.id,
-                            topic: t.topic,
-                        });
-                        if (!w.title || !w.body) throw new Error("원고가 비어 있습니다.");
-
-                        const s = await post("/api/admin/blog-posts", {
-                            profileId: p.id,
-                            title: w.title,
-                            body: w.body,
-                            draftBody: w.draftBody || null,
-                            field: t.field,
-                            topic: t.topic,
-                        });
-
-                        say(`  🖼 카드 생성 중…`);
-                        const n = await makeCardsFor(s.id, p.id, w.title, w.body, w.dna?.imageCount || 4);
-                        say(`  ✔ 완료 — 카드 ${n}장, 검수 대기`);
+                        await generateOne(p, t);
                         done++;
                         loadAll();
                     } catch (e) {
@@ -336,7 +399,7 @@ export default function BlogFactoryPage() {
             setRunning(false);
             loadAll();
         }
-    }, [running, profiles, filter, pipelineCount, say, makeCardsFor, loadAll]);
+    }, [running, profiles, filter, pipelineCount, say, generateOne, loadAll]);
 
     /* ── 검수 패널 동작 ── */
 
@@ -361,6 +424,29 @@ export default function BlogFactoryPage() {
         } catch (e) {
             const msg = e instanceof Error ? e.message : "상태 변경 실패";
             setError(/check/i.test(msg) ? "마이그레이션 014(블로그 공장)를 먼저 실행해주세요. (설정 참고)" : msg);
+        }
+        setBusy("");
+    };
+
+    // 같은 주제로 원고만 다시 쓴다 — 결과는 편집칸에만 넣고, 저장은 대표가 결정
+    const rewrite = async () => {
+        if (!selected) return;
+        const prof = profileOf(selected.profile_id);
+        if (!prof) return;
+        setBusy("rewrite");
+        try {
+            const w = await post("/api/admin/claude-blog-write", {
+                content: selected.topic || editTitle,
+                field: selected.field || "",
+                profileId: selected.profile_id,
+                topic: selected.topic || editTitle,
+            });
+            if (!w.title || !w.body) throw new Error("원고가 비어 있습니다.");
+            setEditTitle(w.title);
+            setEditBody(w.body);
+            say(`원고 다시 씀 — 저장 전 상태입니다. 확인 후 [수정 저장]을 누르세요.`);
+        } catch (e) {
+            setError(e instanceof Error ? e.message : "원고 재생성 실패");
         }
         setBusy("");
     };
@@ -516,6 +602,39 @@ export default function BlogFactoryPage() {
                     );
                 })}
             </div>
+
+            {/* ── 선택 업체 개별 실행 바 ── */}
+            {filter && (() => {
+                const p = profiles.find((x) => x.id === filter);
+                if (!p) return null;
+                const need = Math.max(0, p.monthlyQuota - p.publishedThisMonth - pipelineCount(p.id));
+                return (
+                    <div className={`${card} px-4 py-3 mb-4 flex items-center gap-3 flex-wrap`}>
+                        <span className="text-[12.5px] text-white font-medium">
+                            {p.lawyerName} · {p.officeName}
+                        </span>
+                        <span className="text-[11.5px] text-[#6B7280]">
+                            이번 달 {p.publishedThisMonth}/{p.monthlyQuota || "—"} · 진행 {pipelineCount(p.id)} · 부족 {need}건
+                        </span>
+                        <span className="flex-1" />
+                        <button
+                            onClick={runBatch}
+                            disabled={running || need === 0}
+                            title={need === 0 ? "부족분이 없습니다" : ""}
+                            className={`${btn} bg-[#3563AE] hover:bg-[#2d559a] text-white`}
+                        >
+                            <Play size={13} /> 이 업체만 채우기{need > 0 ? ` (${need}건)` : ""}
+                        </button>
+                        <button
+                            onClick={() => openPicker(p.id)}
+                            disabled={running}
+                            className={`${btn} bg-[#1A2035] text-[#9CA3B0] hover:text-white`}
+                        >
+                            <Lightbulb size={13} /> 주제 골라 1건 만들기
+                        </button>
+                    </div>
+                );
+            })()}
 
             {/* ── 설정: 프로필 ↔ 맥디 변호사 매핑 ── */}
             {showSettings && (
@@ -686,6 +805,10 @@ export default function BlogFactoryPage() {
                                     {busy === "cards" ? <Loader2 size={13} className="animate-spin" /> : <ImageIcon size={13} />}
                                     카드 {selected.card_images?.length ? "다시 만들기" : "만들기"}
                                 </button>
+                                <button onClick={rewrite} disabled={!!busy} className={`${btn} bg-[#1A2035] text-[#9CA3B0] hover:text-white`}>
+                                    {busy === "rewrite" ? <Loader2 size={13} className="animate-spin" /> : <PenLine size={13} />}
+                                    원고 다시 쓰기
+                                </button>
 
                                 {selected.status === "ready" && (
                                     <button onClick={() => setStatus("approved")} disabled={!!busy} className={`${btn} bg-[#3563AE] hover:bg-[#2d559a] text-white`}>
@@ -727,6 +850,81 @@ export default function BlogFactoryPage() {
                     )}
                 </div>
             </div>
+
+            {/* ── 주제 골라 1건 만들기 모달 ── */}
+            {picker && (
+                <div
+                    className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4"
+                    onClick={() => setPicker(null)}
+                >
+                    <div
+                        className="w-full max-w-[640px] max-h-[85vh] overflow-y-auto bg-[#0F1320] border border-[#1A2035] rounded-xl p-5"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between mb-4">
+                            <p className="text-[14px] font-semibold text-white">
+                                주제 골라 1건 만들기 —{" "}
+                                {profiles.find((p) => p.id === picker.profileId)?.lawyerName}
+                            </p>
+                            <button onClick={() => setPicker(null)} className="text-[#6B7280] hover:text-white">✕</button>
+                        </div>
+
+                        {picker.loading ? (
+                            <p className="py-10 text-center text-[13px] text-[#6B7280] flex items-center justify-center gap-2">
+                                <Loader2 size={14} className="animate-spin" /> 담당 분야에서 주제를 뽑는 중…
+                            </p>
+                        ) : (
+                            <>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
+                                    {picker.topics.map((t, i) => {
+                                        const on = pickerTopic?.topic === t.topic;
+                                        return (
+                                            <button
+                                                key={i}
+                                                onClick={() => setPickerTopic(t)}
+                                                className={`text-left p-3 rounded-lg border transition-colors ${
+                                                    on
+                                                        ? "bg-[#3563AE]/15 border-[#3563AE]"
+                                                        : "bg-[#0B0F1A] border-[#1F2937] hover:border-[#2b3648]"
+                                                }`}
+                                            >
+                                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#1A2035] text-[#6B7280]">
+                                                    {t.field}
+                                                </span>
+                                                <p className="mt-1.5 text-[13px] text-white leading-snug">{t.topic}</p>
+                                                <p className="mt-1 text-[11px] text-[#6B7280] leading-relaxed">{t.angle}</p>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                <label className="block text-[11px] font-medium text-[#6B7280] mb-1.5">
+                                    사건 내용 (선택 — 비우면 주제만으로 씁니다. 이름·지명은 자동 비식별화)
+                                </label>
+                                <textarea
+                                    value={pickerDetail}
+                                    onChange={(e) => setPickerDetail(e.target.value)}
+                                    rows={3}
+                                    className="w-full px-3 py-2.5 mb-4 bg-[#0B0F1A] border border-[#1F2937] rounded-lg text-[12.5px] text-[#D1D5DE] leading-relaxed focus:outline-none focus:border-[#3563AE] resize-y"
+                                />
+
+                                <div className="flex justify-end gap-2">
+                                    <button onClick={() => setPicker(null)} className={`${btn} bg-[#1A2035] text-[#9CA3B0]`}>
+                                        취소
+                                    </button>
+                                    <button
+                                        onClick={runSingle}
+                                        disabled={!pickerTopic || running}
+                                        className={`${btn} bg-[#3563AE] hover:bg-[#2d559a] text-white`}
+                                    >
+                                        <Play size={13} /> 이 주제로 만들기 (원고+카드)
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* ── 배치 로그 ── */}
             {log.length > 0 && (
