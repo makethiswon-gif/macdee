@@ -2,7 +2,7 @@
 
 import { Container } from "../primitives";
 import { useScrollProgress } from "../useScrollProgress";
-import { PRIMARY_CTA, path } from "@/data/renewal/site";
+import { PRIMARY_CTA, COMPANY, path } from "@/data/renewal/site";
 
 // 최종 CTA — ONE BLUE THREAD 의 완성 (스크롤 진행형).
 // "무료 체험"이 아니다. 진단이다(§34).
@@ -62,7 +62,7 @@ export default function FinalCTA() {
                             aria-hidden="true"
                         />
 
-                        <div className="mt-10 flex flex-col sm:flex-row sm:items-center gap-5">
+                        <div className="mt-10 flex flex-col sm:flex-row sm:items-center gap-4">
                             {/* 진행형 opacity 위에 transition/hover-opacity 를 겹치지 않는다 —
                                 스크럽과 트랜지션이 같은 속성을 두고 싸운다 */}
                             <a
@@ -78,13 +78,40 @@ export default function FinalCTA() {
                                 마케팅 진단 요청 <span aria-hidden>→</span>
                             </a>
                             <a
+                                href={path("/contact")}
+                                className="mt-pi inline-flex items-center justify-center gap-2 h-[52px] px-7 text-[14px] font-medium rounded-[2px]"
+                                style={{
+                                    border: "1px solid var(--mt-line)",
+                                    color: "var(--mt-bg)",
+                                    ["--a" as string]: 0.6,
+                                    ["--o0" as string]: 0.35,
+                                }}
+                            >
+                                제안 요청하기
+                            </a>
+                            <a
                                 href={path("/#plans")}
                                 className="mt-pi text-[13.5px] font-medium underline-offset-4 hover:underline"
-                                style={{ color: "var(--mt-gray)", ["--a" as string]: 0.62 }}
+                                style={{ color: "var(--mt-gray)", ["--a" as string]: 0.65 }}
                             >
                                 세 가지 운영안 다시 보기
                             </a>
                         </div>
+
+                        {/* 변호사 고객층은 전화 선호가 높다 — 번호를 화면에 바로 노출 */}
+                        <p
+                            className="mt-pi mt-8 text-[13.5px]"
+                            style={{ color: "var(--mt-gray)", ["--a" as string]: 0.72 }}
+                        >
+                            급하신 경우 지금 전화 주셔도 됩니다&nbsp;—{" "}
+                            <a
+                                href={`tel:${COMPANY.phone.replace(/-/g, "")}`}
+                                className="mt-num font-semibold underline-offset-4 hover:underline"
+                                style={{ color: "var(--mt-bg)" }}
+                            >
+                                {COMPANY.phone}
+                            </a>
+                        </p>
                     </div>
                 </Container>
             </div>

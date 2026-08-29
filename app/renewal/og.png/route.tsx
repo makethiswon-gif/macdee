@@ -97,7 +97,7 @@ export async function GET() {
                             letterSpacing: "-0.02em",
                         }}
                     >
-                        로펌 마케팅,
+                        로펌에 필요한
                     </div>
                     <div
                         style={{
@@ -107,7 +107,7 @@ export async function GET() {
                             letterSpacing: "-0.02em",
                         }}
                     >
-                        여기서 끝냅니다.
+                        모든 마케팅, 하나로.
                     </div>
                     <div
                         style={{
@@ -118,7 +118,7 @@ export async function GET() {
                             letterSpacing: "-0.01em",
                         }}
                     >
-                        광고 · 검색 · AI · 콘텐츠 · 홈페이지 · 상담 전환 — 하나의 팀이 통합 운영
+                        검색광고 · 블로그 · SEO · AI 검색 · 홈페이지 · 상담 분석 — 메이크디스원 한 팀
                     </div>
                 </div>
             </div>

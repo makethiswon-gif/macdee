@@ -6,10 +6,10 @@ import { CHANNELS, SYSTEM_STEPS, PRIMARY_CTA, path, absUrl, ogImage } from "@/da
 import { breadcrumbJsonLd, graph, organizationId } from "@/lib/renewal/schema";
 import { renewalRobots } from "../flags";
 
-// WHAT WE DO 허브 — "한 계약에서 실제로 하는 일"의 전체 문서.
+// WHAT WE DO 허브 — 한 팀이 실제로 하는 일의 전체 문서.
 //
-// 홈 제1조(별지)가 목차라면, 이 페이지는 본문이다: 영역별 전체 품목과 운영 철학,
-// 콘텐츠 확장 구조, 데이터 연결 범위, AI 원칙, Client Portal 로드맵, Future Ready.
+// 홈 서비스 섹션(01~06)이 목차라면, 이 페이지는 본문이다: 영역별 전체 품목과
+// 운영 철학, 콘텐츠 확장 구조, 데이터 연결 범위, AI 원칙, Client Portal 로드맵.
 //
 // §42 가드레일:
 //  - "AI 검색 노출·추천 보장" 류 표현 금지 — 오히려 안 쓴다는 사실을 명시한다.
@@ -19,7 +19,7 @@ import { renewalRobots } from "../flags";
 const URL = absUrl("/lawfirm-marketing");
 const TITLE = "로펌 통합 마케팅 | MAKETHIS1";
 const DESC =
-    "광고·검색·콘텐츠·홈페이지를 각각 다른 업체에 맡기지 않습니다. 하나의 전략과 하나의 예산으로 발견부터 수임까지 운영합니다.";
+    "검색광고, 블로그, SEO, AI 검색, 홈페이지, 상담 분석까지 — 로펌에 필요한 모든 마케팅을 메이크디스원 한 팀이 운영합니다.";
 
 export const metadata: Metadata = {
     title: { absolute: TITLE },
@@ -70,7 +70,7 @@ interface Area {
 
 const AREAS: Area[] = [
     {
-        no: "별지 제1호",
+        no: "01",
         en: "PAID MEDIA",
         href: "/naver-ads",
         title: "오늘 고객을 데려오는 광고",
@@ -78,7 +78,7 @@ const AREAS: Area[] = [
         note: "향후 법률광고가 가능해지는 새로운 광고 플랫폼도 검토해 추가합니다.",
     },
     {
-        no: "별지 제2호",
+        no: "02",
         en: "SEARCH",
         href: "/lawfirm-seo",
         title: "광고를 꺼도 남는 검색 자산",
@@ -94,7 +94,7 @@ const AREAS: Area[] = [
         ],
     },
     {
-        no: "별지 제3호",
+        no: "03",
         en: "AI SEARCH",
         href: "/geo",
         title: "AI가 이해하는 로펌 구조",
@@ -112,7 +112,7 @@ const AREAS: Area[] = [
         note: "AI 검색 노출이나 추천을 보장한다는 표현은 쓰지 않습니다. 구조를 만드는 일이지, 결과를 약속하는 일이 아니기 때문입니다.",
     },
     {
-        no: "별지 제4호",
+        no: "04",
         en: "CONTENT",
         href: "/lawfirm-blog",
         title: "경험을 검색 자산으로",
@@ -130,7 +130,7 @@ const AREAS: Area[] = [
         note: "중요한 것은 콘텐츠의 양이 아니라 확장 구조입니다 — 아래 '하나의 사건' 참고.",
     },
     {
-        no: "별지 제5호",
+        no: "05",
         en: "WEBSITE",
         href: "/lawfirm-website",
         title: "상담을 만드는 영업 자산",
@@ -147,7 +147,7 @@ const AREAS: Area[] = [
         ],
     },
     {
-        no: "별지 제6호",
+        no: "06",
         en: "DATA & CONVERSION",
         href: "/conversion",
         title: "클릭이 아니라 사건을 봅니다",
@@ -210,22 +210,22 @@ export default function Page() {
                         <Eyebrow>What we do</Eyebrow>
                     </Reveal>
                     <Reveal index={1}>
-                        <h1 className="mt-serif mt-h1 mt-7 max-w-[18ch]">
-                            하나의 전략.
+                        <h1 className="mt-serif mt-h1 mt-7 max-w-[22ch]">
+                            로펌에 필요한 모든 마케팅,
                             <br />
-                            모든 채널.
+                            여기 다&nbsp;있습니다.
                         </h1>
                     </Reveal>
                     <Reveal index={2}>
                         <p className="mt-body-lg mt-8 max-w-[600px]">
-                            채널을 여섯 개로 나눠 파는 것이 아닙니다. 하나의 책임자가 하나의 예산으로
-                            전부 운영하고, 성과는 같은 표에서 봅니다.
+                            채널을 여섯 개로 나눠 파는 것이 아닙니다. 필요한 영역을 한 팀이 함께
+                            운영하고, 성과는 상담과 수임 기준으로 같은 표에서 봅니다.
                         </p>
                     </Reveal>
                 </Container>
             </section>
 
-            {/* ── 별지 상세 — 영역별 전체 품목 ── */}
+            {/* ── 영역 상세 — 영역별 전체 품목 ── */}
             <Section tight>
                 <Container>
                     <div style={{ borderTop: "1px solid var(--mt-line-strong)" }}>

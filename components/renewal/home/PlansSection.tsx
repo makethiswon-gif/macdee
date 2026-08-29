@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Container, SectionHeader } from "../primitives";
 import Reveal from "../Reveal";
-import { PLANS, PLANS_FOOTNOTE, path } from "@/data/renewal/site";
+import { PLANS, PLANS_FOOTNOTE, PLANS_FAQ, path } from "@/data/renewal/site";
 
 // #plans — 세 가지 운영안과 예상 비용.
 //
@@ -109,6 +109,27 @@ export default function PlansSection() {
                     <p className="mt-8 text-[12px] leading-relaxed max-w-[720px]" style={{ color: "var(--mt-gray-light)" }}>
                         {PLANS_FOOTNOTE}
                     </p>
+                </Reveal>
+
+                {/* 미니 FAQ — 상담 전에 걸리는 질문을 미리 치운다 */}
+                <Reveal index={2}>
+                    <div className="mt-14 md:mt-16 max-w-[760px]">
+                        <p className="mt-en mt-label mb-2" style={{ color: "var(--mt-gray)" }}>
+                            FAQ
+                        </p>
+                        {PLANS_FAQ.map((f) => (
+                            <details key={f.q} className="mt-svc-details" style={{ borderTop: "1px solid var(--mt-line)" }}>
+                                <summary
+                                    className="py-4 text-[14px] font-medium cursor-pointer select-none"
+                                    style={{ color: "var(--mt-ink)" }}
+                                >
+                                    {f.q}
+                                </summary>
+                                <p className="mt-body pb-5 text-[13.5px] max-w-[64ch]">{f.a}</p>
+                            </details>
+                        ))}
+                        <div style={{ borderTop: "1px solid var(--mt-line)" }} />
+                    </div>
                 </Reveal>
             </Container>
         </section>

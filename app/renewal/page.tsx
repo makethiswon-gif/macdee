@@ -160,7 +160,8 @@ export default async function RenewalHome() {
             <ClientJourney />
             <ProblemSection />
             <PartnerLogos />
-            <CaseStudies cases={CASES} />
+            {/* 홈은 첫 사례만 Growth Path 를 펼친다 — 전체는 /work */}
+            <CaseStudies cases={CASES} growthLimit={1} />
             <InvariantClause />
             <WhyMakethis1 />
             <InsightsPreview items={insights} total={insightsTotal} />

@@ -71,7 +71,8 @@ export default function ServicesSection() {
                 </Reveal>
             </Container>
 
-            <div ref={stageRef} className="mt-stage mt-stage-track lg:h-[185svh]">
+            {/* 185→150svh — 홈 길이 다이어트(2026-08-29). 스크럽이 조금 빨라질 뿐 서사는 동일 */}
+            <div ref={stageRef} className="mt-stage mt-stage-track lg:h-[150svh]">
                 {/* 기본 pin 은 세로 중앙 정렬이라 목록이 접힌 초반에 위쪽이 통째로
                     빈다 — 이 섹션은 상단 정렬로 붙여 헤더와의 간격을 없앤다 */}
                 <div className="mt-stage-pin" style={{ justifyContent: "flex-start" }}>

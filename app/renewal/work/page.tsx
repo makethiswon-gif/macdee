@@ -20,7 +20,7 @@ import { renewalRobots } from "../flags";
 const URL = absUrl("/work");
 const TITLE = "Case Study | MAKETHIS1";
 const DESC =
-    "무엇을 바꿨고 무엇이 달라졌는지 구조를 공개합니다. 측정된 수치가 확인된 사례부터 순차적으로 등록합니다.";
+    "메이크디스원이 함께한 로펌들의 성장 기록. 측정된 수치가 확인된 사례부터 순차적으로 등록합니다.";
 
 export const metadata: Metadata = {
     title: { absolute: TITLE },
@@ -62,7 +62,8 @@ export default function Page() {
                         <Eyebrow>Work</Eyebrow>
                     </Reveal>
                     <Reveal index={1}>
-                        <h1 className="mt-h1 mt-7 max-w-[20ch]">무엇을 바꿨고, 무엇이 달라졌는지.</h1>
+                        {/* 홈 CASES 섹션 제목("무엇을 바꿨고…")과 겹치지 않게 이 페이지만의 문장 */}
+                        <h1 className="mt-h1 mt-7 max-w-[20ch]">함께한 로펌들의 성장&nbsp;기록.</h1>
                     </Reveal>
                     <Reveal index={2}>
                         <p className="mt-body-lg mt-8 max-w-[620px]">

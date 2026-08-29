@@ -10,7 +10,14 @@ import type { CaseStudy } from "@/data/renewal/cases";
 // isSample이 하나라도 있으면 화면에 경고 배너가 강제로 뜬다 — 실수로 배포되어도
 // 방문자가 샘플임을 즉시 알 수 있다.
 
-export default function CaseStudies({ cases }: { cases: CaseStudy[] }) {
+export default function CaseStudies({
+    cases,
+    growthLimit = Infinity,
+}: {
+    cases: CaseStudy[];
+    /** Growth Path 타임라인을 앞에서 몇 개 사례까지 펼칠지 — 홈은 1(길이 관리), /work 는 전부 */
+    growthLimit?: number;
+}) {
     if (!cases.length) return null;
 
     const hasSample = cases.some((c) => c.isSample);
@@ -109,7 +116,7 @@ export default function CaseStudies({ cases }: { cases: CaseStudy[] }) {
                                 </div>
 
                                 {/* 어떻게 매출로 이어졌나 — 파란 실을 따라가는 성장 경로 */}
-                                {c.growth && c.growth.length > 0 && (
+                                {c.growth && c.growth.length > 0 && i < growthLimit && (
                                     <div className="mt-12 md:mt-14">
                                         <p className="mt-en mt-label mb-7" style={{ color: "var(--mt-gray)" }}>
                                             Growth Path — 어떻게 매출로 이어졌나

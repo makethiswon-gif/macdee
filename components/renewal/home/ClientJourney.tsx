@@ -217,7 +217,8 @@ export default function ClientJourney() {
             </Container>
 
             {/* ── 스크롤 무대 ── */}
-            <div ref={stageRef} className="mt-stage mt-stage-track lg:h-[165svh]">
+            {/* 165→140svh — 홈 길이 다이어트(2026-08-29) */}
+            <div ref={stageRef} className="mt-stage mt-stage-track lg:h-[140svh]">
                 <div className="mt-stage-pin">
                     <Container className="pt-14 lg:pt-0">
                         <div className="mb-8 hidden lg:block">

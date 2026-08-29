@@ -23,9 +23,10 @@ import {
 
 // 프리페인트 부트 — 파싱 중 실행되어 첫 페인트 전에 재생 여부를 정한다.
 // 같은 세션에서는 한 번만 재생한다(sessionStorage). reduced-motion 미재생.
+// 앵커(#system·#plans 등)로 진입한 방문자는 목적지가 있다 — 인트로로 가로막지 않는다.
 const INTRO_BOOT =
     "(function(){try{var r=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;" +
-    "if(!r&&!sessionStorage.getItem('renewalIntroSeen')){" +
+    "if(!r&&!location.hash&&!sessionStorage.getItem('renewalIntroSeen')){" +
     "document.documentElement.setAttribute('data-intro','play');" +
     "sessionStorage.setItem('renewalIntroSeen','1');}}catch(e){}})()";
 
