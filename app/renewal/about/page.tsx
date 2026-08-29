@@ -18,7 +18,7 @@ import { renewalRobots } from "../flags";
 const URL = absUrl("/about");
 const TITLE = "회사 소개 · 팀 | MAKETHIS1";
 const DESC =
-    "법률·콘텐츠·광고·검색을 아는 사람들이 하나의 팀으로 움직입니다. 기자와 방송작가가 쓰고, 법학 전공자가 검수합니다.";
+    "법률·콘텐츠·광고·검색을 아는 사람들, 메이크디스원입니다. 기자와 방송작가가 쓰고, 법학 전공자가 검수합니다.";
 
 export const metadata: Metadata = {
     title: { absolute: TITLE },
@@ -76,9 +76,9 @@ export default function Page() {
                     </Reveal>
                     <Reveal index={1}>
                         <h1 className="mt-h1 mt-7 max-w-[20ch]">
-                            법률·콘텐츠·광고·검색을 아는 사람들이
+                            법률·콘텐츠·광고·검색을 아는 사람들
                             <br />
-                            하나의 팀으로 움직입니다.
+                            메이크디스원입니다.
                         </h1>
                     </Reveal>
                     <Reveal index={2}>
@@ -127,8 +127,8 @@ export default function Page() {
                 <Container>
                     <SectionHeader
                         eyebrow="How we operate"
-                        title="한 사람이 다 하지 않습니다."
-                        lead="기자와 방송작가가 글을 쓰고, 법학 전공자가 검수하고, 마케팅 담당이 예산을 조정합니다. 대행사 한 곳에 맡겼을 때 흔히 벌어지는 '한 명이 전부 하는' 구조를 피하기 위한 것입니다."
+                        title="TEAM WORK"
+                        lead="기자와 방송작가가 글을 쓰고, 법학 전공자가 검수하고, 퍼포먼스 마케터가 예산을 조정합니다."
                     />
                     <div
                         className="mt-14 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-px"
@@ -151,7 +151,7 @@ export default function Page() {
             {/* 팀 */}
             <Section>
                 <Container>
-                    <SectionHeader eyebrow="Team" title="누가 쓰고 누가 검수하는지 밝힙니다." />
+                    <SectionHeader eyebrow="Team" title="MEMBERS" />
 
                     <div className="mt-14">
                         <Founder />
