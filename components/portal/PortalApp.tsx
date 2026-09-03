@@ -571,7 +571,7 @@ function TodayTab({
                             </ul>
                         ) : (
                             <p className="mt-body mt-4 text-[13px]">
-                                상담기록·수임내역·판결문을 올리면 AI가 바로 정리해 둡니다.
+                                상담기록·수임내역·판결문·승소사례를 올리면 AI가 바로 정리해 둡니다.
                             </p>
                         )}
                         <button className="pt-btn w-full mt-5" onClick={() => goTab("records")}>
@@ -685,17 +685,31 @@ function RecordsTab({
                 <p className="mt-en mt-label" style={{ color: "var(--mt-accent)" }}>New Record</p>
                 <h2 className="mt-serif text-[19px] font-semibold mt-3">자료를 올리면 AI가 바로 정리합니다.</h2>
                 <p className="mt-body mt-2 text-[12.5px]">
-                    상담기록, 수임내역, 판결문을 붙여넣으세요. 개인정보는 정리 과정에서 제외됩니다.
+                    상담기록, 수임내역, 판결문, 승소사례를 붙여넣으세요. 개인정보는 정리 과정에서 제외됩니다.
                 </p>
 
                 <div className="mt-6 flex flex-col gap-3">
                     <select className="pt-select" value={type} onChange={(e) => setType(e.target.value)} aria-label="자료 유형">
-                        {["상담기록", "수임내역", "판결문", "기타"].map((t) => (
+                        {["상담기록", "수임내역", "판결문", "승소사례", "기타"].map((t) => (
                             <option key={t}>{t}</option>
                         ))}
                     </select>
-                    <input className="pt-input" placeholder="제목 (예: 3월 이혼 상담 기록 12건)" value={title} onChange={(e) => setTitle(e.target.value)} />
-                    <textarea className="pt-textarea" placeholder="내용을 붙여넣으세요" value={content} onChange={(e) => setContent(e.target.value)} />
+                    <input
+                        className="pt-input"
+                        placeholder={type === "승소사례" ? "제목 (예: 음주운전 구제 성공)" : "제목 (예: 3월 이혼 상담 기록 12건)"}
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                    />
+                    <textarea
+                        className="pt-textarea"
+                        placeholder={
+                            type === "승소사례"
+                                ? "판결문 없이 편하게 적어주세요 — 어떤 사건이었고, 어떻게 진행했고, 결과가 어땠는지. AI가 정리합니다."
+                                : "내용을 붙여넣으세요"
+                        }
+                        value={content}
+                        onChange={(e) => setContent(e.target.value)}
+                    />
                     <button className="pt-btn" onClick={upload} disabled={uploading || !title.trim() || !content.trim()}>
                         {uploading ? (
                             <>

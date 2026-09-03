@@ -43,7 +43,7 @@ export async function POST(request: Request) {
         const { type, title, content } = body;
 
         if (!firmId) return NextResponse.json({ error: "로펌이 지정되지 않았습니다." }, { status: 400 });
-        if (!["상담기록", "수임내역", "판결문", "기타"].includes(type)) {
+        if (!["상담기록", "수임내역", "판결문", "승소사례", "기타"].includes(type)) {
             return NextResponse.json({ error: "자료 유형이 올바르지 않습니다." }, { status: 400 });
         }
         if (!title?.trim() || !content?.trim()) {

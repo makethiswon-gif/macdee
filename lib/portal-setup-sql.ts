@@ -14,7 +14,7 @@ export const PORTAL_SETUP_SQL = `create table if not exists portal_firms (
 create table if not exists portal_records (
     id uuid primary key default gen_random_uuid(),
     firm_id uuid not null references portal_firms(id) on delete cascade,
-    type text not null check (type in ('상담기록', '수임내역', '판결문', '기타')),
+    type text not null check (type in ('상담기록', '수임내역', '판결문', '승소사례', '기타')),
     title text not null,
     content text not null default '',
     structured jsonb,
