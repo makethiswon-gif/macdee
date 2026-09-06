@@ -43,7 +43,7 @@ export default function InvariantClause() {
             }}
         >
             <Container>
-                <div className="max-w-[820px]">
+                <div className="mt-section-heading max-w-[820px]">
                     <Reveal>
                         <p className="mt-en mt-label" style={{ color: "var(--mt-gray)" }}>
                             New Channels

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Logo from "./Logo";
 import { NAV, PRIMARY_CTA, path } from "@/data/renewal/site";
 
@@ -9,6 +9,7 @@ export default function SiteHeader() {
     const [scrolled, setScrolled] = useState(false);
     const [openMenu, setOpenMenu] = useState(false);
     const [openDrop, setOpenDrop] = useState<string | null>(null);
+    const menuButton = useRef<HTMLButtonElement>(null);
 
     useEffect(() => {
         const onScroll = () => setScrolled(window.scrollY > 8);
@@ -29,7 +30,10 @@ export default function SiteHeader() {
     useEffect(() => {
         if (!openMenu) return;
         const onKey = (e: KeyboardEvent) => {
-            if (e.key === "Escape") setOpenMenu(false);
+            if (e.key === "Escape") {
+                setOpenMenu(false);
+                menuButton.current?.focus();
+            }
         };
         document.addEventListener("keydown", onKey);
         return () => document.removeEventListener("keydown", onKey);
@@ -89,7 +93,10 @@ export default function SiteHeader() {
                                         }
                                     }}
                                     // 포커스가 그룹에 들어오면 열고, 그룹 밖으로 나가면 닫는다.
-                                    onFocus={() => setOpenDrop(item.label)}
+                                    onFocus={(e) => {
+                                        // Returning focus with Escape must not reopen the menu.
+                                        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOpenDrop(item.label);
+                                    }}
                                     onBlur={(e) => {
                                         if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
                                             setOpenDrop(null);
@@ -168,6 +175,7 @@ export default function SiteHeader() {
                         </Link>
 
                         <button
+                            ref={menuButton}
                             className="lg:hidden w-10 h-10 -mr-2 flex flex-col items-center justify-center gap-[5px]"
                             onClick={() => setOpenMenu((v) => !v)}
                             aria-label={openMenu ? "메뉴 닫기" : "메뉴 열기"}

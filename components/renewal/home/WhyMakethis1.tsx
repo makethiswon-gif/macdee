@@ -35,7 +35,7 @@ export default function WhyMakethis1() {
                 <Reveal variant="fade">
                     <div className="mt-14 md:mt-20">
                         <div
-                            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-px"
+                            className="mt-disciplines grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-px"
                             style={{ background: "var(--mt-line)" }}
                         >
                             {DISCIPLINES.map((d) => (

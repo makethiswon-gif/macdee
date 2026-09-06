@@ -191,7 +191,7 @@ export default function ClientJourney() {
         <section id="system" data-clause="JOURNEY" className="pt-[88px] md:pt-[140px] pb-[88px] md:pb-[140px]">
             <Container>
                 {/* 섹션 진입 — 제목 줄 단위 마스크 리빌 */}
-                <div className="max-w-[820px]">
+                <div className="mt-section-heading max-w-[820px]">
                     <div className="flex items-center gap-3 mb-6">
                         <Reveal as="span" variant="rise">
                             <span className="mt-en mt-label" style={{ color: "var(--mt-gray)" }}>

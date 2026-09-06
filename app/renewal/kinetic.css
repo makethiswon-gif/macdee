@@ -58,12 +58,14 @@
         backdrop-filter: none !important;
     }
     & > header a:focus-visible, & > header button:focus-visible { outline-color: #fff; }
+    & .mt-kinetic-home :is(a,button):focus-visible { outline-color: #fff; }
+    & .mt-kinetic-home [data-service] a:focus-visible { outline-color: #004aad; }
     & > footer { --mt-dark-bg: #071526; --mt-dark-gray: #c6d5e9; --mt-dark-line: #ffffff30; --mt-gray: #c6d5e9; }
     & > footer a:focus-visible { outline-color: #fff; }
 
     /* Text never depends on scroll progress or hydration. Motion belongs to art/rules. */
     & [data-reveal], & [data-reveal="mask"] > span,
-    & .mt-pi, & .mt-pmask > *, & .mt-hero-in, & .mt-jcard, & .mt-aitem,
+    & .mt-pi, & .mt-pmask > *, & .mt-hero-in, & .mt-jcard, & .mt-aitem, & .mt-annex,
     & .mt-photo-cap, & .mt-team-node {
         opacity: 1 !important; transform: none !important; clip-path: none !important;
         animation: none !important; transition: none !important; visibility: visible !important;
@@ -114,6 +116,10 @@
     & [data-clause="CONTACT"] .mt-container > div { max-width: 1260px; }
     & [data-clause="CONTACT"] a[href^="tel:"] { display: inline-block; font-size: clamp(24px,3vw,42px); }
     & [data-clause="TEAM"] .mt-team-node > span { font-size: 28px; padding: 18px 40px; background: #004aad; color: #fff !important; }
+    & .mt-disciplines > :last-child { grid-column: span 2; }
+    & .mt-k-contact-grid { padding-top: 0; background: transparent !important; border-top: 2px solid #004aad !important; }
+    & .mt-k-contact-grid > div { border-bottom: 1px solid var(--mt-line); }
+    @media (min-width: 1024px) { & .mt-disciplines > :last-child { grid-column: auto; } }
 
     & .mt-k-process { grid-template-columns: 110px minmax(190px,.8fr) 1.2fr; padding-block: 38px; border-top: 2px solid var(--mt-accent) !important; }
     & .mt-k-process > :first-child { font-size: 64px; line-height: 1; letter-spacing: -.07em; font-weight: 650; }
@@ -167,6 +173,12 @@
         & .mt-k-process > p:last-child { grid-column: 2; }
         & .mt-k-area { grid-template-columns: 1fr; gap: 25px; }
         & .mt-k-area > div:first-child > p:first-child { font-size: 54px; }
+        & .mt-ledger-details table { min-width: 0 !important; table-layout: fixed; }
+        & .mt-ledger-details th, & .mt-ledger-details td { white-space: normal; overflow-wrap: anywhere; padding-right: 10px; }
+        & .mt-ledger-details th:nth-child(1) { width: 29%; }
+        & .mt-ledger-details th:nth-child(2) { width: 27%; }
+        & .mt-ledger-details th:nth-child(3) { width: 44%; }
+        & .mt-ledger-details td > span { white-space: normal; }
         & .mt-k-convergence { padding-top: 20px; }
         & .mt-k-fragments > span { padding: 10px 12px; }
         & .mt-k-proof { gap: 35px; }
