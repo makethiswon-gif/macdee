@@ -14,12 +14,11 @@ async function generateScenePromptWithClaude(
         resultSummary?: string;
         maskedText?: string;
     },
-    style: "webtoon" | "realistic" = "webtoon"
 ): Promise<string> {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
         console.warn("[CoverImage] No ANTHROPIC_API_KEY, using basic prompt");
-        return buildFallbackPrompt(caseType, hookText, style);
+        return buildFallbackPrompt(caseType, hookText);
     }
 
     const caseDetails = [
@@ -33,16 +32,24 @@ async function generateScenePromptWithClaude(
     const systemPrompt = `당신은 법률 사건을 시각적 장면으로 변환하는 아트 디렉터입니다.
 주어진 법률 사건 내용을 분석하여, 그 사건의 핵심 장면을 한 컷 이미지로 표현할 구체적인 영어 프롬프트를 만들어주세요.
 
-[중요 규칙]
-- 등장인물의 구체적 외모/옷차림/표정/자세를 묘사하세요
-- 장소(카페, 법정, 사무실, 아파트 등)를 구체적으로 설정하세요
-- 감정과 분위기를 시각적으로 표현하세요 (표정, 조명, 날씨)
-- 사건의 핵심 상황을 한 장면으로 압축하세요
-- 실제 얼굴이나 실명은 절대 포함하지 마세요
-- 텍스트/글자/숫자는 이미지에 포함하지 마세요
-- 한국적 배경과 인물이어야 합니다 (한국 도시, 한국인 캐릭터)
+[사람을 넣지 마세요 — 가장 중요]
+얼굴·손·전신 전부 금지입니다. 생성된 인물은 아무리 잘 나와도 만든 티가 납니다.
+사람 대신 그가 남긴 흔적을 담으세요. 비어 있는 의자, 두 개의 컵, 벗어둔 안전모.
 
-[스타일: ${style === "webtoon" ? "한국 웹툰(만화) - 깔끔한 선화, 극적 구도, 감정 표현이 풍부한 만화 스타일" : "시네마틱 사실적 사진 - K-드라마 스틸컷 같은 고퀄리티 포토"}]
+[한국 법조계에 없는 물건 금지]
+법봉(gavel), 정의의 여신상, 저울 — 전부 미국 드라마 소품입니다.
+한국 법정에는 없습니다. 변호사가 보면 즉시 가짜라고 판단합니다.
+
+[대신 이런 것]
+사건에서 실제로 오가는 물건 — 합의서, 진단서, 내용증명 봉투, 블랙박스 메모리카드,
+임대차계약서, 거래내역서, 견적서, 출입기록, 공사 자재, 등기부등본.
+또는 사건이 벌어진 빈 공간 — 아무도 없는 사무실, 주차장, 공사장, 복도.
+
+[촬영]
+- 자연광. 극적인 조명·역광·황금시간 금지
+- 정면 또는 45도 탑다운. 얕은 심도 금지 — 전체가 또렷하게
+- 배경은 단순하게. 한국의 실제 사무실·주거 환경
+- 글자·숫자는 이미지에 넣지 마세요
 
 영어로 된 이미지 생성 프롬프트만 출력하세요. 다른 설명 없이 프롬프트만.`;
 
@@ -64,63 +71,52 @@ async function generateScenePromptWithClaude(
 
         if (!res.ok) {
             console.error("[CoverImage] Claude scene prompt failed:", await res.text());
-            return buildFallbackPrompt(caseType, hookText, style);
+            return buildFallbackPrompt(caseType, hookText);
         }
 
         const data = await res.json();
         const scenePrompt = data.content?.[0]?.text?.trim() || "";
 
-        if (!scenePrompt) return buildFallbackPrompt(caseType, hookText, style);
+        if (!scenePrompt) return buildFallbackPrompt(caseType, hookText);
 
         console.log(`[CoverImage] Claude generated scene: ${scenePrompt.substring(0, 100)}...`);
         return scenePrompt;
     } catch (err) {
         console.error("[CoverImage] Claude scene generation error:", err);
-        return buildFallbackPrompt(caseType, hookText, style);
+        return buildFallbackPrompt(caseType, hookText);
     }
 }
 
 /**
  * Claude 실패 시 사용하는 기본 프롬프트
  */
-function buildFallbackPrompt(caseType: string, hookText: string, style: "webtoon" | "realistic"): string {
-    const SCENES: Record<string, { webtoon: string; realistic: string }> = {
-        "이혼": {
-            webtoon: "Korean webtoon panel: A married couple sitting at opposite ends of a dining table, the woman looking away with tears, the man staring at divorce papers, dim warm apartment lighting, emotional manhwa style",
-            realistic: "Cinematic photo: Two wedding rings placed apart on a cracked wooden table, divorce papers between them, golden hour lighting through apartment window"
-        },
-        "불륜": {
-            webtoon: "Korean webtoon panel: A married man nervously meeting a young woman at a hidden corner of a cafe, his wedding ring visible, a shadowy figure of his wife in the background, dramatic manhwa noir style",
-            realistic: "Cinematic photo: A smartphone on a cafe table showing chat messages, a coffee cup and wedding ring beside it, shallow depth of field, moody lighting"
-        },
-        "상간": {
-            webtoon: "Korean webtoon panel: A woman discovering her husband's affair, holding a phone with message evidence, shocked expression, split panel showing the husband with another woman, dramatic manhwa style",
-            realistic: "Cinematic photo: A woman's hand holding a phone showing messages, tears reflected in the screen, dim bedroom lighting"
-        },
-        "사기": {
-            webtoon: "Korean webtoon panel: A con artist in a suit handing fake investment documents to a trusting elderly person, dark shadows revealing the criminal nature, thriller manhwa style",
-            realistic: "Cinematic photo: Fake documents and a pen on a desk, a shadowy figure's hand reaching for money, noir thriller lighting"
-        },
-        "폭행": {
-            webtoon: "Korean webtoon panel: A courtroom scene with the defendant looking down and the victim's lawyer pointing accusingly, dramatic spotlight, justice manhwa style",
-            realistic: "Cinematic photo: A judge's gavel coming down in a courtroom, dramatic spotlight, scales of justice in background"
-        },
-        "교통사고": {
-            webtoon: "Korean webtoon panel: A rainy intersection at night, a car's headlights illuminating a pedestrian crosswalk, skid marks on the wet road, dramatic motion blur, manhwa style",
-            realistic: "Cinematic photo: Rain-slicked city intersection at night, car headlights reflecting on wet asphalt, traffic signals glowing through raindrops"
-        },
+function buildFallbackPrompt(caseType: string, hookText: string): string {
+    // Claude 호출이 실패했을 때만 쓰는 폴백.
+    //
+    // 이전 폴백에는 법봉·정의의 저울·법정·찢어진 결혼반지·비 오는 교차로가
+    // 하드코딩돼 있었다. 한국 법정에 법봉과 저울은 없다 — 미국 드라마 소품이다.
+    // 변호사가 보면 바로 가짜라고 판단하는 요소라 전부 뺐다.
+    //
+    // 지금은 사건에서 실제로 오가는 서류와 사물만 쓴다. 사람은 넣지 않는다.
+    const SCENES: Record<string, string> = {
+        이혼: "Two sets of house keys and a folded family register document on a plain wooden table, morning daylight from a window, no people",
+        상간: "A closed notebook, a single coffee cup and a smartphone face down on a cafe table, even indoor light, no people",
+        형사: "A sealed certified-mail envelope and a plain manila case folder on a grey desk, flat daylight, no people",
+        사기: "A stack of contract papers, a pen and a bank passbook arranged on an office desk, even overhead light, no people",
+        교통사고: "A dashcam memory card, car key and a vehicle repair estimate laid on a workshop counter, diffused daylight, no people",
+        의료: "A clipboard with a blank medical chart and a stethoscope on a clinic desk, soft daylight through blinds, no people",
+        노무: "A hard hat resting on a folded work uniform beside a time-attendance sheet, plain daylight, no people",
+        부동산: "A lease agreement, apartment keys and a property register document on a plain desk, even daylight, no people",
     };
 
-    const defaultScene = {
-        webtoon: `Korean webtoon panel: A confident Korean lawyer in a suit standing in a modern courtroom, dramatic lighting, legal documents in hand, cinematic manhwa style. Case theme: "${hookText}"`,
-        realistic: `Cinematic photo: A modern Korean courtroom with warm golden light through tall windows, legal documents and gavel on desk. Case theme: "${hookText}"`
-    };
+    const key = Object.keys(SCENES).find((k) => caseType.includes(k) || hookText.includes(k));
+    const scene = key
+        ? SCENES[key]
+        : "A plain manila document folder, a pen and a closed notebook on an uncluttered office desk, even daylight, no people";
 
-    for (const [keyword, scenes] of Object.entries(SCENES)) {
-        if (caseType.includes(keyword)) return scenes[style];
-    }
-    return defaultScene[style];
+    return `Photograph this scene: ${scene}. Style: plain documentary still life, everything in focus, no bokeh, no dramatic lighting, muted natural colors, Korean office setting. STRICT: no people, no faces, no hands. No gavel, no scales of justice, no courtroom. No readable text or numbers.`;
 }
+
 
 /**
  * GPT Image 2로 카드뉴스 배경 이미지를 생성합니다.
@@ -136,15 +132,27 @@ export async function generateCoverImage(
         maskedText?: string;
     }
 ): Promise<{ imageBase64: string; revisedPrompt: string; style: string } | null> {
-    // 랜덤 스타일 (50/50)
-    const style: "webtoon" | "realistic" = Math.random() > 0.5 ? "webtoon" : "realistic";
+
+    // 스타일 분기를 없앴다.
+    // 전에는 Math.random() 으로 웹툰/사진을 매번 뒤집었다. 같은 블로그에
+    // 두 스타일이 번갈아 나오면 사람이 고른 게 아니라는 신호가 된다.
+    // 지금은 한 종류 — 사물과 공간을 담는 자료사진만 만든다.
+    // 반환값의 style 필드는 호출부가 기록용으로 쓰므로 라벨만 남긴다.
+    const style = "documentary";
 
     // Step 1: Claude가 사건 내용 분석 → 구체적 장면 프롬프트 생성
-    const sceneDescription = await generateScenePromptWithClaude(caseType, hookText, context, style);
+    const sceneDescription = await generateScenePromptWithClaude(caseType, hookText, context);
 
-    const finalPrompt = style === "webtoon"
-        ? `Create a single-panel Korean webtoon (만화) illustration based on this scene:\n\n${sceneDescription}\n\nStyle: Korean manhwa art style, clean lines, natural and restrained facial expressions (emotive but NOT exaggerated or over-dramatic), distinct Korean characters, consistent tasteful character design, square 1:1, high quality, soft even lighting. NO text/words/letters/numbers in the image.`
-        : `Create a photorealistic editorial photograph based on this scene:\n\n${sceneDescription}\n\nStyle: clean editorial photography, DSLR shallow depth of field, square 1:1, high quality, BRIGHT natural mid-to-high-key lighting (not dark, not moody), airy and professional. Korean setting. NO text/words/letters/numbers in the image.`;
+    // "cinematic" "dramatic lighting" "shallow depth of field" 를 전부 뺐다.
+    // 이 셋이 겹치면 무엇을 찍든 생성 이미지처럼 보인다.
+    // 지향점은 광고 사진이 아니라 자료 사진이다.
+    const finalPrompt =
+        `Photograph this scene:\n\n${sceneDescription}\n\n` +
+        "Style: plain documentary still life. Even diffused daylight, no dramatic or directional lighting. " +
+        "Everything in focus - no shallow depth of field, no bokeh. Straight-on or 45-degree top-down angle. " +
+        "Muted natural colors, uncluttered background. Korean office or domestic setting. " +
+        "STRICT: no people, no faces, no hands, no body parts. No gavel, no scales of justice, no courtroom. " +
+        "No readable text, letters, or numbers anywhere. No logos.";
 
     // Step 2: GPT Image 2 이미지 생성 (주 엔진)
     const apiKey = process.env.OPENAI_API_KEY;
@@ -235,34 +243,54 @@ async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: numbe
 async function generateBlogScenePromptWithClaude(
     blogContent: string,
     title: string,
-    style: "realistic" | "webtoon",
 ): Promise<string> {
     const apiKey = process.env.ANTHROPIC_API_KEY;
-    const fallback = style === "webtoon"
-        ? `Korean webtoon (manhwa) panel illustration depicting a Korean legal scene related to: "${title || "legal consultation"}". Dramatic expressions, clean bold lines, dramatic lighting, Korean characters. NO text, NO letters, NO speech bubbles, NO words. Square 1:1, ultra high quality.`
-        : `Cinematic K-drama photograph depicting a Korean legal scene related to: "${title || "legal consultation"}". DSLR bokeh, dramatic chiaroscuro lighting, Korean setting, professional film still aesthetic. NO text, NO letters, NO documents with readable writing. Square 1:1, ultra high quality.`;
+    // 사람도 극적 연출도 쓰지 않는다.
+    //
+    // 이전 프롬프트는 "single dramatic", "tense couple at dining table",
+    // "hand passing money", "courtroom moment", "dramatic chiaroscuro lighting"
+    // 를 지시했다. 이 조합이 곧 "AI 이미지"의 정의다.
+    // 사람 얼굴과 손은 생성 흔적이 가장 잘 드러나는 부위이기도 하다.
+    //
+    // 지향점을 광고 스틸에서 자료 사진으로 바꿨다. 사건에 실제로 존재하는
+    // 서류와 사물, 사람이 빠져나간 공간만 담는다.
+    const NO = "STRICT: no people, no faces, no hands, no body parts. "
+        + "No gavel, no scales of justice, no courtroom, no judge. "
+        + "No readable text, letters or numbers. No logos. "
+        + "No dramatic lighting, no bokeh, no shallow depth of field.";
+
+    const LOOK = "Style: plain documentary still life. Even diffused daylight. Everything in focus. "
+        + "Straight-on or 45-degree top-down angle. Muted natural colors, uncluttered background. "
+        + "Korean office or domestic setting. Square 1:1.";
+
+    const fallback = `Photograph a plain manila document folder, a pen and a closed notebook on an uncluttered desk. ${LOOK} ${NO}`;
 
     if (!apiKey) return fallback;
 
-    const systemPrompt = `You are an art director translating Korean legal blog content into a single dramatic ${style === "webtoon" ? "Korean webtoon panel" : "cinematic K-drama photograph"}.
+    const systemPrompt = `You are a photo editor for Korean legal blog articles.
+Read the article and choose ONE still-life or empty-space photograph that belongs with it.
+Then write a single English image-generation prompt for it.
 
-[YOUR JOB]
-Read the Korean blog content and produce ONE English image-generation prompt that captures the heart of the case in a single visual scene.
+[NO PEOPLE — most important]
+No faces, no hands, no bodies. Generated people always look generated.
+Photograph what a person left behind instead: an empty chair, two cups, a hard hat set down.
 
-[REQUIREMENTS]
-- ${style === "webtoon"
-        ? "Style: Korean manhwa (webtoon) — clean bold linework, dramatic expressions, distinctly Korean characters, manhwa color palette and shading"
-        : "Style: Cinematic K-drama still photograph — DSLR shallow depth of field, dramatic chiaroscuro lighting, editorial film aesthetic, distinctly Korean setting"}
-- Depict ONE specific scene that conveys the legal situation viscerally (e.g., divorce → tense couple at dining table; fraud → suspicious documents and hand passing money; assault case → courtroom moment)
-- Korean people, Korean settings, Korean architecture/clothing where relevant
-- Strong emotional tone matching the case gravity
-- Square 1:1 composition with clear focal point
+[NOT IN KOREAN LAW]
+Never use a gavel, scales of justice, a blindfolded statue, or a courtroom bench.
+Korean courts do not use gavels. These are American TV props and Korean lawyers spot them instantly.
 
-[STRICTLY FORBIDDEN]
-- NO text, NO letters, NO numbers, NO speech bubbles, NO words, NO readable signs or documents (text will be overlaid via HTML)
-- NO Western settings or non-Korean characters
-- NO recognizable real people (no real faces)
-- NO graphic violence, NO blood
+[USE INSTEAD]
+Objects that actually change hands in the case — settlement agreement, medical certificate,
+certified-mail envelope, dashcam memory card, lease contract, bank statement, repair estimate,
+entry log, construction material, property register.
+Or the emptied space where it happened — an office after hours, a parking garage, a clinic corridor.
+
+[HOW IT IS SHOT]
+${LOOK}
+It should look like a reference photograph, not an advertisement.
+
+[STRICT]
+${NO}
 
 Output ONLY the English image prompt. No explanation, no quotes, no markdown.`;
 
@@ -308,12 +336,11 @@ Output ONLY the English image prompt. No explanation, no quotes, no markdown.`;
 export async function generateBlogContentImage(
     blogContent: string,
     title: string,
-    style: "realistic" | "webtoon",
 ): Promise<{ imageBase64: string }> {
-    const scenePrompt = await generateBlogScenePromptWithClaude(blogContent, title, style);
+    const scenePrompt = await generateBlogScenePromptWithClaude(blogContent, title);
     const finalPrompt = `${scenePrompt} ABSOLUTE RULE: zero text, zero letters, zero numbers, zero speech bubbles anywhere in the image.`;
 
-    console.log(`[BlogContentImg] ${style} prompt: ${scenePrompt.substring(0, 120)}...`);
+    console.log(`[BlogContentImg] prompt: ${scenePrompt.substring(0, 120)}...`);
 
     const replicateKey = process.env.REPLICATE_API_TOKEN;
     if (!replicateKey) {
@@ -368,7 +395,7 @@ export async function generateBlogContentImage(
         // 재시도해도 시간이 모자라면 포기 (빈손보다 명확한 에러가 낫다)
         if (Date.now() + waitMs + 15000 > deadline) break;
 
-        console.warn(`[BlogContentImg] Replicate 429 (${style}) — ${waitMs}ms 후 재시도 ${attempt + 1}/${MAX_ATTEMPTS - 1}`);
+        console.warn(`[BlogContentImg] Replicate 429 — ${waitMs}ms 후 재시도 ${attempt + 1}/${MAX_ATTEMPTS - 1}`);
         await new Promise((r) => setTimeout(r, waitMs));
     }
 
@@ -407,7 +434,7 @@ export async function generateBlogContentImage(
         throw new Error("Replicate returned no output URL");
     }
 
-    console.log(`[BlogContentImg] Flux 2 Pro ${style} success`);
+    console.log("[BlogContentImg] Flux 2 Pro success");
 
     // URL → base64 변환
     const imgRes = await fetch(imageUrl);
@@ -431,7 +458,7 @@ async function generateCoverImageDallE(
         return null;
     }
 
-    const scene = buildFallbackPrompt(caseType, hookText, "realistic");
+    const scene = buildFallbackPrompt(caseType, hookText);
     const prompt = `${scene}\nIMPORTANT: ZERO text, ZERO letters, ZERO words in the image. Square 1:1 ratio.`;
 
     try {

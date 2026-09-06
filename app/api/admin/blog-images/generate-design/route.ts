@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { generateBlogContentImage } from "@/lib/ai/image-generate";
-import { getLawyerDesignDNA } from "@/lib/blog-images/design-dna";
+import { getLawyerDesignDNA, describeDNA, dnaDirective } from "@/lib/blog-images/design-dna";
+import { visualDiscipline, FONT_IMPORT } from "@/lib/brand-visual";
 import { extractLogoColor } from "@/lib/blog-images/logo-color";
 import { verifyAdminToken } from "@/lib/admin-auth";
 import { extractClaudeText } from "@/lib/ai/claude-text";
@@ -116,8 +117,9 @@ export async function POST(req: Request) {
         }
 
         // 변호사별 디자인 DNA (lawyerId 기반 결정론적)
-        const dna = getLawyerDesignDNA(profile.id || profile.lawyerName || "default", brandColor);
-        console.log(`[generate-design] DNA for ${profile.lawyerName}: ${dna.layoutFamily.name} / ${dna.typoFamily.name} / ${dna.accentFamily.name}`);
+        const dna = getLawyerDesignDNA(profile.id || profile.lawyerName || "default");
+        const { w: CARD_W, h: CARD_H } = dna.format;
+        console.log(`[generate-design] DNA for ${profile.lawyerName}: ${describeDNA(dna)}`);
 
         const cardNames: Record<string, string> = {
             thumbnail: "메인 썸네일",
@@ -137,7 +139,7 @@ export async function POST(req: Request) {
             try {
                 // 썸네일: 이미지 + 상황훅 생성 병렬
                 const [img, hookLines] = await Promise.all([
-                    generateBlogContentImage(content, title || "", style),
+                    generateBlogContentImage(content, title || ""),
                     cardType === "thumbnail"
                         ? generateSituationalHook(content, title || "", apiKey)
                         : Promise.resolve<string[] | null>(null),
@@ -145,30 +147,40 @@ export async function POST(req: Request) {
 
                 const dataUrl = `data:image/png;base64,${img.imageBase64}`;
 
+                // 사진과 글자의 면을 나눈다.
+                //
+                // 전에는 사진을 꽉 채우고 그 위에 흰 라운드 패널(radius 26px,
+                // shadow 0 24px 60px)을 얹었다. 그 구조는 배경이 무엇이든 글씨가
+                // 읽히게 만들어 주므로 "아무 사진이나 넣어도 되는" 형태였고,
+                // 그래서 사진이 본문과 무관해 보였다. 지금은 사진이 자기 면을
+                // 온전히 갖고, 글자는 단색 면 위에 놓인다. 그림자도 오버레이도 없다.
+                const sc = dna.surface.colors;
+                const imgH = Math.round(CARD_H * (dna.imagery.key === "photo" ? 0.58 : 0.5));
+                const logoTag = hasLogo && profile.logoImage
+                    ? `<img src="${profile.logoImage}" style="height:24px;display:block;" />`
+                    : "";
+
                 let html: string;
                 if (cardType === "thumbnail" && hookLines && hookLines.length) {
                     const last = hookLines.length - 1;
-                    const logoTag = hasLogo && profile.logoImage
-                        ? `<img src="${profile.logoImage}" style="position:absolute;top:26px;left:30px;height:28px;opacity:0.9;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.45));" />`
-                        : "";
-                    // 사진 위에 밝은 텍스트 패널(중명도↑) + 상황형 훅. 마지막 줄만 브랜드컬러 강조.
                     const lineHtml = hookLines.map((l, i) => {
                         const isLast = i === last;
-                        const size = isLast ? 48 : 34;
-                        return `<div style="font-family:'Noto Sans KR',sans-serif;font-weight:${isLast ? 900 : 700};font-size:${size}px;color:${isLast ? brandColor : "#1A1A1A"};line-height:1.24;letter-spacing:-1.8px;">${l}</div>`;
+                        return `<div style="font-family:${dna.typeface.stack};font-weight:700;font-size:${isLast ? 44 : 30}px;color:${isLast ? brandColor : sc.fg};line-height:1.3;letter-spacing:-1.4px;">${l}</div>`;
                     }).join("");
-                    html = `<style>@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap');</style>
-<div style="width:800px;height:800px;position:relative;overflow:hidden;background:#e9edf2;">
-  <img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover;display:block;" />
-  <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.28),transparent 46%);"></div>
-  ${logoTag}
-  <div style="position:absolute;bottom:44px;left:44px;right:44px;background:rgba(255,255,255,0.95);border-radius:26px;padding:34px 38px;box-shadow:0 24px 60px rgba(0,0,0,0.30);">
-    <div style="width:46px;height:5px;border-radius:3px;background:${brandColor};margin-bottom:18px;"></div>
-    ${lineHtml}
+
+                    html = `<style>${FONT_IMPORT}</style>
+<div style="width:${CARD_W}px;height:${CARD_H}px;position:relative;overflow:hidden;background:${sc.bg};display:flex;flex-direction:column;">
+  <img src="${dataUrl}" style="width:100%;height:${imgH}px;object-fit:cover;display:block;" />
+  <div style="flex:1;padding:44px 48px;display:flex;flex-direction:column;justify-content:space-between;border-top:1px solid ${sc.line};">
+    <div>${lineHtml}</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
+      ${logoTag}
+      <span style="font-family:${dna.typeface.stack};font-size:13px;color:${sc.muted};">${profile.lawyerName || ""}</span>
+    </div>
   </div>
 </div>`;
                 } else {
-                    html = `<div style="width:800px;height:800px;position:relative;overflow:hidden;background:#000;"><img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover;display:block;" /></div>`;
+                    html = `<div style="width:${CARD_W}px;height:${CARD_H}px;position:relative;overflow:hidden;background:${sc.bg};"><img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover;display:block;" /></div>`;
                 }
 
                 return NextResponse.json({
@@ -182,19 +194,21 @@ export async function POST(req: Request) {
         }
 
         // 이하부터는 contact 카드 전용 (Claude HTML 코딩)
+        // 공통 규율(전부 동일) + 정체성 축(변호사별로 크게 다름).
+        // 순서가 중요하다 — 규율을 먼저 못박고 그 안에서 개성을 준다.
         const variationDirective = `
-[이 변호사의 디자인 DNA]
-- 무드: "${dna.bgMoodFamily.name}" → ${dna.bgMoodFamily.htmlSpec}
-- 타이포: "${dna.typoFamily.name}" → ${dna.typoFamily.spec}
-- 악센트: "${dna.accentFamily.name}" → ${dna.accentFamily.spec}
+${visualDiscipline()}
+
+${dnaDirective(dna)}
 `;
 
-        const systemMessage = `당신은 최고급 법률 브랜드를 위한 미니멀리스트 비주얼 디렉터입니다.
-레퍼런스: Apple 제품 페이지, Bottega Veneta 광고, 대형 로펌 연간 보고서 표지.
+        const systemMessage = `당신은 법률 콘텐츠를 다루는 편집 디자이너입니다.
+레퍼런스는 광고가 아니라 인쇄물입니다 — 단행본 표지, 학술지 별쇄본, 신문 인포그래픽.
+화려하게 만들지 말고 읽히게 만드십시오.
 
 [CSS 품질]
-- 폰트: HTML 첫 줄 <style>@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');</style>
-- 루트 div: position:relative;overflow:hidden;width:800px;height:800px 필수
+- 폰트: HTML 첫 줄 <style>${FONT_IMPORT}</style>
+- 루트 div: position:relative;overflow:hidden;width:${CARD_W}px;height:${CARD_H}px 필수
 - 모든 콘텐츠: position:relative;z-index:1 이상
 
 출력: <style>...</style>로 시작하는 순수 HTML+인라인CSS만. 설명 없이.`;
@@ -220,12 +234,12 @@ export async function POST(req: Request) {
 ${content.substring(0, 2500)}
 
 [디자인]
-- 밝고 정돈된 인포그래픽. 흰색/아주 옅은 회색 배경. 브랜드컬러 ${brandColor}는 번호·아이콘·강조선에만 절제해서.
+- 도표가 주인공이다. 배경은 위 지면 성격을 따른다. 브랜드컬러 ${brandColor}는 한 곳에만.
 - 항목은 카드/구분선/여백으로 명확히 구조화. 모바일에서도 읽히게 폰트 충분히 크게.
 ${variationDirective}
 
 font-family:'Noto Sans KR',sans-serif
-800x800px, inline CSS만.`,
+${CARD_W}x${CARD_H}px, inline CSS만.`,
 
             // D. 요약 + 안내 — 세로 명함이 아니라 '가로형 요약 배너' + 왜 연락해야 하는지 맥락
             contact: (() => {
@@ -256,7 +270,7 @@ ${hasLogo ? `- 로펌 로고: 작게(height:30px). <img src="__LOGO_IMG__" />` :
 ${variationDirective}
 
 font-family:'Noto Sans KR',sans-serif
-800x800px, inline CSS만.`;
+${CARD_W}x${CARD_H}px, inline CSS만.`;
             })(),
         };
 

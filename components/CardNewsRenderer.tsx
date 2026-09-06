@@ -1,6 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { getLawyerDesignDNA } from "@/lib/blog-images/design-dna";
+import { TYPE, safeBrandColor } from "@/lib/brand-visual";
 import { Download, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface CardNewsProps {
@@ -124,61 +126,180 @@ function extractHashtags(body: string): string[] {
     return match[1].split(/\s+/).filter((t) => t.startsWith("#"));
 }
 
-// Card gradient backgrounds (literary, calm tones)
-const CARD_GRADIENTS = [
-    "linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)",
-    "linear-gradient(135deg, #1C1C1C 0%, #2D2D2D 100%)",
-    "linear-gradient(135deg, #1a1a2e 0%, #0f3460 100%)",
-    "linear-gradient(135deg, #1F1F1F 0%, #2A2A2A 100%)",
-    "linear-gradient(135deg, #0D1117 0%, #1A1D23 100%)",
-];
+// 그라데이션 상수는 없앴다.
+//
+// 전에는 135도 다크 그라데이션 5종을 카드마다 돌려 썼다. 카드마다 배경색이
+// 바뀌면 시리즈로 안 읽히고, 대각 그라데이션 자체가 "AI가 만든 화면" 신호다.
+// 지금은 변호사 DNA 가 정한 단색 지면 하나를 전 카드가 공유한다.
+// 공통 규율은 lib/brand-visual.ts, 정체성 축은 lib/blog-images/design-dna.ts.
 
-// Decorative SVG pattern for cards without cover image
-function CardDecoration({ index, size = 360 }: { index: number; size?: number }) {
-    const scale = size / 360;
-    const patterns = [
-        // Pattern 0: Large circle bottom-right
-        <>
-            <circle cx={size * 0.85} cy={size * 0.8} r={size * 0.35} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth={1.5 * scale} />
-            <circle cx={size * 0.85} cy={size * 0.8} r={size * 0.25} fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth={1 * scale} />
-            <line x1={0} y1={size * 0.15} x2={size * 0.3} y2={size * 0.15} stroke="rgba(255,255,255,0.06)" strokeWidth={1 * scale} />
-        </>,
-        // Pattern 1: Diagonal lines
-        <>
-            <line x1={size * 0.7} y1={0} x2={size} y2={size * 0.3} stroke="rgba(255,255,255,0.04)" strokeWidth={1 * scale} />
-            <line x1={size * 0.8} y1={0} x2={size} y2={size * 0.2} stroke="rgba(255,255,255,0.03)" strokeWidth={1 * scale} />
-            <circle cx={size * 0.12} cy={size * 0.88} r={size * 0.18} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth={1.5 * scale} />
-        </>,
-        // Pattern 2: Corner accent
-        <>
-            <rect x={size * 0.75} y={size * 0.05} width={size * 0.2} height={1 * scale} fill="rgba(255,255,255,0.06)" />
-            <rect x={size * 0.93} y={size * 0.05} width={1 * scale} height={size * 0.12} fill="rgba(255,255,255,0.06)" />
-            <circle cx={size * 0.15} cy={size * 0.85} r={size * 0.25} fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth={1.5 * scale} />
-            <circle cx={size * 0.15} cy={size * 0.85} r={size * 0.18} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth={1 * scale} />
-        </>,
-        // Pattern 3: Dots grid
-        <>
-            {Array.from({ length: 5 }).map((_, row) =>
-                Array.from({ length: 5 }).map((_, col) => (
-                    <circle key={`${row}-${col}`} cx={size * 0.65 + col * 18 * scale} cy={size * 0.1 + row * 18 * scale} r={1.5 * scale} fill="rgba(255,255,255,0.06)" />
-                ))
-            )}
-            <line x1={size * 0.05} y1={size * 0.92} x2={size * 0.35} y2={size * 0.92} stroke="rgba(255,255,255,0.05)" strokeWidth={1 * scale} />
-        </>,
-        // Pattern 4: Arc
-        <>
-            <path d={`M ${size * 0.5} ${size} A ${size * 0.45} ${size * 0.45} 0 0 1 ${size} ${size * 0.55}`} fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth={1.5 * scale} />
-            <rect x={size * 0.05} y={size * 0.08} width={size * 0.08} height={1 * scale} fill="rgba(255,255,255,0.06)" />
-        </>,
-    ];
+
+// 장식 패턴 컴포넌트(CardDecoration)는 제거했다.
+// 의미 없는 도형은 여백이 부족할 때 넣는 것이고, 그 자체가 AI 티의 원인이었다.
+
+
+
+/* ═══════════════ 카드 한 장 ═══════════════
+   프리뷰와 내보내기가 같은 컴포넌트를 쓴다.
+   전에는 두 벌로 나뉘어 있어서 화면과 실제 파일이 어긋날 수 있었다.
+
+   규율(lib/brand-visual.ts)
+     - 배경은 단색. 그라데이션 없음
+     - 그림자 없음. 구분은 1px 선
+     - 사진 위에 글씨를 얹지 않는다. 면을 나눈다
+     - 좌측 정렬. 중앙 정렬은 감성 카드 신호
+     - 순번을 크게 — 카드뉴스에서 순서는 정보다  */
+
+interface CardFaceProps {
+    card: { title: string; lines: string[] };
+    index: number;
+    total: number;
+    width: number;
+    height: number;
+    dna: ReturnType<typeof getLawyerDesignDNA>;
+    brandColor: string;
+    lawyerName?: string;
+    logoUrl?: string;
+    coverImageUrl?: string;
+}
+
+function CardFace({
+    card, index, total, width, height, dna, brandColor, lawyerName, logoUrl, coverImageUrl,
+}: CardFaceProps) {
+    // 1000px 기준으로 잡은 값을 실제 폭에 맞춰 비례 축소한다.
+    // 프리뷰(360)와 내보내기(1080)가 같은 비율로 보이게 하기 위한 것.
+    const u = width / 1000;
+    const px = (n: number) => Math.round(n * u);
+
+    const isCover = index === 0;
+    const sc = dna.surface.colors;
+    // 분할형은 표지만 잉크면, 나머지는 종이면으로 뒤집는다 —
+    // 넘길 때 면이 바뀌어 시리즈에 리듬이 생긴다.
+    const face = dna.surface.key === "split" && !isCover && dna.surface.secondary
+        ? dna.surface.secondary
+        : sc;
+
+    // 사진은 표지에서만, 그것도 "사진 사용" DNA 일 때만. 글씨는 절대 그 위에 얹지 않는다.
+    const showPhoto = isCover && dna.imagery.key === "photo" && Boolean(coverImageUrl);
+    const photoH = showPhoto ? Math.round(height * 0.52) : 0;
+
     return (
-        <svg width={size} height={size} style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
-            {patterns[index % patterns.length]}
-        </svg>
+        <div
+            style={{
+                width, height,
+                background: face.bg,
+                position: "relative",
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "column",
+                fontFamily: dna.typeface.stack,
+            }}
+        >
+            {showPhoto && (
+                <img
+                    src={coverImageUrl}
+                    alt=""
+                    crossOrigin="anonymous"
+                    style={{ width: "100%", height: photoH, objectFit: "cover", display: "block" }}
+                />
+            )}
+
+            <div
+                style={{
+                    flex: 1,
+                    display: "flex",
+                    flexDirection: "column",
+                    padding: `${px(64)}px ${px(72)}px`,
+                    borderTop: showPhoto ? `1px solid ${face.line}` : "none",
+                }}
+            >
+                {/* 순번 — 읽는 사람이 자기 위치를 안다 */}
+                <div
+                    style={{
+                        fontSize: px(TYPE.index.size),
+                        fontWeight: TYPE.index.weight,
+                        letterSpacing: px(TYPE.index.tracking),
+                        color: brandColor,
+                        marginBottom: px(showPhoto ? 28 : 44),
+                        fontVariantNumeric: "tabular-nums",
+                    }}
+                >
+                    {String(index + 1).padStart(2, "0")}
+                    <span style={{ color: face.muted }}> / {String(total).padStart(2, "0")}</span>
+                </div>
+
+                <p
+                    style={{
+                        fontSize: px(isCover ? TYPE.title.size : TYPE.title.size - 6),
+                        fontWeight: TYPE.title.weight,
+                        lineHeight: TYPE.title.leading,
+                        letterSpacing: px(TYPE.title.tracking),
+                        color: face.fg,
+                        margin: 0,
+                    }}
+                >
+                    {card.title}
+                </p>
+
+                {card.lines.length > 0 && (
+                    <div style={{ marginTop: px(30), display: "flex", flexDirection: "column", gap: px(10) }}>
+                        {card.lines.map((line, j) => (
+                            <p
+                                key={j}
+                                style={{
+                                    fontSize: px(TYPE.body.size),
+                                    fontWeight: TYPE.body.weight,
+                                    lineHeight: TYPE.body.leading,
+                                    color: face.muted,
+                                    margin: 0,
+                                }}
+                            >
+                                {line}
+                            </p>
+                        ))}
+                    </div>
+                )}
+
+                {/* 발신자 — 마지막 줄에 조용히 */}
+                <div
+                    style={{
+                        marginTop: "auto",
+                        paddingTop: px(40),
+                        borderTop: `1px solid ${face.line}`,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: px(16),
+                    }}
+                >
+                    {logoUrl ? (
+                        <img
+                            src={logoUrl}
+                            alt=""
+                            crossOrigin="anonymous"
+                            style={{ height: px(30), objectFit: "contain", display: "block" }}
+                        />
+                    ) : (
+                        <span style={{ fontSize: px(16), color: face.muted }}>{lawyerName || ""}</span>
+                    )}
+                    {logoUrl && lawyerName && (
+                        <span style={{ fontSize: px(16), color: face.muted }}>{lawyerName}</span>
+                    )}
+                </div>
+            </div>
+        </div>
     );
 }
 
-export default function CardNewsRenderer({ body, brandColor = "#3563AE", lawyerName = "", logoUrl, coverImageUrl, profileImageUrl }: CardNewsProps) {
+// profileImageUrl 은 더 이상 쓰지 않는다 — 사진을 카드 위에 겹쳐 올리던 자리였다.
+// prop 자체는 호출부 호환을 위해 인터페이스에 남겨 둔다.
+export default function CardNewsRenderer({ body, brandColor = "#3563AE", lawyerName = "", logoUrl, coverImageUrl }: CardNewsProps) {
+    // 변호사별 지면. lawyerName 을 해시해 결정론적으로 뽑으므로 호출부 변경이 필요 없다.
+    // 같은 변호사는 언제나 같은 지면 — 블로그를 쭉 내려봐도 톤이 흔들리지 않는다.
+    const dna = getLawyerDesignDNA(lawyerName || "default");
+    const accent = safeBrandColor(brandColor);
+    const EXPORT_W = 1080;
+    const EXPORT_H = Math.round((EXPORT_W * dna.format.h) / dna.format.w);
     const cards = parseCardNews(body);
     const hashtags = extractHashtags(body);
     const [currentCard, setCurrentCard] = useState(0);
@@ -262,84 +383,25 @@ export default function CardNewsRenderer({ body, brandColor = "#3563AE", lawyerN
                     </button>
 
                     <div
-                        className="w-[360px] h-[360px] rounded-2xl overflow-hidden shadow-xl relative"
-                        style={{ background: CARD_GRADIENTS[currentCard % CARD_GRADIENTS.length] }}
+                        className="overflow-hidden relative"
+                        style={{
+                            width: 360,
+                            height: Math.round((360 * dna.format.h) / dna.format.w),
+                            border: "1px solid var(--gray-200, #E4E7ED)",
+                        }}
                     >
-                        {/* Cover image as background for ALL cards */}
-                        {coverImageUrl && (
-                            <>
-                                <img
-                                    src={coverImageUrl}
-                                    alt="cover"
-                                    className="absolute inset-0 w-full h-full object-cover"
-                                    crossOrigin="anonymous"
-                                />
-                                <div className="absolute inset-0" style={{
-                                    background: currentCard === 0
-                                        ? "linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.35) 40%, rgba(0,0,0,0.1) 70%, rgba(0,0,0,0.25) 100%)"
-                                        : "linear-gradient(135deg, rgba(0,0,0,0.65) 0%, rgba(10,10,30,0.72) 100%)",
-                                }} />
-                            </>
-                        )}
-
-                        {/* Decorative pattern when no cover image */}
-                        {!coverImageUrl && <CardDecoration index={currentCard} size={360} />}
-
-                        <div className="relative w-full h-full flex flex-col justify-end items-center px-10 py-8 text-center">
-                            {/* Brand line (hide on first card) */}
-                            {currentCard !== 0 && (
-                                <div className="w-6 h-px mb-auto mt-8" style={{ background: `${brandColor}60` }} />
-                            )}
-
-                            {/* Profile photo on first and last card */}
-                            {profileImageUrl && (currentCard === 0 || currentCard === cards.length - 1) && (
-                                <div className="absolute top-5 right-5 w-12 h-12 rounded-full overflow-hidden border-2 border-white/30 shadow-lg">
-                                    <img src={profileImageUrl} alt="profile" className="w-full h-full object-cover" crossOrigin="anonymous" />
-                                </div>
-                            )}
-
-                            {currentCard === 0 ? (
-                                <>
-                                    <div className="mt-auto">
-                                        <p className="text-white text-lg font-bold leading-relaxed mb-3 drop-shadow-lg" style={{ fontFamily: "'Noto Serif KR', serif", letterSpacing: "-0.02em", textShadow: "0 2px 8px rgba(0,0,0,0.5)" }}>
-                                            {cards[0].title}
-                                        </p>
-                                        <div className="space-y-1 text-white/80 text-[13px] leading-relaxed">
-                                            {cards[0].lines.map((line, i) => (
-                                                <p key={i} style={{ fontFamily: "'Noto Serif KR', serif", textShadow: "0 1px 4px rgba(0,0,0,0.5)" }}>{line}</p>
-                                            ))}
-                                        </div>
-                                        {lawyerName && (
-                                            <p className="mt-4 text-[9px] text-white/40 tracking-[0.15em]">{lawyerName}</p>
-                                        )}
-                                    </div>
-                                </>
-                            ) : (
-                                <>
-                                    <div className="flex-1 flex flex-col justify-center">
-                                        <p className="text-white text-base font-semibold leading-relaxed mb-4" style={{ fontFamily: "'Noto Serif KR', serif", letterSpacing: "-0.02em" }}>
-                                            {cards[currentCard].title}
-                                        </p>
-                                        <div className="space-y-1.5 text-white/60 text-[13px] leading-relaxed">
-                                            {cards[currentCard].lines.map((line, i) => (
-                                                <p key={i} style={{ fontFamily: "'Noto Serif KR', serif" }}>{line}</p>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    <div className="mt-auto pt-6 flex flex-col items-center gap-2">
-                                        {logoUrl && (
-                                            <img src={logoUrl} alt="logo" className="h-6 object-contain opacity-40" crossOrigin="anonymous" />
-                                        )}
-                                        {lawyerName && !logoUrl && (
-                                            <p className="text-[9px] text-white/15 tracking-[0.15em]">
-                                                {lawyerName}
-                                            </p>
-                                        )}
-                                    </div>
-                                </>
-                            )}
-                        </div>
+                        <CardFace
+                            card={cards[currentCard]}
+                            index={currentCard}
+                            total={cards.length}
+                            width={360}
+                            height={Math.round((360 * dna.format.h) / dna.format.w)}
+                            dna={dna}
+                            brandColor={accent}
+                            lawyerName={lawyerName}
+                            logoUrl={logoUrl}
+                            coverImageUrl={coverImageUrl}
+                        />
                     </div>
 
                     <button
@@ -378,171 +440,19 @@ export default function CardNewsRenderer({ body, brandColor = "#3563AE", lawyerN
             {/* Hidden render area for export (1080x1080) */}
             <div className="fixed -left-[9999px] top-0" aria-hidden>
                 {cards.map((card, i) => (
-                    <div
-                        key={i}
-                        ref={(el) => { cardRefs.current[i] = el; }}
-                        style={{
-                            width: 1080,
-                            height: 1080,
-                            background: CARD_GRADIENTS[i % CARD_GRADIENTS.length],
-                            display: "flex",
-                            flexDirection: "column",
-                            justifyContent: i === 0 ? "flex-end" : "center",
-                            alignItems: "center",
-                            padding: i === 0 ? 0 : 140,
-                            textAlign: "center",
-                            fontFamily: "'Noto Serif KR', 'Batang', serif",
-                            position: "relative",
-                            overflow: "hidden",
-                        }}
-                    >
-                        {/* Cover image for ALL cards */}
-                        {coverImageUrl && (
-                            <>
-                                <img
-                                    src={coverImageUrl}
-                                    alt="cover"
-                                    crossOrigin="anonymous"
-                                    style={{
-                                        position: "absolute",
-                                        inset: 0,
-                                        width: "100%",
-                                        height: "100%",
-                                        objectFit: "cover",
-                                    }}
-                                />
-                                <div style={{
-                                    position: "absolute",
-                                    inset: 0,
-                                    background: i === 0
-                                        ? "linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.35) 40%, rgba(0,0,0,0.1) 70%, rgba(0,0,0,0.25) 100%)"
-                                        : "linear-gradient(135deg, rgba(0,0,0,0.65) 0%, rgba(10,10,30,0.72) 100%)",
-                                }} />
-                            </>
-                        )}
-
-                        {/* Profile photo on first and last card */}
-                        {profileImageUrl && (i === 0 || i === cards.length - 1) && (
-                            <div style={{
-                                position: "absolute",
-                                top: 50,
-                                right: 50,
-                                width: 100,
-                                height: 100,
-                                borderRadius: "50%",
-                                overflow: "hidden",
-                                border: "3px solid rgba(255,255,255,0.3)",
-                                boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-                            }}>
-                                <img src={profileImageUrl} alt="profile" crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                            </div>
-                        )}
-
-                        {/* Decorative patterns for export */}
-                        {!coverImageUrl && <CardDecoration index={i} size={1080} />}
-
-                        {i === 0 ? (
-                            /* Cover card export layout */
-                            <div style={{
-                                position: "relative",
-                                padding: "0 100px 100px",
-                                width: "100%",
-                                textAlign: "center",
-                            }}>
-                                <p style={{
-                                    color: "white",
-                                    fontSize: 52,
-                                    fontWeight: 700,
-                                    lineHeight: 1.4,
-                                    marginBottom: 30,
-                                    letterSpacing: "-0.02em",
-                                    textShadow: "0 4px 16px rgba(0,0,0,0.6)",
-                                }}>
-                                    {card.title}
-                                </p>
-                                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                                    {card.lines.map((line, j) => (
-                                        <p key={j} style={{
-                                            color: "rgba(255,255,255,0.85)",
-                                            fontSize: 28,
-                                            fontWeight: 400,
-                                            lineHeight: 1.6,
-                                            textShadow: "0 2px 8px rgba(0,0,0,0.5)",
-                                        }}>
-                                            {line}
-                                        </p>
-                                    ))}
-                                </div>
-                                {lawyerName && (
-                                    <p style={{
-                                        color: "rgba(255,255,255,0.35)",
-                                        fontSize: 18,
-                                        letterSpacing: "0.15em",
-                                        marginTop: 40,
-                                    }}>
-                                        {lawyerName}
-                                    </p>
-                                )}
-                            </div>
-                        ) : (
-                            /* Regular text card export layout */
-                            <>
-                                <div style={{ width: 40, height: 1, background: `${brandColor}50`, marginBottom: 60 }} />
-
-                                <p style={{
-                                    color: "white",
-                                    fontSize: 42,
-                                    fontWeight: 600,
-                                    lineHeight: 1.5,
-                                    marginBottom: 36,
-                                    letterSpacing: "-0.02em",
-                                    whiteSpace: "pre-wrap",
-                                }}>
-                                    {card.title}
-                                </p>
-
-                                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                                    {card.lines.map((line, j) => (
-                                        <p key={j} style={{
-                                            color: "rgba(255,255,255,0.55)",
-                                            fontSize: 26,
-                                            fontWeight: 400,
-                                            lineHeight: 1.7,
-                                            textAlign: "center",
-                                        }}>
-                                            {line}
-                                        </p>
-                                    ))}
-                                </div>
-
-                                <div style={{
-                                    marginTop: "auto",
-                                    paddingTop: 60,
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    alignItems: "center",
-                                    gap: 12,
-                                }}>
-                                    {logoUrl && (
-                                        <img
-                                            src={logoUrl}
-                                            alt="logo"
-                                            crossOrigin="anonymous"
-                                            style={{ height: 48, objectFit: "contain", opacity: 0.4 }}
-                                        />
-                                    )}
-                                    {lawyerName && !logoUrl && (
-                                        <p style={{
-                                            color: "rgba(255,255,255,0.12)",
-                                            fontSize: 16,
-                                            letterSpacing: "0.15em",
-                                        }}>
-                                            {lawyerName}
-                                        </p>
-                                    )}
-                                </div>
-                            </>
-                        )}
+                    <div key={i} ref={(el) => { cardRefs.current[i] = el; }}>
+                        <CardFace
+                            card={card}
+                            index={i}
+                            total={cards.length}
+                            width={EXPORT_W}
+                            height={EXPORT_H}
+                            dna={dna}
+                            brandColor={accent}
+                            lawyerName={lawyerName}
+                            logoUrl={logoUrl}
+                            coverImageUrl={coverImageUrl}
+                        />
                     </div>
                 ))}
             </div>
