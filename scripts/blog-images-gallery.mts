@@ -86,10 +86,14 @@ const coverArt = await fakeArt(1024, 1280, "#B4562B");
 const wideArt = await fakeArt(1536, 1024, "#5B6B4A");
 
 const cells: string[] = [];
+// 글 단위 조판 변주 검증 — 같은 변호사가 다른 원고(시드)에서 다른 골격을 받는지
+const SEEDS = ["fx-a", "fx-b", "fx-c"];
 for (const lawyer of LAWYERS) {
     lawyer.profileImages = [portrait];
     const identity = getMagazineIdentity(lawyer);
+    for (const seed of SEEDS) {
     const plan = fixturePlan();
+    plan.sourceHash = seed;
     // 마지막 변호사는 숫자 스파인(checklist) 검증용
     if (lawyer.id === "t-green") {
         const infoCard = plan.cards.find((x) => x.type === "info")!;
@@ -103,16 +107,18 @@ for (const lawyer of LAWYERS) {
     }
     plan.direction = { ...plan.direction!, palette: identity.palette, typography: identity.typography };
     for (const card of plan.cards) {
+        if (seed !== "fx-a" && (card.type === "illustration" || card.type === "contact")) continue; // 변주 검증은 표지·정보 중심
         const art = card.type === "thumbnail" ? coverArt : card.type === "illustration" ? wideArt : undefined;
         try {
             const out = await renderMagazineCard({ plan, card, profile: lawyer, style: identity.style, art, artLabel: "픽스처" });
-            const file = `${lawyer.id}-${card.type}.png`;
+            const file = `${lawyer.id}-${seed}-${card.type}.png`;
             writeFileSync(join(OUT, file), Buffer.from(out.imageDataUrl.split(",")[1], "base64"));
-            cells.push(`<figure><img src="${file}"><figcaption>${lawyer.lawyerName} · ${identity.label} · ${card.type} · ${out.width}x${out.height}</figcaption></figure>`);
+            cells.push(`<figure><img src="${file}"><figcaption>${lawyer.lawyerName} · ${seed} · ${identity.label} · ${card.type} · ${out.width}x${out.height}</figcaption></figure>`);
             console.log(`● ${file}  ${out.width}x${out.height}  ${identity.label}  경고 ${out.warnings.length}`);
         } catch (e) {
-            console.log(`✗ ${lawyer.id}-${card.type}: ${e instanceof Error ? e.message : e}`);
+            console.log(`✗ ${lawyer.id}-${seed}-${card.type}: ${e instanceof Error ? e.message : e}`);
         }
+    }
     }
 }
 writeFileSync(join(OUT, "gallery.html"),

@@ -17,20 +17,22 @@ import type { ArtDirection, EditorialStyle } from "./visual-plan-types";
 
 export type PaletteKey = ArtDirection["palette"];
 
+// 골격(가족·액센트 형태·마스트헤드)은 변호사 고정이 아니라 **글 단위**로 변주된다.
+// 잡지의 문법 — 색·서체는 호가 바뀌어도 같지만, 스프레드 레이아웃은 매 기사 다르다.
+// 시드는 원고 해시 + 변호사 키 (renderer 가 계산). 같은 글은 재렌더해도 동일.
 export type AccentShape = "dash" | "vbar" | "dots";
 export type MastheadStyle = "rules" | "block";
+export type LayoutFamily = "journal" | "poster" | "column";
 
 export interface MagazineIdentity {
     palette: PaletteKey;
     typography: "serif" | "sans";
     style: EditorialStyle;
-    /** 제목 위 장치의 형태 — 팔레트가 겹쳐도 골격이 다르게 보이게 하는 축 */
-    accentShape: AccentShape;
-    /** 마스트헤드 형식 — 이중 괘선 vs 킥커 박스 */
-    masthead: MastheadStyle;
     /** 로그·관리화면용 한 줄 */
     label: string;
 }
+
+export function fnv(input: string, seed = 0x811c9dc5): number { return fnv1a(input, seed); }
 
 function fnv1a(input: string, seed: number): number {
     let h = seed >>> 0;
@@ -90,10 +92,7 @@ export function getMagazineIdentity(profile: Pick<EditorialProfile, "id" | "lawy
     // 축마다 시드를 분리해 서로 상관이 생기지 않게 한다
     const typography: "serif" | "sans" = fnv1a(key, 0x9e3779b1) % 2 === 0 ? "serif" : "sans";
     const style: EditorialStyle = fnv1a(key, 0x85ebca77) % 2 === 0 ? "contrast" : "paper";
-    // 구조 축 — 팔레트가 우연히 겹쳐도 지면의 골격이 다르게 보이게 한다
-    const accentShape: AccentShape = (["dash", "vbar", "dots"] as const)[fnv1a(key, 0x6c62272e) % 3];
-    const masthead: MastheadStyle = fnv1a(key, 0x41c64e6d) % 2 === 0 ? "rules" : "block";
-    return { palette, typography, style, accentShape, masthead, label: `${palette} · ${typography} · ${style} · ${accentShape}/${masthead}` };
+    return { palette, typography, style, label: `${palette} · ${typography} · ${style}` };
 }
 
 /** 기획 프롬프트에 붙이는 시리즈 규정. 기획 모델이 이 지면 안에서 장면을 설계하게 한다. */
