@@ -1,3 +1,5 @@
+import { STANDARD_OFFER } from "./upgrade";
+
 // MAKETHIS1 리뉴얼 — 사이트 공통 데이터
 //
 // 여기 들어간 사실은 전부 검증 가능한 것이어야 한다(§42).
@@ -516,18 +518,12 @@ export const PLANS: Plan[] = [
     {
         key: "standard",
         en: "STANDARD",
-        ko: "기본 운영",
-        price: "약 월 300만원",
-        priceNote: "광고 매체비 별도",
-        desc: "광고·블로그·홈페이지를 한곳에서.",
+        ko: STANDARD_OFFER.name,
+        price: STANDARD_OFFER.price,
+        priceNote: STANDARD_OFFER.priceNote,
+        desc: "블로그 월 20회부터 검색·SNS·광고·상담까지.",
         includesLabel: "포함",
-        includes: [
-            "네이버 파워링크·구글 광고",
-            "네이버 블로그",
-            "홈페이지 기본 관리",
-            "기본 검색·AI 검색 정비",
-            "마케팅·상담 성과 분석",
-        ],
+        includes: STANDARD_OFFER.includes,
     },
     {
         key: "growth",
@@ -570,7 +566,7 @@ export const PLANS: Plan[] = [
 ];
 
 export const PLANS_FOOTNOTE =
-    "운영 범위와 비용은 사건 분야·지역·경쟁 상황, 홈페이지·콘텐츠 상태를 확인한 뒤 확정합니다. 광고 매체비는 별도입니다.";
+    "STANDARD는 월 250만원입니다. 추가 제작·확장 업무와 상위 상품의 세부 견적은 상담 후 정합니다. 광고 매체비는 별도이며, 부가세 여부는 최종 견적서에서 확인합니다.";
 
 // 가격표 옆에 붙는 미니 FAQ — 상담 전에 걸리는 질문을 미리 치운다.
 // ⚠️ §42 — 확정되지 않은 기간·금액·절차를 지어내지 않는다. 협의 사항은 협의라고 쓴다.

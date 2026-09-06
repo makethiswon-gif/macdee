@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { STANDARD_OFFER } from "@/data/renewal/upgrade";
 
 // 로펌 마케팅 구조 진단 요청 폼.
 //
@@ -39,7 +40,7 @@ const TRACKING = [
 
 // 홈 #plans 카드에서 넘어온 ?plan= 값 → 폼 표기. 모르는 값은 무시한다.
 const PLAN_LABELS: Record<string, string> = {
-    standard: "STANDARD · 기본 운영",
+    standard: `STANDARD · ${STANDARD_OFFER.name} · ${STANDARD_OFFER.price}`,
     growth: "GROWTH · 분야 확장",
     "market-leader": "MARKET LEADER · 시장 선점",
 };
@@ -75,12 +76,15 @@ export default function DiagnoseForm() {
 
         const fd = new FormData(e.currentTarget);
         const payload = Object.fromEntries(fd.entries());
+        // The existing API persists `note`, not the separate `plan` field.
+        // Keep the chosen offer in the request without changing the API or database.
+        const note = [plan && `[선택 상품] ${PLAN_LABELS[plan]}`, payload.note].filter(Boolean).join("\n\n");
 
         try {
             const res = await fetch("/api/renewal/diagnose", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ...payload, channels }),
+                body: JSON.stringify({ ...payload, channels, note }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "요청을 보내지 못했습니다.");
