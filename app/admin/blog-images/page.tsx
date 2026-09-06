@@ -2,6 +2,7 @@
 /* eslint-disable @next/next/no-img-element -- Preview and export intentionally share the exact PNG pixels. */
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { getMagazineIdentity } from "@/lib/blog-images/magazine-identity";
 import { Download, Loader2, Plus, Settings, RefreshCw, X, ImageIcon, BookOpen, Layers, WandSparkles } from "lucide-react";
 import JSZip from "jszip";
 import ProfileManagerModal from "./ProfileManagerModal";
@@ -186,9 +187,9 @@ export default function BlogImagesPage() {
 
     return <div className="mx-auto max-w-[1500px] p-4 text-slate-100 md:p-8">
         <header className="mb-7 flex flex-wrap items-start justify-between gap-4">
-            <div><p className="mb-2 text-xs tracking-[.18em] text-emerald-300">BLOG MAGAZINE STUDIO · V9</p>
+            <div><p className="mb-2 text-xs tracking-[.18em] text-emerald-300">BLOG MAGAZINE STUDIO · V10</p>
                 <h1 className="text-3xl font-bold">원고를 한 편의 매거진으로.</h1>
-                <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-400">표지의 시각적 아이디어부터 본문의 정보 설계, 실제 변호사가 등장하는 마지막 장까지. 한 원고에 맞춰 색·서체·구도를 설계하고 완성 지면을 검수합니다.</p></div>
+                <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-400">표지의 시각적 아이디어부터 본문의 정보 설계, 실제 변호사가 등장하는 마지막 장까지. 팔레트·서체·지면은 변호사별로 고정되고, 콘셉트와 장면은 원고가 정합니다.</p></div>
             <button disabled={busy} onClick={() => { setEditingProfileId(selectedId || null); setProfileModal(true); }} className="flex items-center gap-2 rounded-lg border border-slate-700 px-4 py-3 text-sm disabled:opacity-40"><Settings size={16} /> 사진·로고 관리</button>
         </header>
         {error && <div role="alert" className="mb-5 rounded-lg border border-red-800 bg-red-950/40 p-4 text-sm text-red-200">{error}</div>}
@@ -197,6 +198,9 @@ export default function BlogImagesPage() {
                 <legend className="sr-only">원고 및 이미지 설정</legend>
                 <div className="flex items-center justify-between"><h2 className="font-semibold">1. 원고 준비</h2><button type="button" className="flex items-center gap-1 text-xs text-blue-300" onClick={() => { setEditingProfileId(null); setProfileModal(true); }}><Plus size={14} /> 변호사 등록</button></div>
                 <label className="block text-sm">변호사<select aria-label="변호사" value={selectedId} onChange={(e) => void changeLawyer(e.target.value)} className={inputClass + " mt-2"}><option value="">{loading ? "불러오는 중…" : "변호사를 선택하세요"}</option>{profiles.map((p) => <option key={p.id} value={p.id}>{p.lawyerName} · {p.officeName || "사무소 미등록"}</option>)}</select></label>
+                {selectedProfile && (() => { const idn = getMagazineIdentity(selectedProfile);
+                    const pal = { cobalt: "코발트", vermilion: "버밀리언", forest: "포레스트", aubergine: "오베르진", graphite: "그래파이트" }[idn.palette];
+                    return <p className="text-xs text-slate-400">이 변호사의 고정 지면: <span className="text-emerald-300">{pal} · {idn.typography === "serif" ? "명조" : "고딕"} · {idn.style === "contrast" ? "어두운 지면" : "밝은 지면"}</span> — 콘셉트·장면은 원고마다 새로 설계됩니다. 다른 변호사와 겹치면 블로그 설정의 DNA 조정칸으로 갈라냅니다.</p>; })()}
                 <label className="block text-sm">기존 원고 불러오기<select value={selectedPostId} disabled={postsLoading || !posts.length} onChange={(e) => { setSelectedPostId(e.target.value); const p = posts.find((p) => p.id === e.target.value); if (p) { setTitle(p.title); setContent(p.body || ""); invalidatePlan(); } }} className={inputClass + " mt-2"}><option value="">{postsLoading ? "원고 조회 중…" : "직접 입력하거나 원고를 선택하세요"}</option>{posts.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}</select></label>
                 {postError && <p className="text-xs leading-5 text-amber-200">{postError}</p>}
                 <label className="block text-sm">제목<input value={title} maxLength={180} onChange={(e) => { setTitle(e.target.value); invalidatePlan(); }} placeholder="블로그 원고 제목" className={inputClass + " mt-2"} /></label>
