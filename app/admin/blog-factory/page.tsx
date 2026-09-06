@@ -243,7 +243,7 @@ export default function BlogFactoryPage() {
             const fullProfile = pData.profile;
             if (!fullProfile) throw new Error("변호사 상세 정보를 불러오지 못했습니다.");
 
-            const planned = await post("/api/admin/blog-images/plan", { title, content: body });
+            const planned = await post("/api/admin/blog-images/plan", { title, content: body, profile: fullProfile });
             if (!planned.plan) throw new Error("이미지 기획에 실패했습니다.");
             const types = imageCount >= 4 ? ["thumbnail", "illustration", "info", "contact"] : ["thumbnail", "info", "contact"];
             const cards: BlogImageCard[] = [];

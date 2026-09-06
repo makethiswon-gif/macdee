@@ -45,6 +45,9 @@ export interface EditorialProfile {
     phone: string;
     website: string;
     brandColor: string;
+    /** 두 변호사의 지면 조합이 겹칠 때 관리화면(dna_salt)에서 넣는 조정값.
+        같은 사람은 salt 가 같으므로 결정론은 유지된다. */
+    dnaSalt?: string;
     profileImages: string[];
     officeImages: string[];
     logoImage: string;

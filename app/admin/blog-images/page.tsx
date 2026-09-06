@@ -86,7 +86,9 @@ export default function BlogImagesPage() {
     const requestPlan = async () => {
         setPhase("Claude Opus 5가 원고에 맞는 콘셉트·카피·원문 근거를 기획합니다. 저강도 추론으로 필요한 구성만 설계합니다.");
         const res = await fetch("/api/admin/blog-images/plan", { method: "POST", credentials: "include",
-            headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title, content }) });
+            headers: { "Content-Type": "application/json" },
+            // 프로필을 함께 보내야 변호사별 시리즈 지면(팔레트·서체)이 기획 단계부터 반영된다
+            body: JSON.stringify({ title, content, profile: profiles.find((pf) => pf.id === selectedId) }) });
         const data = await readResponse(res);
         if (!res.ok || !data.plan) throw new Error(data.error || "이미지 기획에 실패했습니다.");
         setPlan(data.plan); return data.plan as ArticleVisualPlan;

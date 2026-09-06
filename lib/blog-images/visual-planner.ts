@@ -3,6 +3,7 @@ import { extractClaudeText } from "@/lib/ai/claude-text";
 import { BLOG_CARD_TYPES, type BlogCardType } from "./card-types";
 import { parseInfographicResult } from "./infographic";
 import { articleParagraphs, type ArtDirection, type ArticleVisualPlan, type PlannedCard, type SourceEvidence, type VisualBrief } from "./visual-plan-types";
+import { identityDirective, lockDirection, type MagazineIdentity } from "./magazine-identity";
 
 export const PLANNING_MODEL = "claude-opus-5";
 export const ART_REVIEW_MODEL = "claude-opus-5";
@@ -148,12 +149,21 @@ compare: {kind,heading,leftLabel,rightLabel,rows:[{aspect,a,b}]} 열제목 14자
 tiers: {kind,heading,tiers:[{range,label}]} range 20자 이내, 실제 범위를 보존. 구간은 길이로 수치를 왜곡하지 않는다.
 생략 카드도 type,heading,deck,purpose,afterParagraphId,evidence:[],skipReason을 포함한다. 다른 장의 내용으로 빈자리를 채우지 않는다.`;
 
-export async function planArticle(title: string, content: string): Promise<ArticleVisualPlan> {
+// identity: 변호사별 시리즈 축(팔레트·서체). 기획 모델에게 규정으로 알려주고,
+// 응답이 무엇이든 최종적으로 그 값으로 고정한다 — 8개 블로그가 서로 다른
+// 출처로 보이려면 이 축은 글이 아니라 변호사가 소유해야 한다.
+export async function planArticle(title: string, content: string, identity?: MagazineIdentity): Promise<ArticleVisualPlan> {
     const paragraphs = articleParagraphs(content);
     if (!paragraphs.length) throw new PlanValidationError("본문을 입력해 주세요.");
-    const raw = await requestEditorialJson(VISUAL_PLANNING_SYSTEM + MAGAZINE_DIRECTION_SYSTEM, { title, paragraphs });
+    const system = VISUAL_PLANNING_SYSTEM + MAGAZINE_DIRECTION_SYSTEM + (identity ? identityDirective(identity) : "");
+    const raw = await requestEditorialJson(system, { title, paragraphs });
     if (!raw.direction) throw new PlanValidationError("아트디렉션이 누락됐습니다. 구성안을 다시 기획해 주세요.");
-    return validateVisualPlan(raw, title, content, false);
+    const plan = validateVisualPlan(raw, title, content, false);
+    if (identity) {
+        plan.direction = lockDirection(plan.direction, identity);
+        for (const card of plan.cards) if (card.art?.direction) card.art.direction = lockDirection(card.art.direction, identity)!;
+    }
+    return plan;
 }
 
 const MAGAZINE_DIRECTION_SYSTEM = `
