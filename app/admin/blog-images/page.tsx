@@ -1,560 +1,200 @@
 "use client";
+/* eslint-disable @next/next/no-img-element -- Completed PNGs retain exactly the same pixels in preview and download. */
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import {
-    User, Sparkles, Download,
-    ChevronDown, Loader2, Check, X, Eye, Code,
-    Plus, Settings, Wand2
-} from "lucide-react";
-import ProfileManagerModal from "./ProfileManagerModal";
-import * as htmlToImage from "html-to-image";
+import { Download, Loader2, Plus, Settings, RefreshCw, X, ImageIcon } from "lucide-react";
 import JSZip from "jszip";
+import ProfileManagerModal from "./ProfileManagerModal";
+import { BLOG_CARD_TYPES, CARD_LABELS, CARD_PLACEMENTS, type BlogCardType, type BlogImageCard, type BlogImageQuality, type BlogPhotoSource, type EditorialProfile } from "@/lib/blog-images/card-types";
 
-interface Profile {
-    id: string;
-    lawyerName: string;
-    officeName: string;
-    phone: string;
-    address: string;
-    website: string;
-    jobTitle: string;
-    career: string[];
-    profileImages: string[];
-    officeImages: string[];
-    logoImage: string;
-    hasLogo: boolean;
-    specialty: string[];
-    brandColor: string;
-    brandLines: string[];
-    designStyle: string;
-    profileImageCount?: number;
-    officeImageCount?: number;
+interface PostItem { id: string; title: string; body: string | null }
+type Job = { state: "waiting" | "running" | "done" | "error" | "skipped"; message?: string };
+type GenerationInput = { profile: EditorialProfile; title: string; content: string; quality: BlogImageQuality; photoSource: BlogPhotoSource };
+
+async function readResponse(res: Response) {
+    const text = await res.text();
+    try { return JSON.parse(text); }
+    catch {
+        throw new Error(res.status === 413 ? "사진 파일이 너무 큽니다. 프로필 관리에서 작은 파일로 다시 등록해 주세요."
+            : `서버 응답을 읽지 못했습니다 (${res.status}). 잠시 후 해당 카드만 다시 시도해 주세요.`);
+    }
 }
 
-interface AICard {
-    type: string;
-    name: string;
-    html: string;
-}
-
-interface PostItem {
-    id: string;
-    title: string;
-    body: string | null;
-    channel: string;
-    created_at: string;
+function download(href: string, filename: string) {
+    const link = document.createElement("a");
+    link.href = href; link.download = filename; link.click();
 }
 
 export default function BlogImagesPage() {
-    const [profiles, setProfiles] = useState<Profile[]>([]);
+    const [profiles, setProfiles] = useState<EditorialProfile[]>([]);
     const [loading, setLoading] = useState(true);
-
-    // Form State
     const [selectedId, setSelectedId] = useState("");
     const [posts, setPosts] = useState<PostItem[]>([]);
     const [postsLoading, setPostsLoading] = useState(false);
     const [selectedPostId, setSelectedPostId] = useState("");
-    const [postTitle, setPostTitle] = useState("");
-    const [postContent, setPostContent] = useState("");
-
-    // Generator State
-    const [isGenerating, setIsGenerating] = useState(false);
-    const [generationMessage, setGenerationMessage] = useState("");
-    const [cards, setCards] = useState<AICard[]>([]);
-
-    // Modals
-    const [previewCard, setPreviewCard] = useState<AICard | null>(null);
-    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+    const [title, setTitle] = useState("");
+    const [content, setContent] = useState("");
+    const [photoSource, setPhotoSource] = useState<BlogPhotoSource>("ai");
+    const [quality, setQuality] = useState<BlogImageQuality>("high");
+    const [includePhoto, setIncludePhoto] = useState(false);
+    const [cards, setCards] = useState<BlogImageCard[]>([]);
+    const [jobs, setJobs] = useState<Partial<Record<BlogCardType, Job>>>({});
+    const [busy, setBusy] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState("");
+    const [preview, setPreview] = useState<BlogImageCard | null>(null);
+    const [profileModal, setProfileModal] = useState(false);
     const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
-
-    const cardsRef = useRef<Record<string, HTMLDivElement | null>>({});
+    const generation = useRef<GenerationInput | null>(null);
+    const postRequest = useRef(0);
+    const busyRef = useRef(false);
 
     const fetchProfiles = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await fetch("/api/admin/blog-profiles");
-            if (res.ok) {
-                const data = await res.json();
-                setProfiles(data.profiles || []);
-            }
-        } catch (e) { console.error(e); }
-        setLoading(false);
+            const res = await fetch("/api/admin/blog-profiles", { credentials: "include" });
+            const data = await readResponse(res);
+            if (!res.ok) throw new Error("변호사 프로필을 불러오지 못했습니다. 관리자 로그인을 확인해 주세요.");
+            setProfiles(data.profiles || []);
+        } catch (e) { setError(e instanceof Error ? e.message : "프로필 조회 실패"); }
+        finally { setLoading(false); }
     }, []);
+    useEffect(() => { void fetchProfiles(); }, [fetchProfiles]);
+    useEffect(() => {
+        if (!preview) return;
+        const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") setPreview(null); };
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [preview]);
 
-    const fetchPosts = useCallback(async (lawyerId: string) => {
-        if (!lawyerId) { setPosts([]); return; }
+    const clearResults = () => { setCards([]); setJobs({}); generation.current = null; setError(""); };
+    const changeLawyer = async (id: string) => {
+        setSelectedId(id); setSelectedPostId(""); setTitle(""); setContent(""); setPosts([]); clearResults();
+        const requestId = ++postRequest.current;
+        if (!id) { setPostsLoading(false); return; }
         setPostsLoading(true);
         try {
-            const res = await fetch(`/api/admin/blog-images/posts?lawyer_id=${lawyerId}`, {
-                credentials: "include",
-            });
-            if (res.ok) {
-                const data = await res.json();
-                setPosts(data.posts || []);
-            }
-        } catch (e) { console.error(e); }
-        setPostsLoading(false);
-    }, []);
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    useEffect(() => { fetchProfiles(); }, [fetchProfiles]);
-
-    const handleLawyerChange = (lawyerId: string) => {
-        setSelectedId(lawyerId);
-        setSelectedPostId("");
-        setPostTitle("");
-        setPostContent("");
-        setPosts([]);
-        if (lawyerId) fetchPosts(lawyerId);
+            const res = await fetch(`/api/admin/blog-images/posts?lawyer_id=${encodeURIComponent(id)}`, { credentials: "include" });
+            const data = await readResponse(res);
+            if (!res.ok) throw new Error("기존 원고를 불러오지 못했습니다. 직접 붙여넣기도 가능합니다.");
+            if (requestId === postRequest.current) setPosts(data.posts || []);
+        } catch (e) { if (requestId === postRequest.current) setError(e instanceof Error ? e.message : "원고 조회 실패"); }
+        finally { if (requestId === postRequest.current) setPostsLoading(false); }
     };
 
-    const handlePostSelect = (postId: string) => {
-        setSelectedPostId(postId);
-        const post = posts.find(p => p.id === postId);
-        if (post) {
-            setPostTitle(post.title || "");
-            setPostContent(post.body || "");
-        }
-    };
-
-    const handleGenerate = async () => {
-        if (!selectedId) return alert("변호사를 선택해주세요.");
-        if (!postContent.trim()) return alert("블로그 본문 내용을 입력해주세요.");
-
-        setIsGenerating(true);
-        setCards([]);
-        setGenerationMessage("변호사 프로필 상세 정보를 불러오는 중...");
-
-        // Fetch full profile detail (includes images, logo, career, etc.)
-        let fullProfile: Profile | null = null;
+    const generate = async (only?: BlogCardType) => {
+        if (busyRef.current) return;
+        busyRef.current = true; setBusy(true); setError("");
         try {
-            const profileRes = await fetch(`/api/admin/blog-profiles?id=${selectedId}`);
-            if (profileRes.ok) {
-                const profileData = await profileRes.json();
-                fullProfile = profileData.profile;
+            let input = only ? generation.current : null;
+            if (!input) {
+                const res = await fetch(`/api/admin/blog-profiles?id=${encodeURIComponent(selectedId)}`, { credentials: "include" });
+                const data = await readResponse(res);
+                // Never silently fall back to list data: it omits photographs and logos.
+                if (!res.ok || !data.profile) throw new Error("사진을 포함한 상세 프로필을 불러오지 못했습니다. 다시 시도해 주세요.");
+                input = { profile: data.profile, title, content, photoSource, quality };
+                generation.current = input;
             }
-        } catch (e) {
-            console.error("Profile fetch error:", e);
-        }
-
-        if (!fullProfile) {
-            // Fallback to list data
-            fullProfile = profiles.find(p => p.id === selectedId) || null;
-        }
-        if (!fullProfile) {
-            alert("프로필을 불러올 수 없습니다.");
-            setIsGenerating(false);
-            return;
-        }
-
-        const cardTypes = [
-            { type: "thumbnail", label: "메인 썸네일" },
-            { type: "illustration", label: "상황 이미지" },
-            { type: "info", label: "정보 정리" },
-            { type: "contact", label: "요약·안내" },
-        ];
-
-        const total = cardTypes.length;
-        setGenerationMessage(`AI가 ${total}장 카드를 동시 생성하는 중... (~15초)`);
-
-        // 3장을 병렬로 생성 — 가장 느린 카드 시간만큼만 걸림.
-        const results = await Promise.all(
-            cardTypes.map(async (ct) => {
-                try {
-                    const res = await fetch("/api/admin/blog-images/generate-design", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        credentials: "include",
-                        body: JSON.stringify({
-                            profile: fullProfile,
-                            title: postTitle,
-                            content: postContent,
-                            cardType: ct.type,
-                        }),
-                    });
-
-                    if (!res.ok) {
-                        let errMsg = `${res.status}`;
-                        try {
-                            const errData = await res.json();
-                            // 422 skipped 는 실패가 아니라 "만들 내용이 없음" 이다.
-                            // 정보 카드는 본문에 절차·기간·준비물·비교·구간이 있어야 만든다.
-                            // 없는데 억지로 만들면 오정보가 되므로 건너뛴다.
-                            if (errData.skipped) {
-                                return { ok: false as const, label: ct.label, error: errData.error, skipped: true };
-                            }
-                            errMsg += " - " + errData.error;
-                        } catch { /* ignore */ }
-                        return { ok: false as const, label: ct.label, error: errMsg };
+            const frozen = input;
+            const types: BlogCardType[] = only ? [only] : BLOG_CARD_TYPES.filter((t) => t !== "illustration" || includePhoto);
+            if (!only) { setCards([]); setJobs({}); }
+            setJobs((prev) => ({ ...prev, ...Object.fromEntries(types.map((t) => [t, { state: "waiting" }])) }));
+            let cursor = 0;
+            const worker = async () => {
+                while (cursor < types.length) {
+                    const type = types[cursor++];
+                    setJobs((prev) => ({ ...prev, [type]: { state: "running" } }));
+                    try {
+                        const p = frozen.profile;
+                        const profile = { id: p.id, lawyerName: p.lawyerName, officeName: p.officeName,
+                            jobTitle: p.jobTitle, phone: p.phone, website: p.website, brandColor: p.brandColor,
+                            logoImage: p.logoImage, profileImages: type === "contact" ? p.profileImages?.slice(0, 1) : [],
+                            officeImages: frozen.photoSource === "office" ? p.officeImages?.slice(0, 1) : [] };
+                        const res = await fetch("/api/admin/blog-images/generate-design", {
+                            method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ ...frozen, profile, cardType: type }),
+                        });
+                        const data = await readResponse(res);
+                        if (!res.ok) {
+                            if (data.skipped) { setJobs((prev) => ({ ...prev, [type]: { state: "skipped", message: data.error } })); continue; }
+                            throw new Error(data.error || `카드 생성 실패 (${res.status})`);
+                        }
+                        const card = data.card as BlogImageCard;
+                        if (!card?.imageDataUrl?.startsWith("data:image/png;base64,")) throw new Error("완성 이미지가 응답에 없습니다.");
+                        setCards((prev) => [...prev.filter((c) => c.type !== type), card].sort((a, b) => BLOG_CARD_TYPES.indexOf(a.type) - BLOG_CARD_TYPES.indexOf(b.type)));
+                        setJobs((prev) => ({ ...prev, [type]: { state: "done" } }));
+                    } catch (e) {
+                        setJobs((prev) => ({ ...prev, [type]: { state: "error", message: e instanceof Error ? e.message : "연결에 실패했습니다." } }));
                     }
-
-                    const data = await res.json();
-                    if (data.card) {
-                        return { ok: true as const, card: data.card };
-                    }
-                    return { ok: false as const, label: ct.label, error: "no card returned" };
-                } catch (e) {
-                    console.error(`Error generating ${ct.type}:`, e);
-                    return { ok: false as const, label: ct.label, error: "network error" };
                 }
-            })
-        );
-
-        const generatedCards: AICard[] = results
-            .filter((r): r is { ok: true; card: AICard } => r.ok)
-            .map(r => r.card);
-        const failures = results.filter(r => !r.ok);
-        setCards(generatedCards);
-
-        if (failures.length > 0) {
-            alert(`일부 카드 생성 실패:\n${failures.map(f => `- ${("label" in f) ? f.label : ""}: ${("error" in f) ? f.error : ""}`).join("\n")}`);
-        }
-
-        setGenerationMessage(
-            generatedCards.length > 0
-                ? `디자인 생성 완료! (${generatedCards.length}/${total} 카드)`
-                : "카드 생성에 실패했습니다. 다시 시도해주세요."
-        );
-
-        setIsGenerating(false);
-    };
-
-    const handleDownloadOne = async (card: AICard) => {
-        const node = cardsRef.current[card.type];
-        if (!node) return;
-        try {
-            const dataUrl = await htmlToImage.toPng(node, {
-                quality: 1.0,
-                pixelRatio: 2,
-                style: { transform: 'none' },
-                width: 800,
-                height: 800,
-            });
-            const link = document.createElement('a');
-            link.download = `blog-${card.type}-${Date.now()}.png`;
-            link.href = dataUrl;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        } catch (err) {
-            console.error('Download error:', err);
-            alert('이미지 저장 중 오류가 발생했습니다.');
-        }
-    };
-
-    const handleDownloadAll = async () => {
-        try {
-            setGenerationMessage('ZIP 파일 생성 중...');
-            const zip = new JSZip();
-            const selected = profiles.find(p => p.id === selectedId);
-
-            // Generate keyword from title or first card content
-            const keyword = postTitle?.trim()
-                ? postTitle.trim().replace(/[^가-힣a-zA-Z0-9]/g, '').substring(0, 10)
-                : (selected?.lawyerName || 'blog');
-
-            // Date string: YYYYMMDD
-            const now = new Date();
-            const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-
-            const cardNameMap: Record<string, string> = {
-                thumbnail: '메인썸네일',
-                illustration: '상황이미지',
-                info: '정보정리',
-                contact: '요약안내',
             };
-
-            for (let i = 0; i < cards.length; i++) {
-                const card = cards[i];
-                const node = cardsRef.current[card.type];
-                if (!node) continue;
-
-                setGenerationMessage(`이미지 변환 중... (${i + 1}/${cards.length})`);
-                const dataUrl = await htmlToImage.toPng(node, {
-                    quality: 1.0,
-                    pixelRatio: 2,
-                    style: { transform: 'none' },
-                    width: 800,
-                    height: 800,
-                });
-
-                // Convert data URL to blob
-                const base64 = dataUrl.split(',')[1];
-                const fileName = `${cardNameMap[card.type] || card.type}_${keyword}.png`;
-                zip.file(fileName, base64, { base64: true });
-            }
-
-            const blob = await zip.generateAsync({ type: 'blob' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.download = `${keyword}_${dateStr}.zip`;
-            link.href = url;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
-
-            setGenerationMessage(`ZIP 다운로드 완료! (${cards.length}장)`);
-        } catch (err) {
-            console.error('ZIP download error:', err);
-            alert('ZIP 파일 생성 중 오류가 발생했습니다.');
-        }
+            await Promise.all([worker(), worker()]);
+        } catch (e) { setError(e instanceof Error ? e.message : "생성에 실패했습니다."); }
+        finally { busyRef.current = false; setBusy(false); }
     };
 
-    const ic = "w-full px-5 py-3 rounded-2xl bg-[#0B0F1A] border border-[#1F2937] text-white text-sm placeholder-[#4B5563] focus:outline-none focus:border-[#3563AE] focus:ring-1 focus:ring-[#3563AE]/50 transition-all";
+    const fileStem = (generation.current?.title || title || "블로그").replace(/[^가-힣a-zA-Z0-9 _-]/g, "").slice(0, 40);
+    const downloadAll = async () => {
+        setSaving(true); setError("");
+        try {
+            const zip = new JSZip();
+            for (const [index, card] of cards.entries()) zip.file(`${String(index + 1).padStart(2, "0")}_${card.name}_${fileStem}.png`, card.imageDataUrl.split(",")[1], { base64: true });
+            zip.file("삽입안내.txt", cards.map((c) => `${c.name} (${c.width}×${c.height})\n위치: ${c.placement}\n대체텍스트: ${c.altText}\n${c.warnings.join("\n")}`).join("\n\n") + "\n\n원문과 법률 표현을 검수한 뒤 발행해 주세요. AI 자료사진은 실제 사건·사무실 사진이 아닙니다.");
+            const url = URL.createObjectURL(await zip.generateAsync({ type: "blob" }));
+            download(url, `${fileStem}_블로그이미지.zip`);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch { setError("ZIP 파일 생성에 실패했습니다. 개별 저장을 시도해 주세요."); }
+        finally { setSaving(false); }
+    };
 
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center py-20">
-                <div className="animate-spin w-8 h-8 border-2 border-[#3563AE] border-t-transparent rounded-full" />
-            </div>
-        );
-    }
-
-    return (
-        <div className="max-w-[1400px] mx-auto min-h-screen pb-20">
-            {/* Header */}
-            <div className="mb-8 flex items-end justify-between">
-                <div>
-                    <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-[#8BA9E6] flex items-center gap-3">
-                        <Code size={32} className="text-[#3563AE]" />
-                        생성형 블로그 이미지 메이커 V5
-                    </h1>
-                    <p className="text-[#6B7280] mt-3 ml-[44px]">
-                        AI가 글 내용과 변호사님의 맞춤 컬러를 반영하여 전용 HTML/CSS 디자인을 즉석에서 코딩합니다.
-                    </p>
-                </div>
-            </div>
-
-            {profiles.length === 0 ? (
-                <div className="p-12 rounded-3xl bg-[#111827] border border-[#1F2937] text-center max-w-2xl mx-auto">
-                    <User size={48} className="mx-auto text-[#4B5563] mb-4" />
-                    <p className="text-[#6B7280] text-lg font-medium mb-6">등록된 변호사 프로필이 없습니다</p>
-                    <button
-                        onClick={() => { setEditingProfileId(null); setIsProfileModalOpen(true); }}
-                        className="px-6 py-3 inline-flex items-center gap-2 bg-[#3563AE] text-white rounded-xl text-sm font-bold shadow-xl shadow-[#3563AE]/20 hover:bg-[#4375CA] hover:-translate-y-0.5 transition-all"
-                    >
-                        <Plus size={18} /> 첫 변호사 프로필 등록하기
-                    </button>
-                </div>
-            ) : (
-                <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
-                    {/* LEFT PANEL: INPUT FORM */}
-                    <div className="xl:col-span-4 flex flex-col gap-6 sticky top-6">
-                        <div className="p-6 rounded-3xl bg-[#111827] border border-[#1F2937] shadow-2xl flex flex-col relative overflow-hidden">
-                            <div className="absolute top-0 right-0 w-64 h-64 bg-[#3563AE]/10 rounded-full blur-3xl -mx-20 -my-20 pointer-events-none" />
-
-                            <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2 relative z-10">
-                                <span className="w-8 h-8 rounded-full bg-gradient-to-br from-[#3563AE] to-[#2851A3] flex items-center justify-center text-xs shadow-lg">1</span>
-                                포스팅 내용 입력
-                            </h2>
-
-                            <div className="space-y-6 relative z-10">
-                                {/* Lawyer Select */}
-                                <div>
-                                    <label className="block text-sm font-semibold text-[#D1D5DB] mb-2 flex justify-between">
-                                        변호사 선택
-                                        <button onClick={() => { setEditingProfileId(null); setIsProfileModalOpen(true); }} className="text-[#3563AE] text-xs font-bold hover:text-[#8BA9E6] flex items-center gap-1">
-                                            <Plus size={12} /> 추가
-                                        </button>
-                                    </label>
-                                    <div className="relative">
-                                        <select value={selectedId} onChange={e => handleLawyerChange(e.target.value)} className={`${ic} appearance-none cursor-pointer font-medium`}>
-                                            <option value="">담당 변호사 프로필을 선택하세요</option>
-                                            {profiles.map(p => (
-                                                <option key={p.id} value={p.id}>
-                                                    {p.lawyerName} ({p.officeName || "사무소 미등록"})
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#4B5563] pointer-events-none" />
-                                    </div>
-                                    {selectedId && (
-                                        <button onClick={() => { setEditingProfileId(selectedId); setIsProfileModalOpen(true); }} className="w-full mt-2 py-2 rounded-xl bg-[#1F2937]/50 text-[#9CA3B0] text-xs font-semibold hover:bg-[#1F2937] hover:text-white transition-colors flex justify-center items-center gap-2">
-                                            <Settings size={14} /> 프로필 사진 / 약력 수정하기
-                                        </button>
-                                    )}
-                                </div>
-
-                                <div className="h-px w-full bg-[#1F2937]" />
-
-                                {/* 글 선택 */}
-                                {selectedId && (
-                                    <div>
-                                        <label className="block text-sm font-semibold text-[#D1D5DB] mb-2 flex items-center gap-2">
-                                            발행된 글 선택
-                                            {postsLoading && <Loader2 size={12} className="animate-spin text-[#3563AE]" />}
-                                            <span className="text-[11px] text-[#6B7280] font-normal ml-auto">{posts.length}개</span>
-                                        </label>
-                                        <div className="relative">
-                                            <select
-                                                value={selectedPostId}
-                                                onChange={e => handlePostSelect(e.target.value)}
-                                                disabled={postsLoading || posts.length === 0}
-                                                className={`${ic} appearance-none cursor-pointer`}
-                                            >
-                                                <option value="">글을 선택하면 자동으로 채워집니다</option>
-                                                {posts.map(p => (
-                                                    <option key={p.id} value={p.id}>
-                                                        {p.title}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#4B5563] pointer-events-none" />
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div>
-                                    <label className="block text-sm font-semibold text-[#D1D5DB] mb-2">제목 <span className="text-[#6B7280] font-normal text-xs">(선택)</span></label>
-                                    <input type="text" value={postTitle} onChange={e => setPostTitle(e.target.value)}
-                                        placeholder="비우면 AI가 본문에서 자동 추출" className={ic} />
-                                </div>
-                                <div className="flex flex-col">
-                                    <label className="block text-sm font-semibold text-[#D1D5DB] mb-2 flex items-center justify-between">
-                                        본문 텍스트 *
-                                        {postContent && (
-                                            <span className="text-[11px] text-[#6B7280] font-normal">{postContent.length.toLocaleString()}자</span>
-                                        )}
-                                    </label>
-                                    <textarea value={postContent} onChange={e => setPostContent(e.target.value)}
-                                        placeholder="글을 위에서 선택하거나, 직접 본문을 붙여넣으세요."
-                                        rows={8}
-                                        className={`${ic} resize-none font-sans text-[13px] leading-relaxed`} />
-                                </div>
+    const inputClass = "w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-3 text-sm text-slate-100 outline-none focus:border-blue-400 disabled:opacity-50";
+    const ordered = BLOG_CARD_TYPES.filter((t) => jobs[t] || cards.some((c) => c.type === t));
+    return <div className="mx-auto max-w-[1440px] pb-20 text-slate-100">
+        <header className="mb-8 flex flex-wrap items-start justify-between gap-4">
+            <div><p className="mb-2 text-xs tracking-[.18em] text-blue-300">BLOG IMAGE STUDIO · V6</p>
+                <h1 className="text-3xl font-bold">원고에 맞는, 읽히는 이미지.</h1>
+                <p className="mt-3 text-sm leading-7 text-slate-400">사진은 자연스럽게. 한글과 정보는 정확하게.<br />썸네일부터 마지막 안내까지, 네이버 블로그에 넣을 이미지를 만듭니다.</p></div>
+            <button disabled={busy} onClick={() => { setEditingProfileId(selectedId || null); setProfileModal(true); }} className="flex items-center gap-2 rounded-lg border border-slate-700 px-4 py-3 text-sm disabled:opacity-40"><Settings size={16} /> 사진·로고 관리</button>
+        </header>
+        {error && <div role="alert" className="mb-5 rounded-lg border border-red-800 bg-red-950/40 p-4 text-sm text-red-200">{error}</div>}
+        <div className="grid items-start gap-7 xl:grid-cols-[370px_minmax(0,1fr)]">
+            <fieldset disabled={busy || loading} className="min-w-0 space-y-5 rounded-xl border border-slate-800 bg-slate-900 p-6">
+                <legend className="sr-only">원고 및 이미지 설정</legend>
+                <div className="flex items-center justify-between"><h2 className="font-semibold">1. 원고 준비</h2><button type="button" className="flex items-center gap-1 text-xs text-blue-300" onClick={() => { setEditingProfileId(null); setProfileModal(true); }}><Plus size={14} /> 변호사 등록</button></div>
+                <label className="block text-sm">변호사<select value={selectedId} onChange={(e) => void changeLawyer(e.target.value)} className={`${inputClass} mt-2`}><option value="">{loading ? "불러오는 중…" : "변호사를 선택하세요"}</option>{profiles.map((p) => <option key={p.id} value={p.id}>{p.lawyerName} · {p.officeName || "사무소 미등록"}</option>)}</select></label>
+                <label className="block text-sm">기존 원고 불러오기<select value={selectedPostId} disabled={postsLoading || !posts.length} onChange={(e) => { setSelectedPostId(e.target.value); const post = posts.find((p) => p.id === e.target.value); if (post) { setTitle(post.title); setContent(post.body || ""); clearResults(); } }} className={`${inputClass} mt-2`}><option value="">{postsLoading ? "원고 조회 중…" : "직접 입력하거나 원고를 선택하세요"}</option>{posts.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}</select></label>
+                <label className="block text-sm">제목<input value={title} maxLength={180} onChange={(e) => { setTitle(e.target.value); clearResults(); }} placeholder="원고 제목 그대로 사용합니다" className={`${inputClass} mt-2`} /></label>
+                <label className="block text-sm">본문<textarea value={content} maxLength={40000} onChange={(e) => { setContent(e.target.value); clearResults(); }} rows={10} placeholder="검수할 원고를 붙여넣어 주세요." className={`${inputClass} mt-2 resize-y leading-6`} /><span className="mt-1 block text-right text-xs text-slate-500">{content.length.toLocaleString()} / 40,000자</span></label>
+                <h2 className="border-t border-slate-800 pt-5 font-semibold">2. 사진과 구성</h2>
+                <label className="block text-sm">사진 방식<select value={photoSource} onChange={(e) => { setPhotoSource(e.target.value as BlogPhotoSource); clearResults(); }} className={`${inputClass} mt-2`}><option value="ai">주제에 맞는 AI 자료사진 · GPT Image 2</option><option value="office">등록된 실제 사무실 사진 · 이미지 생성 비용 없음</option></select></label>
+                {photoSource === "ai" && <label className="block text-sm">사진 품질<select value={quality} onChange={(e) => { setQuality(e.target.value as BlogImageQuality); clearResults(); }} className={`${inputClass} mt-2`}><option value="high">고품질 · 최종 발행용</option><option value="medium">표준 · 빠른 검토용</option></select></label>}
+                <label className="flex items-start gap-3 text-sm"><input type="checkbox" checked={includePhoto} onChange={(e) => { setIncludePhoto(e.target.checked); clearResults(); }} className="mt-1" /><span>본문 자료사진 1장 추가<span className="mt-1 block text-xs leading-5 text-slate-400">기본은 썸네일·정보 정리·요약 3장입니다. 추가 시 사진 생성 요청도 1회 늘어납니다.</span></span></label>
+                <div className="rounded-lg bg-slate-950 p-3 text-xs leading-6 text-slate-400">정보·요약은 원문에서만 추출합니다. 정리할 근거가 없으면 이유를 표시하고 건너뜁니다. 사진은 보통 수십 초~2분 이상 걸릴 수 있습니다.</div>
+                <button type="button" onClick={() => void generate()} disabled={busy || !selectedId || !content.trim()} className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-4 font-semibold text-white disabled:opacity-40">{busy ? <Loader2 size={18} className="animate-spin" /> : <ImageIcon size={18} />}{busy ? "이미지 만드는 중…" : `${includePhoto ? 4 : 3}장 이미지 만들기`}</button>
+            </fieldset>
+            <section className="min-w-0" aria-label="생성된 이미지">
+                <div className="mb-5 flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-semibold">3. 확인하고 저장</h2><p className="mt-1 text-xs text-slate-400">보이는 이미지가 그대로 저장됩니다. 문장·연락처 검수 후 발행해 주세요.</p></div>{cards.length > 0 && <button onClick={() => void downloadAll()} disabled={busy || saving} className="flex items-center gap-2 rounded-lg border border-slate-600 px-4 py-2.5 text-sm disabled:opacity-40"><Download size={16} />{saving ? "묶는 중…" : `${cards.length}장 ZIP 저장`}</button>}</div>
+                <div aria-live="polite" className="mb-4 text-sm text-blue-200">{busy ? `완료 ${cards.length}장 · 나머지 이미지를 만들고 있습니다.` : cards.length ? `${cards.length}장 준비됨` : ""}</div>
+                {!ordered.length && <div className="flex min-h-[460px] flex-col items-center justify-center rounded-xl border border-dashed border-slate-700 p-8 text-center"><ImageIcon size={42} className="mb-5 text-slate-600" /><p className="text-lg">글 사이에서, 독자가 한 번 더 이해하도록.</p><p className="mt-3 max-w-md text-sm leading-7 text-slate-400">사진은 썸네일에, 절차는 정보 카드에, 핵심은 마지막 요약에.<br />글 전체를 이미지로 반복하지 않습니다.</p></div>}
+                <div className="grid items-start gap-6 md:grid-cols-2">
+                    {ordered.map((type) => {
+                        const card = cards.find((c) => c.type === type); const job = jobs[type];
+                        return <article key={type} className="min-w-0 overflow-hidden rounded-xl border border-slate-800 bg-slate-900">
+                            <div className="flex items-center justify-between gap-2 p-4"><h3 className="text-sm font-semibold">{CARD_LABELS[type]}</h3><span className="text-xs text-slate-400">{card ? `${card.width} × ${card.height}` : job?.state === "running" ? "생성 중" : job?.state === "waiting" ? "대기" : ""}</span></div>
+                            {card ? <button className="block w-full cursor-zoom-in bg-[#f6f4ef]" onClick={() => setPreview(card)} aria-label={`${card.name} 크게 보기`}><img src={card.imageDataUrl} alt={card.altText} width={card.width} height={card.height} className="block h-auto w-full" /></button>
+                                : <div className="flex min-h-[240px] items-center justify-center bg-slate-950 p-6 text-center text-sm text-slate-400">{job?.state === "running" ? <Loader2 className="animate-spin" /> : job?.state === "waiting" ? "앞선 작업이 끝나면 시작합니다." : job?.state === "skipped" ? "원문 근거가 부족해 만들지 않았습니다." : "완성하지 못했습니다."}</div>}
+                            <div className="space-y-3 p-4"><p className="text-xs leading-5 text-slate-400">넣을 위치 · {CARD_PLACEMENTS[type]}</p>
+                                {job?.message && <p role={job.state === "error" ? "alert" : undefined} className="text-xs leading-6 text-amber-200">{job.message}{card && job.state === "error" ? " 이전 완성본은 그대로 보존했습니다." : ""}</p>}
+                                {card?.warnings.map((w) => <p key={w} className="text-xs leading-5 text-amber-200">{w}</p>)}
+                                <div className="flex flex-wrap gap-3">{card && <button onClick={() => download(card.imageDataUrl, `${card.name}_${fileStem}.png`)} className="flex items-center gap-1.5 text-sm text-blue-200"><Download size={15} /> PNG 저장</button>}
+                                    <button disabled={busy} onClick={() => void generate(type)} className="flex items-center gap-1.5 text-sm text-slate-300 disabled:opacity-40"><RefreshCw size={14} />{card ? "이 장 다시 만들기" : "다시 시도"}</button></div>
                             </div>
-
-                            <button onClick={handleGenerate} disabled={isGenerating || !selectedId || !postContent.trim()}
-                                className="w-full mt-6 py-4 rounded-2xl bg-gradient-to-r from-[#3563AE] to-[#6035AE] text-white text-base font-extrabold shadow-2xl shadow-[#3563AE]/30 hover:shadow-[#6035AE]/40 hover:-translate-y-1 disabled:opacity-50 disabled:translate-y-0 disabled:shadow-none disabled:cursor-not-allowed flex items-center justify-center gap-2 relative z-10 transition-all duration-300">
-                                {isGenerating ? (
-                                    <><Loader2 size={18} className="animate-spin" /> 코딩 중...</>
-                                ) : (
-                                    <><Wand2 size={20} /> ✨ 생성형 UI 카드 만들기</>
-                                )}
-                            </button>
-
-                            {isGenerating && generationMessage && (
-                                <p className="text-center text-xs text-[#9CA3B0] mt-4 animate-pulse">{generationMessage}</p>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* RIGHT PANEL: OUTPUT */}
-                    <div className="xl:col-span-8 flex flex-col gap-6">
-                        <div className="p-6 rounded-3xl bg-[#111827] border border-[#1F2937] shadow-xl min-h-[600px] flex flex-col">
-                            {(!isGenerating && cards.length === 0) && (
-                                <div className="flex-1 flex flex-col items-center justify-center text-[#4B5563]">
-                                    <Sparkles size={48} className="mb-4 text-[#1F2937]" />
-                                    <p className="text-sm font-medium">✨ &apos;생성형 UI 카드 만들기&apos;를 누르면 4장이 나옵니다.</p>
-                                    <p className="text-xs text-[#374151] mt-2">메인 썸네일 · 상황 이미지 · 정보 정리 · 요약·안내</p>
-                                </div>
-                            )}
-
-                            {isGenerating && (
-                                <div className="flex-1 flex flex-col items-center justify-center text-[#3563AE]">
-                                    <div className="w-16 h-16 rounded-full bg-gradient-to-r from-[#3563AE] to-[#6035AE] flex items-center justify-center text-white shadow-lg shadow-[#3563AE]/30 ring-4 ring-[#3563AE]/20 animate-pulse mb-6">
-                                        <Code size={24} className="animate-pulse" />
-                                    </div>
-                                    <h3 className="text-xl font-bold text-white mb-2">프리미엄 렌더링 진행 중</h3>
-                                    <p className="text-[#9CA3B0] text-sm">Claude Sonnet 5 + GPT-Image-1.5가 3장을 동시에 생성 중...</p>
-                                </div>
-                            )}
-
-                            {cards.length > 0 && !isGenerating && (
-                                <>
-                                    <div className="flex items-center justify-between mb-6">
-                                        <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                                            <span className="w-8 h-8 rounded-full bg-[#10B981]/20 text-[#10B981] flex items-center justify-center text-xs shadow-lg"><Check size={16} /></span>
-                                            생성형 디자인 갤러리
-                                        </h2>
-                                        <button onClick={handleDownloadAll}
-                                            className="px-5 py-2.5 rounded-xl bg-[#10B981]/10 text-[#10B981] text-sm font-bold shadow-lg shadow-[#10B981]/5 hover:bg-[#10B981]/20 transition-all flex items-center gap-2">
-                                            <Download size={16} /> 안전하게 전체 세트 다운로드
-                                        </button>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        {cards.map((card, idx) => (
-                                            <div key={idx} className="flex flex-col gap-3">
-                                                <div className="flex items-center justify-between px-2">
-                                                    <h3 className="text-sm font-bold text-white">{card.name}</h3>
-                                                    <span className="text-[10px] uppercase font-mono bg-[#1F2937] text-[#9CA3B0] px-2 py-1 rounded">{card.type}</span>
-                                                </div>
-
-                                                {/* Preview Container: Visually scaled down so 800px fits nicely */}
-                                                <div className="relative w-full aspect-square rounded-2xl bg-[#060810] border border-[#1F2937] overflow-hidden group">
-                                                    {/* We use an arbitrary scaling mechanism based on container size vs 800px.
-                                                        If we assume grid col is ~250px wide, and content is 800px -> scale is 250/800 = ~0.3125.
-                                                        We can use CSS container queries or just hardcode a transform scale. 
-                                                        Actually, tailwind CSS container isn't always reliable. Let's force a fixed scale for preview. */}
-                                                    <div className="absolute top-0 left-0 w-[800px] h-[800px] transform origin-top-left scale-[0.3] sm:scale-[0.35] md:scale-[0.35] lg:scale-[0.27] xl:scale-[0.32] 2xl:scale-[0.38] pointer-events-none">
-                                                        {/* This inner div is what gets captured by htmlToImage */}
-                                                        <div
-                                                            ref={el => { cardsRef.current[card.type] = el; }}
-                                                            className="w-full h-full bg-white flex flex-col font-sans"
-                                                            dangerouslySetInnerHTML={{ __html: card.html }}
-                                                        />
-                                                    </div>
-
-                                                    {/* Hover Overlay */}
-                                                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 backdrop-blur-sm transition-opacity duration-300 flex items-center justify-center gap-3 z-20">
-                                                        <button onClick={() => setPreviewCard(card)}
-                                                            className="w-12 h-12 rounded-full bg-white/20 text-white flex items-center justify-center hover:bg-white/40 hover:scale-110 transition-all shadow-lg">
-                                                            <Eye size={20} />
-                                                        </button>
-                                                        <button onClick={() => handleDownloadOne(card)}
-                                                            className="w-12 h-12 rounded-full bg-[#3563AE] text-white flex items-center justify-center hover:bg-[#4375CA] hover:scale-110 transition-all shadow-lg shadow-[#3563AE]/30">
-                                                            <Download size={20} />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    </div>
+                        </article>;
+                    })}
                 </div>
-            )}
-
-            {/* Preview Modal */}
-            {previewCard && (
-                <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex flex-col items-center justify-center z-50 p-8"
-                    onClick={() => setPreviewCard(null)}>
-                    {/* Raw actual size but capped by max-height of viewport */}
-                    <div className="relative overflow-auto max-h-full max-w-full rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] bg-white"
-                        onClick={e => e.stopPropagation()}>
-                        <div
-                            style={{ width: '800px', height: '800px', transform: 'scale(1)', transformOrigin: 'center' }}
-                            // On small screens we'd shrink it, but for a simple preview we just use max-w-full.
-                            className="max-w-[90vw] sm:max-w-none ml-auto mr-auto"
-                            dangerouslySetInnerHTML={{ __html: previewCard.html }}
-                        />
-                    </div>
-
-                    <div className="absolute top-4 right-4 flex gap-2">
-                        <button onClick={async (e) => {
-                            e.stopPropagation();
-                            await handleDownloadOne(previewCard);
-                        }}
-                            className="px-5 py-2.5 rounded-xl bg-[#10B981] text-white text-sm font-bold hover:bg-[#059669] hover:scale-105 transition-all shadow-lg flex items-center gap-2">
-                            <Download size={16} /> 안전 다운로드
-                        </button>
-                        <button onClick={() => setPreviewCard(null)}
-                            className="w-10 h-10 rounded-xl bg-black/50 text-white flex items-center justify-center hover:bg-black/70 hover:scale-105 transition-all ring-1 ring-white/20">
-                            <X size={20} />
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            <ProfileManagerModal
-                isOpen={isProfileModalOpen}
-                profileId={editingProfileId}
-                onClose={() => setIsProfileModalOpen(false)}
-                onSuccess={() => fetchProfiles()}
-            />
+            </section>
         </div>
-    );
+        {preview && <div role="dialog" aria-modal="true" aria-label={`${preview.name} 미리보기`} className="fixed inset-0 z-50 overflow-y-auto bg-black/90 p-5" onClick={() => setPreview(null)}><div className="mx-auto max-w-[900px]" onClick={(e) => e.stopPropagation()}><div className="sticky top-0 mb-4 flex items-center justify-between bg-slate-950 p-3"><p>{preview.name}</p><div className="flex gap-4"><button onClick={() => download(preview.imageDataUrl, `${preview.name}_${fileStem}.png`)} aria-label="미리보기 이미지 저장"><Download /></button><button autoFocus onClick={() => setPreview(null)} aria-label="미리보기 닫기"><X /></button></div></div><img src={preview.imageDataUrl} alt={preview.altText} width={preview.width} height={preview.height} className="h-auto w-full" /></div></div>}
+        <ProfileManagerModal isOpen={profileModal} profileId={editingProfileId} onClose={() => setProfileModal(false)} onSuccess={() => { clearResults(); void fetchProfiles(); }} />
+    </div>;
 }

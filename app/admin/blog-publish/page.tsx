@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Check, Copy, Loader2, Lightbulb, PenLine, Save, ImageIcon } from "lucide-react";
 import { toNaverHtml } from "@/lib/blog-naver-html";
-import * as htmlToImage from "html-to-image";
+import { cardRequestProfile, type BlogImageCard } from "@/lib/blog-images/card-types";
 
 interface BlogSetting {
     id: string;
@@ -56,11 +56,10 @@ export default function BlogPublishPage() {
     const [polished, setPolished] = useState(false);
     const [savedId, setSavedId] = useState<string | null>(null);
 
-    const [cards, setCards] = useState<{ type: string; name: string; html: string }[]>([]);
+    const [cards, setCards] = useState<BlogImageCard[]>([]);
     const [cardUrls, setCardUrls] = useState<{ type: string; url: string }[]>([]);
     const [imageCount, setImageCount] = useState(4);
     const [progress, setProgress] = useState("");
-    const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
     const [step, setStep] = useState<Step>("idle");
     const [error, setError] = useState("");
@@ -227,14 +226,14 @@ export default function BlogPublishPage() {
                 : ["thumbnail", "info", "contact"];
 
             const skipped: string[] = [];
-            setProgress(`카드 ${types.length}장 만드는 중… (~20초)`);
+            setProgress(`카드 ${types.length}장 만드는 중… (사진은 수십 초~2분 이상 걸릴 수 있습니다)`);
             const results = await Promise.all(
                 types.map(async (ct) => {
                     const r = await fetch("/api/admin/blog-images/generate-design", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         credentials: "include",
-                        body: JSON.stringify({ profile: fullProfile, title: t, content: b, cardType: ct }),
+                        body: JSON.stringify({ profile: cardRequestProfile(fullProfile, ct), title: t, content: b, cardType: ct }),
                     });
                     if (!r.ok) {
                         // 422 skipped 는 실패가 아니다 — 본문에 도표로 만들 구조가
@@ -249,11 +248,11 @@ export default function BlogPublishPage() {
                     return d.card || null;
                 })
             );
-            const made = results.filter(Boolean) as { type: string; name: string; html: string }[];
+            const made = results.filter(Boolean) as BlogImageCard[];
             if (made.length === 0) throw new Error(skipped[0] || "카드를 만들지 못했습니다.");
             if (skipped.length) setNotice(skipped.join(" / "));
             setCards(made);
-            setProgress("이미지로 변환하는 중…");
+            setProgress("완성 이미지 저장 준비 중…");
         } catch (e) {
             setError(e instanceof Error ? e.message : "카드 생성에 실패했습니다.");
             setStep("idle");
@@ -261,14 +260,12 @@ export default function BlogPublishPage() {
         }
     };
 
-    // 카드 HTML이 화면에 그려지면 PNG로 바꿔 업로드한다.
+    // 서버에서 완성한 PNG를 그대로 업로드한다. 화면·폰트·대기시간에 의존하지 않는다.
     useEffect(() => {
         if (cards.length === 0 || !savedId || step !== "cards") return;
         let cancelled = false;
         const run = async () => {
             try {
-                await new Promise((r) => setTimeout(r, 600)); // 폰트·이미지 로딩 대기
-
                 // 한 장씩 만들어 바로 올린다.
                 //
                 // 전에는 4장을 전부 base64 로 모아 한 요청에 담았다. 4:5 판형에
@@ -276,28 +273,15 @@ export default function BlogPublishPage() {
                 // 서버가 JSON 이 아닌 "Request Entity Too Large" 를 돌려줘서
                 // 화면에는 "Unexpected token 'R'" 이라는 엉뚱한 에러가 떴다.
                 //
-                // pixelRatio 도 1.5 로 낮췄다. 네이버 본문 표시 폭이 800px 안팎이라
-                // 1200px 이면 충분하고, 2배는 용량만 키운다.
+                // V6에서는 서버가 폰트·배경까지 완성한 PNG를 반환한다.
+                // 여기서는 재렌더링·축소하지 않고 한 장씩 그대로 저장한다.
                 let urls: { type: string; url: string }[] = [];
                 for (let i = 0; i < cards.length; i++) {
                     if (cancelled) return;
                     const c = cards[i];
-                    const node = cardRefs.current[c.type];
-                    if (!node) continue;
-
-                    // 크기를 하드코딩하지 않는다.
-                    // DNA 판형이 4:5(800x1000)인 변호사는 800x800 으로 잘려 있었다.
-                    const w = node.offsetWidth || 800;
-                    const h = node.offsetHeight || 800;
-
                     setProgress(`이미지 올리는 중… ${i + 1}/${cards.length}`);
-                    let dataUrl = await htmlToImage.toPng(node, { quality: 1, pixelRatio: 1.5, width: w, height: h });
-
-                    // 사진이 들어간 카드는 크기 편차가 크다. 한계에 근접하면 한 번 더 줄인다.
-                    // base64 는 원본보다 약 33% 크므로 4MB 를 기준으로 잡는다.
-                    if (dataUrl.length > 4_000_000) {
-                        dataUrl = await htmlToImage.toPng(node, { quality: 1, pixelRatio: 1, width: w, height: h });
-                    }
+                    const dataUrl = c.imageDataUrl;
+                    if (!dataUrl?.startsWith("data:image/png;base64,")) throw new Error("완성 이미지가 없습니다. 카드를 다시 생성해 주세요.");
 
                     const res = await fetch("/api/admin/blog-posts/images", {
                         method: "POST",
@@ -593,17 +577,6 @@ export default function BlogPublishPage() {
                 </div>
             )}
 
-            {/* PNG로 찍기 위한 숨은 렌더 영역 */}
-            <div style={{ position: "fixed", left: -20000, top: 0, pointerEvents: "none" }}>
-                {cards.map((c) => (
-                    <div
-                        key={c.type}
-                        ref={(el) => { cardRefs.current[c.type] = el; }}
-                        style={{ width: "max-content" }}
-                        dangerouslySetInnerHTML={{ __html: c.html }}
-                    />
-                ))}
-            </div>
         </div>
     );
 }

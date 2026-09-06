@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "smoke:monitor": "node scripts/monitor-smoke.js"
+    "smoke:monitor": "node scripts/monitor-smoke.js",
+    "test:blog-images": "node scripts/test-blog-images.cjs"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.3.0",

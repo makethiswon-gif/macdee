@@ -71,7 +71,7 @@ tiers      구간         처벌 수위, 금액 구간처럼 범위가 나뉘는
 - 법정 기준(형량·기한)은 본문에 명시된 것만. 일반 상식으로 채우지 마세요.
 
 [분량]
-- 항목은 3~5개. 6개 이상이면 중요한 것만 남기세요.
+- 항목은 2~5개. 6개 이상이면 중요한 것만 남기세요.
 - label 은 공백 포함 22자 이내. note 는 34자 이내. 카드에 들어가야 합니다.
 - heading 은 18자 이내. 글 제목을 그대로 반복하지 마세요.
 
@@ -119,7 +119,7 @@ const str = (v: unknown, max: number): string | null => {
 };
 
 /** 항목 수 상한. 6개까지 받고 렌더러가 글자를 줄여 맞춘다. */
-const MIN_ROWS = 3;
+const MIN_ROWS = 2;
 const MAX_ROWS = 6;
 
 export function parseInfographicResult(raw: string): ParseResult {
@@ -133,6 +133,7 @@ export function parseInfographicResult(raw: string): ParseResult {
     let obj: Record<string, unknown>;
     try {
         obj = JSON.parse(raw.slice(start, end + 1));
+        if (!obj || typeof obj !== "object" || Array.isArray(obj)) return { ok: false, reason: "JSON 객체가 아님" };
     } catch {
         return { ok: false, reason: "JSON 파싱 실패(잘렸을 가능성)" };
     }
@@ -149,6 +150,10 @@ export function parseInfographicResult(raw: string): ParseResult {
         const out: T[] = [];
         for (const row of v) {
             if (typeof row !== "object" || !row) { bad = `${field} 항목이 객체가 아님`; return null; }
+            // A long note can contain an exception. Reject it instead of silently dropping it.
+            if ("note" in row && row.note !== undefined && row.note !== null && row.note !== "" && !str(row.note, LIM.note)) {
+                bad = `${field}의 설명이 너무 길거나 형식이 맞지 않음`; return null;
+            }
             const m = map(row as Record<string, unknown>);
             if (!m) { bad = `${field} 항목의 글자수가 상한을 넘음`; return null; }
             out.push(m);

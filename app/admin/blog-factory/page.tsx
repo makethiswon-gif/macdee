@@ -8,7 +8,7 @@
 //
 // 배치 생성은 기존 API 를 그대로 오케스트레이션한다:
 //   blog-posts/topics → claude-blog-write → blog-posts(POST)
-//   → blog-images/generate-design → html-to-image → blog-posts/images
+//   → blog-images/generate-design (완성 PNG) → blog-posts/images
 // 발행은 이 화면이 하지 않는다 — 승인(approved)까지가 이 화면의 일이고,
 // 네이버는 로컬 발행기(publisher/publish.mjs watch)가, 맥디 블로그는
 // sync-site API 가 이어받는다. 검수 없는 자동 발행 경로는 만들지 않는다.
@@ -33,7 +33,7 @@ import {
 } from "lucide-react";
 import { toNaverHtml } from "@/lib/blog-naver-html";
 import { BLOG_FACTORY_SQL } from "@/lib/blog-factory-sql";
-import * as htmlToImage from "html-to-image";
+import { cardRequestProfile, type BlogImageCard } from "@/lib/blog-images/card-types";
 
 /* ── 타입 ── */
 
@@ -94,20 +94,6 @@ const post = (path: string, body: unknown) =>
 
 const patch = (path: string, body: unknown) =>
     api(path, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-
-// 카드 HTML → PNG. 배치에서 순차 호출되므로 임시 노드를 직접 붙였다 뗀다.
-async function rasterize(html: string): Promise<string> {
-    const holder = document.createElement("div");
-    holder.setAttribute("style", "position:fixed;left:-20000px;top:0;width:800px;height:800px;pointer-events:none;");
-    holder.innerHTML = html;
-    document.body.appendChild(holder);
-    try {
-        await new Promise((r) => setTimeout(r, 600)); // 폰트·이미지 로딩 대기
-        return await htmlToImage.toPng(holder, { quality: 1, pixelRatio: 2, width: 800, height: 800 });
-    } finally {
-        document.body.removeChild(holder);
-    }
-}
 
 const STATUS_LABEL: Record<Post["status"], string> = {
     draft: "원고만",
@@ -258,24 +244,28 @@ export default function BlogFactoryPage() {
             if (!fullProfile) throw new Error("변호사 상세 정보를 불러오지 못했습니다.");
 
             const types = imageCount >= 4 ? ["thumbnail", "illustration", "info", "contact"] : ["thumbnail", "info", "contact"];
-            const cards: { type: string; html: string }[] = [];
+            const cards: BlogImageCard[] = [];
             for (const t of types) {
-                const d = await post("/api/admin/blog-images/generate-design", {
-                    profile: fullProfile,
-                    title,
-                    content: body,
-                    cardType: t,
+                const response = await fetch("/api/admin/blog-images/generate-design", {
+                    method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ profile: cardRequestProfile(fullProfile, t), title, content: body, cardType: t }),
                 });
-                if (d.card?.html) cards.push({ type: t, html: d.card.html });
+                const d = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    if (d.skipped) continue;
+                    throw new Error(d.error || `카드 생성 실패 (${response.status})`);
+                }
+                if (d.card?.imageDataUrl) cards.push(d.card);
             }
             if (cards.length === 0) throw new Error("카드를 만들지 못했습니다.");
 
-            const shots: { type: string; dataUrl: string }[] = [];
-            for (const c of cards) {
-                shots.push({ type: c.type, dataUrl: await rasterize(c.html) });
+            for (let i = 0; i < cards.length; i++) {
+                const c = cards[i];
+                await post("/api/admin/blog-posts/images", {
+                    postId, image: { type: c.type, dataUrl: c.imageDataUrl }, index: i, total: cards.length,
+                });
             }
-            await post("/api/admin/blog-posts/images", { postId, images: shots });
-            return shots.length;
+            return cards.length;
         },
         []
     );
