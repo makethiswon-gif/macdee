@@ -17,10 +17,17 @@ import type { ArtDirection, EditorialStyle } from "./visual-plan-types";
 
 export type PaletteKey = ArtDirection["palette"];
 
+export type AccentShape = "dash" | "vbar" | "dots";
+export type MastheadStyle = "rules" | "block";
+
 export interface MagazineIdentity {
     palette: PaletteKey;
     typography: "serif" | "sans";
     style: EditorialStyle;
+    /** 제목 위 장치의 형태 — 팔레트가 겹쳐도 골격이 다르게 보이게 하는 축 */
+    accentShape: AccentShape;
+    /** 마스트헤드 형식 — 이중 괘선 vs 킥커 박스 */
+    masthead: MastheadStyle;
     /** 로그·관리화면용 한 줄 */
     label: string;
 }
@@ -63,13 +70,17 @@ function paletteFromBrand(brandColor: string | undefined): PaletteKey | null {
     if (!c) return null;
     if (c.s < 0.18 || c.l < 0.12 || c.l > 0.92) return null;
     const h = c.h;
-    if (h < 45 || h >= 335) return "vermilion";  // 빨강·주황·자주 초입
-    if (h < 160) return "forest";                 // 노랑·초록
-    if (h < 265) return "cobalt";                 // 청록·파랑
-    return "aubergine";                           // 보라·자홍
+    if (h < 15 || h >= 340) return "vermilion";
+    if (h < 45) return "amber";
+    if (h < 80) return "olive";
+    if (h < 150) return "forest";
+    if (h < 195) return "teal";
+    if (h < 250) return "cobalt";
+    if (h < 300) return "aubergine";
+    return "burgundy";
 }
 
-const PALETTES: PaletteKey[] = ["cobalt", "vermilion", "forest", "aubergine", "graphite"];
+const PALETTES: PaletteKey[] = ["cobalt", "vermilion", "forest", "aubergine", "graphite", "amber", "burgundy", "teal", "slate", "olive"];
 
 export function getMagazineIdentity(profile: Pick<EditorialProfile, "id" | "lawyerName" | "brandColor" | "dnaSalt">): MagazineIdentity {
     // dna_salt: 두 변호사의 조합이 겹칠 때 관리화면에서 갈라내는 손잡이.
@@ -79,12 +90,21 @@ export function getMagazineIdentity(profile: Pick<EditorialProfile, "id" | "lawy
     // 축마다 시드를 분리해 서로 상관이 생기지 않게 한다
     const typography: "serif" | "sans" = fnv1a(key, 0x9e3779b1) % 2 === 0 ? "serif" : "sans";
     const style: EditorialStyle = fnv1a(key, 0x85ebca77) % 2 === 0 ? "contrast" : "paper";
-    return { palette, typography, style, label: `${palette} · ${typography} · ${style}` };
+    // 구조 축 — 팔레트가 우연히 겹쳐도 지면의 골격이 다르게 보이게 한다
+    const accentShape: AccentShape = (["dash", "vbar", "dots"] as const)[fnv1a(key, 0x6c62272e) % 3];
+    const masthead: MastheadStyle = fnv1a(key, 0x41c64e6d) % 2 === 0 ? "rules" : "block";
+    return { palette, typography, style, accentShape, masthead, label: `${palette} · ${typography} · ${style} · ${accentShape}/${masthead}` };
 }
 
 /** 기획 프롬프트에 붙이는 시리즈 규정. 기획 모델이 이 지면 안에서 장면을 설계하게 한다. */
+const PALETTE_WORDS: Record<PaletteKey, string> = {
+    cobalt: "잉크블루·아이보리·라임", vermilion: "버밀리언·차콜·크림", forest: "깊은 녹색·페일옐로",
+    aubergine: "가지색·라일락", graphite: "차콜·실버·라임", amber: "호박색·짙은 갈색·크림",
+    burgundy: "버건디·장미빛 크림·골드", teal: "청록·아이스그린·샛노랑", slate: "청회색·코랄", olive: "올리브·모래빛·오렌지",
+};
+
 export function identityDirective(id: MagazineIdentity): string {
-    return `\n이 사무소의 시리즈 지면 규정(변경 불가): palette는 반드시 "${id.palette}", typography는 반드시 "${id.typography}". ` +
+    return `\n이 사무소의 시리즈 지면 규정(변경 불가): palette는 반드시 "${id.palette}"(${PALETTE_WORDS[id.palette]}), typography는 반드시 "${id.typography}". ` +
         `콘셉트와 장면은 자유롭게 설계하되 이 팔레트의 배경·빛·재질 안에서 성립해야 한다.`;
 }
 

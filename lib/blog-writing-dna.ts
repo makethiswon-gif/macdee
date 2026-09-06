@@ -14,6 +14,7 @@ export interface WritingTrait {
 
 export interface WritingDNA {
     voice: WritingTrait;            // 문체 — 변호사 고정
+    temperature: WritingTrait;      // 온도 — 변호사 고정. 어미 변주·독자 호명의 세기
     heading: WritingTrait;          // 소제목 형식 — 변호사 고정
     emphasis: EmphasisDensity;      // 강조 밀도 — 변호사 고정
     structures: WritingTrait[];     // 배정된 본문 구조 2~3개 — 이 안에서 글마다 선택
@@ -48,6 +49,21 @@ const VOICES: WritingTrait[] = [
     { name: "대화체 상담", spec: "의뢰인이 실제로 한 말을 큰따옴표로 자주 인용하고, 그 말에 답하는 형식으로 전개한다. 되묻는 문장을 섞는다." },
     { name: "절제된 전문가", spec: "수식어를 거의 쓰지 않는다. 조문과 기준 중심으로 건조하게. 문장이 짧고 단정적이다." },
     { name: "회고형", spec: "지나간 사건을 돌아보며 쓰는 어조. \"그때는\", \"돌이켜보면\" 같은 시점 이동을 쓴다. 사건의 전개를 따라간다." },
+];
+
+// 온도 — "AI 티"의 실체는 ~습니다 100% 단조와 빈틈없는 밀도였다.
+// 형용사(따뜻하게)는 모델이 못 지키므로 회수로 지정한다. 윤문 가드가 실측 검증한다.
+const TEMPERATURES: WritingTrait[] = [
+    {
+        name: "차분",
+        spec: "기본 어미는 ~합니다. 글 전체에서 3~5회만 ~죠/~했죠(공유된 이해), ~인데요(화제 전환), ~거든요(이유 귀띔)를 쓴다. "
+            + "법 조문·형량·기한을 말하는 문장에는 쓰지 않는다(정보는 단정 유지). 한 문단에 1회를 넘기지 않는다.",
+    },
+    {
+        name: "친근",
+        spec: "기본 어미는 ~합니다. 글 전체에서 6~9회 ~죠/~했죠, ~인데요, ~거든요, ~겁니다(전망)를 섞는다. "
+            + "법 조문·형량·기한 문장에는 쓰지 않는다. 한 문단에 1회까지. 독자 호명 문장에서는 특히 부드럽게.",
+    },
 ];
 
 const HEADINGS: WritingTrait[] = [
@@ -91,6 +107,7 @@ export function getWritingDNA(profileId: string, salt = "", postSeed = ""): Writ
 
     // ── 변호사 고정 축 ──
     const voice = VOICES[fnv1a(key, 0x811c9dc5) % VOICES.length];
+    const temperature = TEMPERATURES[fnv1a(key, 0x94d049bb) % TEMPERATURES.length];
     const heading = HEADINGS[fnv1a(key, 0x9e3779b1) % HEADINGS.length];
     const emphasis = EMPHASIS[fnv1a(key, 0x85ebca77) % EMPHASIS.length];
     const lengthCenter = LENGTH_CENTERS[fnv1a(key, 0xc2b2ae35) % LENGTH_CENTERS.length];
@@ -116,14 +133,22 @@ export function getWritingDNA(profileId: string, salt = "", postSeed = ""): Writ
     // 카드 종류가 썸네일·상황·정보·요약 넷뿐이라 3~4장 사이에서만 흔든다.
     const imageCount = 3 + (fnv1a(key + "|" + postSeed, 0x9e3779b9) % 2); // 3~4
 
-    return { voice, heading, emphasis, structures, structure, targetLength, imageCount };
+    return { voice, temperature, heading, emphasis, structures, structure, targetLength, imageCount };
 }
 
 /** 원고 생성 프롬프트에 끼워 넣을 지시문. */
 export function dnaDirective(dna: WritingDNA): string {
-    const { voice, heading, emphasis, structure, targetLength } = dna;
+    const { voice, temperature, heading, emphasis, structure, targetLength } = dna;
     return `[이 변호사의 글쓰기 DNA — 아래를 이 글의 기본값으로 삼으세요]
 - 문체 "${voice.name}": ${voice.spec}
+- 온도 "${temperature.name}": ${temperature.spec}
+
+[사람의 리듬 — 회수를 지키세요. 밀도가 완벽하면 오히려 기계 티가 납니다]
+- 숨 고르기: 소제목 구간마다 1개, 정보가 없는 짧은 문장을 둡니다. 예: "여기까지는 교과서 이야기입니다.", "많이들 놀라시는 대목입니다." (예시 그대로 쓰지 말 것)
+- 독자 호명: 도입 외에 본문 중간 1회 + 마무리 1회, 읽는 사람의 지금 상태를 짚습니다. 예: "지금 통장 내역부터 확인하고 계신다면 방향은 맞습니다."
+- 정직 신호: 글 전체에서 정확히 1회, 변호사에게 불리해 보이는 솔직한 말을 합니다. 예: "이 경우라면 소송보다 내용증명 한 장이 낫습니다.", "이 방법이 안 통하는 사례도 있습니다."
+- 병렬을 완벽하게 만들지 마세요. 목록 항목의 길이와 문형이 조금씩 달라야 사람 글입니다.
+
 - 소제목 형식 "${heading.name}": ${heading.spec} 모든 소제목을 이 형식으로 통일하세요.
 - 본문 구조 "${structure.name}": ${structure.spec}
 - 강조 밀도 "${emphasis.name}": ==형광펜== ${emphasis.highlight[0]}~${emphasis.highlight[1]}곳, __밑줄__ ${emphasis.underline[0]}~${emphasis.underline[1]}곳, **굵게** ${emphasis.bold}곳 이내.

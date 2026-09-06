@@ -10,6 +10,13 @@ export const MAGAZINE_PALETTES = {
     forest: { ink: "#163B32", paper: "#F1F2DB", accent: "#D1DF85", field: "#34634F", muted: "#4D6257" },
     aubergine: { ink: "#322438", paper: "#F4EEF4", accent: "#D3B8E9", field: "#624469", muted: "#68586D" },
     graphite: { ink: "#222727", paper: "#F0F0E9", accent: "#D5EB75", field: "#535D5A", muted: "#58605A" },
+    // V10.2 — 5종 추가. 실측에서 등록 변호사 다수의 브랜드색이 무채색이라 해시로
+    // 갈리는데, 풀이 5종이면 활동 8명 중 충돌이 잦았다. 10종이면 체감 충돌이 준다.
+    amber: { ink: "#2A1F12", paper: "#F7EFDF", accent: "#FFB53F", field: "#A6690F", muted: "#6E5A3C" },
+    burgundy: { ink: "#351520", paper: "#F6EDE9", accent: "#F2B33D", field: "#8C2540", muted: "#6E5560" },
+    teal: { ink: "#0F2F2C", paper: "#EDF3EE", accent: "#FFCC5C", field: "#1F6E63", muted: "#4C6660" },
+    slate: { ink: "#202833", paper: "#EEF0F3", accent: "#FF7A59", field: "#4A6076", muted: "#5B6672" },
+    olive: { ink: "#23281A", paper: "#F4F3E4", accent: "#FF8C42", field: "#5A6B2F", muted: "#5F6650" },
 } as const;
 export const DEFAULT_DIRECTION: ArtDirection = { concept: "핵심을 크게 보는 지면", rationale: "이전 구성안과의 호환을 위한 기본 편집", alternatives: [],
     palette: "cobalt", typography: "serif", composition: "immersive", motif: "구체적 대상의 대비" };

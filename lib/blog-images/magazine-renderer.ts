@@ -8,6 +8,7 @@ import { ContactProfileError } from "./contact-renderer";
 import { cardPlacement } from "./visual-plan-types";
 import type { BriefRenderOptions } from "./brief-renderer";
 import { DEFAULT_DIRECTION, MAGAZINE_PALETTES, magazineFonts, type, typeHeight, fitTitle, rect, rule } from "./magazine-design";
+import { getMagazineIdentity } from "./magazine-identity";
 
 // ══ V10 지면 문법 ══
 //
@@ -54,6 +55,9 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
         const prepared = await prepareMagazineLogo(await readBrandAsset(profile.logoImage));
         logo = await decode(prepared.bytes); lightLogo = prepared.lightInk;
     } catch { warnings.push("등록 로고를 읽지 못해 사무소명을 표시했습니다."); }
+    // 구조 축(액센트 형태·마스트헤드)은 변호사 정체성에서 온다.
+    // 팔레트가 우연히 겹친 두 변호사도 지면의 골격이 다르게 보인다.
+    const identity = getMagazineIdentity(profile);
     const brand = [profile.officeName, profile.lawyerName].filter(Boolean).join(" · ");
     const folio = `${FOLIO[card.type]} / 04`;
 
@@ -61,14 +65,30 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
     const mastheadH = 120;
     const masthead = (c: SKRSContext2D, light: boolean, label: string) => {
         const fg = light ? p.paper : p.ink;
-        type(c, label, P, 46, I - 200, 24, fg, "sans");
+        if (identity.masthead === "block") {
+            // 킥커 박스형 — 라벨이 반전 박스 안에 들어간다. 괘선형과 골격이 다른 서명.
+            const boxW = Math.min(I - 220, label.length * 25 + 40);
+            rect(c, P, 32, boxW, 46, light ? p.paper : p.ink);
+            type(c, label, P + 20, 43, boxW - 30, 23, light ? p.ink : p.paper, "sans");
+        } else {
+            type(c, label, P, 46, I - 200, 24, fg, "sans");
+        }
         c.textAlign = "right";
         type(c, folio, W - P, 49, 180, 21, light ? `${p.paper}B3` : p.muted, "body");
         c.textAlign = "left";
-        rule(c, P, 94, I, light ? p.paper : p.ink, 5);
-        rule(c, P, 105, I, light ? "#FFFFFF59" : `${p.ink}40`, 1);
+        if (identity.masthead === "block") {
+            rule(c, P, 103, I, light ? "#FFFFFF59" : `${p.ink}55`, 1);
+        } else {
+            rule(c, P, 94, I, light ? p.paper : p.ink, 5);
+            rule(c, P, 105, I, light ? "#FFFFFF59" : `${p.ink}40`, 1);
+        }
     };
-    const dash = (c: SKRSContext2D, x: number, y: number) => rect(c, x, y, 30, 6, p.accent);
+    // 제목 위 장치 — 형태가 변호사 축이다 (dash / vbar / dots)
+    const dash = (c: SKRSContext2D, x: number, y: number) => {
+        if (identity.accentShape === "vbar") rect(c, x, y - 12, 6, 38, p.accent);
+        else if (identity.accentShape === "dots") { rect(c, x, y, 10, 10, p.accent); rect(c, x + 16, y, 10, 10, p.accent); }
+        else rect(c, x, y, 30, 6, p.accent);
+    };
     const footerH = 96;
     const footer = (c: SKRSContext2D, y: number, light = false) => {
         const darkRail = logo ? lightLogo : light;
