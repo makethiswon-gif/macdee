@@ -14,7 +14,7 @@ export interface BlogImageCard {
     placement: string;
     model?: string;
     warnings: string[];
-    designVersion: "editorial-v6" | "editorial-v7" | "editorial-v8" | "editorial-v9";
+    designVersion: "editorial-v6" | "editorial-v7" | "editorial-v8" | "editorial-v9" | "editorial-v10";
     designReview?: { status: "pass" | "revise" | "unavailable"; model: string; score?: number; summary: string; issues: string[] };
     contactActions?: { label: string; display: string; href: string }[];
     // Optional, compressed original art permits typography/layout changes without image-model calls.

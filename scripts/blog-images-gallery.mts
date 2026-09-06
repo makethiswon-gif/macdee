@@ -90,6 +90,17 @@ for (const lawyer of LAWYERS) {
     lawyer.profileImages = [portrait];
     const identity = getMagazineIdentity(lawyer);
     const plan = fixturePlan();
+    // 마지막 변호사는 숫자 스파인(checklist) 검증용
+    if (lawyer.id === "t-green") {
+        const infoCard = plan.cards.find((x) => x.type === "info")!;
+        infoCard.infographic = { kind: "checklist", heading: "상담 전 준비 서류", items: [
+            { label: "처분서 원본과 송달 봉투", note: "송달일 확인이 첫 단추" },
+            { label: "영업 관련 인허가증 사본", note: "" },
+            { label: "매출·계약 자료", note: "회복하기 어려운 손해의 근거" },
+            { label: "행정심판 재결서", note: "거쳤다면" },
+        ] };
+        infoCard.heading = "상담 전 준비 서류";
+    }
     plan.direction = { ...plan.direction!, palette: identity.palette, typography: identity.typography };
     for (const card of plan.cards) {
         const art = card.type === "thumbnail" ? coverArt : card.type === "illustration" ? wideArt : undefined;
