@@ -8,6 +8,7 @@ import { renderBriefCard } from "@/lib/blog-images/brief-renderer";
 import { ContactProfileError } from "@/lib/blog-images/contact-renderer";
 import { contactReadiness } from "@/lib/blog-images/contact-details";
 import { reviewMagazineCard } from "@/lib/blog-images/design-review";
+import { getMagazineIdentity, lockDirection } from "@/lib/blog-images/magazine-identity";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -18,7 +19,7 @@ function profileFrom(value: unknown): EditorialProfile | null {
     const p = value as Record<string, unknown>, lawyerName = clean(p.lawyerName, 80);
     if (!lawyerName) return null;
     return { id: clean(p.id, 100), lawyerName, officeName: clean(p.officeName, 100), jobTitle: clean(p.jobTitle, 40),
-        phone: clean(p.phone, 120), website: clean(p.website, 180), brandColor: clean(p.brandColor, 20),
+        phone: clean(p.phone, 120), website: clean(p.website, 180), brandColor: clean(p.brandColor, 20), dnaSalt: clean(p.dnaSalt, 40),
         profileImages: assets(p.profileImages), officeImages: assets(p.officeImages), logoImage: typeof p.logoImage === "string" ? p.logoImage : "" };
 }
 
@@ -40,6 +41,12 @@ export async function POST(request: Request) {
         // Keep planning outside the image request so their time budgets cannot accumulate.
         if (!body.plan) throw new PlanValidationError("먼저 이미지 구성안을 만들어 주세요. 기획과 이미지 생성은 별도 단계로 진행합니다.");
         const plan = validateVisualPlan(body.plan, body.title || "", body.content);
+        // 시리즈 축(팔레트·서체)은 어떤 경로로 왔든 변호사 값으로 고정한다.
+        // 공유 플랜·저장 플랜·구버전 플랜 전부 — 같은 변호사는 언제나 같은 지면이어야
+        // 8개 블로그가 서로 다른 출처로 보인다.
+        const identity = getMagazineIdentity(profile);
+        plan.direction = lockDirection(plan.direction, identity);
+        for (const pc of plan.cards) if (pc.art?.direction) pc.art.direction = lockDirection(pc.art.direction, identity)!;
         const planned = plan.cards.find((c) => c.type === type)!;
         if (planned.skipReason) return NextResponse.json({ skipped: true, error: planned.skipReason }, { status: 422 });
         let art: Buffer | undefined, review: string | undefined, model: string | undefined;
@@ -64,7 +71,7 @@ export async function POST(request: Request) {
                 model = BLOG_PHOTO_MODEL;
             }
         }
-        const card = await renderBriefCard({ plan, card: planned, profile, style: body.style || "contrast", art,
+        const card = await renderBriefCard({ plan, card: planned, profile, style: body.style || identity.style, art,
             artLabel: useOffice ? "등록된 사무실 사진" : "AI 설명용 시각물 · 실제 사건 자료 아님", model, headingOverride: body.headingOverride });
         if (art) {
             card.artDataUrl = "data:image/jpeg;base64," + art.toString("base64");

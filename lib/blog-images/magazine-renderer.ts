@@ -59,7 +59,7 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
     const comparisonRows = compare?.rows.map((r) => th(r.aspect, I, 28, "sans") + 26 + Math.max(th(r.a, col - 48, 36), th(r.b, col - 48, 36)) + 60) || [];
     if (card.type === "info") {
         if (!info) throw new Error("설명 그래픽의 내용이 없습니다.");
-        H = Math.ceil(infoHeader + (compare ? comparisonHeader + comparisonRows.reduce((a, b) => a + b, 0) : rowHeights.reduce((a, b) => a + b, 0)) + footerH + 72);
+        H = Math.ceil(infoHeader + (compare ? comparisonHeader + comparisonRows.reduce((a, b) => a + b, 0) : rowHeights.reduce((a, b) => a + b, 0)) + footerH + 44);
     }
     const actions = card.type === "contact" ? contactActions(profile) : [];
     const primary = actions[0], web = actions.find((a) => a.href.startsWith("http"));
@@ -80,7 +80,9 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
     const masthead = (light = false, label = "법률 읽기") => {
         const fg = light ? p.paper : p.ink;
         type(c, label, P, 43, 220, 25, fg, "sans");
-        type(c, card.kicker || (card.type === "contact" ? "상담 안내" : "법률 가이드"), W - P - 320, 46, 320, 23, fg);
+        const kicker = card.kicker || (card.type === "contact" ? "상담 안내" : "법률 가이드");
+        // 킥커가 좌측 라벨과 같으면 생략 — 같은 글자를 한 줄에 두 번 찍지 않는다
+        if (kicker !== label) type(c, kicker, W - P - 320, 46, 320, 23, fg);
         rule(c, P, 99, I, light ? "#FFFFFF66" : p.ink);
     };
     const footer = (y = H - footerH, light = false) => {
@@ -123,9 +125,14 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
             rect(c, 0, artY + 60, W, artH - 10, p.field);
             d.picture(c, art, P, artY, I, artH);
             if (card.deck) {
-                const h = th(card.deck, I - 64, 30) + 42;
-                rect(c, P + 28, artY + artH - h - 28, I - 56, h, p.paper);
-                type(c, card.deck, P + 60, artY + artH - h - 8, I - 120, 30, p.ink);
+                // 측정과 그리기의 폭이 다르면(64 vs 120) 줄 수가 어긋나 글자가
+                // 상자 밖으로 잘린다. 같은 폭으로 재고, 같은 폭으로 그린다.
+                const deckW = I - 120;
+                const h = th(card.deck, deckW, 30) + 52;
+                const boxY = artY + artH - h - 28;
+                rect(c, P + 28, boxY, I - 56, h, p.paper);
+                rect(c, P + 28, boxY, 5, h, p.accent); // 밝은 표지의 유일한 액센트
+                type(c, card.deck, P + 60, boxY + 26, deckW, 30, p.ink);
             }
             footer();
         }
@@ -161,6 +168,9 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
             if (r.note) type(c, r.note, P + keyW + 38, y + 46 + used, rowW, 36, p.muted);
             y += rowHeights[i];
         });
+        // 목록을 연 무게(첫 행 3px)와 같은 무게로 닫는다. 닫는 선이 없으면
+        // 마지막 항목 뒤 여백이 "남은 공간"으로 읽힌다.
+        rule(c, P, y, I, p.ink, 3);
         footer();
     } else if (portrait && primary) {
         const headerDark = !!logo && lightLogo;
@@ -172,10 +182,12 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
         // Never crop, generate, or alter the registered person's identity.
         rect(c, portraitX, contactHeroY, portraitW, portraitH, p.paper);
         d.picture(c, portrait, portraitX, contactHeroY, portraitW, portraitH, "contain");
-        let y = contactHeroY + 34;
+        // 이름 블록을 초상 세로 중앙에 맞춘다. 상단 고정이면 좌측 열이
+        // 400px 비어 "덜 만든" 지면이 된다 — 중앙 정렬은 초상과 짝을 이룬다.
+        let y = contactHeroY + Math.max(34, Math.round((portraitH - identityH) / 2));
         y += type(c, profile.lawyerName, P, y, leftW, 84, p.ink, "serif") + 24;
         y += type(c, profile.jobTitle || "변호사", P, y, leftW, 30, p.muted) + 40;
-        rule(c, P, y, 72, p.field, 4);
+        rule(c, P, y, 72, p.muted, 3); // 액센트는 초상 프레임 한 곳만 쓴다
         const bg = strong ? p.ink : p.field, fg = p.paper;
         rect(c, 0, ctaY, W, H - ctaY, bg);
         type(c, primary.href.startsWith("tel:") ? "상담 문의" : "홈페이지", P, ctaY + 36, I - 100, 27, fg, "sans");

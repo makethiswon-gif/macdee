@@ -223,7 +223,7 @@ export default function BlogPublishPage() {
             // Share one source-grounded plan across all cards.
             setProgress("원고 전체를 읽고 이미지 구성 기획 중…");
             const planRes = await fetch("/api/admin/blog-images/plan", { method: "POST", credentials: "include",
-                headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: t, content: b }) });
+                headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: t, content: b, profile: fullProfile }) });
             const planData = await planRes.json();
             if (!planRes.ok || !planData.plan) throw new Error(planData.error || "이미지 기획에 실패했습니다.");
             const types = n >= 4

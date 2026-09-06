@@ -52,6 +52,14 @@ export function type(c: SKRSContext2D, s: string, x: number, y: number, w: numbe
     return lines.length * step;
 }
 export function fitTitle(c: SKRSContext2D, s: string, w: number, maxH: number, preferred: number, face: MagazineFace) {
+    // 디자이너 규칙: 행이 많은 표제는 크기를 낮춘다.
+    // 3행짜리를 최대 크기로 앉히면 "겨우 들어간" 지면이 된다 — 큰 표제는
+    // 1~2행일 때의 특권이고, 행이 늘면 글자가 아니라 여백이 무게를 만든다.
+    const step = (n: number) => Math.ceil(n * 1.28);
+    const linesAt = (size: number) => Math.round(typeHeight(c, s, w, size, face, 1.28) / step(size));
+    const n = linesAt(preferred);
+    if (n >= 4) preferred = Math.min(preferred, 60);
+    else if (n === 3) preferred = Math.min(preferred, 76);
     for (let size = preferred; size >= 44; size -= 2) {
         const h = typeHeight(c, s, w, size, face, 1.28);
         // An intentional editorial line break must not produce a one-syllable orphan.

@@ -18,6 +18,7 @@ export interface BlogProfile {
     logoImage: string;
     brandColor: string;
     brandLines: string[];
+    dnaSalt: string;
     designStyle: string;
     jobTitle: string;
     career: string[];
@@ -57,6 +58,7 @@ function dbToProfile(row: Record<string, unknown>): BlogProfile {
         brandColor: (row.brand_color as string) || "",
         brandLines: (row.brand_lines as string[]) || [],
         designStyle: (row.design_style as string) || "classic",
+        dnaSalt: (row.dna_salt as string) || "",
         createdAt: new Date(row.created_at as string).getTime(),
         updatedAt: new Date(row.updated_at as string).getTime(),
     };
