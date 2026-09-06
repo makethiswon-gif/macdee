@@ -1,5 +1,6 @@
 import { createCanvas, loadImage, type Image, type SKRSContext2D } from "@napi-rs/canvas";
 import sharp from "sharp";
+import { prepareMagazineLogo } from "./logo-compositor";
 import { editorialDrawing as d, readBrandAsset } from "./editorial-renderer";
 import { CARD_LABELS, type BlogImageCard } from "./card-types";
 import { contactActions, contactReadiness } from "./contact-details";
@@ -15,9 +16,9 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
     const { card, profile } = opts, direction = opts.plan.direction || DEFAULT_DIRECTION;
     const p = MAGAZINE_PALETTES[direction.palette], face = direction.typography;
     const strong = opts.style !== "paper", warnings: string[] = [];
-    const heading = opts.headingOverride?.trim() || card.heading;
+    const heading = card.type === "contact" ? "상담 안내" : opts.headingOverride?.trim() || card.heading;
     if (heading.length > 70) throw new Error("이미지 제목은 70자 이내로 입력해 주세요.");
-    const edited = !!opts.headingOverride && opts.headingOverride !== card.heading;
+    const edited = card.type !== "contact" && !!opts.headingOverride && opts.headingOverride !== card.heading;
     if (edited) warnings.push("직접 수정한 제목은 원문과 맞는지 다시 확인해 주세요.");
     const headline = !edited && card.headlineLines?.length ? card.headlineLines.join("\n") : heading;
     const measure = createCanvas(W, 1).getContext("2d");
@@ -34,7 +35,11 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
         try { portrait = await decode(await readBrandAsset(profile.profileImages[0])); }
         catch { throw new ContactProfileError("등록된 변호사 사진을 불러오지 못했습니다. 실제 사진을 확인해 주세요."); }
     }
-    if (profile.logoImage) try { logo = await decode(await readBrandAsset(profile.logoImage)); } catch { warnings.push("등록 로고를 읽지 못해 사무소명을 표시했습니다."); }
+    let lightLogo = false;
+    if (profile.logoImage) try {
+        const prepared = await prepareMagazineLogo(await readBrandAsset(profile.logoImage));
+        logo = await decode(prepared.bytes); lightLogo = prepared.lightInk;
+    } catch { warnings.push("등록 로고를 읽지 못해 사무소명을 표시했습니다."); }
     const brand = [profile.officeName, profile.lawyerName].filter(Boolean).join(" · ");
     const footerH = Math.max(100, th(brand, logo ? I - 220 : I, 24) + 48);
     let H = 1280;
@@ -58,22 +63,16 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
     }
     const actions = card.type === "contact" ? contactActions(profile) : [];
     const primary = actions[0], web = actions.find((a) => a.href.startsWith("http"));
-    const contactTitle = fitTitle(measure, headline, I, 380, 76, face);
-    const contactHeroY = 160 + contactTitle.h + 48;
-    const leftW = 392, portraitX = 500, portraitW = 460, portraitH = 540;
-    const identityH = th(profile.lawyerName, leftW, 78, "serif") + 12 + (profile.jobTitle ? th(profile.jobTitle, leftW, 28) + 12 : 0) + th(profile.officeName, leftW, 28) + 40;
-    const points = card.points || [];
+    // Profile-only closing card: article copy never affects pixels or canvas height.
+    const contactHeaderH = Math.max(116, th(profile.officeName, logo ? I - 330 : I, 30) + 64);
+    const contactHeroY = contactHeaderH + 70;
+    const leftW = 350, portraitX = 472, portraitW = 488, portraitH = 650;
+    const identityH = th(profile.lawyerName, leftW, 84, "serif") + 24 + th(profile.jobTitle || "변호사", leftW, 30) + 60;
     const contactMainH = Math.max(portraitH, identityH);
-    const deckY = contactHeroY + contactMainH + 46;
-    const deckH = card.deck ? th(card.deck, I, 38) + 34 : 0;
-    const pointY = deckY + deckH;
-    const pointWidth = points.length === 2 ? (I - 52) / 2 : I;
-    const pointHeights = points.map((s) => th(s, pointWidth - 26, 34) + 16);
-    const pointH = points.length === 2 ? Math.max(...pointHeights) : pointHeights.reduce((a, b) => a + b, 0);
-    const ctaY = pointY + th("상담에서 확인할 내용", I, 28, "sans") + 30 + pointH + 52;
+    const ctaY = contactHeroY + contactMainH + 64;
     const contactNumSize = primary?.href.startsWith("tel:") ? 68 : 38;
-    const ctaH = primary ? 110 + th(primary.display, I - 94, contactNumSize, "sans") + (web && web !== primary ? th(web.display, I, 27) + 20 : 0) + 40 : 0;
-    if (card.type === "contact") H = Math.ceil(ctaY + ctaH + 102);
+    const ctaH = primary ? 110 + th(primary.display, I - 94, contactNumSize, "sans") + (web && web !== primary ? th(web.display, I, 27) + 20 : 0) + 64 : 0;
+    if (card.type === "contact") H = Math.ceil(Math.max(1280, ctaY + ctaH));
     if (card.type === "illustration") H = Math.ceil(infoHeader + 632 + footerH + 80);
     if (H > 2800) throw new Error("한 장에 담을 내용이 너무 많습니다. 제목·설명을 줄여 다시 기획해 주세요. 잘린 이미지로 저장하지 않았습니다.");
     const canvas = createCanvas(W, H), c = canvas.getContext("2d");
@@ -85,9 +84,12 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
         rule(c, P, 99, I, light ? "#FFFFFF66" : p.ink);
     };
     const footer = (y = H - footerH, light = false) => {
-        const fg = light ? p.paper : p.muted;
-        rule(c, P, y, I, light ? "#FFFFFF55" : "#80808055");
-        if (logo) { rect(c, P, y + 22, 188, 54, "#FFFFFF"); d.picture(c, logo, P + 8, y + 27, 172, 44, "contain"); }
+        // A continuous brand rail, never a white rectangle behind the logo.
+        const darkRail = logo ? lightLogo : light;
+        const fg = darkRail ? p.paper : p.muted;
+        if (logo) rect(c, 0, y, W, H - y, darkRail ? p.ink : p.paper);
+        rule(c, P, y, I, darkRail ? "#FFFFFF55" : "#80808055");
+        if (logo) d.picture(c, logo, P, y + 27, 188, 44, "contain");
         type(c, brand, logo ? P + 220 : P, y + 27, logo ? I - 220 : I, 24, fg);
     };
     if (card.type === "thumbnail" && art) {
@@ -164,41 +166,33 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
         });
         footer();
     } else if (portrait && primary) {
-        masthead(false, "다음 이야기");
-        type(c, contactTitle.text, P, 150, I, contactTitle.size, p.ink, face, 1.28);
-        rect(c, portraitX - 18, contactHeroY + 20, portraitW + 18, portraitH, p.field);
-        rect(c, portraitX, contactHeroY, portraitW, portraitH, "#FFFFFF");
-        // Identity is never invented or sent to an image generator. Entire registered portrait is contained.
+        const headerDark = !!logo && lightLogo;
+        if (headerDark) rect(c, 0, 0, W, contactHeaderH, p.ink);
+        if (logo) d.picture(c, logo, P, 38, 270, 64, "contain");
+        if (profile.officeName) type(c, profile.officeName, logo ? P + 330 : P, 40, logo ? I - 330 : I, 30, headerDark ? p.paper : p.muted);
+        rule(c, P, contactHeaderH, I, headerDark ? p.paper : "#80808055");
+        rect(c, portraitX - 16, contactHeroY + 20, portraitW + 16, portraitH, p.field);
+        // Never crop, generate, or alter the registered person's identity.
+        rect(c, portraitX, contactHeroY, portraitW, portraitH, p.paper);
         d.picture(c, portrait, portraitX, contactHeroY, portraitW, portraitH, "contain");
-        let y = contactHeroY;
-        y += type(c, profile.lawyerName, P, y, leftW, 78, p.ink, "serif") + 12;
-        if (profile.jobTitle) y += type(c, profile.jobTitle, P, y, leftW, 28, p.muted) + 12;
-        y += type(c, profile.officeName, P, y, leftW, 28, p.muted) + 40;
-        rule(c, P, y, 60, p.field, 4);
-        if (card.deck) type(c, card.deck, P, deckY, I, 38, p.ink);
-        let py = pointY + type(c, "상담에서 확인할 내용", P, pointY, I, 28, p.muted, "sans") + 30;
-        points.forEach((item, i) => {
-            const x = points.length === 2 ? P + i * (pointWidth + 52) : P;
-            rect(c, x, py + 15, 6, 6, p.field);
-            type(c, item, x + 26, py, pointWidth - 26, 34, p.ink);
-            if (points.length !== 2) py += pointHeights[i];
-        });
-        const bg = strong ? p.ink : "#FFFFFF", fg = strong ? p.paper : p.ink;
-        rect(c, 0, ctaY, W, ctaH, bg);
-        type(c, primary.href.startsWith("tel:") ? "상담 문의" : "홈페이지에서 상담 안내 확인", P, ctaY + 36, I - 250, 27, fg, "sans");
-        if (logo) { rect(c, W - P - 206, ctaY + 27, 206, 56, "#FFFFFF"); d.picture(c, logo, W - P - 198, ctaY + 33, 190, 44, "contain"); }
+        let y = contactHeroY + 34;
+        y += type(c, profile.lawyerName, P, y, leftW, 84, p.ink, "serif") + 24;
+        y += type(c, profile.jobTitle || "변호사", P, y, leftW, 30, p.muted) + 40;
+        rule(c, P, y, 72, p.field, 4);
+        const bg = strong ? p.ink : p.field, fg = p.paper;
+        rect(c, 0, ctaY, W, H - ctaY, bg);
+        type(c, primary.href.startsWith("tel:") ? "상담 문의" : "홈페이지", P, ctaY + 36, I - 100, 27, fg, "sans");
         const numberH = type(c, primary.display, P, ctaY + 96, I - 94, contactNumSize, fg, "sans");
         arrow(c, W - P - 54, ctaY + 115, fg);
         if (web && web !== primary) type(c, web.display, P, ctaY + 116 + numberH, I, 27, fg);
-        type(c, "구체적인 판단은 개별 사실관계에 따라 달라질 수 있습니다.", P, H - 75, I, 28, p.muted);
     }
     let png = await sharp(canvas.toBuffer("image/png")).flatten({ background: p.paper }).png({ compressionLevel: 9 }).toBuffer();
     if (png.length > 2_000_000) png = await sharp(png).png({ palette: true, colours: 256, dither: 0.6 }).toBuffer();
     if (png.length > 2_000_000) throw new Error("완성 이미지 용량이 너무 큽니다. 시각물을 다시 생성해 주세요.");
     return { type: card.type, name: CARD_LABELS[card.type], imageDataUrl: `data:image/png;base64,${png.toString("base64")}`, width: W, height: H,
-        altText: [heading, card.deck, card.type === "contact" ? `${profile.officeName} ${profile.lawyerName} ${profile.jobTitle} ${actions.map((a) => a.display).join(" / ")}` : ""].filter(Boolean).join(" — "),
+        altText: card.type === "contact" ? `${profile.officeName} ${profile.lawyerName} ${profile.jobTitle || "변호사"} — ${actions.map((a) => a.display).join(" / ")}` : [heading, card.deck].filter(Boolean).join(" — "),
         placement: card.type === "contact" ? "본문 마지막 · 바로 아래에 실제 상담 링크 추가" : cardPlacement(card, opts.plan.paragraphs),
-        model: opts.model, warnings, designVersion: "editorial-v9", sourceParagraphId: card.afterParagraphId, purpose: card.purpose,
+        model: opts.model, warnings, designVersion: "editorial-v9", sourceParagraphId: card.afterParagraphId, purpose: card.type === "contact" ? "변호사 사진과 연락처 안내" : card.purpose,
         layout: opts.style || "contrast", ...(actions.length ? { contactActions: actions } : {}) };
 }
 function arrow(c: SKRSContext2D, x: number, y: number, color: string) {

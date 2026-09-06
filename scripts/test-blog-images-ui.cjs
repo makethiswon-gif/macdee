@@ -73,6 +73,10 @@ async function main() {
         assert.equal(await page.evaluate(() => window.__copiedContact), "tel:0200000000");
 
         const cover = page.getByRole("article", { name: "메인 썸네일 결과", exact: true });
+        const closing = page.getByRole("article", { name: "변호사·상담 안내 결과", exact: true });
+        await closing.getByText("레이아웃 편집", { exact: true }).click();
+        assert.equal(await closing.getByRole("textbox").count(), 0, "Profile-only card has no article heading editor");
+        assert.equal(await closing.getByRole("button", { name: "제목 적용", exact: true }).count(), 0);
         await cover.getByText("제목·레이아웃 편집", { exact: true }).click();
         await cover.getByLabel("메인 썸네일 제목 수정", { exact: true }).fill("수정한 이미지 제목");
         await cover.getByRole("button", { name: "제목 적용", exact: true }).click();

@@ -80,6 +80,11 @@ export function validateVisualPlan(value: unknown, title: string, content: strin
         seen.add(type);
         const skipReason = string(c.skipReason, "생략 이유", 200, true);
         if (skipReason && !["info", "illustration"].includes(type)) throw new PlanValidationError("표지와 상담 안내는 구성안에 반드시 필요합니다.");
+        if (type === "contact") {
+            // Registered-profile layout: ignore all legacy/model-generated article copy.
+            return { type, heading: "상담 안내", deck: "", points: [], evidence: [],
+                purpose: "변호사 사진과 연락처 안내", afterParagraphId: paragraphs[paragraphs.length - 1].id };
+        }
         const anchor = string(c.afterParagraphId, "삽입 문단", 12);
         if (!paragraphs.some((p) => p.id === anchor)) throw new PlanValidationError("삽입할 문단이 원고에 없습니다.");
         if (!Array.isArray(c.evidence) || c.evidence.length > 6 || (!skipReason && !c.evidence.length)) throw new PlanValidationError("이미지의 원문 근거가 필요합니다.");
@@ -112,10 +117,6 @@ export function validateVisualPlan(value: unknown, title: string, content: strin
             card.infographic = parsed.data;
             card.heading = parsed.data.heading;
         }
-        if (type === "contact" && !skipReason) {
-            if (!Array.isArray(c.points) || c.points.length < 2 || c.points.length > 3) throw new PlanValidationError("마무리에는 원문에 근거한 핵심 2~3개가 필요합니다.");
-            card.points = c.points.map((p) => string(p, "마무리 핵심", 110));
-        }
         return card;
     });
     return { version: PLAN_VERSION, sourceHash: hash, question: string(raw.question, "독자의 질문", 160), thesis: string(raw.thesis, "원고의 핵심", 300), cards, paragraphs,
@@ -129,7 +130,7 @@ export const VISUAL_PLANNING_SYSTEM = `너는 한국 변호사 블로그의 시�
 각 카드에 실제 원문의 연속된 짧은 인용과 문단 ID를 넣는다. 인용은 글자까지 그대로 복사. 카드의 표·핵심·조건을 뒷받침하는 문단이 여럿이면 각각 인용한다. 삽입 위치도 실제 문단 ID다.
 heading, deck, infographic, points는 이미지에 그대로 인쇄할 독자용 카피다. 기획 설명은 purpose에만 쓴다. deck에 '보여줌', '점 유지', '환기', '강조', '라는 점', '필수 조건' 같은 제작 지시나 기획서 말투를 쓰지 않는다. 독자에게 직접 설명하는 짧고 자연스러운 한국어 문장으로 완결한다. 예: '책임이나 지급 여부는 이 자료만으로 단정할 수 없습니다.' 불필요한 보조 설명은 빈 문자열로 둔다. 꾸며낸 대화·자극적인 질문·과장된 확신을 넣지 않는다.
 표지는 주제의 구체적 질문, 설명은 비교/과정/준비사항에 집중해 중복을 줄인다. 정리할 근거가 없는 info/illustration은 skipReason으로 생략. 사진을 억지로 추가하지 않는다.
-contact는 요약 카드가 아니라 실제 변호사 사진과 연락처가 붙는 상담 안내다. 반드시 기획하며 생략하지 않는다. heading은 원고를 읽고 남은 구체적 고민을 짧은 상담 질문으로 연결한다. deck은 상담에서 확인할 내용을 자연스럽게 설명하되 법률적 조건을 유지한다. points는 원문에 근거한 상담 시 확인할 항목 2개로 각각 22자 이내의 짧은 명사구. 예: '원본에 담긴 전체 내용', '확인할 쟁점과 관련 날짜'. '~인지 확인이 필요한가요' 같은 길고 꼬인 질문을 만들지 않는다. 단순 요약 반복이나 '정리하면서 놓치지 않을 것' 같은 추상적인 제목 금지. 무료·24시간·즉시 답변·변호사 직접 응대·승소 보장·특정 경력 등 확인되지 않은 약속을 만들지 않는다. 이름·사진·직함·연락처는 등록 프로필에서 합성하므로 생성하지 않는다.
+contact는 원고와 무관한 프로필 전용 마무리다. 반드시 포함하되 heading은 "상담 안내", deck은 "", points와 evidence는 [], purpose는 "변호사 사진과 연락처 안내", afterParagraphId는 마지막 문단 ID로 고정한다. 요약·상담 질문·체크리스트·법률 유보 문구를 쓰지 않는다. 사진·이름·직함·사무소명·로고·연락처는 등록 프로필에서만 합성하며 생성하지 않는다.
 AI 시각물은 photograph 또는 illustration 중 주제 전달에 더 적합한 방식. 구체적 사물·관계·행위를 현대적인 에디토리얼 아트디렉션으로 표현한다. 원고가 실제 물건을 설명하면 정교한 스튜디오 정물 사진과 대담한 크롭, 추상적인 관계라면 절제된 초현실적 오브젝트·광학적 겹침·정밀한 선화로 표현한다. 따뜻한 베이지 종이 콜라주와 찢어진 종이·서류 뭉치를 모든 주제의 기본값으로 쓰지 않는다. 글의 핵심에 필요한 대상 한두 개와 분명한 시각 관계, 중립색 중심의 강한 명암을 우선한다. 유행하는 클레이 3D 아이콘·무의미한 유리 구슬·과한 네온·금장 법봉은 피한다. scene에는 어떤 대상을 어떤 관계와 구도로 보여줄지 구체적으로 쓴다. 법률 분야의 상징물이 아니라 이 원고만의 쟁점이 보여야 한다. 빈 상담실·열쇠·컵 같은 만능 장면 금지.
 그림에는 글자·숫자·로고·서명·공식 문서·실제 증거를 그리지 않는다. 한글과 설명은 별도 합성한다. 특정 실제 고객·사건·인물을 재현하지 않는다. 원고의 이름·연락처·주소·사건번호는 art 필드에 넣지 않는다. 전문직을 사칭하는 인물도 금지. 필요하면 익명 인물 실루엣이나 설명용 사물을 쓸 수 있다.
 JSON 객체만 반환. cards는 thumbnail, illustration, info, contact 4개. 각 필드:
@@ -137,7 +138,7 @@ JSON 객체만 반환. cards는 thumbnail, illustration, info, contact 4개. 각
 {"type":"thumbnail","heading":"표지 질문 34자 이내","deck":"조건을 보존한 설명 65자 이내","purpose":"이 이미지가 필요한 이유","afterParagraphId":"p1","evidence":[{"paragraphId":"p1","quote":"원문 그대로"}],"art":{"medium":"illustration","subject":"원고에 맞는 시각 주제","message":"전달할 관계나 상황","scene":"구체적 구성과 대상, 원문과의 연관성","avoid":["이 원고에서 오해를 일으키는 대상"]}},
 {"type":"illustration","heading":"보조 이미지 주제","deck":"설명","purpose":"표지와 다른 역할","afterParagraphId":"p2","evidence":[{"paragraphId":"p2","quote":"원문 그대로"}],"art":{"medium":"photograph","subject":"...","message":"...","scene":"...","avoid":[]}},
 {"type":"info","heading":"짧은 제목","deck":"생략하면 안 되는 조건 또는 예외, 없으면 빈 문자열","purpose":"독자가 이해할 내용","afterParagraphId":"p2","evidence":[{"paragraphId":"p2","quote":"원문 그대로"}],"infographic":{"kind":"checklist","heading":"18자 이내","items":[{"label":"22자 이내","note":"34자 이내"},{"label":"...","note":"..."}]}},
-{"type":"contact","heading":"28자 이내 원고와 연결된 상담 질문","deck":"80자 이내 상담에서 확인할 내용과 필요한 조건","purpose":"독자의 고민을 상담으로 연결","afterParagraphId":"마지막 문단 ID","evidence":[{"paragraphId":"p2","quote":"원문 그대로"}],"points":["22자 이내 확인할 자료·쟁점","22자 이내 다른 확인 항목"]}
+{"type":"contact","heading":"상담 안내","deck":"","purpose":"변호사 사진과 연락처 안내","afterParagraphId":"마지막 문단 ID","evidence":[],"points":[]}
 ]}
 infographic은 다음 중 내용에 맞는 하나. 각 항목 2~5개. 조건을 줄일 수 없으면 deck에 명시하거나 생략한다.
 flow: {kind,heading,steps:[{label,note}]} 실제 순서가 있는 절차만.
@@ -163,6 +164,6 @@ palette는 원고의 분위기에 따라 선택. 무조건 브랜드색이나 �
 composition immersive: 4:5 세로 잡지 표지. 핵심 오브젝트/관계는 화면 아래쪽 48~86%에 큼직하게. 상단 45%는 제목이 들어갈 조용한 짙은 배경, 단색이 아니라 이미지와 자연스럽게 이어지는 빛과 공간. 하단 8%는 짙은 여백. 그림이 잘려도 되는 장식은 가능하나 핵심 관계가 잘리면 안 된다.
 composition split: 같은 4:5 세로 아트가 밝은 별도 지면의 하단 패널에 들어간다. 이미지 전체에서 중심 관계가 충분히 크게 보이는 마크로/조각적 구도. 상단 여백을 억지로 비우지 않는다.
 thumbnail은 매우 구체적인 하나의 시각적 논증, illustration은 다른 부분을 설명하는 가로 3:2 편집 삽화로 장면을 반복하지 않는다. illustration에는 상단 제목 여백을 만들지 않고 중요한 관계가 화면 중앙 85% 안에서 크게 읽히게 한다. 시각물마다 새로 생성한다. 모든 scene에 색/빛/시점/주인공 크기/관계/텍스트 안전영역을 명시. 단순 배경 소품 나열 말고 그 관계를 어떻게 볼 것인가를 설계한다.
-모든 카드에 kicker(원고에서 확인되는 분야나 주제, 12자 권장)를 추가. thumbnail/contact에는 headlineLines를 추가. heading과 글자가 정확히 같고 공백/행갈이만 다르게 2~4행, 한 행 5~11자 권장. 제목은 조사와 단어를 자연스럽게 연결하며 너무 추상적이거나 자극적이지 않게. 장식적 영문 표제·호수·기사 날짜·실적·평가는 만들지 않는다. direction 설명은 독자용 인쇄 카피가 아니며 이미지에 인쇄하지 않는다.
-표지 deck은 본문 전체를 요약하는 자리가 아니다. 한 문장 44자 이내를 목표로, 이미지와 제목을 연결하는 가장 필요한 내용 하나만 자연스럽게 쓴다. 제목이 결과를 약속하지 않는다면 법적 유보 문장을 표지에 반복해 빽빽하게 만들지 말고 상세 조건은 info/contact에 보존한다. 다만 제목의 오해를 막는 필수 조건은 빼지 않는다. 소품은 정확한 물성을 정의한다. 통장은 얇고 유연한 종이 소책자이며 두꺼운 양장 수첩이 아니다. 전화는 알아볼 수 있는 휴대전화이지 금속판이 아니다.
+contact를 제외한 카드에 kicker(원고에서 확인되는 분야나 주제, 12자 권장)를 추가. thumbnail에는 headlineLines를 추가. heading과 글자가 정확히 같고 공백/행갈이만 다르게 2~4행, 한 행 5~11자 권장. 제목은 조사와 단어를 자연스럽게 연결하며 너무 추상적이거나 자극적이지 않게. 장식적 영문 표제·호수·기사 날짜·실적·평가는 만들지 않는다. direction 설명은 독자용 인쇄 카피가 아니며 이미지에 인쇄하지 않는다.
+표지 deck은 본문 전체를 요약하는 자리가 아니다. 한 문장 44자 이내를 목표로, 이미지와 제목을 연결하는 가장 필요한 내용 하나만 자연스럽게 쓴다. 제목이 결과를 약속하지 않는다면 법적 유보 문장을 표지에 반복해 빽빽하게 만들지 말고 상세 조건은 info에 보존한다. 다만 제목의 오해를 막는 필수 조건은 빼지 않는다. 소품은 정확한 물성을 정의한다. 통장은 얇고 유연한 종이 소책자이며 두꺼운 양장 수첩이 아니다. 전화는 알아볼 수 있는 휴대전화이지 금속판이 아니다.
 출력은 요청한 JSON 하나만. 설명·내부 태그·검토 과정은 출력하지 않는다. 원문 근거와 필수 조건은 보존하되 direction.rationale과 대안 설명은 각 80자 이내, scene은 각 350자 내외, purpose는 50자 이내로 간결하게 쓴다. evidence는 카드당 필요한 원문 인용 1~2개만. 각 카드의 고유 역할과 제목 행갈이 일치를 유지한다.`;

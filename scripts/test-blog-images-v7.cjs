@@ -35,6 +35,10 @@ async function main() {
     let liveProfile = profile;
     const plan = validateVisualPlan(rawPlan(), title, article, false);
     fs.writeFileSync(path.join(out, "plan.json"), JSON.stringify(plan, null, 2));
+    assert.equal(plan.cards[3].deck, ""); assert.deepEqual(plan.cards[3].points, []);
+    assert.equal(plan.cards[3].heading, "상담 안내"); assert.deepEqual(plan.cards[3].evidence, []);
+    const profileOnly = rawPlan(); profileOnly.cards[3].points = []; profileOnly.cards[3].evidence = [];
+    assert.equal(validateVisualPlan(profileOnly, title, article, false).cards[3].heading, "상담 안내");
     assert.equal(articleParagraphs("<p>첫 문단</p><p>둘째 <strong>문단</strong></p>").length, 2);
     assert.equal(articleParagraphs("<임대인>과 <임차인>의 자료")[0].text, "<임대인>과 <임차인>의 자료");
     assert.throws(() => validateVisualPlan(plan, title, article + " 원고 변경"), /원고가 바뀌었습니다/);
@@ -91,6 +95,29 @@ async function main() {
     await save(await renderBriefCard({ plan: longPlan, card: longPlan.cards[0], profile, art: normalArt, style: "contrast" }), "cover-long");
     const logoCanvas = createCanvas(320, 90), lc = logoCanvas.getContext("2d");
     lc.fillStyle = "#FFFFFF"; lc.fillRect(0, 0, 320, 90); lc.fillStyle = "#146C64"; lc.fillRect(12, 14, 48, 48);
+    const { prepareMagazineLogo } = require("../lib/blog-images/logo-compositor.ts");
+    // White matte surrounds a black mark with an enclosed white letterform.
+    const mark = createCanvas(100, 70), mc = mark.getContext("2d");
+    mc.fillStyle = "#FFFFFF"; mc.fillRect(0, 0, 100, 70);
+    mc.fillStyle = "#000000"; mc.fillRect(20, 15, 60, 40);
+    mc.fillStyle = "#FFFFFF"; mc.fillRect(40, 25, 20, 20);
+    const cleaned = await prepareMagazineLogo(mark.toBuffer("image/png"));
+    const cleanedPixels = await sharp(cleaned.bytes).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    assert.equal(cleanedPixels.info.width, 60); assert.equal(cleanedPixels.info.height, 40);
+    const centre = (20 * 60 + 30) * 4;
+    assert.equal(cleanedPixels.data[centre], 255); assert.equal(cleanedPixels.data[centre + 3], 255, "Internal white logo shape preserved");
+    assert.equal(cleaned.lightInk, false);
+    const reversed = createCanvas(100, 70), rc = reversed.getContext("2d");
+    rc.fillStyle = "#FFFFFF"; rc.fillRect(20, 15, 60, 40);
+    const reverseLogo = await prepareMagazineLogo(reversed.toBuffer("image/png"));
+    assert.equal(reverseLogo.lightInk, true, "Existing reverse-white logo uses dark brand rail");
+    const coloured = await prepareMagazineLogo(logoCanvas.toBuffer("image/png"));
+    const colourPixel = await sharp(coloured.bytes).raw().toBuffer();
+    assert.equal(colourPixel[0], 0x14); assert.equal(colourPixel[1], 0x6c); assert.equal(colourPixel[2], 0x64, "Brand colour unchanged");
+    const onlyProfile = await renderBriefCard({ plan, card: plan.cards[3], profile, style: "contrast" });
+    const changedCopy = await renderBriefCard({ plan, card: { ...plan.cards[3], heading: "원고와 관련된 질문", headlineLines: ["다른 질문"], kicker: "요약", deck: "이 문장은 절대로 인쇄하지 않습니다.", points: ["요약 확인 항목"] }, headingOverride: "별도 상담 질문", profile, style: "contrast" });
+    assert.equal(onlyProfile.imageDataUrl, changedCopy.imageDataUrl, "Article copy and overrides cannot alter closing card pixels");
+    assert.doesNotMatch(changedCopy.altText, /원고와 관련|절대로|요약/);
     const brandProfile = { ...profile, lawyerName: "프로필 검수", officeName: "긴 사무소명과 연락처가 있는 편집 검수용 프로필", jobTitle: "", website: "https://example.com/long-profile-path", logoImage: logoCanvas.toDataURL("image/png"), profileImages: ["data:image/png;base64," + photo.toString("base64")] };
     await save(await renderBriefCard({ plan, card: plan.cards[3], profile: brandProfile, style: "contrast" }), "contact-brand");
     if (registeredId) {
@@ -104,6 +131,8 @@ async function main() {
         liveProfile = registered;
         const draft = { ...plan.cards[3], heading: "어떤 자료부터\n준비하면 될까요?", deck: "원본과 정리본을 어떻게 나눌지, 상담에서 확인해 보세요.", points: ["원본의 전체 내용이 남아 있나요?", "확인할 내용과 날짜를 정리했나요?"] };
         for (const style of ["contrast", "paper"]) await save(await renderBriefCard({ plan, card: draft, profile: registered, style }), "contact-registered-" + style);
+        await save(await renderBriefCard({ plan, card: plan.cards[2], profile: registered, style: "paper" }), "info-registered-logo");
+        await save(await renderBriefCard({ plan, card: plan.cards[0], profile: registered, style: "contrast", art: normalArt }), "cover-registered-logo");
         console.log("Registered portrait and contact: read-only draft rendered; no AI identity generation or publishing.");
     }
     const bc = createCanvas(1024, 1).getContext("2d");
