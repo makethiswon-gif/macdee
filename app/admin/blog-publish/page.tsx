@@ -28,6 +28,22 @@ interface TopicCandidate {
 
 type Step = "idle" | "topics" | "writing" | "saving" | "cards";
 
+// 서버가 JSON 이 아닌 걸 돌려줄 때가 있다 — 413(본문 초과), 502, 프록시 HTML 등.
+// res.json() 을 그냥 부르면 "Unexpected token 'R'" 같은 엉뚱한 에러가 뜨고
+// 진짜 원인이 가려진다. 본문을 텍스트로 받아 앞부분을 그대로 보여준다.
+async function readJson(res: Response): Promise<{ error?: string; images?: { type: string; url: string }[] }> {
+    const text = await res.text();
+    try {
+        return JSON.parse(text);
+    } catch {
+        const head = text.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 120);
+        if (res.status === 413) {
+            return { error: "이미지 용량이 너무 큽니다(413). 카드 해상도를 낮춰야 합니다." };
+        }
+        return { error: `서버 응답을 읽지 못했습니다 (${res.status}) ${head}` };
+    }
+}
+
 export default function BlogPublishPage() {
     const [profiles, setProfiles] = useState<BlogSetting[]>([]);
     const [profileId, setProfileId] = useState("");
@@ -252,29 +268,55 @@ export default function BlogPublishPage() {
         const run = async () => {
             try {
                 await new Promise((r) => setTimeout(r, 600)); // 폰트·이미지 로딩 대기
-                const shots: { type: string; dataUrl: string }[] = [];
-                for (const c of cards) {
+
+                // 한 장씩 만들어 바로 올린다.
+                //
+                // 전에는 4장을 전부 base64 로 모아 한 요청에 담았다. 4:5 판형에
+                // pixelRatio 2 면 장당 1600x2000 이라 요청 본문 한계(4.5MB)를 넘고,
+                // 서버가 JSON 이 아닌 "Request Entity Too Large" 를 돌려줘서
+                // 화면에는 "Unexpected token 'R'" 이라는 엉뚱한 에러가 떴다.
+                //
+                // pixelRatio 도 1.5 로 낮췄다. 네이버 본문 표시 폭이 800px 안팎이라
+                // 1200px 이면 충분하고, 2배는 용량만 키운다.
+                let urls: { type: string; url: string }[] = [];
+                for (let i = 0; i < cards.length; i++) {
+                    if (cancelled) return;
+                    const c = cards[i];
                     const node = cardRefs.current[c.type];
                     if (!node) continue;
+
                     // 크기를 하드코딩하지 않는다.
                     // DNA 판형이 4:5(800x1000)인 변호사는 800x800 으로 잘려 있었다.
-                    // 실제로 그려진 카드 크기를 그대로 쓴다.
                     const w = node.offsetWidth || 800;
                     const h = node.offsetHeight || 800;
-                    const dataUrl = await htmlToImage.toPng(node, { quality: 1, pixelRatio: 2, width: w, height: h });
-                    shots.push({ type: c.type, dataUrl });
+
+                    setProgress(`이미지 올리는 중… ${i + 1}/${cards.length}`);
+                    let dataUrl = await htmlToImage.toPng(node, { quality: 1, pixelRatio: 1.5, width: w, height: h });
+
+                    // 사진이 들어간 카드는 크기 편차가 크다. 한계에 근접하면 한 번 더 줄인다.
+                    // base64 는 원본보다 약 33% 크므로 4MB 를 기준으로 잡는다.
+                    if (dataUrl.length > 4_000_000) {
+                        dataUrl = await htmlToImage.toPng(node, { quality: 1, pixelRatio: 1, width: w, height: h });
+                    }
+
+                    const res = await fetch("/api/admin/blog-posts/images", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        credentials: "include",
+                        body: JSON.stringify({
+                            postId: savedId,
+                            image: { type: c.type, dataUrl },
+                            index: i,
+                            total: cards.length,
+                        }),
+                    });
+
+                    const data = await readJson(res);
+                    if (!res.ok) throw new Error(data.error || `업로드 실패 (${res.status})`);
+                    urls = data.images || urls;
                 }
                 if (cancelled) return;
-                setProgress("업로드 중…");
-                const res = await fetch("/api/admin/blog-posts/images", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    credentials: "include",
-                    body: JSON.stringify({ postId: savedId, images: shots }),
-                });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || "업로드에 실패했습니다.");
-                setCardUrls(data.images || []);
+                setCardUrls(urls);
                 setProgress("");
                 setStep("idle");
             } catch (e) {
