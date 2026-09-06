@@ -28,8 +28,7 @@ export default function CaseStudies({
                 <SectionHeader
                     eyebrow="Case Studies"
                     serif
-                    title={<>무엇을 바꿨고, 무엇이&nbsp;달라졌는지.</>}
-                    lead="어떤 상태였고, 무엇을 했고, 어떤 지표가 움직였는지 그대로 보여드립니다."
+                    title="이렇게 운영했습니다."
                 />
 
                 {hasSample && (
@@ -68,7 +67,7 @@ export default function CaseStudies({
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-12">
                                     <div>
                                         <p className="mt-en mt-label mb-5" style={{ color: "var(--mt-gray)" }}>
-                                            Before
+                                            운영 전
                                         </p>
                                         <ul className="flex flex-col gap-2.5">
                                             {c.before.map((b) => (
@@ -81,7 +80,7 @@ export default function CaseStudies({
 
                                     <div>
                                         <p className="mt-en mt-label mb-5" style={{ color: "var(--mt-gray)" }}>
-                                            Strategy
+                                            한 일
                                         </p>
                                         <ul className="flex flex-col gap-2.5">
                                             {c.strategy.map((s) => (
@@ -94,7 +93,7 @@ export default function CaseStudies({
 
                                     <div>
                                         <p className="mt-en mt-label mb-5" style={{ color: "var(--mt-gray)" }}>
-                                            Result
+                                            결과
                                         </p>
                                         <ul className="flex flex-col gap-3">
                                             {c.result.map((r) => (

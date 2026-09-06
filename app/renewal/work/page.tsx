@@ -63,12 +63,11 @@ export default function Page() {
                     </Reveal>
                     <Reveal index={1}>
                         {/* 홈 CASES 섹션 제목("무엇을 바꿨고…")과 겹치지 않게 이 페이지만의 문장 */}
-                        <h1 className="mt-h1 mt-7 max-w-[20ch]">함께한 로펌들의 성장&nbsp;기록.</h1>
+                        <h1 className="mt-h1 mt-7 max-w-[20ch]">함께한 로펌과 기업.</h1>
                     </Reveal>
                     <Reveal index={2}>
                         <p className="mt-body-lg mt-8 max-w-[620px]">
-                            보여드릴 수 있는 근거부터 공개합니다. 함께한 로펌과 기업, 7년간 이어온 운영이
-                            먼저 있습니다. 개별 성과는 고객사가 동의한 범위에서 사례로 정리해 나갑니다.
+                            고객사와 운영 사례를 소개합니다. 성과는 고객사가 동의한 범위에서 공개합니다.
                         </p>
                     </Reveal>
                 </Container>

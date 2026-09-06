@@ -22,8 +22,7 @@ export const revalidate = 600;
 const URL = absUrl("/");
 const TITLE = "로펌 마케팅에 필요한 모든 것 | MAKETHIS1";
 const DESCRIPTION =
-    "검색광고, 블로그, SEO, AI 검색, 홈페이지, 상담 분석까지. " +
-    "여러 업체를 따로 찾고 관리할 필요 없이 메이크디스원 한 팀이 전부 운영합니다.";
+    "광고·검색·블로그·홈페이지·상담 분석까지, 메이크디스원 한 팀이 운영합니다. 로펌에 맞는 서비스와 비용을 확인하세요.";
 
 // 루트 레이아웃의 title 템플릿(macdee)이 붙지 않도록 absolute 로 고정한다.
 export const metadata: Metadata = {
@@ -69,7 +68,7 @@ const jsonLd = {
             legalName: COMPANY.legalName,
             url: COMPANY.site,
             description:
-                "변호사와 법무법인만 상대하는 마케팅 회사. 검색광고, SEO, AI 검색 대응, 콘텐츠, 홈페이지, 상담 전환 분석을 하나의 팀이 통합 운영합니다.",
+                "로펌 마케팅에 집중하는 팀. 광고·검색·콘텐츠·홈페이지·상담 분석을 함께 운영합니다.",
             founder: {
                 "@type": "Person",
                 name: FOUNDER.name,

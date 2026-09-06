@@ -80,26 +80,26 @@ export interface NavItem {
 
 export const NAV: NavItem[] = [
     {
-        label: "WHAT WE DO",
+        label: "서비스",
         href: "/lawfirm-marketing",
         children: [
-            { label: "Paid Media", href: "/naver-ads", desc: "네이버 파워링크 · Google Ads" },
-            { label: "SEO", href: "/lawfirm-seo", desc: "네이버 · 구글 검색 노출" },
-            { label: "AI Search / GEO", href: "/geo", desc: "AI 검색이 이해하는 구조" },
-            { label: "Content", href: "/lawfirm-blog", desc: "블로그 · 사례 · 칼럼" },
-            { label: "Website", href: "/lawfirm-website", desc: "홈페이지 · 랜딩페이지" },
-            { label: "Data & Conversion", href: "/conversion", desc: "상담 전환 · 수임 분석" },
+            { label: "광고 운영", href: "/naver-ads", desc: "네이버 · 구글 광고" },
+            { label: "검색 노출", href: "/lawfirm-seo", desc: "홈페이지와 글을 검색에 맞게" },
+            { label: "AI 검색", href: "/geo", desc: "AI가 읽는 로펌 정보 정리" },
+            { label: "블로그·콘텐츠", href: "/lawfirm-blog", desc: "사례 · 판례 · 법률 정보" },
+            { label: "홈페이지", href: "/lawfirm-website", desc: "제작 · 개편 · 관리" },
+            { label: "상담·수임 분석", href: "/conversion", desc: "상담이 들어온 경로와 비용" },
         ],
     },
-    { label: "OUR SYSTEM", href: "/#system" },
-    { label: "WORK", href: "/work" },
+    { label: "운영 방식", href: "/#system" },
+    { label: "사례", href: "/work" },
     // 가격 공개는 이 사이트의 핵심 전환 자산 — 헤더에서 바로 도달하게 한다
-    { label: "PRICING", href: "/#plans" },
-    { label: "INSIGHTS", href: "/magazine" },
-    { label: "ABOUT", href: "/about" },
+    { label: "비용", href: "/#plans" },
+    { label: "매거진", href: "/magazine" },
+    { label: "팀 소개", href: "/about" },
 ];
 
-export const PRIMARY_CTA = { label: "마케팅 진단 요청", href: "/diagnose" }; // path() 가 /renewal/diagnose 로 바꾼다
+export const PRIMARY_CTA = { label: "마케팅 상담", href: "/diagnose" }; // path() 가 /renewal/diagnose 로 바꾼다
 
 /* ═══════════════ HERO 채널 ═══════════════ */
 
@@ -281,7 +281,7 @@ export const CHANNELS: ChannelCategory[] = [
 export const HERO_OVERLINE = "LAW FIRM MARKETING, MADE SIMPLE.";
 
 export const HERO_BODY =
-    "검색광고, 블로그, SEO, AI 검색, 홈페이지, 상담 분석까지. 메이크디스원의 통합 솔루션으로.";
+    "광고부터 상담 분석까지, 한 팀이 맡습니다.";
 
 // 기존 취소선 질문 5줄을 한 줄 Before→After 로 압축했다.
 export const HERO_BEFORE = ["광고대행사", "블로그 업체", "제작사", "SEO 업체"];
@@ -303,20 +303,20 @@ export interface JourneyStep {
 export const JOURNEY: JourneyStep[] = [
     {
         no: "01",
-        title: "보이도록",
-        desc: "네이버·Google 광고와 일반 검색, AI 검색에서 로펌이 발견되게 합니다.",
-        labels: ["광고", "SEO", "AI 검색"],
+        title: "검색에서 만나고",
+        desc: "광고와 검색 결과에 로펌을 알립니다.",
+        labels: ["네이버", "구글", "AI 검색"],
     },
     {
         no: "02",
-        title: "선택할 이유 제작",
-        desc: "사건 경험, 변호사 소개, 전문 콘텐츠와 홈페이지에서 신뢰할 근거를 보여줍니다.",
+        title: "경험을 확인하고",
+        desc: "사건 사례와 변호사 소개로 신뢰를 쌓습니다.",
         labels: ["콘텐츠", "홈페이지"],
     },
     {
         no: "03",
-        title: "예산의 유연한 분배",
-        desc: "전화·카카오톡·상담폼의 유입 경로를 확인하고 실제 상담이 생기는 채널에 예산을 추가합니다.",
+        title: "상담으로 이어지도록",
+        desc: "문의하기 쉽게 만들고, 상담이 온 경로를 확인합니다.",
         labels: ["상담 경로", "데이터 분석"],
     },
 ];
@@ -329,13 +329,13 @@ export const JOURNEY_NOTE = "수임 데이터는 로펌이 제공한 범위 안�
 
 export const BEFORE_AFTER = {
     //   — "이유"가 외톨이 줄로 떨어지지 않게 앞 단어와 묶는다
-    title: ["마케팅 채널 통합이 필요한 이유"],
+    title: ["여러 업체 대신,", "한 팀이면 됩니다."],
     before: {
         label: "맡기기 전",
         items: ["업체마다 따로 연락", "보고서도 따로 확인", "성과 기준도 제각각"],
     },
     after: {
-        label: "메이크디스원과 일하면",
+        label: "메이크디스원과 함께",
         items: ["담당 창구 하나", "월간 운영 계획 하나", "상담 기준 성과표 하나"],
     },
 };
@@ -353,6 +353,7 @@ export interface Service {
     no: string;
     ko: string;
     en: string;
+    summary: string;
     href: string; // 해당 서비스 상세 — 내부링크 축
     items: ServiceItem[];
 }
@@ -362,79 +363,85 @@ export const SERVICES: Service[] = [
         no: "01",
         ko: "광고 운영",
         en: "PAID MEDIA",
+        summary: "네이버·구글 광고를 만들고 예산을 관리합니다.",
         href: "/naver-ads",
         items: [
             { label: "네이버 파워링크" },
             { label: "네이버 광고" },
-            { label: "Google Ads" },
-            { label: "YouTube Ads" },
-            { label: "Meta Ads", badge: "필요 시" },
-            { label: "ChatGPT Ads", badge: "허용 시 편입" },
+            { label: "구글 광고" },
+            { label: "유튜브 광고" },
+            { label: "메타 광고", badge: "필요 시" },
+            { label: "ChatGPT 광고", badge: "허용 시 편입" },
             { label: "AI 광고 플랫폼", badge: "등장 시 검토" },
         ],
     },
     {
         no: "02",
-        ko: "네이버·Google 검색",
+        ko: "검색 노출",
         en: "SEARCH",
+        summary: "홈페이지와 글을 검색에 잘 잡히도록 다듬습니다.",
         href: "/lawfirm-seo",
         items: [
-            { label: "네이버 SEO" },
-            { label: "Google SEO" },
-            { label: "기술 SEO" },
+            { label: "네이버 검색 노출 정비" },
+            { label: "구글 검색 노출 정비" },
+            { label: "검색을 위한 홈페이지 기술 정비" },
             { label: "지역 검색 최적화" },
             { label: "검색 콘텐츠 전략" },
-            { label: "사건별 키워드·콘텐츠 클러스터" },
+            { label: "사건별 검색어·관련 글 구성" },
         ],
     },
     {
         no: "03",
         ko: "AI 검색",
         en: "AI SEARCH",
+        summary: "AI가 읽을 수 있도록 로펌 정보와 글을 정리합니다.",
         href: "/geo",
         items: [
-            { label: "GEO" },
-            { label: "AEO" },
+            { label: "AI 검색 대응(GEO)" },
+            { label: "답변형 검색 대응(AEO)" },
             { label: "ChatGPT 검색 대응" },
             { label: "Google AI 검색 대응" },
             { label: "네이버 AI 검색 대응" },
-            { label: "로펌·변호사 Entity 구축" },
-            { label: "AI 인용형 콘텐츠 구조 설계" },
+            { label: "로펌·변호사 정보 연결" },
+            { label: "AI가 참고하기 쉬운 글 구조" },
         ],
     },
     {
         no: "04",
-        ko: "법률 콘텐츠",
+        ko: "블로그·콘텐츠",
         en: "CONTENT",
+        summary: "법률 글을 쓰고, 영상을 기획·재가공합니다.",
         href: "/lawfirm-blog",
         items: [
             { label: "네이버 블로그 운영" },
             { label: "홈페이지 전문 콘텐츠" },
             { label: "실제 사건·사례 콘텐츠" },
             { label: "판례 콘텐츠" },
-            { label: "FAQ" },
+            { label: "자주 묻는 질문" },
             { label: "영상 기획·재가공" },
-            { label: "숏폼" },
+            { label: "짧은 영상" },
         ],
     },
     {
         no: "05",
         ko: "홈페이지",
         en: "WEBSITE",
+        summary: "제작부터 관리까지, 상담하기 편하게 만듭니다.",
         href: "/lawfirm-website",
         items: [
             { label: "홈페이지 제작·개편" },
-            { label: "사건별 랜딩페이지" },
+            { label: "사건별 전용 페이지" },
             { label: "콘텐츠 등록·관리" },
             { label: "모바일 최적화" },
-            { label: "전환 UX 개선" },
-            { label: "SEO·GEO 기술 작업" },
+            { label: "상담까지 가는 동선 개선" },
+            { label: "검색·AI 검색을 위한 기술 정비" },
         ],
     },
     {
         no: "06",
         ko: "상담·수임 분석",
         en: "CONVERSION",
+        summary: "상담이 들어온 경로와 비용을 비교합니다.",
         href: "/conversion",
         items: [
             { label: "전화" },
@@ -442,7 +449,7 @@ export const SERVICES: Service[] = [
             { label: "카카오톡" },
             { label: "광고별 유입 추적" },
             { label: "유효상담 분석" },
-            { label: "사건별 상담 CPA" },
+            { label: "사건별 상담 1건당 비용" },
             { label: "수임 데이터 연계" },
             { label: "마케팅 성과 분석" },
             // 로펌의 기록을 자산으로 — 대표 지시 2026-08-28 추가.
@@ -457,10 +464,10 @@ export const HERO_CARD_ITEMS = SERVICES.map((s) => ({ ko: s.ko, no: s.no }));
 
 /* ── 새 채널 대응 (구 Whatever Changes — 대폭 축소) ── */
 
-export const NEW_CHANNEL_TITLE = ["새 광고 채널이 생겨도", "다시 업체를 찾을 필요 없습니다."];
+export const NEW_CHANNEL_TITLE = ["새로운 광고도,", "같은 팀에서."];
 
 export const NEW_CHANNEL_BODY =
-    "메이크디스원이 매체와 광고 규정을 검토하고, 실제로 쓸 수 있는 채널만 기존 운영에 연결합니다.";
+    "법률 광고가 허용되고, 로펌에 필요한 채널만 검토해 추가합니다.";
 
 export interface LedgerRow {
     channel: string;
@@ -509,33 +516,33 @@ export const PLANS: Plan[] = [
     {
         key: "standard",
         en: "STANDARD",
-        ko: "운영 통합",
+        ko: "기본 운영",
         price: "약 월 300만원",
         priceNote: "광고 매체비 별도",
-        desc: "여러 업체로 나뉜 마케팅을 한 팀에 모아 안정적으로 운영합니다.",
+        desc: "광고·블로그·홈페이지를 한곳에서.",
         includesLabel: "포함",
         includes: [
-            "네이버 파워링크·Google Ads",
+            "네이버 파워링크·구글 광고",
             "네이버 블로그",
             "홈페이지 기본 관리",
-            "기본 SEO·GEO",
-            "마케팅 데이터 분석",
+            "기본 검색·AI 검색 정비",
+            "마케팅·상담 성과 분석",
         ],
     },
     {
         key: "growth",
         en: "GROWTH",
-        ko: "성장 확장",
+        ko: "분야 확장",
         price: "약 월 600~700만원",
         priceNote: "광고 매체비 별도",
-        desc: "기본 운영에 더해 사건 분야와 검색 유입을 지속적으로 확장합니다.",
+        desc: "사건 분야별로 광고와 콘텐츠를 넓힙니다.",
         includesLabel: "STANDARD 전체 +",
         includes: [
-            "사건 분야별 랜딩페이지",
-            "SEO 콘텐츠 클러스터",
+            "사건 분야별 전용 페이지",
+            "사건 주제별 검색 콘텐츠",
             "실제 사건·판례 콘텐츠",
-            "GEO·AI 검색 대응 고도화",
-            "광고 A/B 테스트와 CRO",
+            "AI 검색 정비 강화",
+            "광고 비교 테스트·상담 경로 개선",
             "경쟁 로펌 모니터링",
             "영상 재가공",
         ],
@@ -548,45 +555,45 @@ export const PLANS: Plan[] = [
         ko: "시장 선점",
         price: "월 1,300만원부터",
         priceNote: "광고 매체비 별도",
-        desc: "특정 지역 또는 사건 분야에서 높은 시장 점유를 목표로 사실상 외부 마케팅 본부처럼 움직입니다.",
+        desc: "지역·분야 점유율 확대를 위한 외부 마케팅 본부.",
         includesLabel: "GROWTH 전체 +",
         includes: [
-            "대규모 키워드·콘텐츠 맵",
-            "다수의 사건별 랜딩페이지",
+            "대규모 검색어·콘텐츠 계획",
+            "다수의 사건별 전용 페이지",
             "변호사 개인 브랜딩",
-            "YouTube·Shorts 기획",
-            "PR·언론 전략",
+            "유튜브·쇼츠 기획",
+            "홍보·언론 전략",
             "경쟁 로펌 심층 분석",
-            "전략회의와 적극적인 예산 재배분",
+            "전략회의·예산 재배분",
         ],
     },
 ];
 
 export const PLANS_FOOTNOTE =
-    "광고 매체비는 별도입니다. 실제 범위와 비용은 사건 분야, 지역, 경쟁 상황, 현재 홈페이지와 콘텐츠 상태를 확인한 후 확정합니다.";
+    "운영 범위와 비용은 사건 분야·지역·경쟁 상황, 홈페이지·콘텐츠 상태를 확인한 뒤 확정합니다. 광고 매체비는 별도입니다.";
 
 // 가격표 옆에 붙는 미니 FAQ — 상담 전에 걸리는 질문을 미리 치운다.
 // ⚠️ §42 — 확정되지 않은 기간·금액·절차를 지어내지 않는다. 협의 사항은 협의라고 쓴다.
 export const PLANS_FAQ = [
     {
-        q: "광고 매체비는 별도인가요? 보통 얼마나 드나요?",
-        a: "네, 위 금액은 운영비이고 네이버·Google 등에 지불하는 매체비는 별도입니다. 매체비 규모는 사건 분야와 지역 경쟁도에 따라 크게 달라서, 진단 때 현재 상태를 보고 목표에 맞는 규모를 제안드립니다.",
+        q: "광고비가 포함된 금액인가요?",
+        a: "아닙니다. 위 금액은 운영비입니다. 네이버·구글 등에 내는 광고비는 별도이며, 사건 분야와 지역 경쟁도에 맞춰 제안합니다.",
     },
     {
         q: "기간은 어떻게 정하나요?",
-        a: "로펌 상황과 목표에 따라 협의해 정하고, 시작 전에 범위와 기간을 서면으로 확정합니다. 콘텐츠·SEO 는 성과가 쌓이는 데 시간이 걸리는 영역이라, 최소 수개월 단위의 운영을 권합니다.",
+        a: "로펌 상황에 맞춰 협의하고, 시작 전 범위와 기간을 서면으로 정합니다. 콘텐츠와 검색 노출은 수개월 단위 운영을 권합니다.",
     },
     {
         q: "시작하면 첫 달에 무엇을 하나요?",
-        a: "광고 계정, 홈페이지, 블로그·콘텐츠, 상담 경로의 현재 상태를 진단하고 우선순위를 정리합니다. 그 결과로 월간 운영 계획을 확정한 뒤 채널별 셋업에 들어갑니다.",
+        a: "광고·홈페이지·블로그·상담 경로를 점검합니다. 우선순위와 월간 계획을 정한 뒤 운영 준비를 시작합니다.",
     },
     {
         q: "운영안은 중간에 바꿀 수 있나요?",
-        a: "네. 성과와 목표 변화에 따라 상향·하향 모두 조정할 수 있습니다. 분야 확장이 필요해지면 GROWTH 로, 안정 운영이 목표면 STANDARD 로 맞춥니다.",
+        a: "네. 성과와 목표에 따라 운영 범위를 늘리거나 줄일 수 있습니다.",
     },
     {
         q: "우리 로펌에는 어떤 운영안이 맞나요?",
-        a: "여러 업체로 나뉜 마케팅을 처음 한곳에 모은다면 STANDARD, 사건 분야와 검색 유입을 늘리는 것이 목표라면 GROWTH 가 일반적입니다. 진단 요청을 주시면 현재 상태를 보고 맞는 구성을 제안드립니다.",
+        a: "기본 운영을 모으려면 STANDARD, 사건 분야와 검색 유입을 넓히려면 GROWTH가 일반적입니다. 상담에서 맞는 구성을 제안합니다.",
     },
 ];
 

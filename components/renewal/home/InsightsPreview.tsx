@@ -67,7 +67,7 @@ export default function InsightsPreview({ items, total }: { items: InsightItem[]
                             )}
                         </div>
                         <Reveal variant="mask">
-                            <h2 className="mt-h2">대격변의 시대, 변화의 흐름을 메이크디스원이 설명드립니다.</h2>
+                            <h2 className="mt-h2">로펌 마케팅, 지금 알아둘 것.</h2>
                         </Reveal>
                     </div>
                     <Reveal variant="rise" index={1}>
@@ -93,11 +93,6 @@ export default function InsightsPreview({ items, total }: { items: InsightItem[]
                             <h3 className="mt-6 text-[clamp(1.35rem,2.3vw,1.85rem)] font-semibold leading-[1.38] tracking-tight">
                                 <span className="mt-underline">{lead.title}</span>
                             </h3>
-                            {lead.excerpt && (
-                                <p className="mt-body mt-6 text-[14.5px] line-clamp-4 max-w-[46ch]">
-                                    {lead.excerpt}
-                                </p>
-                            )}
                             <span
                                 className="mt-8 inline-flex items-center gap-1.5 text-[13px] font-medium"
                                 style={{ color: "var(--mt-ink)" }}
@@ -124,9 +119,6 @@ export default function InsightsPreview({ items, total }: { items: InsightItem[]
                                     <h3 className="mt-4 text-[16px] font-semibold leading-[1.5] tracking-tight">
                                         <span className="mt-underline">{a.title}</span>
                                     </h3>
-                                    {a.excerpt && (
-                                        <p className="mt-body mt-3 text-[13px] line-clamp-2">{a.excerpt}</p>
-                                    )}
                                 </Link>
                             </Reveal>
                         ))}

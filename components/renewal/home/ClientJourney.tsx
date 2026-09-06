@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { Container } from "../primitives";
 import Reveal from "../Reveal";
-import ScrollHint from "../ScrollHint";
 import { useScrollProgress } from "../useScrollProgress";
 import { JOURNEY, path } from "@/data/renewal/site";
 
@@ -201,18 +200,12 @@ export default function ClientJourney() {
                     </div>
                     <h2 className="mt-h2 mt-serif" style={{ color: "var(--mt-ink)" }}>
                         <Reveal as="span" variant="mask">
-                            <span className="block">의뢰인이 검색한 순간부터</span>
+                            <span className="block">검색부터</span>
                         </Reveal>
                         <Reveal as="span" variant="mask" index={1} stagger={140}>
-                            <span className="block">상담이 들어온 뒤까지.</span>
+                            <span className="block">상담까지.</span>
                         </Reveal>
                     </h2>
-                    <Reveal variant="rise" index={2} stagger={160}>
-                        <p className="mt-body-lg mt-7 max-w-[640px]">
-                            메이크디스원은 채널을 따로 보지 않습니다. 어디서 찾았고, 무엇을 보고
-                            문의했는지 한 흐름으로&nbsp;봅니다.
-                        </p>
-                    </Reveal>
                 </div>
             </Container>
 
@@ -221,9 +214,6 @@ export default function ClientJourney() {
             <div ref={stageRef} className="mt-stage mt-stage-track lg:h-[140svh]">
                 <div className="mt-stage-pin">
                     <Container className="pt-14 lg:pt-0">
-                        <div className="mb-8 hidden lg:block">
-                            <ScrollHint>아래로 스크롤하면, 의뢰인이 한 단계씩 이동합니다</ScrollHint>
-                        </div>
                         <div className="relative pl-7 lg:pl-0">
                             {/* 모바일: 세로 경로 */}
                             <div className="lg:hidden absolute left-1 top-2 bottom-2" aria-hidden="true">
@@ -270,22 +260,7 @@ export default function ClientJourney() {
                                             </h3>
                                             <p className="mt-body mt-3 text-[14px] max-w-[40ch]">{step.desc}</p>
 
-                                            {i === 1 && (
-                                                <p className="mt-pi mt-4 text-[12.5px]" style={{ color: "var(--mt-gray)", ...pi(0.36) }}>
-                                                    검색됐다는 이유만으로 선택하지는 않습니다.
-                                                </p>
-                                            )}
-
                                             <Scene />
-
-                                            {i === 1 && (
-                                                <p
-                                                    className="mt-pi mt-4 text-[12.5px] font-medium"
-                                                    style={{ color: "var(--mt-ink)", ...pi(0.45) }}
-                                                >
-                                                    이 로펌이어야 할 이유를 확인합니다.
-                                                </p>
-                                            )}
 
                                             <ul className="mt-5 flex flex-wrap gap-2">
                                                 {step.labels.map((l, j) => (
@@ -347,7 +322,7 @@ export default function ClientJourney() {
 
                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                                     <span className="mt-en mt-label" style={{ color: "var(--mt-gray)" }}>
-                                        Lead to Case
+                                        성과 확인
                                     </span>
                                     <span className="w-6 h-px" style={{ background: "var(--mt-line-strong)" }} />
                                     <span className="mt-pi flex items-center gap-3 text-[14px] font-medium" style={{ color: "var(--mt-ink)", ...pi(0.84) }}>
@@ -367,8 +342,7 @@ export default function ClientJourney() {
                                 </div>
 
                                 <p className="mt-body mt-4 text-[13.5px] max-w-[70ch]">
-                                    유입이 어느 채널에서 왔는지 구분하고, 채널별 비용과 상담 기여를 같은 표에서
-                                    봅니다. 그 표를 근거로 다음 달 예산을 옮깁니다.
+                                    상담이 들어온 경로와 비용을 비교해 다음 달 예산을 조정합니다.
                                 </p>
 
                                 {/* 데이터 흐름 — 다시 전략과 예산으로 */}
@@ -392,9 +366,6 @@ export default function ClientJourney() {
                                             </span>
                                         </span>
                                     ))}
-                                    <span className="mt-pi text-[11px]" style={{ color: "var(--mt-accent)", ...pi(0.96) }}>
-                                        ↺ 다음 전략과 예산으로
-                                    </span>
                                 </div>
 
                                 <div className="mt-5">
@@ -404,7 +375,7 @@ export default function ClientJourney() {
                                         style={{ color: "var(--mt-ink)" }}
                                     >
                                         <span className="relative">
-                                            데이터 운영 방식 보기
+                                            상담·수임 분석 보기
                                             <span className="mt-plink-bar" style={pi(0.97)} aria-hidden />
                                         </span>
                                         <span className="transition-transform duration-200 group-hover:translate-x-1" aria-hidden>

@@ -22,15 +22,15 @@ export default function SiteFooter() {
                     <div>
                         <Logo size={18} />
                         <p className="mt-body mt-5 max-w-[300px] text-[14px] leading-[1.75]">
-                            로펌은 사건에 집중하십시오.
+                            사건에 집중하세요.
                             <br />
-                            마케팅에 필요한 모든 것은 저희가 해결합니다.
+                            마케팅은 맡기세요.
                         </p>
                     </div>
 
                     <nav>
                         <p className="mt-en mt-label mb-5" style={{ color: "var(--mt-gray)" }}>
-                            What we do
+                            서비스
                         </p>
                         <ul className="flex flex-col gap-3">
                             {whatWeDo.map((c) => (
@@ -48,14 +48,14 @@ export default function SiteFooter() {
 
                     <nav>
                         <p className="mt-en mt-label mb-5" style={{ color: "var(--mt-gray)" }}>
-                            Company
+                            회사
                         </p>
                         <ul className="flex flex-col gap-3">
                             {[
                                 { label: "회사 소개", href: "/about" },
-                                { label: "Case Study", href: "/work" },
-                                { label: "Insights", href: "/magazine" },
-                                { label: "마케팅 진단", href: "/diagnose" },
+                                { label: "운영 사례", href: "/work" },
+                                { label: "매거진", href: "/magazine" },
+                                { label: "마케팅 상담", href: "/diagnose" },
                                 { label: "문의", href: "/contact" },
                             ].map((l) => (
                                 <li key={l.href}>
@@ -72,7 +72,7 @@ export default function SiteFooter() {
 
                     <div>
                         <p className="mt-en mt-label mb-5" style={{ color: "var(--mt-gray)" }}>
-                            Contact
+                            연락처
                         </p>
                         <a
                             href={`tel:${COMPANY.phone.replace(/-/g, "")}`}

@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { Container, SectionHeader } from "../primitives";
 import Reveal from "../Reveal";
-import ScrollHint from "../ScrollHint";
 import { useScrollProgress } from "../useScrollProgress";
 import { SERVICES, path } from "@/data/renewal/site";
 
@@ -12,7 +11,7 @@ import { SERVICES, path } from "@/data/renewal/site";
 // 한글 업무명이 주 제목, 영어는 작은 보조 레이블. 스크롤 진행에 따라
 // 여섯 줄이 차례로 펼쳐진다(기존 unfold 모션 유지): 번호 → 상단 선 →
 // 품목 순차 → 조건부 배지. 전부 --p 의 순수 함수 — 역스크롤 역재생.
-// 모바일은 품목이 길어지지 않도록 세부 업무를 접어둔다(<details>).
+// 모든 화면에서 한 줄 설명을 먼저 보여주고 세부 업무는 <details>로 제공한다.
 // CTA 는 처음부터 클릭 가능하고(접근성) 시각적 강조만 뒤에 붙는다.
 
 function Badge({ children }: { children: string }) {
@@ -54,19 +53,7 @@ export default function ServicesSection() {
                     <SectionHeader
                         eyebrow="Services"
                         serif
-                        title={
-                            <>
-                                광고의 처음부터 끝,
-                                <br />
-                                모두 준비했습니다.
-                            </>
-                        }
-                        lead={
-                            <>
-                                채널별로 업체를 나누지 마세요. 로펌의 목표와 예산에 맞춰 필요한 영역을 한
-                                팀이 함께&nbsp;운영합니다.
-                            </>
-                        }
+                        title="우리가 맡는 일."
                     />
                 </Reveal>
             </Container>
@@ -77,9 +64,6 @@ export default function ServicesSection() {
                     빈다 — 이 섹션은 상단 정렬로 붙여 헤더와의 간격을 없앤다 */}
                 <div className="mt-stage-pin" style={{ justifyContent: "flex-start" }}>
                     <Container className="pt-12 lg:pt-24">
-                        <div className="mb-6 hidden lg:block">
-                            <ScrollHint>아래로 스크롤하면, 여섯 영역이 차례로 펼쳐집니다</ScrollHint>
-                        </div>
                         <div>
                             {SERVICES.map((svc, i) => {
                                 const a = 0.05 + i * 0.14;
@@ -118,40 +102,20 @@ export default function ServicesSection() {
                                             </Link>
                                         </div>
 
-                                        {/* 데스크톱 — 품목 순차 등장 */}
-                                        <ul className="hidden md:flex flex-wrap items-center gap-x-2 gap-y-2 text-[13.5px] leading-relaxed">
-                                            {svc.items.map((it, j) => (
-                                                <li
-                                                    key={it.label}
-                                                    className="mt-aitem flex items-center"
-                                                    style={{
-                                                        color: "var(--mt-charcoal)",
-                                                        ["--ai" as string]: a + 0.035 + j * 0.011,
-                                                    }}
-                                                >
-                                                    {j > 0 && (
-                                                        <span aria-hidden className="mx-2" style={{ color: "var(--mt-line-strong)" }}>
-                                                            ·
-                                                        </span>
-                                                    )}
-                                                    <span>{it.label}</span>
-                                                    {it.badge && <Badge>{it.badge}</Badge>}
-                                                </li>
-                                            ))}
-                                        </ul>
-
-                                        {/* 모바일 — 세부 업무는 접어서 목록이 길어지지 않게 */}
-                                        <details className="md:hidden mt-svc-details">
+                                        <div>
+                                            <p className="mt-body mt-service-summary">{svc.summary}</p>
+                                        <details className="mt-svc-details mt-3">
                                             <summary
                                                 className="text-[12.5px] font-medium cursor-pointer select-none"
                                                 style={{ color: "var(--mt-gray)" }}
                                             >
-                                                세부 업무 {svc.items.length}개 보기
+                                                세부 업무 보기
                                             </summary>
                                             <div className="mt-3">
                                                 <ItemList items={svc.items} />
                                             </div>
                                         </details>
+                                        </div>
                                     </div>
                                 );
                             })}
@@ -161,8 +125,7 @@ export default function ServicesSection() {
                                 className="mt-pi mt-6 text-[12.5px]"
                                 style={{ color: "var(--mt-gray-light)", ["--a" as string]: 0.88, ["--o0" as string]: 0.4 }}
                             >
-                                배지가 붙은 항목은 확정 서비스가 아니라 조건이 갖춰지는 시점에 편입되는
-                                항목입니다. 하는 것과 하겠다는 것을 구분해 적습니다.
+                                운영 범위는 상품에 따라 다릅니다. 조건부 항목은 확정 서비스가 아니며, 필요성·광고 허용 여부에 따라 검토합니다.
                             </p>
 
                             {/* 변호사 광고의 특수성 — 일반 대행사와 갈라지는 지점 */}
@@ -170,8 +133,7 @@ export default function ServicesSection() {
                                 className="mt-pi mt-3 text-[13px] font-medium"
                                 style={{ color: "var(--mt-ink)", ["--a" as string]: 0.9, ["--o0" as string]: 0.4 }}
                             >
-                                위 모든 광고와 콘텐츠는 변호사법과 대한변호사협회 광고 규정 안에서
-                                집행합니다. 법률 표현 검수는 법학 전공자가 합니다.
+                                변호사법·대한변협 광고 규정을 준수하며, 법률 표현은 법학 전공자가 검수합니다.
                             </p>
 
                             <div
@@ -184,7 +146,7 @@ export default function ServicesSection() {
                                     style={{ color: "var(--mt-ink)" }}
                                 >
                                     <span className="relative">
-                                        실제로 하는 일 자세히 보기
+                                        전체 업무 보기
                                         <span className="mt-plink-bar" style={{ ["--a" as string]: 0.95 }} aria-hidden />
                                     </span>
                                     <span className="transition-transform duration-200 group-hover:translate-x-1" aria-hidden>

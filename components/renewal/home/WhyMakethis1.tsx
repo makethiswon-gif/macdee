@@ -21,14 +21,8 @@ export default function WhyMakethis1() {
                 <SectionHeader
                     eyebrow="Why MAKETHIS1"
                     serif
-                    title={
-                        <>
-                            법률·콘텐츠·광고·검색을 아는 사람들이
-                            <br />
-                            하나의 팀으로
-                        </>
-                    }
-                    lead="기자와 방송작가가 글을 쓰고, 법학 전공자가 검수하고, 퍼포먼스 담당이 예산을 조정합니다."
+                    title="로펌 마케팅을 맡는 사람들."
+                    lead="기자·방송작가 출신이 쓰고, 법학 전공자가 검수합니다."
                 />
 
                 {/* 5개 직능 → ONE TEAM 연결 (1회 실행) */}
@@ -110,7 +104,7 @@ export default function WhyMakethis1() {
                                     <p className="mt-2 text-[15px] font-semibold" style={{ color: "var(--mt-ink)" }}>
                                         {m.name}
                                     </p>
-                                    <p className="mt-body mt-2 text-[12px] leading-[1.65]">{m.background}</p>
+                                    <p className="mt-body mt-2 text-[12px] leading-[1.65]">{m.background.split(" · ")[0]}</p>
                                 </figcaption>
                             </figure>
                         </Reveal>

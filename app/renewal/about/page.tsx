@@ -76,15 +76,14 @@ export default function Page() {
                     </Reveal>
                     <Reveal index={1}>
                         <h1 className="mt-h1 mt-7 max-w-[20ch]">
-                            법률·콘텐츠·광고·검색을 아는&nbsp;사람들
+                            로펌 마케팅을
                             <br />
-                            메이크디스원입니다.
+                            맡는 사람들.
                         </h1>
                     </Reveal>
                     <Reveal index={2}>
                         <p className="mt-body-lg mt-8 max-w-[620px]">
-                            {COMPANY.legalName}은 변호사와 법무법인만 상대하는 마케팅 회사입니다.
-                            업종을 넓히지 않았기 때문에 법률 분야에서만 쌓인 판단이 있습니다.
+                            {COMPANY.legalName}은 로펌 마케팅에 집중하는 팀입니다.
                         </p>
                     </Reveal>
                 </Container>
@@ -127,8 +126,8 @@ className="mt-k-proof pt-12 flex flex-wrap gap-x-16 gap-y-10"
                 <Container>
                     <SectionHeader
                         eyebrow="How we operate"
-                        title="TEAM WORK"
-                        lead="기자와 방송작가가 글을 쓰고, 법학 전공자가 검수하고, 퍼포먼스 마케터가 예산을 조정합니다."
+                        title="각자의 전문성을 한 팀으로."
+                        lead="기자·방송작가 출신이 쓰고, 법학 전공자가 검수하고, 광고 담당이 예산을 조정합니다."
                     />
                     <div
                         className="mt-disciplines mt-14 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-px"

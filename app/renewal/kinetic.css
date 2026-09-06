@@ -1,5 +1,5 @@
-/* Selected direction D. Reference card sampled at #004AAD; no logo/copy changes.
-   Keep this opt-out explicit so the six comparison studies remain an archive. */
+/* Selected direction D. Reference card sampled at #004AAD; logo preserved.
+   Comparison studies keep their own layouts. Shared copy may evolve with approval. */
 .mt-root:not(:has([data-renewal-study])) {
     --mt-bg: #fff;
     --mt-surface: #f1f5fb;
@@ -58,6 +58,7 @@
         backdrop-filter: none !important;
     }
     & > header a:focus-visible, & > header button:focus-visible { outline-color: #fff; }
+    & > header .mt-label { font-size: 14px; }
     & .mt-kinetic-home :is(a,button):focus-visible { outline-color: #fff; }
     & .mt-kinetic-home [data-service] a:focus-visible { outline-color: #004aad; }
     & > footer { --mt-dark-bg: #071526; --mt-dark-gray: #c6d5e9; --mt-dark-line: #ffffff30; --mt-gray: #c6d5e9; }
@@ -94,6 +95,8 @@
     & .mt-annex-title { width: 100%; font-size: clamp(25px,2.7vw,42px) !important; line-height: 1.18; font-weight: 720; letter-spacing: -.05em; }
     & .mt-annex-heading > p { font-size: 12px; }
     & .mt-annex li { font-size: 16px !important; }
+    & .mt-service-summary { font-size: 18px; line-height: 1.65; }
+    & .mt-svc-details > summary { font-size: 16px; min-height: 44px; padding-block: 12px; }
     & .mt-annex { transition: background .2s; }
     & .mt-annex:focus-within, & .mt-annex:hover { background: #f1f5fb; }
 

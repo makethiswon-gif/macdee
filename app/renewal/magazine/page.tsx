@@ -85,16 +85,15 @@ export default async function InsightsPage() {
                     <div className="max-w-[820px]">
                         <Eyebrow className="mt-hero-in">Insights</Eyebrow>
                         <h1 className="mt-h1 mt-6 mt-hero-in" style={{ ["--mt-hero-delay" as string]: "60ms" }}>
-                            법률 마케팅이 어떻게 움직이는지
+                            로펌 마케팅,
                             <br />
-                            계속 기록합니다.
+                            지금 알아둘 것.
                         </h1>
                         <p
                             className="mt-body-lg mt-7 max-w-[560px] mt-hero-in"
                             style={{ ["--mt-hero-delay" as string]: "120ms" }}
                         >
-                            검색과 광고, AI가 바꾸는 법률 시장을 MAKETHIS1 편집팀이 직접 씁니다.
-                            기자·방송작가 출신이 쓰고, 법학 전공자가 검수합니다.
+                            검색·광고·AI의 변화를 쉽게 전합니다.
                         </p>
                     </div>
 

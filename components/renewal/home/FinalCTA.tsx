@@ -40,10 +40,10 @@ export default function FinalCTA() {
                             {/* 모바일에서 "로펌은 사건에 / 집중하십시오."로 꺾이는 것은 자연스러운
                                 한국어 행갈이 — 뒤 단어를 묶으면 "로펌은"이 외톨이가 되어 더 나쁘다 */}
                             <span className="mt-pmask" style={{ ["--a" as string]: 0.1 }}>
-                                <span>로펌은 사건에 집중하십시오.</span>
+                                <span>사건에 집중하세요.</span>
                             </span>
                             <span className="mt-pmask" style={{ ["--a" as string]: 0.18 }}>
-                                <span>마케팅은 저희가 맡겠습니다.</span>
+                                <span>마케팅은 맡기세요.</span>
                             </span>
                         </h2>
 
@@ -51,8 +51,7 @@ export default function FinalCTA() {
                             className="mt-pi mt-8 text-[15px] leading-[1.8] max-w-[560px]"
                             style={{ color: "var(--mt-gray)", ["--a" as string]: 0.3 }}
                         >
-                            현재 마케팅 상태와 예산을 알려주시면
-                            <br className="hidden sm:block" /> 세 가지 운영안 중 맞는 구성을 제안합니다.
+                            예산과 목표에 맞는 운영안을 제안합니다.
                         </p>
 
                         {/* 파란 실 — HERO 에서 시작한 선이 여기서 끝난다 */}
@@ -75,7 +74,7 @@ export default function FinalCTA() {
                                     ["--o0" as string]: 0.35,
                                 }}
                             >
-                                마케팅 진단 요청 <span aria-hidden>→</span>
+                                {PRIMARY_CTA.label} <span aria-hidden>→</span>
                             </a>
                             <a
                                 href={path("/contact")}
@@ -87,14 +86,14 @@ export default function FinalCTA() {
                                     ["--o0" as string]: 0.35,
                                 }}
                             >
-                                제안 요청하기
+                                연락처 보기
                             </a>
                             <a
                                 href={path("/#plans")}
                                 className="mt-pi text-[13.5px] font-medium underline-offset-4 hover:underline"
                                 style={{ color: "var(--mt-gray)", ["--a" as string]: 0.65 }}
                             >
-                                세 가지 운영안 다시 보기
+                                비용 다시 보기
                             </a>
                         </div>
 
@@ -103,7 +102,7 @@ export default function FinalCTA() {
                             className="mt-pi mt-8 text-[13.5px]"
                             style={{ color: "var(--mt-gray)", ["--a" as string]: 0.72 }}
                         >
-                            급하신 경우 지금 전화 주셔도 됩니다&nbsp;—{" "}
+                            전화 상담&nbsp;—{" "}
                             <a
                                 href={`tel:${COMPANY.phone.replace(/-/g, "")}`}
                                 className="mt-num font-semibold underline-offset-4 hover:underline"

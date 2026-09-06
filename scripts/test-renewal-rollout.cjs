@@ -23,7 +23,7 @@ const curl=(url,args=[])=>execFileSync('curl.exe',['-sS','--max-time','60',...ar
   const previous=base.find(r=>r.route===route);
   const raw={route,h1,canonical,named:['googlebot','Yeti','bingbot'].every(n=>$(`meta[name="${n}"]`).attr('content')==='noindex, nofollow'),generalNoindex:/noindex/.test($('meta[name=robots]').attr('content')||'')};
   check(!!h1&&raw.named&&!raw.generalNoindex&&(!previous||previous.canonical===canonical),'raw HTML/meta '+route);
-  if(route==='/renewal')check(h1==='로펌 마케팅에 필요한\u00a0모든\u00a0것.메이크디스원 하나로'&&html.includes('메이크디스원의 통합 솔루션으로.'),'locked hero SSR');
+  if(route==='/renewal')check(h1==='로펌 마케팅에 필요한\u00a0모든\u00a0것.메이크디스원 하나로'&&html.includes('광고부터 상담 분석까지, 한 팀이 맡습니다.'),'approved minimal hero SSR');
   $('.mt-root a[href]').each((_,a)=>{const h=$(a).attr('href');if(h.startsWith('/')||h.startsWith('#'))links.add(new URL(h,origin+route).href)});
   report.raw.push(raw);fs.writeFileSync(path.join(out,route.replaceAll('/','_')+'-raw.html'),html);
  }
@@ -76,16 +76,16 @@ const curl=(url,args=[])=>execFileSync('curl.exe',['-sS','--max-time','60',...ar
   await p.route('**/api/renewal/diagnose',async r=>{requests++;payload=r.request().postDataJSON();await r.fulfill({status:200,contentType:'application/json',body:'{"success":true}'});});
   await p.goto(origin+'/renewal/diagnose?plan=growth#form',{waitUntil:'networkidle'});
   const plan=await p.locator('#plan').inputValue();await p.locator('#firmName').fill('QA 로컬 모의 입력');await p.locator('#contactName').fill('QA');await p.locator('#phone').fill('000-0000-0000');
-  await p.locator('.mt-k-form summary').click();await p.locator('#practiceAreas').fill('검증용');await p.getByRole('button',{name:'네이버 블로그',exact:true}).click();await p.locator('.mt-k-form summary').click();await p.getByRole('button',{name:'진단 요청 보내기'}).click();await p.getByRole('status').waitFor();
+  await p.locator('.mt-k-form summary').click();await p.locator('#practiceAreas').fill('검증용');await p.getByRole('button',{name:'네이버 블로그',exact:true}).click();await p.locator('.mt-k-form summary').click();await p.getByRole('button',{name:'상담 요청 보내기'}).click();await p.getByRole('status').waitFor();
   const focused=await p.getByRole('status').evaluate(e=>e===document.activeElement);const ok=requests===1&&plan==='growth'&&payload.plan==='growth'&&payload.practiceAreas==='검증용'&&payload.channels.includes('네이버 블로그')&&focused;
   check(ok,'mock form success '+width);report.form.push({width,scenario:'mock-success',ok});await c.close();
  }
  const nc=await browser.newContext({javaScriptEnabled:false}),np=await nc.newPage();await np.goto(origin+'/renewal/diagnose',{waitUntil:'networkidle'});await np.locator('.mt-k-form summary').click();const safe=await np.locator('button[type=submit]').isDisabled();check(safe&&await np.locator('#practiceAreas').isVisible(),'no-js form safety/disclosure');report.form.push({scenario:'no-js',ok:safe});await nc.close();
  const ec=await browser.newContext(),ep=await ec.newPage();let errorRequests=0;
  await ep.route('**/api/renewal/diagnose',async r=>{errorRequests++;await r.fulfill({status:500,contentType:'application/json',body:'{"error":"로컬 모의 오류"}'});});
- await ep.goto(origin+'/renewal/diagnose',{waitUntil:'networkidle'});await ep.getByRole('button',{name:'진단 요청 보내기'}).click();check(errorRequests===0,'native required validation');
- await ep.locator('#firmName').fill('QA');await ep.locator('#contactName').fill('QA');await ep.locator('#phone').fill('000-0000-0000');await ep.getByRole('button',{name:'진단 요청 보내기'}).click();await ep.locator('.mt-k-form [role="alert"]').waitFor();
- check(errorRequests===1&&await ep.getByRole('button',{name:'진단 요청 보내기'}).isEnabled(),'mock error permits retry');report.form.push({scenario:'mock-error-and-validation',ok:errorRequests===1});await ec.close();
+ await ep.goto(origin+'/renewal/diagnose',{waitUntil:'networkidle'});await ep.getByRole('button',{name:'상담 요청 보내기'}).click();check(errorRequests===0,'native required validation');
+ await ep.locator('#firmName').fill('QA');await ep.locator('#contactName').fill('QA');await ep.locator('#phone').fill('000-0000-0000');await ep.getByRole('button',{name:'상담 요청 보내기'}).click();await ep.locator('.mt-k-form [role="alert"]').waitFor();
+ check(errorRequests===1&&await ep.getByRole('button',{name:'상담 요청 보내기'}).isEnabled(),'mock error permits retry');report.form.push({scenario:'mock-error-and-validation',ok:errorRequests===1});await ec.close();
  // 1440 physical pixels at 200% zoom reflows into 720 CSS pixels.
  const zc=await browser.newContext({viewport:{width:720,height:500},deviceScaleFactor:2,reducedMotion:'reduce'});
  for(const route of ['/renewal','/renewal/lawfirm-marketing','/renewal/diagnose','/renewal/contact']){const zp=await zc.newPage();await zp.goto(origin+route,{waitUntil:'networkidle'});const overflow=await zp.evaluate(()=>document.documentElement.scrollWidth>innerWidth);check(!overflow,'200%-equivalent reflow '+route);await zp.screenshot({path:path.join(out,route.replaceAll('/','_')+'-zoom-200-equivalent.png')});await zp.close();}await zc.close();

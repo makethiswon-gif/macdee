@@ -11,7 +11,7 @@ function Title({ split = false }: { split?: boolean }) {
     </h1>;
 }
 function Actions() {
-    return <div className={s.actions} data-locked-actions><Link href={path(PRIMARY_CTA.href)} className={s.primary}>마케팅 진단받기 <span aria-hidden>↗</span></Link><Link href={path("/#plans")} className={s.secondary}>세 가지 운영안 보기 <span aria-hidden>→</span></Link></div>;
+    return <div className={s.actions} data-locked-actions><Link href={path(PRIMARY_CTA.href)} className={s.primary}>{PRIMARY_CTA.label} <span aria-hidden>↗</span></Link><Link href={path("/#plans")} className={s.secondary}>서비스·비용 보기 <span aria-hidden>→</span></Link></div>;
 }
 function Services({ orbit = false }: { orbit?: boolean }) {
     return <ul className={orbit ? s.orbitLabels : s.serviceLinks}>{SERVICES.map(service => <li key={service.no} data-service={service.no}><Link href={path(service.href)}>{orbit ? <><small>{service.no}</small><span>{service.ko}</span></> : <><span>{service.ko}</span><small>{service.no}</small></>}<span aria-hidden>↗</span></Link></li>)}</ul>;

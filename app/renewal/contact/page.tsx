@@ -53,11 +53,11 @@ export default function Page() {
                         <Eyebrow>Contact</Eyebrow>
                     </Reveal>
                     <Reveal index={1}>
-                        <h1 className="mt-h1 mt-7 max-w-[18ch]">편하신 방법으로 연락 주십시오.</h1>
+                        <h1 className="mt-h1 mt-7 max-w-[18ch]">편하게 문의하세요.</h1>
                     </Reveal>
                     <Reveal index={2}>
                         <p className="mt-body-lg mt-8 max-w-[560px]">
-                            현재 상황을 먼저 알려주시면 통화가 짧아집니다. 급하시면 바로 전화 주셔도 됩니다.
+                            상담을 남기거나, 바로 전화 주세요.
                         </p>
                     </Reveal>
                 </Container>
@@ -72,16 +72,15 @@ export default function Page() {
                         <Reveal>
                             <div className="px-7 py-10 md:px-9 md:py-14 h-full" style={{ background: "var(--mt-bg)" }}>
                                 <p className="mt-en mt-label" style={{ color: "var(--mt-accent)" }}>
-                                    진단 요청
+                                    마케팅 상담
                                 </p>
-                                <h2 className="mt-h3 mt-5">현재 운영 상태부터 보여드립니다.</h2>
+                                <h2 className="mt-h3 mt-5">지금 필요한 일부터.</h2>
                                 <p className="mt-body mt-5 text-[14px]">
-                                    광고·블로그·홈페이지를 함께 확인해 어디에서 고객이 빠져나가는지 먼저
-                                    말씀드립니다. 제안서는 그다음입니다.
+                                    광고·블로그·홈페이지를 확인하고 개선할 곳을 알려드립니다.
                                 </p>
                                 <div className="mt-9">
                                     <Button href={path(PRIMARY_CTA.href)} variant="primary">
-                                        진단 요청하기 <span aria-hidden>→</span>
+                                        {PRIMARY_CTA.label} <span aria-hidden>→</span>
                                     </Button>
                                 </div>
                             </div>

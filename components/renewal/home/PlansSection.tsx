@@ -18,8 +18,8 @@ export default function PlansSection() {
                     <SectionHeader
                         eyebrow="Sample Estimate"
                         serif
-                        title="세 가지 운영안과 예상 비용"
-                        lead="현재 상태와 목표에 따라 달라지지만, 상담 전에 판단할 수 있도록 기본 운영 범위를 공개합니다."
+                        title="서비스와 비용"
+                        lead="필요한 범위에 맞춰 선택하세요."
                     />
                 </Reveal>
 
@@ -97,7 +97,7 @@ export default function PlansSection() {
                                         href={path(`/diagnose?plan=${plan.key}#form`)}
                                         className="mt-plan-cta inline-flex w-full items-center justify-center gap-2 h-[48px] text-[13.5px] font-medium rounded-[2px] transition-colors"
                                     >
-                                        {plan.en}로 상담하기 <span aria-hidden>→</span>
+                                        이 상품 상담하기 <span aria-hidden>→</span>
                                     </Link>
                                 </div>
                             </article>

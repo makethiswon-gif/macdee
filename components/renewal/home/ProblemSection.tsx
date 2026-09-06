@@ -2,7 +2,6 @@
 
 import { Container, SectionHeader } from "../primitives";
 import Reveal from "../Reveal";
-import ScrollHint from "../ScrollHint";
 import { useScrollProgress } from "../useScrollProgress";
 import { BEFORE_AFTER } from "@/data/renewal/site";
 
@@ -95,23 +94,10 @@ export default function ProblemSection() {
                         ))}
                     />
 
-                    <div className="mt-8">
-                        <ScrollHint>아래로 스크롤하면, 흩어진 업체들이 하나로 모입니다</ScrollHint>
-                    </div>
-
                     {/* ── ONE 수렴 시네마 ── */}
                     <div className="mt-6">
                         <ConvergenceGraphic />
                     </div>
-
-                    {/* 전환 문장 */}
-                    <p
-                        className="mt-pi mt-10 text-center mt-serif text-[clamp(1.05rem,1.8vw,1.35rem)] font-semibold leading-[1.7]"
-                        style={{ color: "var(--mt-bg)", ["--a" as string]: 0.45, ["--w" as string]: 0.15 }}
-                    >
-                        여러 업체를 관리하던 구조에서
-                        <br className="sm:hidden" /> 하나의 팀이 운영하는 구조로.
-                    </p>
 
                     <div className="mt-12 md:mt-14 grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
                         <Column label={BEFORE_AFTER.before.label} items={BEFORE_AFTER.before.items} />

@@ -39,8 +39,8 @@ const TRACKING = [
 
 // 홈 #plans 카드에서 넘어온 ?plan= 값 → 폼 표기. 모르는 값은 무시한다.
 const PLAN_LABELS: Record<string, string> = {
-    standard: "STANDARD · 운영 통합",
-    growth: "GROWTH · 성장 확장",
+    standard: "STANDARD · 기본 운영",
+    growth: "GROWTH · 분야 확장",
     "market-leader": "MARKET LEADER · 시장 선점",
 };
 
@@ -97,20 +97,16 @@ export default function DiagnoseForm() {
                 <p className="mt-en mt-label" style={{ color: "var(--mt-accent)" }}>
                     Received
                 </p>
-                <h2 className="mt-h2 mt-6">진단 요청이 접수되었습니다.</h2>
+                <h2 className="mt-h2 mt-6">상담이 접수되었습니다.</h2>
                 <div className="mt-10 max-w-[560px] flex flex-col gap-5">
                     <p className="mt-body">
-                        보내주신 내용을 바탕으로 현재 운영 중인 광고·검색·홈페이지 상태를 먼저 확인합니다.
-                        확인이 끝나면 담당자가 연락드려 무엇을 보았고 어디에서 고객이 빠져나가고 있는지
-                        설명드립니다.
+                        담당자가 현재 마케팅 상태를 확인한 뒤 연락드리겠습니다.
                     </p>
                     <p className="mt-body">
-                        광고 계정이나 검색 데이터를 함께 보실 수 있다면 판단이 더 정확해집니다.
-                        준비가 어려우시면 공개된 정보만으로도 진행합니다.
+                        광고·검색 데이터가 있으면 함께 확인합니다. 없어도 공개 정보로 진행할 수 있습니다.
                     </p>
                     <p className="text-[13px]" style={{ color: "var(--mt-gray-light)" }}>
-                        회신까지 걸리는 시간은 요청량에 따라 달라집니다. 급하신 경우 010-8935-3010 으로
-                        연락 주셔도 됩니다.
+                        회신 시간은 요청량에 따라 달라집니다. 급하시면 010-8935-3010으로 연락 주세요.
                     </p>
                 </div>
             </div>
@@ -361,7 +357,7 @@ export default function DiagnoseForm() {
                     className="inline-flex items-center justify-center gap-2 h-[54px] px-8 text-[14px] font-medium rounded-[2px] transition-opacity hover:opacity-85 disabled:opacity-50"
                     style={{ background: "var(--mt-ink)", color: "var(--mt-bg)" }}
                 >
-                    {state === "sending" ? "보내는 중…" : "진단 요청 보내기"}
+                    {state === "sending" ? "보내는 중…" : "상담 요청 보내기"}
                     {state !== "sending" && <span aria-hidden>→</span>}
                 </button>
                 <p className="text-[12px] leading-relaxed" style={{ color: "var(--mt-gray-light)" }}>

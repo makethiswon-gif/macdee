@@ -28,7 +28,7 @@ export default function ServicePage({ service }: { service: ServiceContent }) {
                                 <li aria-hidden>/</li>
                                 <li>
                                     <Link href={path("/lawfirm-marketing")} className="hover:opacity-60">
-                                        What we do
+                                        서비스
                                     </Link>
                                 </li>
                                 <li aria-hidden>/</li>
@@ -61,7 +61,7 @@ export default function ServicePage({ service }: { service: ServiceContent }) {
                         <Reveal>
                             <div>
                                 <p className="mt-en mt-label mb-6" style={{ color: "var(--mt-gray)" }}>
-                                    무엇인가
+                                    서비스 소개
                                 </p>
                                 <p className="mt-body-lg">{service.definition}</p>
                             </div>
@@ -70,7 +70,7 @@ export default function ServicePage({ service }: { service: ServiceContent }) {
                         <Reveal index={1}>
                             <div>
                                 <p className="mt-en mt-label mb-6" style={{ color: "var(--mt-gray)" }}>
-                                    누구를 위한 것인가
+                                    이런 로펌에 필요합니다
                                 </p>
                                 <ul className="flex flex-col gap-4">
                                     {service.forWhom.map((w) => (
@@ -91,7 +91,7 @@ export default function ServicePage({ service }: { service: ServiceContent }) {
             {/* ── 문제 ── */}
             <Section dark tight>
                 <Container>
-                    <SectionHeader eyebrow="자주 보이는 상태" title="이런 상태라면 손볼 곳이 있습니다." />
+                    <SectionHeader eyebrow="Check" title="이런 문제를 해결합니다." />
                     <ul className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-x-12">
                         {service.problems.map((p, i) => (
                             <Reveal key={p} as="li" index={i % 2}>
@@ -109,7 +109,7 @@ export default function ServicePage({ service }: { service: ServiceContent }) {
             {/* ── 프로세스 ── */}
             <Section>
                 <Container>
-                    <SectionHeader eyebrow="Process" title="어떻게 진행하는가." />
+                    <SectionHeader eyebrow="Process" title="진행 순서" />
                     <ol className="mt-14">
                         {service.process.map((s, i) => (
                             <Reveal key={s.step} as="li" index={i % 3}>
@@ -140,7 +140,7 @@ export default function ServicePage({ service }: { service: ServiceContent }) {
                         <Reveal>
                             <div>
                                 <Eyebrow>What we measure</Eyebrow>
-                                <h2 className="mt-h3 mt-5">무엇을 성과로 보는가.</h2>
+                                <h2 className="mt-h3 mt-5">확인하는 성과</h2>
                             </div>
                         </Reveal>
                         <Reveal index={1}>
@@ -163,14 +163,14 @@ export default function ServicePage({ service }: { service: ServiceContent }) {
             {/* ── FAQ ── */}
             <Section>
                 <Container>
-                    <SectionHeader eyebrow="FAQ" title="자주 받는 질문." />
+                    <SectionHeader eyebrow="FAQ" title="자주 묻는 질문" />
                     <div className="mt-12 max-w-[880px]">
                         {service.faq.map((f, i) => (
                             <Reveal key={f.q} index={i % 3}>
-                                <div className="py-8" style={{ borderTop: "1px solid var(--mt-line)" }}>
-                                    <h3 className="mt-h3">{f.q}</h3>
-                                    <p className="mt-body mt-4">{f.a}</p>
-                                </div>
+                                <details className="mt-svc-details" style={{ borderTop: "1px solid var(--mt-line)" }}>
+                                    <summary className="py-6 cursor-pointer font-semibold">{f.q}</summary>
+                                    <p className="mt-body pb-6">{f.a}</p>
+                                </details>
                             </Reveal>
                         ))}
                         <div style={{ borderTop: "1px solid var(--mt-line)" }} />

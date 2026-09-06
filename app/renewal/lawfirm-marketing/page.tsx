@@ -73,23 +73,23 @@ const AREAS: Area[] = [
         no: "01",
         en: "PAID MEDIA",
         href: "/naver-ads",
-        title: "오늘 고객을 데려오는 광고",
-        items: ["네이버 파워링크", "네이버 광고", "Google Ads", "YouTube Ads", "Retargeting", "Performance Ads"],
+        title: "광고 운영",
+        items: ["네이버 파워링크", "네이버 광고", "구글 광고", "유튜브 광고", "방문자 대상 재광고", "성과 기준 광고 운영"],
         note: "향후 법률광고가 가능해지는 새로운 광고 플랫폼도 검토해 추가합니다.",
     },
     {
         no: "02",
         en: "SEARCH",
         href: "/lawfirm-seo",
-        title: "광고를 꺼도 남는 검색 자산",
+        title: "검색 노출",
         items: [
-            "NAVER SEO",
-            "Google SEO",
-            "Technical SEO",
-            "Local SEO",
+            "네이버 검색 노출 정비",
+            "구글 검색 노출 정비",
+            "검색을 위한 기술 정비",
+            "지역 검색 정비",
             "검색 키워드 전략",
-            "Topic Cluster",
-            "Internal Linking",
+            "주제별 글 묶기",
+            "관련 글 연결",
             "사이트 구조 최적화",
         ],
     },
@@ -97,52 +97,49 @@ const AREAS: Area[] = [
         no: "03",
         en: "AI SEARCH",
         href: "/geo",
-        title: "AI가 이해하는 로펌 구조",
-        desc: "검색은 Google·네이버를 넘어 ChatGPT 같은 AI 환경으로 이동하고 있습니다. 그래서 AI 검색을 별도 서비스 영역으로 운영합니다.",
+        title: "AI 검색",
         items: [
-            "GEO",
-            "AEO",
-            "Entity Optimization",
-            "ChatGPT Search 대응",
+            "AI 검색 대응(GEO)",
+            "답변형 검색 대응(AEO)",
+            "로펌·변호사 정보 정리",
+            "ChatGPT 검색 대응",
             "Gemini 대응",
-            "네이버 AI Search 대응",
-            "AI Citation Optimization",
-            "FAQ · Structured Content",
+            "네이버 AI 검색 대응",
+            "AI가 참고하기 쉬운 글 구조",
+            "자주 묻는 질문·내용 구조화",
         ],
-        note: "AI 검색 노출이나 추천을 보장한다는 표현은 쓰지 않습니다. 구조를 만드는 일이지, 결과를 약속하는 일이 아니기 때문입니다.",
+        note: "AI가 읽기 쉽게 정리하는 작업이며, 노출·추천을 보장하지 않습니다.",
     },
     {
         no: "04",
         en: "CONTENT",
         href: "/lawfirm-blog",
-        title: "경험을 검색 자산으로",
+        title: "블로그·콘텐츠",
         items: [
             "네이버 블로그",
             "전문 법률 콘텐츠",
             "실제 사건 사례",
             "판례",
-            "FAQ",
-            "Legal Guide",
+            "자주 묻는 질문",
+            "법률 안내서",
             "변호사 브랜딩 콘텐츠",
             "영상",
-            "Shorts",
+            "쇼츠",
         ],
-        note: "중요한 것은 콘텐츠의 양이 아니라 확장 구조입니다 — 아래 '하나의 사건' 참고.",
     },
     {
         no: "05",
         en: "WEBSITE",
         href: "/lawfirm-website",
-        title: "상담을 만드는 영업 자산",
-        desc: "홈페이지 제작은 별개의 부가서비스가 아니라 마케팅 시스템의 일부입니다. 예쁘게 만드는 것이 목적이 아니라, 검색 유입을 받아 상담으로 바꾸는 영업 자산으로 만듭니다.",
+        title: "홈페이지",
         items: [
             "홈페이지 제작·개편",
-            "사건별 Landing Page",
-            "UX",
-            "Mobile",
-            "SEO 구조",
-            "GEO 구조",
-            "CRO",
+            "사건별 전용 페이지",
+            "사용 편의성 개선",
+            "모바일 최적화",
+            "검색에 맞는 구조",
+            "AI가 읽기 쉬운 구조",
+            "상담 신청 경로 개선",
             "콘텐츠 지속 업데이트",
         ],
     },
@@ -150,13 +147,13 @@ const AREAS: Area[] = [
         no: "06",
         en: "DATA & CONVERSION",
         href: "/conversion",
-        title: "클릭이 아니라 사건을 봅니다",
-        desc: "기존 광고대행과 가장 크게 달라지려는 부분입니다 — 아래 비교 참고.",
+        title: "상담·수임 분석",
+        note: "수임 데이터는 로펌이 제공한 범위에서만 연결합니다.",
         items: [
             "광고별 유입 추적",
             "전화 · 카카오 · 폼 문의 구분",
             "유효상담 분석",
-            "사건별 상담 CPA",
+            "사건별 상담 1건당 비용",
             "수임 데이터 연계",
             "사건 수임 기록·상담 기록·성공사례 데이터베이스화",
         ],
@@ -165,17 +162,17 @@ const AREAS: Area[] = [
 
 /* ── 콘텐츠 확장: 사건 하나 → 자산 일곱 ── */
 const CONTENT_OUTPUTS = [
-    "홈페이지 Case Study",
+    "홈페이지 사례 소개",
     "블로그",
-    "FAQ",
-    "SEO 콘텐츠",
-    "GEO 콘텐츠",
+    "자주 묻는 질문",
+    "검색용 콘텐츠",
+    "AI 검색용 콘텐츠",
     "숏폼 영상",
     "광고 소재",
 ];
 
 /* ── 데이터 비교 ── */
-const GENERIC_REPORT = ["노출", "클릭", "CTR", "CPC", "방문자"];
+const GENERIC_REPORT = ["노출", "클릭", "클릭 비율", "클릭 1회당 비용", "방문자"];
 const OUR_CHAIN = ["광고비", "문의", "상담", "유효상담", "방문", "수임", "수임매출"];
 
 /* ── AI 자동화 (내부 운영) ── */
@@ -184,16 +181,16 @@ const AI_OPS = [
     "키워드 분석",
     "콘텐츠 초안",
     "상담 질문 분류",
-    "SEO 메타데이터",
-    "내부링크",
-    "GEO 모니터링",
+    "검색용 제목·설명",
+    "관련 글 연결",
+    "AI 검색 현황 확인",
     "경쟁사 모니터링",
     "월간 보고서",
     "광고 최적화 제안",
 ];
 
 /* ── Client Portal 로드맵 (구상 중 — 확정 서비스 아님) ── */
-const PORTAL_MENU = ["Dashboard", "Ads", "Leads", "Content", "Approval", "SEO", "GEO", "Reports", "Cases"];
+const PORTAL_MENU = ["운영 현황", "광고", "문의", "콘텐츠", "승인", "검색", "AI 검색", "보고서", "사건"];
 
 export default function Page() {
     return (
@@ -211,15 +208,14 @@ export default function Page() {
                     </Reveal>
                     <Reveal index={1}>
                         <h1 className="mt-serif mt-h1 mt-7 max-w-[22ch]">
-                            로펌에 필요한 모든 마케팅,
+                            로펌 마케팅,
                             <br />
-                            여기 다&nbsp;있습니다.
+                            한 팀에서.
                         </h1>
                     </Reveal>
                     <Reveal index={2}>
                         <p className="mt-body-lg mt-8 max-w-[600px]">
-                            채널을 여섯 개로 나눠 파는 것이 아닙니다. 필요한 영역을 한 팀이 함께
-                            운영하고, 성과는 상담과 수임 기준으로 같은 표에서 봅니다.
+                            광고·검색·콘텐츠·홈페이지를 함께 운영합니다.
                         </p>
                     </Reveal>
                 </Container>
@@ -292,8 +288,8 @@ export default function Page() {
                     <SectionHeader
                         eyebrow="Content System"
                         serif
-                        title="하나의 사건이 일곱 개의 자산이 됩니다."
-                        lead="콘텐츠의 양이 아니라 확장 구조가 중요합니다. 실제 사건 하나, 고객 질문 하나를 여러 마케팅 자산으로 확장합니다."
+                        title="사건 하나로, 여러 콘텐츠를."
+                        lead="실제 사건과 질문으로 여러 콘텐츠를 기획합니다."
                     />
 
                     <Reveal variant="fade">
@@ -358,15 +354,14 @@ export default function Page() {
                     <SectionHeader
                         eyebrow="Data & Conversion"
                         serif
-                        title="클릭이 아니라 사건을 봅니다."
-                        lead="기존 광고 대행과 가장 크게 달라지려는 부분입니다. 보고서가 어디에서 끝나는지가 회사의 차이를 만듭니다."
+                        title="광고 성과를 상담·수임과 연결합니다."
                     />
 
                     <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
                         <Reveal>
                             <div className="h-full px-7 py-9" style={{ border: "1px solid var(--mt-line)" }}>
                                 <p className="mt-en mt-label" style={{ color: "var(--mt-gray)" }}>
-                                    일반적인 광고 보고서
+                                    노출·클릭 지표
                                 </p>
                                 <div className="mt-6 flex flex-wrap items-center gap-x-2.5 gap-y-2 text-[14px]">
                                     {GENERIC_REPORT.map((g, i) => (
@@ -376,9 +371,6 @@ export default function Page() {
                                         </span>
                                     ))}
                                 </div>
-                                <p className="mt-5 text-[13px]" style={{ color: "var(--mt-gray)" }}>
-                                    보통 여기서 끝납니다.
-                                </p>
                             </div>
                         </Reveal>
 
@@ -414,13 +406,7 @@ export default function Page() {
                     <SectionHeader
                         eyebrow="Our System"
                         serif
-                        title={
-                            <>
-                                고객이 로펌을 발견하는 순간부터
-                                <br />
-                                사건을 맡기는 순간까지.
-                            </>
-                        }
+                        title="이렇게 운영합니다."
                     />
                     <ol className="mt-14">
                         {SYSTEM_STEPS.map((s, i) => (
@@ -457,16 +443,14 @@ export default function Page() {
                             </Reveal>
                             <Reveal index={1}>
                                 <h2 className="mt-serif mt-h2 mt-6">
-                                    AI is HOW,
+                                    반복 작업은 AI로,
                                     <br />
-                                    not WHAT.
+                                    판단은 사람이.
                                 </h2>
                             </Reveal>
                             <Reveal index={2}>
                                 <p className="mt-body mt-6 max-w-[420px]">
-                                    AI는 고객에게 파는 상품이 아니라, 내부 운영 효율을 높이는 기술입니다.
-                                    같은 예산으로 더 많은 일이 돌아가게 만드는 방법이지, 서비스의 이름이
-                                    아닙니다.
+                                    AI로 분석과 초안 작업을 돕고, 사람이 확인합니다.
                                 </p>
                             </Reveal>
                         </div>
@@ -510,15 +494,10 @@ export default function Page() {
                                     로드맵 · 구상 중
                                 </span>
                             </div>
-                            <h2 className="mt-h3 mt-5">로펌마다 자기 마케팅을 직접 들여다보는 화면.</h2>
+                            <h2 className="mt-h3 mt-5">내 로펌의 마케팅을 한눈에.</h2>
                             <p className="mt-body mt-4 max-w-[64ch] text-[14px]">
-                                이번 달 광고비, 상담 수, 유효상담, 수임, 콘텐츠 승인, SEO·GEO 상태를 한
-                                화면에서 보는 Client Portal 을 구상하고 있습니다. 장기적으로는 광고
-                                데이터와 상담·수임 데이터가 연결되는{" "}
-                                <strong className="font-semibold" style={{ color: "var(--mt-ink)" }}>
-                                    Law Firm Marketing OS
-                                </strong>
-                                로 발전시키는 것이 목표입니다.
+                                광고비·상담·수임·콘텐츠를 함께 확인하고 승인하는 고객용 화면을 구상 중입니다.
+                                현재 제공되는 서비스는 아닙니다.
                             </p>
                             <ul className="mt-6 flex flex-wrap gap-2" aria-label="구상 중인 포털 메뉴">
                                 {PORTAL_MENU.map((m) => (
@@ -544,16 +523,15 @@ export default function Page() {
                     </Reveal>
                     <Reveal index={1}>
                         <h2 className="mt-serif mt-h2 mt-6 max-w-[24ch]">
-                            새로운 광고 플랫폼이 등장할 때마다,
+                            새로운 광고도,
                             <br />
-                            새로운 대행사를 찾을 필요가 없습니다.
+                            같은 팀에서.
                         </h2>
                     </Reveal>
                     <Reveal index={2}>
                         <p className="mt-body mt-6 max-w-[560px]">
-                            특정 플랫폼에 종속되지 않습니다. 지금은 네이버·Google·YouTube 가 중심이지만,
-                            ChatGPT Ads 같은 AI 기반 광고 플랫폼이 법률광고 채널로 열리면 검토해 기존
-                            시스템에 편입합니다.
+                            지금은 네이버·구글·유튜브를 중심으로 운영합니다.
+                            ChatGPT 등 새 광고는 법률 광고 허용 여부를 확인한 뒤 검토합니다.
                         </p>
                     </Reveal>
 
