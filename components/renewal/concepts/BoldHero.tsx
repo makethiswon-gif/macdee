@@ -22,6 +22,15 @@ function Before() {
 function Proof() {
     return <dl className={s.proof}>{PROOF_STATS.map(stat => <div key={stat.label}><dt>{stat.label}</dt><dd>{stat.value}<span>{stat.suffix}</span></dd></div>)}</dl>;
 }
+function TypeRibbon({ row }: { row: number }) {
+    const pair = SERVICES.slice(row * 2, row * 2 + 2);
+    const firstWidth = Math.round(1200 * pair[0].en.length / (pair[0].en.length + pair[1].en.length));
+    return <svg viewBox="0 0 1600 155" focusable="false">{pair.map((service, index) => {
+        const x = index === 0 ? 30 : firstWidth + 210;
+        const width = index === 0 ? firstWidth : 1200 - firstWidth;
+        return <g key={service.no}><text x={x} y="125" textLength={width} lengthAdjust="spacingAndGlyphs">{service.en}</text><text x={x + width + 30} y="125">↗</text></g>;
+    })}</svg>;
+}
 function Kinetic() {
     return <section className={`${s.hero} ${s.kinetic}`} data-bold-hero="kinetic" data-motion-state="static">
         <BoldMotion />
@@ -29,7 +38,7 @@ function Kinetic() {
         <div className={s.typeTheatre} data-motion-viewport aria-hidden="true">
             <div className={s.typePerspective} data-motion-part="kinetic-perspective">
                 {[0, 1, 2].map(row => <div className={s.typeBelt} key={row} data-motion-part={`kinetic-belt-${row}`}>
-                    {[0, 1].map(copy => <svg key={copy} viewBox="0 0 1600 155" focusable="false"><text x="30" y="125" textLength="1540" lengthAdjust="spacingAndGlyphs">{SERVICES.slice(row * 2, row * 2 + 2).map(service => `${service.en} ↗`).join("   ")}</text></svg>)}
+                    {[0, 1].map(copy => <TypeRibbon key={copy} row={row} />)}
                 </div>)}
             </div>
         </div>

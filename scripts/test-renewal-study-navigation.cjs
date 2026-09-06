@@ -14,6 +14,8 @@ const check=(ok,msg)=>{if(!ok)failures.push(msg);};
     await p.goto(origin+'/renewal/concepts'+(slug?'/'+slug:''),{waitUntil:'networkidle'});
     await p.evaluate(()=>document.fonts.ready);
     const route=slug||'gallery';
+    const footer=await p.locator('footer').evaluate(el=>({background:getComputedStyle(el).backgroundColor,color:getComputedStyle(el.querySelector('a')).color}));
+    check(footer.color==='rgb(248, 247, 242)','Footer inherits dark text: '+route+'/'+width);
     await p.screenshot({path:path.join(out,route+'-'+width+'.png'),fullPage:!slug});
     if(width===1440) {
       await p.locator('header [aria-haspopup=true]').focus();
