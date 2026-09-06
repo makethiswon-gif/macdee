@@ -78,6 +78,25 @@ const labels = ['광고 운영', '네이버·Google 검색', 'AI 검색', '법�
         page.on('pageerror', err => errors.push(err.message));
         const response = await page.goto(origin + route, { waitUntil: 'networkidle' });
         await page.evaluate(() => document.fonts.ready);
+        // The approved home has native mobile details and viewport reveals.
+        // Exercise the ordinary reader's path; do not misreport the hidden
+        // desktop duplicate as missing mobile copy, or a scroll hint as content.
+        let nativeDetailsOpened = 0;
+        if (route === '/renewal' && mode !== 'normal') {
+          for (const detail of await page.locator('main details').all()) {
+            if (await detail.isVisible() && !(await detail.getAttribute('open'))) {
+              await detail.locator('summary').click();
+              nativeDetailsOpened++;
+            }
+          }
+          const height = await page.evaluate(() => document.documentElement.scrollHeight);
+          for (let y = 0; y < height; y += 650) {
+            await page.evaluate(pos => window.scrollTo(0, pos), y);
+            await page.waitForTimeout(80);
+          }
+          await page.evaluate(() => window.scrollTo(0, 0));
+          await page.waitForTimeout(300);
+        }
         const before = await page.evaluate(() => {
           const hero = document.querySelector('[data-concept-hero]');
           const main = document.querySelector('main');
@@ -89,6 +108,9 @@ const labels = ['광고 운영', '네이버·Google 검색', 'AI 검색', '법�
             }
             return el.getBoundingClientRect().width > 0 && el.getBoundingClientRect().height > 0;
           };
+          const textNodes = [...main.querySelectorAll('h1,h2,h3,h4,p,dt,dd,li')];
+          const normalize = value => value.replace(/\s+/g, '').replace(/^[·↓]+/, '');
+          const visibleText = new Set(textNodes.filter(visible).map(el => normalize(el.textContent)));
           return {
             title: document.querySelector('h1')?.textContent,
             text: root.textContent,
@@ -96,6 +118,9 @@ const labels = ['광고 운영', '네이버·Google 검색', 'AI 검색', '법�
             cls: window.__qaCLS ?? null,
             lcp: window.__qaLCP?.at(-1) ?? null,
             sectionHeadings: [...main.querySelectorAll('section h2')].map(el => ({ text: el.textContent, visible: visible(el) })),
+            hiddenBodyText: textNodes.filter(el =>
+              el.textContent.trim() && !el.closest('[aria-hidden="true"], .mt-shint') && !el.closest('details:not([open])') && !visible(el) && !visibleText.has(normalize(el.textContent))
+            ).map(el => el.textContent.trim().slice(0, 160)),
             hiddenHeroContent: hero ? [...hero.querySelectorAll('h1,h2,p,a,dt,dd')].filter(el => !visible(el)).map(el => el.textContent) : [],
           };
         });
@@ -109,7 +134,10 @@ const labels = ['광고 운영', '네이버·Google 검색', 'AI 검색', '법�
           check(before.hiddenHeroContent.length === 0, `Hidden hero content: ${route}/${width}/${mode}`);
           if (mode !== 'no-js') check(before.cls === 0, `Prototype CLS ${before.cls}: ${route}/${width}/${mode}`);
         }
-        if (mode !== 'normal') check(before.sectionHeadings.every(h => h.visible), `Hidden section heading: ${route}/${width}/${mode}`);
+        if (mode !== 'normal') {
+          check(before.sectionHeadings.every(h => h.visible), `Hidden section heading: ${route}/${width}/${mode}`);
+          check(before.hiddenBodyText.length === 0, `Hidden body text: ${route}/${width}/${mode}: ${before.hiddenBodyText.join(' | ')}`);
+        }
         check(!before.overflow && errors.length === 0, `Overflow/runtime errors: ${route}/${width}/${mode}`);
         let keyboard = null;
         let motion = null;
@@ -128,7 +156,7 @@ const labels = ['광고 운영', '네이버·Google 검색', 'AI 검색', '법�
           check(Number(progressed) > 0 && motion.inline === '' && Number(motion.computed) === 0 && motion.text === before.text, `Live reduced-motion failure: ${route}/${width}`);
           await page.emulateMedia({ reducedMotion: 'no-preference' });
         }
-        report.browsers.push({ route, width, mode, status: response.status(), ...before, text: undefined, errors, keyboard, motion: motion ? { inline: motion.inline, computed: motion.computed } : null });
+        report.browsers.push({ route, width, mode, status: response.status(), ...before, text: undefined, nativeDetailsOpened, errors, keyboard, motion: motion ? { inline: motion.inline, computed: motion.computed } : null });
         await page.close();
       }
       await context.close();
