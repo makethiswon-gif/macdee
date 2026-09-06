@@ -7,7 +7,7 @@ import { PLANS, PLANS_FOOTNOTE, PLANS_FAQ, path } from "@/data/renewal/site";
 //
 // SaaS 가격표가 아니라 미니 견적서다: 종이 카드, 얇은 괘선, 고정폭 숫자.
 // GROWTH(주력 운영안)만 파란 상단 선과 작은 배지로 강조한다.
-// 금액은 대표 지정 공개 기준가(2026-08-29) — 임의 수정 금지.
+// STANDARD는 대표의 통합상품 전환 지시(2026-09-07), 상위 상품은 기존 기준가.
 // CTA 는 진단 폼으로 가며 ?plan= 쿼리로 선택한 운영안이 폼에 반영된다.
 
 export default function PlansSection() {
@@ -110,6 +110,14 @@ export default function PlansSection() {
                         {PLANS_FOOTNOTE}
                     </p>
                 </Reveal>
+
+                <Link href={path("/upgrade")} className="mt-upgrade-link mt-10 flex flex-wrap items-center justify-between gap-5 border-y border-[var(--mt-line-strong)] py-7">
+                    <div>
+                        <p className="text-[14px] text-[var(--mt-gray)]">이미 블로그를 맡기고 계신가요?</p>
+                        <p className="mt-2 text-[clamp(21px,2.4vw,32px)] font-semibold tracking-tight">블로그에서, 마케팅 전체로.</p>
+                    </div>
+                    <span className="inline-flex min-h-11 items-center gap-4 text-[16px]">통합 상품 전환 안내 <span aria-hidden="true">↗</span></span>
+                </Link>
 
                 {/* 미니 FAQ — 상담 전에 걸리는 질문을 미리 치운다 */}
                 <Reveal index={2}>

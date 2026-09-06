@@ -56,6 +56,7 @@ export default function SiteFooter() {
                                 { label: "운영 사례", href: "/work" },
                                 { label: "매거진", href: "/magazine" },
                                 { label: "마케팅 상담", href: "/diagnose" },
+                                { label: "기존 고객 전환 안내", href: "/upgrade" },
                                 { label: "문의", href: "/contact" },
                             ].map((l) => (
                                 <li key={l.href}>
