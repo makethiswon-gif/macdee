@@ -1,6 +1,11 @@
 /* Stage-one prototypes only. Nothing here selects the original renewal page.
    Geometry is decorative; SSR is the complete readable state. */
-.reviewPage { --mt-font-serif: var(--mt-serif); --mt-font-mono: "IBM Plex Mono", monospace; padding-top: 84px; }
+/* Deliberately use installed fonts for this study: late subset font swaps moved
+   headlines and controls. Scope includes inherited chrome only on study routes.
+   No font download gates the first paint; the approved homepage is unaffected. */
+:global(.mt-root):has(.reviewPage) { --mt-serif: Georgia, "AppleMyungjo", Batang, serif; font-family: Arial, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; }
+:global(.mt-root):has(.reviewPage) :global(.mt-en) { font-family: "Courier New", monospace; }
+.reviewPage { --mt-font-serif: var(--mt-serif); --mt-font-mono: "Courier New", monospace; padding-top: 84px; }
 .reviewPage *, .reviewPage *::before, .reviewPage *::after { box-sizing: border-box; }
 .reviewPage a:focus-visible { outline: 3px solid #bd4b31; outline-offset: 5px; }
 .reviewNav { min-height: 56px; padding: 10px 4.4%; display: flex; align-items: center; justify-content: space-between; gap: 18px; border-block: 1px solid #dedbd5; font-size: 12px; background: #f5f3ee; color: #30352f; }
