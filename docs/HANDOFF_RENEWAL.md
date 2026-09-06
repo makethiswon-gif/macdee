@@ -14,7 +14,12 @@ makethis1.com 홈페이지 전면 리뉴얼. **`/renewal` 데모에서 개발이
 
 - 데모: https://www.makethis1.com/renewal (배포됨, 검색봇만 noindex)
 - 리포: github.com/makethiswon-gif/macdee · main 브랜치, 전부 푸시됨
+- **로컬 경로 (Windows)**: `C:\Users\incbc\.gemini\antigravity\scratch\macdee`
+  — `.env.local` 이 여기에만 있다(Supabase·Anthropic·OpenAI 키, 리포 미포함).
+  다른 곳에 clone 하면 이 파일을 복사해야 dev 서버와 API 가 돈다.
 - 스택: Next.js 16 App Router · React 19 · Tailwind v4 · Supabase · Vercel
+- dev: `npm run dev` (포트 3000). 안 뜨면 죽은 인스턴스가 `.next/dev/lock` 을
+  잡고 있는 것 — `npx kill-port 3000` 후 재시도.
 
 ## 1. 브랜드 전제 (틀리면 안 되는 사실)
 
