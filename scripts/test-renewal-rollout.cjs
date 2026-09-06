@@ -8,6 +8,7 @@ const origin = process.argv[2] || 'http://localhost:3101';
 const out = process.argv[3] || 'C:/클로드/renewal-kinetic-qa/production';
 const base = JSON.parse(fs.readFileSync('C:/클로드/renewal-kinetic-qa/baseline.json','utf8'));
 const routes = base.map(r=>r.route);
+if(!routes.includes('/renewal/upgrade')) routes.push('/renewal/upgrade');
 const article = base.find(r=>r.route.endsWith('/magazine')).links.find(h=>h.startsWith('/renewal/magazine/'));
 if(article) routes.push(article);
 fs.mkdirSync(out,{recursive:true});
@@ -88,6 +89,6 @@ const curl=(url,args=[])=>execFileSync('curl.exe',['-sS','--max-time','60',...ar
  check(errorRequests===1&&await ep.getByRole('button',{name:'상담 요청 보내기'}).isEnabled(),'mock error permits retry');report.form.push({scenario:'mock-error-and-validation',ok:errorRequests===1});await ec.close();
  // 1440 physical pixels at 200% zoom reflows into 720 CSS pixels.
  const zc=await browser.newContext({viewport:{width:720,height:500},deviceScaleFactor:2,reducedMotion:'reduce'});
- for(const route of ['/renewal','/renewal/lawfirm-marketing','/renewal/diagnose','/renewal/contact']){const zp=await zc.newPage();await zp.goto(origin+route,{waitUntil:'networkidle'});const overflow=await zp.evaluate(()=>document.documentElement.scrollWidth>innerWidth);check(!overflow,'200%-equivalent reflow '+route);await zp.screenshot({path:path.join(out,route.replaceAll('/','_')+'-zoom-200-equivalent.png')});await zp.close();}await zc.close();
+ for(const route of ['/renewal','/renewal/lawfirm-marketing','/renewal/diagnose','/renewal/contact','/renewal/upgrade']){const zp=await zc.newPage();await zp.goto(origin+route,{waitUntil:'networkidle'});const overflow=await zp.evaluate(()=>document.documentElement.scrollWidth>innerWidth);check(!overflow,'200%-equivalent reflow '+route);await zp.screenshot({path:path.join(out,route.replaceAll('/','_')+'-zoom-200-equivalent.png')});await zp.close();}await zc.close();
  await browser.close();fs.writeFileSync(path.join(out,'report.json'),JSON.stringify(report,null,2));console.log(JSON.stringify({runs:report.runs.length,links:report.links.length,failures:report.failures},null,2));if(report.failures.length)process.exitCode=1;
 })().catch(e=>{console.error(e);fs.writeFileSync(path.join(out,'report.json'),JSON.stringify(report,null,2));process.exitCode=1;});

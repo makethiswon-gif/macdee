@@ -15,7 +15,7 @@ const baseline = process.argv.includes('--baseline');
 fs.mkdirSync(out, { recursive: true });
 function readData(file, old = false) {
   const source = old ? execFileSync('git', ['-c', `safe.directory=${root.replaceAll('\\', '/')}`, 'show', `${beforeCommit}:${file}`], { cwd: root, encoding: 'utf8' }) : fs.readFileSync(path.join(root, file), 'utf8');
-  const sandbox = { exports: {} };
+  const sandbox = { exports: {}, require: name => readData(path.posix.join(path.posix.dirname(file), name + '.ts'), old) };
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText, sandbox);
   return JSON.parse(JSON.stringify(sandbox.exports));
 }
@@ -24,18 +24,27 @@ function verifyFacts() {
   const keys = ['COMPANY', 'TEAM', 'FOUNDER', 'PROOF_STATS', 'LAW_FIRM_PARTNERS', 'CORPORATE_CLIENTS', 'CHANNEL_LEDGER', 'LEDGER_FOOTNOTE'];
   for (const key of keys) assert.deepEqual(now[key], old[key], key);
   const priceFields = plans => plans.map(({ key, en, price, priceNote, includesLabel, featured, badge, includes }) => ({ key, en, price, priceNote, includesLabel, featured, badge, inclusionCount: includes.length }));
-  assert.deepEqual(priceFields(now.PLANS), priceFields(old.PLANS), 'Prices, plan inheritance, scope count');
+  // Later explicit approval: STANDARD becomes the 250만원 / 20-blog-post offer.
+  // Higher-tier prices, inheritance and scope remain protected against the original baseline.
+  assert.deepEqual(priceFields(now.PLANS.slice(1)), priceFields(old.PLANS.slice(1)), 'Higher-tier prices, inheritance, scope count');
+  assert.equal(now.PLANS[0].price, '월 250만원');
+  assert.equal(now.PLANS[0].priceNote, '광고 매체비 별도');
+  assert.equal(now.PLANS[0].includes[0], '블로그 월 20회 포스팅');
+  assert.equal(now.PLANS[0].includes.length, 8);
   const serviceFields = list => list.map(({ no, en, href, items }) => ({ no, en, href, badges: items.map(i => i.badge || null) }));
   assert.deepEqual(serviceFields(now.SERVICES), serviceFields(old.SERVICES), 'All service items and conditional badges retained');
   const oldServices = readData('data/renewal/services.ts', true), newServices = readData('data/renewal/services.ts');
-  assert.deepEqual(newServices.SERVICES.map(s => s.faq), oldServices.SERVICES.map(s => s.faq), 'FAQ conditions preserved');
+  const protectedFaqs = data => data.SERVICES.map(s => s.faq.filter(f => !(s.slug === 'lawfirm-blog' && f.q === '월 몇 건을 쓰나요?')));
+  assert.deepEqual(protectedFaqs(newServices), protectedFaqs(oldServices), 'Other FAQ conditions preserved');
+  assert.ok(newServices.SERVICES.find(s => s.slug === 'lawfirm-blog').faq.find(f => f.q === '월 몇 건을 쓰나요?').a.includes('블로그 월 20회'));
   const protectedFiles = ['data/renewal/cases.ts', 'app/renewal/flags.ts', 'app/layout.tsx', 'app/renewal/magazine/[slug]/page.tsx'];
   const diff = execFileSync('git', ['-c', `safe.directory=${root.replaceAll('\\', '/')}`, 'diff', beforeCommit, '--', ...protectedFiles], { cwd: root, encoding: 'utf8' });
   assert.equal(diff, '', 'Cases, indexing, verification metadata, published articles unchanged');
-  return { immutableExports: keys, pricesAndScopeCount: true, serviceConditions: true, faqConditions: true, protectedFiles };
+  return { immutableExports: keys, approvedStandard250And20Posts: true, higherTierPricesAndScopeCount: true, serviceConditions: true, otherFaqConditions: true, protectedFiles };
 }
 (async () => {
   const facts = verifyFacts();
+  if (process.argv.includes('--facts-only')) { console.log(JSON.stringify(facts, null, 2)); return; }
   const browser = await chromium.launch({ executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe', headless: true });
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' });
   const page = await context.newPage();
