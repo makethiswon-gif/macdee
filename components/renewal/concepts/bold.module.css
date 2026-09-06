@@ -204,11 +204,11 @@
     .kinetic { display: block; padding: 143px 20px 35px; }
     .kinetic .overline { margin-bottom: 25px; }
     .splitFirst > span { font-size: 24px; }
-    .splitFirst > strong { font-size: 27vw; margin-top: 13px; line-height: 1.08; }
+    .splitFirst > strong { font-size: 31vw; margin-top: 13px; line-height: 1.08; }
     .kinetic .brandLine { font-size: 9.25vw; margin-top: 17px; line-height: 1.2; }
     .typeTheatre { height: 245px; margin: 7px -20px -25px; }
     .typePerspective { top: 28px; transform: rotateX(calc(22deg - var(--progress)*10deg)) rotateZ(calc(-10deg + var(--progress)*15deg)); }
-    .typeBelt svg { width: 730px; }
+    .typeBelt svg { width: min(195vw,730px); }
     .kineticDeck { display: block; padding: 25px 0 30px; }
     .kineticDeck .body { font-size: 16px; }
     .kineticDeck .actions { margin-top: 23px; }

@@ -14,7 +14,7 @@ const faces = [...source.matchAll(/@font-face\s*\{[\s\S]*?\}/g)].map(match => ma
 const preload = [];
 const targetDir = path.join(root, 'public/renewal/study-fonts');
 fs.mkdirSync(targetDir, { recursive: true });
-fs.copyFileSync(path.join(sourceDir, '../../LICENSE.txt'), path.join(targetDir, 'LICENSE.txt'));
+fs.writeFileSync(path.join(targetDir, 'LICENSE.txt'), fs.readFileSync(path.join(sourceDir, '../../LICENSE.txt'), 'utf8').replace(/[ \t]+$/gm, ''));
 let bytes = 0;
 const generated = faces.map(face => {
   const file = face.match(/url\(\.\/woff2-dynamic-subset\/([^)]*)\)/)[1];
