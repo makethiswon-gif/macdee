@@ -220,7 +220,12 @@ export default function BlogPublishPage() {
             const fullProfile = pData.profile;
             if (!fullProfile) throw new Error("변호사 상세 정보를 불러오지 못했습니다.");
 
-            // 3) DNA가 정한 장수만큼. 카드 종류는 넷뿐이라 3장이면 상황 이미지를 뺀다.
+            // Share one source-grounded plan across all cards.
+            setProgress("원고 전체를 읽고 이미지 구성 기획 중…");
+            const planRes = await fetch("/api/admin/blog-images/plan", { method: "POST", credentials: "include",
+                headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: t, content: b }) });
+            const planData = await planRes.json();
+            if (!planRes.ok || !planData.plan) throw new Error(planData.error || "이미지 기획에 실패했습니다.");
             const types = n >= 4
                 ? ["thumbnail", "illustration", "info", "contact"]
                 : ["thumbnail", "info", "contact"];
@@ -233,7 +238,7 @@ export default function BlogPublishPage() {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         credentials: "include",
-                        body: JSON.stringify({ profile: cardRequestProfile(fullProfile, ct), title: t, content: b, cardType: ct }),
+                        body: JSON.stringify({ profile: cardRequestProfile(fullProfile, ct), title: t, content: b, cardType: ct, plan: planData.plan }),
                     });
                     if (!r.ok) {
                         // 422 skipped 는 실패가 아니다 — 본문에 도표로 만들 구조가
@@ -245,6 +250,9 @@ export default function BlogPublishPage() {
                         return null;
                     }
                     const d = await r.json();
+                    if (d.card?.designReview && d.card.designReview.status !== "pass") {
+                        throw new Error(`${ct} 완성본에 직접 검수가 필요합니다. 블로그 이미지 화면에서 확인해 주세요. ${d.card.designReview.summary}`);
+                    }
                     return d.card || null;
                 })
             );

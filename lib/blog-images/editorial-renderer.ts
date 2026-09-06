@@ -299,3 +299,6 @@ export async function renderEditorialCard(opts: RenderEditorialOptions): Promise
         model: opts.model, warnings, designVersion: "editorial-v6",
     };
 }
+
+// Shared measured typography and safe asset compositing. V6 remains a regression baseline.
+export const editorialDrawing = { ensureFonts, write, textHeight, picture, mix, rule };

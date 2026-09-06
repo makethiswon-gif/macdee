@@ -14,11 +14,20 @@ export interface BlogImageCard {
     placement: string;
     model?: string;
     warnings: string[];
-    designVersion: "editorial-v6";
+    designVersion: "editorial-v6" | "editorial-v7" | "editorial-v8" | "editorial-v9";
+    designReview?: { status: "pass" | "revise" | "unavailable"; model: string; score?: number; summary: string; issues: string[] };
+    contactActions?: { label: string; display: string; href: string }[];
+    // Optional, compressed original art permits typography/layout changes without image-model calls.
+    artDataUrl?: string;
+    artSourceHash?: string;
+    artReview?: string;
+    sourceParagraphId?: string;
+    purpose?: string;
+    layout?: "paper" | "contrast";
 }
 
 export const CARD_LABELS: Record<BlogCardType, string> = {
-    thumbnail: "메인 썸네일", illustration: "본문 자료사진", info: "정보 정리", contact: "요약·안내",
+    thumbnail: "메인 썸네일", illustration: "본문 시각물", info: "정보 정리", contact: "변호사·상담 안내",
 };
 
 export const CARD_PLACEMENTS: Record<BlogCardType, string> = {

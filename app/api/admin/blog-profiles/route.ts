@@ -38,7 +38,7 @@ function dbToProfile(row: Record<string, unknown>): BlogProfile {
     const rawName = (row.lawyer_name as string) || "";
     const parts = rawName.split("||");
     const lawyerName = parts[0] || "";
-    const jobTitle = parts[1] || "대표변호사";
+    const jobTitle = parts[1] || ""; // Missing legacy data is not an authorization to invent a title.
     const career = (parts[2] || "").split(/\n|\\n/).map((s: string) => s.trim());
 
     return {

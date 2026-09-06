@@ -243,17 +243,22 @@ export default function BlogFactoryPage() {
             const fullProfile = pData.profile;
             if (!fullProfile) throw new Error("변호사 상세 정보를 불러오지 못했습니다.");
 
+            const planned = await post("/api/admin/blog-images/plan", { title, content: body });
+            if (!planned.plan) throw new Error("이미지 기획에 실패했습니다.");
             const types = imageCount >= 4 ? ["thumbnail", "illustration", "info", "contact"] : ["thumbnail", "info", "contact"];
             const cards: BlogImageCard[] = [];
             for (const t of types) {
                 const response = await fetch("/api/admin/blog-images/generate-design", {
                     method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ profile: cardRequestProfile(fullProfile, t), title, content: body, cardType: t }),
+                    body: JSON.stringify({ profile: cardRequestProfile(fullProfile, t), title, content: body, cardType: t, plan: planned.plan }),
                 });
                 const d = await response.json().catch(() => ({}));
                 if (!response.ok) {
                     if (d.skipped) continue;
                     throw new Error(d.error || `카드 생성 실패 (${response.status})`);
+                }
+                if (d.card?.designReview && d.card.designReview.status !== "pass") {
+                    throw new Error(`${t} 완성본에 직접 검수가 필요합니다. 블로그 이미지 화면에서 확인해 주세요. ${d.card.designReview.summary}`);
                 }
                 if (d.card?.imageDataUrl) cards.push(d.card);
             }
