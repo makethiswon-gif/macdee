@@ -48,6 +48,9 @@ export default function BlogPublishPage() {
 
     const [step, setStep] = useState<Step>("idle");
     const [error, setError] = useState("");
+    // 실패가 아니라 "안 만든 이유"를 알리는 자리.
+    // 정보 카드는 본문에 도표로 만들 구조가 없으면 건너뛴다.
+    const [notice, setNotice] = useState("");
     const [copied, setCopied] = useState(false);
 
     const profile = profiles.find((p) => p.id === profileId) || null;
@@ -122,7 +125,17 @@ export default function BlogPublishPage() {
             setTitle(data.title || "");
             setBody(data.body || "");
             setPolished(!!data.polished);
-            if (data.dna?.imageCount) setImageCount(data.dna.imageCount);
+            const count = data.dna?.imageCount || imageCount;
+            if (data.dna?.imageCount) setImageCount(count);
+
+            // 원고가 나오면 카드까지 이어서 만든다.
+            // 전에는 여기서 멈추고 사용자가 버튼을 한 번 더 눌러야 했다.
+            // 상태(title·body)는 아직 반영 전이므로 값을 직접 넘긴다 —
+            // setState 는 비동기라 이 시점에 읽으면 빈 문자열이다.
+            if (data.title && data.body) {
+                await saveAndMakeCards({ t: data.title, b: data.body, count });
+                return;
+            }
         } catch (e) {
             setError(e instanceof Error ? e.message : "원고 생성에 실패했습니다.");
         }
@@ -157,10 +170,15 @@ export default function BlogPublishPage() {
 
     // 저장 → 카드 생성 → PNG 변환 → 업로드까지 한 번에.
     // 이미지가 Storage에 남아야 발행기가 집어갈 수 있다.
-    const saveAndMakeCards = async () => {
-        if (!profileId || !title || !body) return;
+    const saveAndMakeCards = async (over?: { t: string; b: string; count?: number }) => {
+        // write() 직후 호출될 때는 state 가 아직 갱신 전이라 값을 직접 받는다
+        const t = over?.t ?? title;
+        const b = over?.b ?? body;
+        const n = over?.count ?? imageCount;
+        if (!profileId || !t || !b) return;
         setStep("saving");
         setError("");
+        setNotice("");
         setCardUrls([]);
         try {
             // 1) 원고 저장 (이미 저장했으면 그대로 씀)
@@ -171,7 +189,7 @@ export default function BlogPublishPage() {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     credentials: "include",
-                    body: JSON.stringify({ profileId, title, body, field: picked?.field || null, topic: picked?.topic || null }),
+                    body: JSON.stringify({ profileId, title: t, body: b, field: picked?.field || null, topic: picked?.topic || null }),
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || "저장에 실패했습니다.");
@@ -188,26 +206,36 @@ export default function BlogPublishPage() {
             if (!fullProfile) throw new Error("변호사 상세 정보를 불러오지 못했습니다.");
 
             // 3) DNA가 정한 장수만큼. 카드 종류는 넷뿐이라 3장이면 상황 이미지를 뺀다.
-            const types = imageCount >= 4
+            const types = n >= 4
                 ? ["thumbnail", "illustration", "info", "contact"]
                 : ["thumbnail", "info", "contact"];
 
+            const skipped: string[] = [];
             setProgress(`카드 ${types.length}장 만드는 중… (~20초)`);
             const results = await Promise.all(
-                types.map(async (t) => {
+                types.map(async (ct) => {
                     const r = await fetch("/api/admin/blog-images/generate-design", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         credentials: "include",
-                        body: JSON.stringify({ profile: fullProfile, title, content: body, cardType: t }),
+                        body: JSON.stringify({ profile: fullProfile, title: t, content: b, cardType: ct }),
                     });
-                    if (!r.ok) return null;
+                    if (!r.ok) {
+                        // 422 skipped 는 실패가 아니다 — 본문에 도표로 만들 구조가
+                        // 없다는 뜻이다. 없는 절차를 그리면 오정보가 되므로 건너뛴다.
+                        try {
+                            const e = await r.json();
+                            if (e.skipped) skipped.push(`${ct}: ${e.error}`);
+                        } catch { /* ignore */ }
+                        return null;
+                    }
                     const d = await r.json();
                     return d.card || null;
                 })
             );
             const made = results.filter(Boolean) as { type: string; name: string; html: string }[];
-            if (made.length === 0) throw new Error("카드를 만들지 못했습니다.");
+            if (made.length === 0) throw new Error(skipped[0] || "카드를 만들지 못했습니다.");
+            if (skipped.length) setNotice(skipped.join(" / "));
             setCards(made);
             setProgress("이미지로 변환하는 중…");
         } catch (e) {
@@ -228,7 +256,12 @@ export default function BlogPublishPage() {
                 for (const c of cards) {
                     const node = cardRefs.current[c.type];
                     if (!node) continue;
-                    const dataUrl = await htmlToImage.toPng(node, { quality: 1, pixelRatio: 2, width: 800, height: 800 });
+                    // 크기를 하드코딩하지 않는다.
+                    // DNA 판형이 4:5(800x1000)인 변호사는 800x800 으로 잘려 있었다.
+                    // 실제로 그려진 카드 크기를 그대로 쓴다.
+                    const w = node.offsetWidth || 800;
+                    const h = node.offsetHeight || 800;
+                    const dataUrl = await htmlToImage.toPng(node, { quality: 1, pixelRatio: 2, width: w, height: h });
                     shots.push({ type: c.type, dataUrl });
                 }
                 if (cancelled) return;
@@ -296,6 +329,12 @@ export default function BlogPublishPage() {
             {error && (
                 <div className="mb-4 px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-lg text-[13px] text-red-300">
                     {error}
+                </div>
+            )}
+
+            {notice && (
+                <div className="mb-4 px-4 py-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-[13px] text-amber-200">
+                    {notice}
                 </div>
             )}
 
@@ -458,7 +497,7 @@ export default function BlogPublishPage() {
                                 {savedId ? "저장됨" : "원고만 저장"}
                             </button>
                             <button
-                                onClick={saveAndMakeCards}
+                                onClick={() => saveAndMakeCards()}
                                 disabled={step !== "idle" || cardUrls.length > 0}
                                 className={`${btn} bg-[#3563AE] hover:bg-[#2d559a] text-white`}
                             >
@@ -518,7 +557,7 @@ export default function BlogPublishPage() {
                     <div
                         key={c.type}
                         ref={(el) => { cardRefs.current[c.type] = el; }}
-                        style={{ width: 800, height: 800 }}
+                        style={{ width: "max-content" }}
                         dangerouslySetInnerHTML={{ __html: c.html }}
                     />
                 ))}

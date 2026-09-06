@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { generateBlogContentImage } from "@/lib/ai/image-generate";
 import { getLawyerDesignDNA, describeDNA, dnaDirective } from "@/lib/blog-images/design-dna";
 import { visualDiscipline, FONT_IMPORT } from "@/lib/brand-visual";
+import { INFOGRAPHIC_SYSTEM, parseInfographic, renderInfographic } from "@/lib/blog-images/infographic";
 import { extractLogoColor } from "@/lib/blog-images/logo-color";
 import { verifyAdminToken } from "@/lib/admin-auth";
 import { extractClaudeText } from "@/lib/ai/claude-text";
@@ -135,7 +136,7 @@ export async function POST(req: Request) {
 
         // ── thumbnail / illustration: AI 이미지 단독 ──
         if (cardType === "thumbnail" || cardType === "illustration") {
-            const style = cardType === "thumbnail" ? "realistic" : "webtoon";
+            // 스타일 분기는 없앴다 — 두 카드 모두 사물·공간 자료사진으로 나온다.
             try {
                 // 썸네일: 이미지 + 상황훅 생성 병렬
                 const [img, hookLines] = await Promise.all([
@@ -193,6 +194,64 @@ export async function POST(req: Request) {
             }
         }
 
+        // ── info: 데이터 추출 → 코드가 렌더 ──
+        //
+        // Claude 에게 HTML 을 그리게 하지 않는다. 매번 다른 결과가 나오고,
+        // 규율을 프롬프트에 아무리 적어도 그라데이션과 그림자가 슬금슬금 돌아온다.
+        // Claude 는 본문에서 데이터만 뽑고, 그림은 코드가 그린다.
+        if (cardType === "info") {
+            const res = await fetch("https://api.anthropic.com/v1/messages", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "x-api-key": apiKey,
+                    "anthropic-version": "2023-06-01",
+                },
+                body: JSON.stringify({
+                    model: "claude-sonnet-5",
+                    max_tokens: 1500,
+                    // 사고 토큰이 출력 예산을 먹으면 JSON 이 잘려서 파싱이 깨진다
+                    thinking: { type: "disabled" },
+                    system: INFOGRAPHIC_SYSTEM,
+                    messages: [{
+                        role: "user",
+                        content: `[제목] ${title || ""}
+
+[본문]
+${content.substring(0, 4000)}`,
+                    }],
+                }),
+            });
+
+            if (!res.ok) {
+                const t = await res.text();
+                return NextResponse.json({ error: `Claude ${res.status}: ${t.substring(0, 200)}` }, { status: 500 });
+            }
+
+            const parsed = parseInfographic(extractClaudeText(await res.json()));
+
+            // 도표로 만들 구조가 없으면 카드를 만들지 않는다.
+            // 빈 자리를 그럴듯한 내용으로 채우면 그건 오정보다.
+            if (!parsed) {
+                return NextResponse.json({
+                    error: "이 글에서는 도표로 만들 만한 구조를 찾지 못했습니다. 절차·기간·준비물·비교·구간 중 하나가 본문에 있어야 합니다.",
+                    skipped: true,
+                }, { status: 422 });
+            }
+
+            const html = renderInfographic(parsed, {
+                dna,
+                brandColor,
+                lawyerName: profile.lawyerName,
+                logoUrl: hasLogo ? profile.logoImage : undefined,
+            });
+
+            console.log(`[generate-design] info → ${parsed.kind} (${parsed.heading})`);
+            return NextResponse.json({
+                card: { type: cardType, name: cardNames[cardType], html, infographic: parsed.kind },
+            });
+        }
+
         // 이하부터는 contact 카드 전용 (Claude HTML 코딩)
         // 공통 규율(전부 동일) + 정체성 축(변호사별로 크게 다름).
         // 순서가 중요하다 — 규율을 먼저 못박고 그 안에서 개성을 준다.
@@ -215,31 +274,7 @@ ${dnaDirective(dna)}
 
         const cardPrompts: Record<string, string> = {
 
-            // C. 정보형 — 본문 보고 형식(단계/체크리스트/비교/순서도) 자동 선택
-            info: `이 블로그 글의 핵심을 '정보형 시각자료' 한 장으로 정리하세요.
-
-[형식 — 본문에 가장 잘 맞는 것 하나를 스스로 선택]
-1) 단계별 절차 (3~5단계: 번호 + 짧은 제목 + 한 줄 설명)
-2) 체크리스트 (3~5항목: 체크 아이콘 + 항목)
-3) 비교 (A vs B, 2열 대조)
-4) 순서도 (간단한 화살표 흐름)
-
-[내용 규칙 — 매우 중요]
-- 본문에 실제로 있는 내용만. 없는 내용 지어내기 절대 금지.
-- 정보 개수 3~5개. 한 장에 과하지 않게.
-- 상단에 짧은 헤더(주제) 1줄, 그 아래 항목들.
-- 글 제목을 그대로 반복하지 말 것.
-
-[본문]
-${content.substring(0, 2500)}
-
-[디자인]
-- 도표가 주인공이다. 배경은 위 지면 성격을 따른다. 브랜드컬러 ${brandColor}는 한 곳에만.
-- 항목은 카드/구분선/여백으로 명확히 구조화. 모바일에서도 읽히게 폰트 충분히 크게.
-${variationDirective}
-
-font-family:'Noto Sans KR',sans-serif
-${CARD_W}x${CARD_H}px, inline CSS만.`,
+            // info 는 위 전용 파이프라인에서 처리한다(데이터 추출 → 코드 렌더).
 
             // D. 요약 + 안내 — 세로 명함이 아니라 '가로형 요약 배너' + 왜 연락해야 하는지 맥락
             contact: (() => {

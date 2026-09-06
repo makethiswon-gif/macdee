@@ -177,6 +177,12 @@ export default function BlogImagesPage() {
                         let errMsg = `${res.status}`;
                         try {
                             const errData = await res.json();
+                            // 422 skipped 는 실패가 아니라 "만들 내용이 없음" 이다.
+                            // 정보 카드는 본문에 절차·기간·준비물·비교·구간이 있어야 만든다.
+                            // 없는데 억지로 만들면 오정보가 되므로 건너뛴다.
+                            if (errData.skipped) {
+                                return { ok: false as const, label: ct.label, error: errData.error, skipped: true };
+                            }
                             errMsg += " - " + errData.error;
                         } catch { /* ignore */ }
                         return { ok: false as const, label: ct.label, error: errMsg };
