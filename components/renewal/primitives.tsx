@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode, HTMLAttributes } from "react";
+import Reveal from "./Reveal";
 
 /* ═══════════════ CONTAINER ═══════════════ */
 
@@ -11,7 +12,7 @@ export function Container({
     className?: string;
 }) {
     return (
-        <div className={`w-full mx-auto px-6 md:px-10 lg:px-16 ${className}`} style={{ maxWidth: "var(--mt-max)" }}>
+        <div className={`mt-container w-full mx-auto px-6 md:px-10 lg:px-16 ${className}`} style={{ maxWidth: "var(--mt-max)" }}>
             {children}
         </div>
     );
@@ -38,7 +39,7 @@ export function Section({
         <section
             id={id}
             {...rest}
-            className={`${tight ? "py-16 md:py-24" : "py-[88px] md:py-[140px]"} ${dark ? "mt-dark-glow" : ""} ${className}`}
+            className={`mt-section ${tight ? "py-16 md:py-24" : "py-[88px] md:py-[140px]"} ${dark ? "mt-dark-glow" : ""} ${className}`}
             style={
                 dark
                     ? {
@@ -95,8 +96,9 @@ export function SectionHeader({
 }) {
     return (
         <div
-            className={`${align === "center" ? "text-center mx-auto max-w-[720px]" : "max-w-[820px]"} ${className}`}
+            className={`mt-section-heading ${align === "center" ? "text-center mx-auto max-w-[720px]" : "max-w-[820px]"} ${className}`}
         >
+            <Reveal variant="line" className="mt-chapter-art"><span className="mt-chapter-mark" aria-hidden="true" /></Reveal>
             {(number || eyebrow) && (
                 <div className={`flex items-center gap-3 mb-6 ${align === "center" ? "justify-center" : ""}`}>
                     {number && (
@@ -136,9 +138,9 @@ const buttonBase =
 function buttonStyle(variant: ButtonVariant) {
     if (variant === "primary") {
         return {
-            background: "var(--mt-ink)",
-            color: "var(--mt-bg)",
-            border: "1px solid var(--mt-ink)",
+            background: "var(--mt-button-bg, var(--mt-ink))",
+            color: "var(--mt-button-fg, var(--mt-bg))",
+            border: "1px solid var(--mt-button-bg, var(--mt-ink))",
         };
     }
     if (variant === "outline") {
@@ -168,7 +170,7 @@ export function Button({
     className?: string;
     external?: boolean;
 }) {
-    const cls = `${buttonBase} ${variant === "primary" ? "hover:opacity-85" : "hover:border-[var(--mt-ink)]"} ${className}`;
+    const cls = `mt-button ${buttonBase} ${variant === "primary" ? "hover:opacity-85" : "hover:border-[var(--mt-ink)]"} ${className}`;
 
     if (external) {
         return (
@@ -199,7 +201,7 @@ export function ArrowLink({
     return (
         <Link
             href={href}
-            className={`group inline-flex items-center gap-2 text-[14px] font-medium transition-colors ${className}`}
+            className={`mt-arrow-link group inline-flex items-center gap-2 text-[14px] font-medium transition-colors ${className}`}
             style={{ color: "var(--mt-ink)" }}
         >
             <span className="border-b border-current pb-0.5">{children}</span>

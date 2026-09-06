@@ -26,17 +26,14 @@ export function useScrollProgress<T extends HTMLElement>(mode: "pin" | "enter" =
         if (!el) return;
 
         const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
-        if (reduce.matches) {
-            el.style.setProperty("--p", "1");
-            return;
-        }
-
         let frame = 0;
         let last = -1;
         let visible = false;
 
         const measure = () => {
             frame = 0;
+            if (reduce.matches) { el.style.setProperty("--p", "1"); last = -1; return; }
+            if (document.hidden) return;
             const rect = el.getBoundingClientRect();
             const vh = window.innerHeight || 1;
 
@@ -65,7 +62,7 @@ export function useScrollProgress<T extends HTMLElement>(mode: "pin" | "enter" =
         };
 
         const onScroll = () => {
-            if (!visible || frame) return;
+            if (!visible || frame || reduce.matches || document.hidden) return;
             frame = requestAnimationFrame(measure);
         };
 
@@ -79,12 +76,21 @@ export function useScrollProgress<T extends HTMLElement>(mode: "pin" | "enter" =
         );
 
         io.observe(el);
+        const sync = () => {
+            cancelAnimationFrame(frame); frame = 0;
+            if (reduce.matches) { el.style.setProperty("--p", "1"); last = -1; }
+            else onScroll();
+        };
+        reduce.addEventListener("change", sync);
+        document.addEventListener("visibilitychange", sync);
         window.addEventListener("scroll", onScroll, { passive: true });
         window.addEventListener("resize", onScroll, { passive: true });
         measure();
 
         return () => {
             io.disconnect();
+            reduce.removeEventListener("change", sync);
+            document.removeEventListener("visibilitychange", sync);
             window.removeEventListener("scroll", onScroll);
             window.removeEventListener("resize", onScroll);
             if (frame) cancelAnimationFrame(frame);

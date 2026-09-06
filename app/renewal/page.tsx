@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { createServiceClient } from "@/lib/supabase/server";
 
 import HeroSection from "@/components/renewal/home/HeroSection";
-import GlobalThread from "@/components/renewal/home/GlobalThread";
 import ClientJourney from "@/components/renewal/home/ClientJourney";
 import ProblemSection from "@/components/renewal/home/ProblemSection";
 import PartnerLogos from "@/components/renewal/home/PartnerLogos";
@@ -154,7 +153,6 @@ export default async function RenewalHome() {
 
                 핵심 원칙: 첫 화면 5초 안에 "필요한 마케팅 전부를 한 팀이 운영해
                 간단해진다"가 읽혀야 한다. 효과 없이 읽어도 구조가 이해된다. */}
-            <GlobalThread />
             <HeroSection />
             <ServicesSection />
             <ClientJourney />

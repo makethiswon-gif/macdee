@@ -94,12 +94,12 @@ export default function ServicesSection() {
                                             style={{ background: "var(--mt-line-strong)" }}
                                             aria-hidden="true"
                                         />
-                                        <div>
+                                        <div className="mt-annex-heading">
                                             <p className="mt-en mt-num text-[10px] font-medium" style={{ color: "var(--mt-accent)" }}>
                                                 {svc.no}
                                             </p>
                                             <Link href={path(svc.href)} className="group mt-2 inline-flex items-baseline gap-2.5">
-                                                <span className="text-[16px] font-semibold" style={{ color: "var(--mt-ink)" }}>
+                                                <span className="mt-annex-title text-[16px] font-semibold" style={{ color: "var(--mt-ink)" }}>
                                                     <span className="mt-underline">{svc.ko}</span>
                                                 </span>
                                                 <span

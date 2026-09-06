@@ -56,7 +56,7 @@ export default function PlansSection() {
                                 {/* 금액 — 고정폭 숫자, 견적서 톤 */}
                                 <div className="mt-6 pb-6" style={{ borderBottom: "1px solid var(--mt-line)" }}>
                                     <p
-                                        className="mt-num text-[clamp(1.35rem,1.8vw,1.6rem)] font-semibold leading-none"
+                                        className="mt-plan-price mt-num text-[clamp(1.35rem,1.8vw,1.6rem)] font-semibold leading-none"
                                         style={{ color: "var(--mt-ink)" }}
                                     >
                                         {plan.price}

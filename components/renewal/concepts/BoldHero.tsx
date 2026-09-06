@@ -14,7 +14,7 @@ function Actions() {
     return <div className={s.actions} data-locked-actions><Link href={path(PRIMARY_CTA.href)} className={s.primary}>마케팅 진단받기 <span aria-hidden>↗</span></Link><Link href={path("/#plans")} className={s.secondary}>세 가지 운영안 보기 <span aria-hidden>→</span></Link></div>;
 }
 function Services({ orbit = false }: { orbit?: boolean }) {
-    return <ul className={orbit ? s.orbitLabels : s.serviceLinks}>{SERVICES.map(service => <li key={service.no} data-service={service.no}><Link href={path(service.href)}><small>{service.no}</small><span>{service.ko}</span><span aria-hidden>↗</span></Link></li>)}</ul>;
+    return <ul className={orbit ? s.orbitLabels : s.serviceLinks}>{SERVICES.map(service => <li key={service.no} data-service={service.no}><Link href={path(service.href)}>{orbit ? <><small>{service.no}</small><span>{service.ko}</span></> : <><span>{service.ko}</span><small>{service.no}</small></>}<span aria-hidden>↗</span></Link></li>)}</ul>;
 }
 function Before() {
     return <p className={s.before}>{HERO_BEFORE.map((word, index) => <span key={word}>{index > 0 && <i aria-hidden> · </i>}<s>{word}</s></span>)}<b aria-hidden>→</b><strong>MAKETHIS1.</strong></p>;
@@ -31,7 +31,7 @@ function TypeRibbon({ row }: { row: number }) {
         return <g key={service.no}><text x={x} y="125" textLength={width} lengthAdjust="spacingAndGlyphs">{service.en}</text><text x={x + width + 30} y="125">↗</text></g>;
     })}</svg>;
 }
-function Kinetic() {
+export function Kinetic() {
     return <section className={`${s.hero} ${s.kinetic}`} data-bold-hero="kinetic" data-motion-state="static">
         <BoldMotion />
         <div className={s.kineticHead}><p className={s.overline}>{HERO_OVERLINE}</p><Title split /></div>
