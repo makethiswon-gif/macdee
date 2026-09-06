@@ -90,4 +90,51 @@ Constraints: one artwork, no text, no letters, no typography, no logo, no waterm
 
 대표가 D/E/F 중 방향과 모션 강도를 선택한 뒤에만 전 페이지로 확장한다. 세 방향을 무차별 혼합하지 않는다. 브랜치 프리뷰 검토와 main 병합 승인도 별도다.
 
-검증 결과와 최종 프리뷰 주소는 아래 후속 검증 기록에 남긴다.
+## 최종 검증 기록
+
+코드 기준 커밋: `2fc3c34d646456d05dff0cc488aff137991b7f7c`.
+
+| 검증 | 결과 |
+|---|---|
+| `npx tsc --noEmit` | 통과 |
+| `npm run build` | 통과, 138개 정적 페이지 생성. 기존 middleware→proxy 권고 경고는 남아 있음 |
+| 기존 홈·비교 허브·A/B/C | 1440/375 × 일반/JS 끔/reduced-motion, 30개 실행 통과 |
+| 신규 D/E/F | 같은 조건 18개 실행 통과, 원문 카피 일치·가로 넘침 없음·숨겨진 히어로 정보 없음 |
+| 내부 링크 curl | 홈 추출 24개 전부 200. 기존/비교 시안 합집합 31개 링크·앵커 통과. 신규 시안 추출 20개 링크도 전부 200 |
+| `curl -A "ChatGPT-User"` | 홈/허브/A/B/C/D/E/F 8페이지 원본 HTML 확인. 히어로·본문 존재, 각 canonical absolute, 일반 robots noindex 없음, named-bot 정책 보존 |
+| 초기 CLS | 신규 3시안 × 2해상도 × 일반/reduced-motion 전부 0 |
+| 상호작용 중 CLS | 신규 3시안 × 2해상도 전부 0 |
+| LCP | 일반 모드 6개 모두 정적인 제목 또는 정적인 배경. 로컬 측정 296~636ms — 실제 인터넷/실사용자 성능 보장이 아님 |
+| 실제 모션 | 450ms 간격 transform/opacity/stroke 변화 + 500ms 간격 화면 픽셀 변화 확인 |
+| 정지·복귀 | 키보드 정지→초점 이동 후 유지, 정지 중 스크롤·포인터, 재생, 장식 영역 offscreen 정지·복귀 통과 |
+| 모션 감소 | 초기 설정, 실행 중 실시간 변경, 원복, 수동 정지 상태 보존 모두 통과 |
+| 탭 가림 | `document.hidden` + `visibilitychange` 시뮬레이션에서 정지 프레임 확인. 네이티브 OS 탭 전환 실측이라고 주장하지 않음 |
+| 키보드·메뉴 | 8개 메뉴/탐색 실행 통과. desktop dropdown/모바일 메뉴·Escape·비교 링크 확인. dropdown 본문 대비 15.52 이상, 설명 8.57 이상 |
+| 보존 범위 diff | 이번 변경에서 원본 renewal 홈, data/renewal, flags, root layout, admin, SiteHeader/SiteFooter 원본 파일, package/lockfile 변경 없음 |
+
+검수 과정에서 발견한 reduced-motion 라벨 교체에 의한 미세 CLS, 장식 활자의 모션 중 텍스트 레이아웃 이동, 늦게 교체되는 장식 화살표 글꼴, dropdown/푸터 테마 충돌을 수정한 뒤 위 테스트를 다시 실행했다.
+
+### 로컬 확인
+
+- 최종 production build: http://localhost:3101/renewal/concepts
+- D: http://localhost:3101/renewal/concepts/kinetic
+- E: http://localhost:3101/renewal/concepts/orbit
+- F: http://localhost:3101/renewal/concepts/aperture
+- 개발 서버: http://localhost:3102/renewal/concepts
+
+### Vercel 브랜치 프리뷰
+
+GitHub의 Vercel commit status 및 deployment status 모두 `success` 확인.
+
+https://macdee-m26y51o3j-incbccc-7155s-projects.vercel.app/renewal/concepts
+
+이 프리뷰는 기존 Vercel 접근 보호가 적용되어 비인증 curl 요청은 **302 → Vercel SSO**로 이동한다. 보호 설정은 변경하지 않았다. 위 HTTP/화면 검증은 동일 커밋의 로컬 production build 기준이며, 원격 인증 후 화면까지 검수했다고 주장하지 않는다.
+
+### 결과 파일
+
+- 신규 시안 18개 검증/1440·375 스크린샷: `C:/클로드/renewal-v2-round2-qa/verified/`
+- 원본 및 A/B/C 30개 회귀 검증/스크린샷: `C:/클로드/renewal-v2-round2-qa/baseline-final/`
+- 메뉴·비교 탐색 8개 검증/스크린샷: `C:/클로드/renewal-v2-round2-qa/navigation-final/`
+- 각 폴더의 `report.json`에 상세 결과. 고객 데이터·폼 제출 없이 읽기 전용으로 검증했다.
+
+대표 결정 필요: D/E/F 방향, 모션 강도, 선택안의 후속 운영 사례·서비스 면과 연결 방식. 아직 전 페이지 적용 또는 main 병합을 승인받은 상태가 아니다.
