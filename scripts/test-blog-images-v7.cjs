@@ -134,7 +134,11 @@ async function main() {
         await assert.rejects(generateEditorialPhoto(art, "medium"), /사용 한도/); assert.equal(calls, 1, "No hidden retries");
         const articleLong = "문서 정리 설명. ".repeat(450) + "\n\n마지막 문단의 중요한 예외까지 포함합니다.";
         global.fetch = async (_url, init) => {
-            const sent = JSON.parse(init.body).messages[0].content[0].text;
+            const body = JSON.parse(init.body);
+            assert.equal(body.model, "claude-opus-5");
+            assert.equal(body.output_config.effort, "low");
+            assert.equal(body.max_tokens, 10000);
+            const sent = body.messages[0].content[0].text;
             assert.ok(sent.includes("마지막 문단의 중요한 예외까지 포함합니다."), "Planner sees the complete article");
             return Response.json({ content: [{ type: "text", text: JSON.stringify(rawPlan()) }] });
         };
@@ -142,12 +146,12 @@ async function main() {
         let images = 0, reviews = 0;
         global.fetch = async (url) => {
             if (String(url).includes("openai.com")) { images++; return Response.json({ data: [{ b64_json: photo.toString("base64") }] }); }
-            reviews++; return Response.json({ content: [{ type: "text", text: JSON.stringify({ approved: false, reason: "원고는 의료 기록인데 자동차가 중심입니다.", issues: ["주제 불일치"] }) }] });
+            reviews++; return Response.json({ content: [{ type: "text", text: JSON.stringify({ design: 3, readability: 4, fidelity: 1, critical: true, summary: "원고는 의료 기록인데 자동차가 중심입니다.", issues: ["주제 불일치"] }) }] });
         };
         r = await POST(req({ profile, title, content: article, cardType: "thumbnail", plan }));
         assert.equal(r.status, 200);
         const held = (await r.json()).card;
-        assert.equal(held.designReview.status, "revise"); assert.match(held.warnings.join(" "), /검수에서 보류/);
+        assert.equal(held.designReview.status, "revise"); assert.match(held.warnings.join(" "), /검수에서 수정 권고/);
         assert.ok(held.artDataUrl, "Held paid artwork remains available for manual inspection without regeneration");
         assert.equal(images, 1); assert.equal(reviews, 1);
         let finalReviews = 0;
@@ -155,12 +159,13 @@ async function main() {
         const criticResult = { design: 4, readability: 4, fidelity: 5, critical: false, summary: "픽셀·원고 검수 완료", issues: [] };
         global.fetch = async (url, init) => {
             finalReviews++;
-            assert.match(String(url), /\/v1\/responses$/);
+            assert.match(String(url), /anthropic.com\/v1\/messages$/);
             const body = JSON.parse(init.body);
-            assert.equal(body.model, DESIGN_REVIEW_MODEL); assert.equal(body.store, false);
-            assert.equal(body.text.format.type, "json_schema");
-            assert.ok(body.input[0].content[1].image_url.startsWith("data:image/jpeg;base64,"));
-            return Response.json({ status: "completed", output: [{ content: [{ type: "output_text", text: JSON.stringify(criticResult) }] }] });
+            assert.equal(body.model, DESIGN_REVIEW_MODEL); assert.equal(body.thinking.type, "disabled");
+            assert.equal(body.max_tokens, 1800);
+            assert.equal(body.messages[0].content[1].source.media_type, "image/jpeg");
+            assert.ok(body.messages[0].content[1].source.data.length > 0);
+            return Response.json({ content: [{ type: "text", text: JSON.stringify(criticResult) }] });
         };
         assert.equal((await reviewMagazineCard(testCard, plan.cards[2], plan)).status, "pass");
         criticResult.critical = true;
@@ -168,15 +173,49 @@ async function main() {
         global.fetch = async () => { finalReviews++; return new Response("{}", { status: 429 }); };
         assert.equal((await reviewMagazineCard(testCard, plan.cards[2], plan)).status, "unavailable");
         assert.equal(finalReviews, 3, "Final critic does not silently retry or regenerate paid artwork");
+        let timeouts = 0;
+        global.fetch = async () => { timeouts++; throw new DOMException("The operation was aborted due to timeout", "TimeoutError"); };
+        r = await PLAN(req({ title, content: article }));
+        assert.equal(r.status, 502);
+        const failure = await r.json();
+        assert.match(failure.error, /원고 기획 응답 시간이 초과/);
+        assert.doesNotMatch(failure.error, /operation was aborted/);
+        assert.equal(timeouts, 1, "Planning timeout is not retried");
+        assert.equal((await POST(req({ profile, title, content: article, cardType: "thumbnail" }))).status, 400);
+        assert.equal(timeouts, 1, "Missing shared plan never silently adds another planning request");
+        let generated = 0, timedReviews = 0;
+        global.fetch = async (url, init) => {
+            if (String(url).includes("openai.com")) {
+                generated++;
+                const input = JSON.parse(init.body);
+                assert.equal(input.quality, "medium");
+                assert.equal(input.output_format, "jpeg");
+                return Response.json({ data: [{ b64_json: photo.toString("base64") }] });
+            }
+            timedReviews++;
+            throw new DOMException("The operation was aborted due to timeout", "TimeoutError");
+        };
+        r = await POST(req({ profile, title, content: article, cardType: "thumbnail", plan }));
+        assert.equal(r.status, 200);
+        const preserved = (await r.json()).card;
+        assert.equal(preserved.designReview.status, "unavailable");
+        assert.ok(preserved.artDataUrl && preserved.imageDataUrl);
+        assert.match(preserved.warnings.join(" "), /보존/);
+        assert.equal(generated, 1); assert.equal(timedReviews, 1);
+        await save(preserved, "cover-review-timeout");
+        // A timeout while consuming the HTTP body is handled too, not only before response headers.
+        global.fetch = async () => ({ ok: true, json: async () => { throw new DOMException("timeout", "TimeoutError"); } });
+        assert.equal((await reviewMagazineCard(testCard, plan.cards[2], plan)).status, "unavailable");
     } finally { global.fetch = oldFetch; }
     if (live || liveArt || liveRest || refreshFinal || recompose) {
         const sampleIdx = process.argv.indexOf("--sample");
         for (const sample of liveArticles.filter((s) => sampleIdx < 0 || s.key === process.argv[sampleIdx + 1])) {
             const planPath = path.join(out, sample.key + "-plan.json");
             if (recompose && !fs.existsSync(planPath)) throw new Error("A saved live plan is required for zero-AI recomposition");
+            const planStarted = Date.now();
             const p = (liveArt || liveRest || refreshFinal || recompose) && fs.existsSync(planPath) ? JSON.parse(fs.readFileSync(planPath, "utf8")) : await planArticle(sample.title, sample.content);
             fs.writeFileSync(planPath, JSON.stringify(p, null, 2));
-            console.log("PLANNED " + sample.key + ": " + p.cards[0].art.subject);
+            console.log("PLANNED " + sample.key + " in " + (Date.now() - planStarted) + "ms: " + p.cards[0].art.subject);
             if (refreshFinal) {
                 // Explicit opt-in: recompose saved artwork and review, NO image-generation or planning calls.
                 for (const pc of p.cards.filter((c) => !c.skipReason)) {
@@ -191,8 +230,10 @@ async function main() {
                 continue;
             }
             if (liveArt) {
-                const r = await POST(req({ profile: liveProfile, title: sample.title, content: sample.content, cardType: "thumbnail", plan: p, quality: "high", style: "contrast" }));
+                const started = Date.now();
+                const r = await POST(req({ profile: liveProfile, title: sample.title, content: sample.content, cardType: "thumbnail", plan: p, quality: "medium", style: "contrast" }));
                 const result = await r.json(); assert.equal(r.status, 200, result.error); await save(result.card, sample.key + "-cover-live");
+                console.log("LIVE COVER " + (Date.now() - started) + "ms, review=" + result.card.designReview?.status);
             }
             if (recompose) {
                 const oldCard = JSON.parse(fs.readFileSync(path.join(out, sample.key + "-cover-live.json"), "utf8")).card;

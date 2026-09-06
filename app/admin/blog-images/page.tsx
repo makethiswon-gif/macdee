@@ -33,7 +33,7 @@ export default function BlogImagesPage() {
     const [title, setTitle] = useState("");
     const [content, setContent] = useState("");
     const [photoSource, setPhotoSource] = useState<BlogPhotoSource>("ai");
-    const [quality, setQuality] = useState<BlogImageQuality>("high");
+    const [quality, setQuality] = useState<BlogImageQuality>("medium");
     const [style, setStyle] = useState<EditorialStyle>("contrast");
     const [includePhoto, setIncludePhoto] = useState(false);
     const [plan, setPlan] = useState<ArticleVisualPlan | null>(null);
@@ -84,7 +84,7 @@ export default function BlogImagesPage() {
         finally { if (requestId === postRequest.current) setPostsLoading(false); }
     };
     const requestPlan = async () => {
-        setPhase("Claude Fable 5.1이 원고를 읽고 세 가지 시각 콘셉트를 비교합니다. 아트디렉션·카피·원문 근거를 함께 설계하고 있습니다.");
+        setPhase("Claude Opus 5가 원고에 맞는 콘셉트·카피·원문 근거를 기획합니다. 저강도 추론으로 필요한 구성만 설계합니다.");
         const res = await fetch("/api/admin/blog-images/plan", { method: "POST", credentials: "include",
             headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title, content }) });
         const data = await readResponse(res);
@@ -151,7 +151,7 @@ export default function BlogImagesPage() {
             generation.current = frozen;
             const types = BLOG_CARD_TYPES.filter((t) => t !== "illustration" || includePhoto);
             setCards([]); setHeadingEdits({}); setJobs(Object.fromEntries(types.map((t) => [t, { state: "waiting" }])));
-            setPhase("아트디렉션에 맞춰 제작 중 · 그림의 원고 적합성을 확인한 뒤 GPT-6 Astra가 완성 지면을 검수합니다. 고품질 생성과 검수에 수 분이 걸릴 수 있습니다.");
+            setPhase("아트디렉션에 맞춰 제작 중 · Claude Opus 5가 완성 지면에서 원고 적합성과 디자인을 함께 검수합니다. 검수가 지연돼도 생성 이미지는 보존합니다.");
             let cursor = 0;
             const worker = async () => { while (cursor < types.length) await runCard(types[cursor++], frozen, false, frozen.style, true); };
             await Promise.all([worker(), worker()]);
@@ -201,11 +201,11 @@ export default function BlogImagesPage() {
                 <label className="block text-sm">본문<textarea aria-label="본문" value={content} maxLength={40000} onChange={(e) => { setContent(e.target.value); invalidatePlan(); }} rows={9} placeholder="최종 검수할 원고를 붙여넣어 주세요." className={inputClass + " mt-2 resize-y leading-6"} /><span className="mt-1 block text-right text-xs text-slate-500">{content.length.toLocaleString()} / 40,000자</span></label>
                 <h2 className="border-t border-slate-800 pt-4 font-semibold">2. 표현 방식</h2>
                 <label className="block text-sm">시각물<select value={photoSource} onChange={(e) => setPhotoSource(e.target.value as BlogPhotoSource)} className={inputClass + " mt-2"}><option value="ai">AI가 원고에 맞춰 사진·일러스트 기획</option><option value="office">등록된 실제 사무실 사진 사용</option></select></label>
-                {photoSource === "ai" && <label className="block text-sm">AI 이미지 품질<select value={quality} onChange={(e) => setQuality(e.target.value as BlogImageQuality)} className={inputClass + " mt-2"}><option value="high">고품질 · 최종 발행용</option><option value="medium">표준 · 검토용</option></select></label>}
+                {photoSource === "ai" && <label className="block text-sm">AI 이미지 품질<select value={quality} onChange={(e) => setQuality(e.target.value as BlogImageQuality)} className={inputClass + " mt-2"}><option value="medium">표준 · 속도와 품질 균형 (기본)</option><option value="high">고품질 · 세부 묘사 강화, 대기 시간 증가</option></select></label>}
                 <label className="block text-sm">편집 스타일<select value={style} onChange={(e) => setStyle(e.target.value as EditorialStyle)} className={inputClass + " mt-2"}><option value="contrast">매거진 커버 · 아트디렉션 적용</option><option value="paper">갤러리 에디션 · 밝은 지면</option></select></label>
                 <label className="flex items-start gap-3 text-sm"><input type="checkbox" checked={includePhoto} onChange={(e) => setIncludePhoto(e.target.checked)} className="mt-1" /><span>보조 시각물 1장 추가<span className="mt-1 block text-xs leading-5 text-slate-400">표지·설명·변호사 상담 안내가 기본입니다. 원문 근거가 부족한 설명은 생략합니다.</span></span></label>
                 {selectedProfile && <div className="rounded-lg border border-slate-700 p-3"><p className="text-xs font-semibold text-slate-200">마지막 장 · 실제 변호사와 상담 연결</p><div className="mt-3 flex items-center gap-3">{selectedProfile.profileImages[0] && <img src={selectedProfile.profileImages[0]} alt="등록된 변호사 사진" width={56} height={72} className="h-[72px] w-14 bg-white object-contain" />}<p className="text-xs leading-6 text-slate-300">{selectedProfile.lawyerName}<br />{selectedProfile.officeName}<br />{selectedProfile.phone || selectedProfile.website || "상담 연락처 미등록"}</p></div>{missingContact.length > 0 ? <p className="mt-3 text-xs leading-5 text-amber-200">{missingContact.join(" · ")} 등록이 필요합니다. 등록 전에는 상담 안내 카드를 완성하지 않습니다.</p> : <p className="mt-3 text-xs leading-5 text-slate-400">등록된 사진을 그대로 사용합니다. 인물·직함·상담 조건을 AI가 만들지 않습니다.</p>}</div>}
-                <p className="text-xs leading-6 text-slate-400">기획: Claude Fable 5.1 · 그림: GPT Image 2 · 완성본 검수: GPT-6 Astra. 기본 세트는 기획 1회, 이미지 생성 1회, 시각물 검수 1회, 완성본 검수 최대 3회입니다. 보조 시각물 추가 시 생성·검수를 각각 추가합니다. 각 API 비용이 발생하며 실패 시 자동 중복 요청은 하지 않습니다. 제목·레이아웃 편집은 AI 호출 없이 가능합니다.</p>
+                <p className="text-xs leading-6 text-slate-400">기획·완성본 검수: Claude Opus 5 · 그림: GPT Image 2. 기본 세트는 기획 1회, 이미지 생성 1회, 완성본 검수 최대 3회입니다. 그림만 따로 검수하는 중복 호출은 없습니다. 보조 시각물 추가 시 생성·검수를 각 1회 추가합니다. 각 API 비용이 발생하며 실패 시 자동 중복 요청은 하지 않습니다. 제목·레이아웃 편집은 AI 호출 없이 가능합니다.</p>
                 <div className="space-y-2">
                     <button type="button" onClick={() => void generate()} disabled={busy || !selectedId || !content.trim()} className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-400 px-4 py-4 font-semibold text-slate-950 disabled:opacity-40">{busy ? <Loader2 size={18} className="animate-spin" /> : <WandSparkles size={18} />}{busy ? "작업 중…" : plan ? "이 구성으로 이미지 만들기" : "기획하고 이미지 만들기"}</button>
                     <button type="button" onClick={() => void previewPlan()} disabled={busy || !content.trim()} className="w-full rounded-lg border border-slate-600 px-4 py-3 text-sm disabled:opacity-40">{plan ? "구성안 다시 기획하기" : "구성안 먼저 보기"}</button>

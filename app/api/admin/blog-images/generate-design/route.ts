@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { verifyAdminToken } from "@/lib/admin-auth";
 import { BLOG_CARD_TYPES, type BlogCardType, type EditorialProfile } from "@/lib/blog-images/card-types";
-import { planArticle, validateVisualPlan, PlanValidationError, ART_REVIEW_MODEL } from "@/lib/blog-images/visual-planner";
-import { BLOG_PHOTO_MODEL, generateReviewedArt, normalizeEditorialArt } from "@/lib/blog-images/photo-generator";
+import { validateVisualPlan, PlanValidationError } from "@/lib/blog-images/visual-planner";
+import { BLOG_PHOTO_MODEL, generateEditorialPhoto, normalizeEditorialArt } from "@/lib/blog-images/photo-generator";
 import { readBrandAsset } from "@/lib/blog-images/editorial-renderer";
 import { renderBriefCard } from "@/lib/blog-images/brief-renderer";
 import { ContactProfileError } from "@/lib/blog-images/contact-renderer";
@@ -37,13 +37,12 @@ export async function POST(request: Request) {
     }
     try {
         if (type === "contact" && contactReadiness(profile).length) throw new ContactProfileError(`상담 안내에 필요한 ${contactReadiness(profile).join("과 ")}을 사진·로고 관리에서 등록해 주세요.`);
-        if (body.renderOnly && !body.plan) throw new PlanValidationError("레이아웃 변경에는 기존 구성안이 필요합니다.");
-        // Legacy callers remain compatible; updated batch callers share one plan per article.
-        const plan = body.plan ? validateVisualPlan(body.plan, body.title || "", body.content) : await planArticle(body.title || "", body.content);
+        // Keep planning outside the image request so their time budgets cannot accumulate.
+        if (!body.plan) throw new PlanValidationError("먼저 이미지 구성안을 만들어 주세요. 기획과 이미지 생성은 별도 단계로 진행합니다.");
+        const plan = validateVisualPlan(body.plan, body.title || "", body.content);
         const planned = plan.cards.find((c) => c.type === type)!;
         if (planned.skipReason) return NextResponse.json({ skipped: true, error: planned.skipReason }, { status: 422 });
         let art: Buffer | undefined, review: string | undefined, model: string | undefined;
-        let artHold: { reason: string; issues: string[] } | undefined;
         const useOffice = body.photoSource === "office";
         if (type === "thumbnail" || type === "illustration") {
             if (body.reuseArt) {
@@ -60,9 +59,9 @@ export async function POST(request: Request) {
                 review = "등록된 사무실 사진 · 원고 주제와의 적합성은 직접 확인해 주세요";
             } else {
                 if (body.renderOnly) throw new PlanValidationError("재사용할 시각물이 없습니다. 이미지를 먼저 생성해 주세요.");
-                const result = await generateReviewedArt(planned.art!, body.quality || "high");
-                art = result.bytes; review = result.review; model = BLOG_PHOTO_MODEL;
-                if (!result.approved) artHold = { reason: result.review, issues: result.issues };
+                art = await normalizeEditorialArt(await generateEditorialPhoto(planned.art!, body.quality || "medium"));
+                review = "원고 적합성과 이미지 품질은 완성 지면에서 함께 검수합니다.";
+                model = BLOG_PHOTO_MODEL;
             }
         }
         const card = await renderBriefCard({ plan, card: planned, profile, style: body.style || "contrast", art,
@@ -73,10 +72,7 @@ export async function POST(request: Request) {
             card.artReview = review;
         }
         // All normal generations receive independent finished-pixel QA; local edits remain zero-AI.
-        if (artHold) {
-            card.designReview = { status: "revise", model: ART_REVIEW_MODEL, summary: artHold.reason, issues: artHold.issues };
-            card.warnings.push("시각물 검수에서 보류했습니다. 이미지와 원본 아트는 보존했습니다. 사용 전 주제·사실관계를 직접 확인하거나 다시 생성해 주세요. 완성 지면 AI 검수는 진행하지 않았습니다.");
-        } else if (!body.renderOnly) {
+        if (!body.renderOnly) {
             card.designReview = await reviewMagazineCard(card, planned, plan);
             if (card.designReview.status !== "pass") card.warnings.push(card.designReview.status === "revise" ? "완성본 검수에서 수정 권고가 있습니다. 검수 메모를 확인한 뒤 사용해 주세요." : card.designReview.summary);
         } else card.warnings.push("편집 후 완성본 AI 검수는 실행하지 않았습니다. 글자·배치·원문 조건을 직접 확인해 주세요.");

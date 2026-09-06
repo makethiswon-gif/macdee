@@ -4,7 +4,7 @@ import { BLOG_CARD_TYPES, type BlogCardType } from "./card-types";
 import { parseInfographicResult } from "./infographic";
 import { articleParagraphs, type ArtDirection, type ArticleVisualPlan, type PlannedCard, type SourceEvidence, type VisualBrief } from "./visual-plan-types";
 
-export const PLANNING_MODEL = "claude-fable-5-1";
+export const PLANNING_MODEL = "claude-opus-5";
 export const ART_REVIEW_MODEL = "claude-opus-5";
 export const PLAN_VERSION = "visual-plan-v9";
 export class PlanValidationError extends Error {}
@@ -29,17 +29,30 @@ export async function requestEditorialJson(system: string, user: unknown, image?
     if (!process.env.ANTHROPIC_API_KEY) throw new Error("원고 기획에 필요한 ANTHROPIC_API_KEY 설정을 확인해 주세요.");
     const content: unknown[] = [{ type: "text", text: typeof user === "string" ? user : JSON.stringify(user) }];
     if (image) content.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: image.toString("base64") } });
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST", signal: AbortSignal.timeout(image ? 40_000 : 155_000),
-        headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
-        body: JSON.stringify({ model: image ? ART_REVIEW_MODEL : PLANNING_MODEL, max_tokens: image ? 2200 : 18000,
-            thinking: { type: image ? "disabled" : "adaptive" }, ...(!image ? { output_config: { effort: "high" } } : {}),
-            system, messages: [{ role: "user", content }] }),
-    });
-    if (!response.ok) throw new Error(`원고 기획·검수 요청에 실패했습니다 (${response.status}). 자동으로 중복 요청하지 않았습니다.`);
-    const data = await response.json();
-    if (data.stop_reason === "max_tokens") throw new PlanValidationError("구성안 응답이 중간에 끊겼습니다. 다시 기획해 주세요.");
-    return parseJsonObject(extractClaudeText(data));
+    const stage = image ? "완성 이미지 검수" : "원고 기획";
+    const model = image ? ART_REVIEW_MODEL : PLANNING_MODEL;
+    const started = Date.now();
+    try {
+        const response = await fetch("https://api.anthropic.com/v1/messages", {
+            method: "POST", signal: AbortSignal.timeout(image ? 35_000 : 100_000),
+            headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
+            body: JSON.stringify({ model, max_tokens: image ? 1800 : 10000,
+                thinking: { type: image ? "disabled" : "adaptive" }, output_config: { effort: "low" },
+                system, messages: [{ role: "user", content }] }),
+        });
+        if (!response.ok) throw new Error(`${stage} 요청에 실패했습니다 (${response.status}). 자동으로 중복 요청하지 않았습니다.`);
+        const data = await response.json();
+        if (data.stop_reason === "max_tokens") throw new PlanValidationError(`${stage} 응답이 중간에 끊겼습니다. 해당 작업만 다시 시도해 주세요.`);
+        return parseJsonObject(extractClaudeText(data));
+    } catch (e) {
+        if (e instanceof Error && ["TimeoutError", "AbortError"].includes(e.name)) {
+            throw new Error(`${stage} 응답 시간이 초과됐습니다. 자동으로 중복 요청하지 않았습니다. 잠시 후 해당 작업만 다시 시도해 주세요.`);
+        }
+        throw e;
+    } finally {
+        // Operational metadata only; never log article text, images, credentials or contact details.
+        console.info("[BlogImageAI]", { stage, model, elapsedMs: Date.now() - started });
+    }
 }
 
 export function validateVisualPlan(value: unknown, title: string, content: string, checkHash = true): ArticleVisualPlan {
@@ -143,7 +156,7 @@ export async function planArticle(title: string, content: string): Promise<Artic
 }
 
 const MAGAZINE_DIRECTION_SYSTEM = `
-추가 V9 아트디렉션: 너는 15년차 법률·문화 매거진의 크리에이티브 디렉터다. 먼저 실제 채택 가능한 수준으로 서로 다른 시각 콘셉트 3개를 검토하고, 원고를 가장 명료하고 낯설게 시각화하는 1개를 선택한다. alternatives도 완성도 높은 구체적 구상이어야 한다. '해커', '베이지 서류'처럼 이미 금지한 클리셰를 허수아비 대안으로 내지 않는다. 선택안과 대안 모두 독자가 주제를 추론할 구체적 단서가 있어야 한다. 제목을 가려도 최소한 원고의 분야·행위가 짐작되어야 한다. 실제 세계의 구체적인 물건이나 상황을 출발점으로 삼고, 그 위에 오직 한 가지 새로운 시각 장치를 적용한다. 예컨대 휴대전화는 조각판으로 추상화하지 말고 휴대전화로, 집은 격자판으로 치환하지 말고 주거 공간으로 알아볼 수 있게 남겨야 한다. 의료를 단순 종이 두 묶음으로 치환하지 않는다. 익명 인물/손/실루엣이나 건축적 단면, 정교한 드로잉, 거시적 오브젝트도 가능하다. 모든 주제를 금속판·유리판·종이·회색 정물로 바꾸지 않는다. 출판 수준의 작업: 핵심 관계를 보여주는 시각적 아이디어, 단단한 조형, 과감한 스케일, 물성, 의도된 여백. 아이콘 모음/강의 슬라이드/밋밋한 카드뉴스는 아니다. 내용과 무관한 장식은 혁신이 아니다.
+추가 V9 아트디렉션: 너는 15년차 법률·문화 매거진의 크리에이티브 디렉터다. 원고에 적합한 하나의 선명한 시각 콘셉트를 선택한다. 대안 2개는 각각 한 문장으로만 짧게 비교한다. alternatives도 완성도 높은 구체적 구상이어야 한다. '해커', '베이지 서류'처럼 이미 금지한 클리셰를 허수아비 대안으로 내지 않는다. 선택안과 대안 모두 독자가 주제를 추론할 구체적 단서가 있어야 한다. 제목을 가려도 최소한 원고의 분야·행위가 짐작되어야 한다. 실제 세계의 구체적인 물건이나 상황을 출발점으로 삼고, 그 위에 오직 한 가지 새로운 시각 장치를 적용한다. 예컨대 휴대전화는 조각판으로 추상화하지 말고 휴대전화로, 집은 격자판으로 치환하지 말고 주거 공간으로 알아볼 수 있게 남겨야 한다. 의료를 단순 종이 두 묶음으로 치환하지 않는다. 익명 인물/손/실루엣이나 건축적 단면, 정교한 드로잉, 거시적 오브젝트도 가능하다. 모든 주제를 금속판·유리판·종이·회색 정물로 바꾸지 않는다. 출판 수준의 작업: 핵심 관계를 보여주는 시각적 아이디어, 단단한 조형, 과감한 스케일, 물성, 의도된 여백. 아이콘 모음/강의 슬라이드/밋밋한 카드뉴스는 아니다. 내용과 무관한 장식은 혁신이 아니다.
 최상위 direction을 반드시 추가:
 {concept:"선택 콘셉트 이름",rationale:"이 원고와 연결되는 이유 및 대안보다 나은 점",alternatives:[{concept:"다른 콘셉트",reasonNotChosen:"선택하지 않은 이유"},{concept:"다른 콘셉트",reasonNotChosen:"선택하지 않은 이유"}],palette:"cobalt|vermilion|forest|aubergine|graphite",typography:"serif|sans",composition:"immersive|split",motif:"이 시리즈만의 구체적 시각 장치"}.
 palette는 원고의 분위기에 따라 선택. 무조건 브랜드색이나 베이지로 통일하지 않는다. cobalt=잉크블루/아이보리/라임, vermilion=버밀리언/차콜/크림, forest=깊은 녹색/페일옐로, aubergine=가지색/라일락, graphite=차콜/실버/라임. 실물의 본래 색은 유지한다. 배경과 빛에 팔레트를 사용한다.
@@ -152,4 +165,4 @@ composition split: 같은 4:5 세로 아트가 밝은 별도 지면의 하단 �
 thumbnail은 매우 구체적인 하나의 시각적 논증, illustration은 다른 부분을 설명하는 가로 3:2 편집 삽화로 장면을 반복하지 않는다. illustration에는 상단 제목 여백을 만들지 않고 중요한 관계가 화면 중앙 85% 안에서 크게 읽히게 한다. 시각물마다 새로 생성한다. 모든 scene에 색/빛/시점/주인공 크기/관계/텍스트 안전영역을 명시. 단순 배경 소품 나열 말고 그 관계를 어떻게 볼 것인가를 설계한다.
 모든 카드에 kicker(원고에서 확인되는 분야나 주제, 12자 권장)를 추가. thumbnail/contact에는 headlineLines를 추가. heading과 글자가 정확히 같고 공백/행갈이만 다르게 2~4행, 한 행 5~11자 권장. 제목은 조사와 단어를 자연스럽게 연결하며 너무 추상적이거나 자극적이지 않게. 장식적 영문 표제·호수·기사 날짜·실적·평가는 만들지 않는다. direction 설명은 독자용 인쇄 카피가 아니며 이미지에 인쇄하지 않는다.
 표지 deck은 본문 전체를 요약하는 자리가 아니다. 한 문장 44자 이내를 목표로, 이미지와 제목을 연결하는 가장 필요한 내용 하나만 자연스럽게 쓴다. 제목이 결과를 약속하지 않는다면 법적 유보 문장을 표지에 반복해 빽빽하게 만들지 말고 상세 조건은 info/contact에 보존한다. 다만 제목의 오해를 막는 필수 조건은 빼지 않는다. 소품은 정확한 물성을 정의한다. 통장은 얇고 유연한 종이 소책자이며 두꺼운 양장 수첩이 아니다. 전화는 알아볼 수 있는 휴대전화이지 금속판이 아니다.
-완료 전 원문 근거, 독자용 카피, 문장 조건, 제목 행갈이 일치, 표·사진 역할 차이를 스스로 재검수한 JSON만 반환한다.`;
+출력은 요청한 JSON 하나만. 설명·내부 태그·검토 과정은 출력하지 않는다. 원문 근거와 필수 조건은 보존하되 direction.rationale과 대안 설명은 각 80자 이내, scene은 각 350자 내외, purpose는 50자 이내로 간결하게 쓴다. evidence는 카드당 필요한 원문 인용 1~2개만. 각 카드의 고유 역할과 제목 행갈이 일치를 유지한다.`;
