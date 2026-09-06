@@ -87,6 +87,30 @@ JSON 객체 하나만. 설명·마크다운·코드펜스 없이.
 
 /* ═══════════════ 파싱 · 검증 ═══════════════ */
 
+// 거부 사유를 남긴다.
+//
+// 전에는 그냥 null 을 반환해서 "본문에 구조가 없어서 안 만든 것"과
+// "검증이 빡빡해서 버린 것"을 구분할 수 없었다. 둘은 대응이 정반대다 —
+// 앞은 정상 동작이고 뒤는 고쳐야 할 버그다.
+export type ParseResult =
+    | { ok: true; data: Infographic }
+    | { ok: false; reason: string };
+
+// 글자 상한.
+// 실측(실제 법률 글 6편)에서 라벨이 24자까지 나왔다. 26자 상한은 너무 빠듯해
+// 정상 데이터를 버릴 위험이 있었다. 렌더러가 항목 수에 따라 글자를 줄이므로
+// 조금 여유를 준다.
+const LIM = {
+    heading: 30,
+    label: 34,
+    note: 48,
+    when: 20,
+    range: 22,
+    aspect: 16,
+    cell: 26,
+    colLabel: 16,
+} as const;
+
 const str = (v: unknown, max: number): string | null => {
     if (typeof v !== "string") return null;
     const t = v.trim();
@@ -94,88 +118,102 @@ const str = (v: unknown, max: number): string | null => {
     return t;
 };
 
-/** 느슨하게 파싱하되 형식이 어긋나면 버린다. 억지로 살리지 않는다. */
-export function parseInfographic(raw: string): Infographic | null {
-    if (!raw) return null;
+/** 항목 수 상한. 6개까지 받고 렌더러가 글자를 줄여 맞춘다. */
+const MIN_ROWS = 3;
+const MAX_ROWS = 6;
+
+export function parseInfographicResult(raw: string): ParseResult {
+    if (!raw?.trim()) return { ok: false, reason: "빈 응답" };
 
     // 코드펜스가 붙어 오는 경우가 있어 JSON 본문만 잘라낸다
     const start = raw.indexOf("{");
     const end = raw.lastIndexOf("}");
-    if (start === -1 || end <= start) return null;
+    if (start === -1 || end <= start) return { ok: false, reason: "JSON 을 찾지 못함" };
 
     let obj: Record<string, unknown>;
     try {
         obj = JSON.parse(raw.slice(start, end + 1));
     } catch {
-        return null;
+        return { ok: false, reason: "JSON 파싱 실패(잘렸을 가능성)" };
     }
 
-    const heading = str(obj.heading, 24);
     const kind = obj.kind;
-    if (kind === "none" || !heading) return null;
+    if (kind === "none") return { ok: false, reason: "본문에 도표로 만들 구조가 없음" };
 
-    const many = <T>(v: unknown, map: (row: Record<string, unknown>) => T | null): T[] | null => {
-        if (!Array.isArray(v)) return null;
+    const heading = str(obj.heading, LIM.heading);
+    if (!heading) return { ok: false, reason: `heading 이 없거나 ${LIM.heading}자 초과` };
+
+    let bad = "";
+    const many = <T>(v: unknown, field: string, map: (row: Record<string, unknown>) => T | null): T[] | null => {
+        if (!Array.isArray(v)) { bad = `${field} 가 배열이 아님`; return null; }
         const out: T[] = [];
         for (const row of v) {
-            if (typeof row !== "object" || !row) return null;
+            if (typeof row !== "object" || !row) { bad = `${field} 항목이 객체가 아님`; return null; }
             const m = map(row as Record<string, unknown>);
-            if (!m) return null;
+            if (!m) { bad = `${field} 항목의 글자수가 상한을 넘음`; return null; }
             out.push(m);
         }
-        // 3개 미만이면 도표로 만들 가치가 없고, 5개를 넘으면 카드에 안 들어간다
-        return out.length >= 3 && out.length <= 5 ? out : null;
+        if (out.length < MIN_ROWS) { bad = `${field} 항목이 ${out.length}개(최소 ${MIN_ROWS})`; return null; }
+        if (out.length > MAX_ROWS) { bad = `${field} 항목이 ${out.length}개(최대 ${MAX_ROWS})`; return null; }
+        return out;
     };
 
+    const fail = (): ParseResult => ({ ok: false, reason: bad || "형식 불일치" });
+
     if (kind === "flow") {
-        const steps = many<FlowStep>(obj.steps, (r) => {
-            const label = str(r.label, 24);
-            return label ? { label, note: str(r.note, 40) || undefined } : null;
+        const steps = many<FlowStep>(obj.steps, "steps", (r) => {
+            const label = str(r.label, LIM.label);
+            return label ? { label, note: str(r.note, LIM.note) || undefined } : null;
         });
-        return steps ? { kind: "flow", heading, steps } : null;
+        return steps ? { ok: true, data: { kind: "flow", heading, steps } } : fail();
     }
 
     if (kind === "timeline") {
-        const events = many<TimelineEvent>(obj.events, (r) => {
-            const when = str(r.when, 16);
-            const label = str(r.label, 24);
-            return when && label ? { when, label, note: str(r.note, 40) || undefined } : null;
+        const events = many<TimelineEvent>(obj.events, "events", (r) => {
+            const when = str(r.when, LIM.when);
+            const label = str(r.label, LIM.label);
+            return when && label ? { when, label, note: str(r.note, LIM.note) || undefined } : null;
         });
-        return events ? { kind: "timeline", heading, events } : null;
+        return events ? { ok: true, data: { kind: "timeline", heading, events } } : fail();
     }
 
     if (kind === "checklist") {
-        const items = many<CheckItem>(obj.items, (r) => {
-            const label = str(r.label, 26);
-            return label ? { label, note: str(r.note, 40) || undefined } : null;
+        const items = many<CheckItem>(obj.items, "items", (r) => {
+            const label = str(r.label, LIM.label);
+            return label ? { label, note: str(r.note, LIM.note) || undefined } : null;
         });
-        return items ? { kind: "checklist", heading, items } : null;
+        return items ? { ok: true, data: { kind: "checklist", heading, items } } : fail();
     }
 
     if (kind === "compare") {
-        const leftLabel = str(obj.leftLabel, 14);
-        const rightLabel = str(obj.rightLabel, 14);
-        const rows = many<CompareRow>(obj.rows, (r) => {
-            const aspect = str(r.aspect, 14);
-            const a = str(r.a, 22);
-            const b = str(r.b, 22);
+        const leftLabel = str(obj.leftLabel, LIM.colLabel);
+        const rightLabel = str(obj.rightLabel, LIM.colLabel);
+        if (!leftLabel || !rightLabel) return { ok: false, reason: "compare 의 열 이름이 없거나 너무 김" };
+        const rows = many<CompareRow>(obj.rows, "rows", (r) => {
+            const aspect = str(r.aspect, LIM.aspect);
+            const a = str(r.a, LIM.cell);
+            const b = str(r.b, LIM.cell);
             return aspect && a && b ? { aspect, a, b } : null;
         });
-        return leftLabel && rightLabel && rows
-            ? { kind: "compare", heading, leftLabel, rightLabel, rows }
-            : null;
+        return rows ? { ok: true, data: { kind: "compare", heading, leftLabel, rightLabel, rows } } : fail();
     }
 
     if (kind === "tiers") {
-        const tiers = many<Tier>(obj.tiers, (r) => {
-            const range = str(r.range, 18);
-            const label = str(r.label, 26);
+        const tiers = many<Tier>(obj.tiers, "tiers", (r) => {
+            const range = str(r.range, LIM.range);
+            const label = str(r.label, LIM.label);
             return range && label ? { range, label } : null;
         });
-        return tiers ? { kind: "tiers", heading, tiers } : null;
+        return tiers ? { ok: true, data: { kind: "tiers", heading, tiers } } : fail();
     }
 
-    return null;
+    return { ok: false, reason: `알 수 없는 kind: ${String(kind).slice(0, 20)}` };
+}
+
+/** 기존 호출부 호환. 사유가 필요하면 parseInfographicResult 를 쓴다. */
+export function parseInfographic(raw: string): Infographic | null {
+    const r = parseInfographicResult(raw);
+    return r.ok ? r.data : null;
 }
 
 /* ═══════════════ 렌더 ═══════════════ */
@@ -204,7 +242,7 @@ export function renderInfographic(data: Infographic, opts: RenderOpts): string {
 
     // 항목 수에 따라 본문 글자 크기를 낮춘다. 5개일 때도 넘치지 않게.
     const count = rowCount(data);
-    const scale = count >= 5 ? 0.88 : count === 4 ? 0.95 : 1;
+    const scale = count >= 6 ? 0.8 : count === 5 ? 0.88 : count === 4 ? 0.95 : 1;
     const fs = (n: number) => px(Math.round(n * scale));
 
     const body = renderBody(data, { px, fs, c, brandColor, line, font });

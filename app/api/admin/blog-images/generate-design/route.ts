@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { generateBlogContentImage } from "@/lib/ai/image-generate";
 import { getLawyerDesignDNA, describeDNA, dnaDirective } from "@/lib/blog-images/design-dna";
 import { visualDiscipline, FONT_IMPORT } from "@/lib/brand-visual";
-import { INFOGRAPHIC_SYSTEM, parseInfographic, renderInfographic } from "@/lib/blog-images/infographic";
+import { INFOGRAPHIC_SYSTEM, parseInfographicResult, renderInfographic } from "@/lib/blog-images/infographic";
 import { extractLogoColor } from "@/lib/blog-images/logo-color";
 import { verifyAdminToken } from "@/lib/admin-auth";
 import { extractClaudeText } from "@/lib/ai/claude-text";
@@ -136,7 +136,43 @@ export async function POST(req: Request) {
 
         // ── thumbnail / illustration: AI 이미지 단독 ──
         if (cardType === "thumbnail" || cardType === "illustration") {
-            // 스타일 분기는 없앴다 — 두 카드 모두 사물·공간 자료사진으로 나온다.
+            // DNA 의 이미지 정책을 지킨다.
+            //
+            // "도표 중심" · "타이포 전용" 지면인데 사진을 넣으면 그 변호사의
+            // 지면 성격이 무너진다. 8개 블로그를 다르게 보이게 하려고 축을
+            // 나눠놓고 여기서 전부 같은 사진을 넣으면 의미가 없다.
+            const usePhoto = dna.imagery.key === "photo";
+
+            if (!usePhoto && cardType === "illustration") {
+                return NextResponse.json({
+                    error: `이 변호사는 사진을 쓰지 않는 지면입니다(${dna.imagery.name}). 상황 이미지는 만들지 않습니다.`,
+                    reason: "imagery-policy",
+                    skipped: true,
+                }, { status: 422 });
+            }
+
+            if (!usePhoto) {
+                // 사진 없는 썸네일 — 훅 문장과 여백만으로 세운다.
+                const sc = dna.surface.colors;
+                const hook = await generateSituationalHook(content, title || "", apiKey);
+                const lines = hook && hook.length ? hook : [title || ""];
+                const last = lines.length - 1;
+                const body = lines.map((l, i) => {
+                    const isLast = i === last;
+                    return `<div style="font-family:${dna.typeface.stack};font-weight:700;font-size:${isLast ? 56 : 38}px;color:${isLast ? brandColor : sc.fg};line-height:1.3;letter-spacing:-2px;">${l}</div>`;
+                }).join("");
+
+                const html = `<style>${FONT_IMPORT}</style>
+<div style="width:${CARD_W}px;height:${CARD_H}px;background:${sc.bg};position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;padding:76px;box-sizing:border-box;">
+  <div>${body}</div>
+  <div style="padding-top:34px;border-top:1px solid ${sc.line};display:flex;align-items:center;justify-content:space-between;gap:16px;">
+    ${hasLogo && profile.logoImage ? `<img src="${profile.logoImage}" style="height:28px;object-fit:contain;display:block;" />` : ""}
+    <span style="font-family:${dna.typeface.stack};font-size:16px;color:${sc.muted};">${profile.lawyerName || ""}</span>
+  </div>
+</div>`;
+                return NextResponse.json({ card: { type: cardType, name: cardNames[cardType], html } });
+            }
+
             try {
                 // 썸네일: 이미지 + 상황훅 생성 병렬
                 const [img, hookLines] = await Promise.all([
@@ -228,16 +264,21 @@ ${content.substring(0, 4000)}`,
                 return NextResponse.json({ error: `Claude ${res.status}: ${t.substring(0, 200)}` }, { status: 500 });
             }
 
-            const parsed = parseInfographic(extractClaudeText(await res.json()));
+            const result = parseInfographicResult(extractClaudeText(await res.json()));
 
             // 도표로 만들 구조가 없으면 카드를 만들지 않는다.
             // 빈 자리를 그럴듯한 내용으로 채우면 그건 오정보다.
-            if (!parsed) {
+            if (!result.ok) {
+                // 사유를 그대로 내보낸다. "구조가 없어서"(정상)와
+                // "검증이 빡빡해서"(버그)를 화면에서 구분할 수 있어야 한다.
+                console.log(`[generate-design] info 건너뜀 — ${result.reason}`);
                 return NextResponse.json({
-                    error: "이 글에서는 도표로 만들 만한 구조를 찾지 못했습니다. 절차·기간·준비물·비교·구간 중 하나가 본문에 있어야 합니다.",
+                    error: `정보 카드를 만들지 않았습니다 — ${result.reason}`,
+                    reason: result.reason,
                     skipped: true,
                 }, { status: 422 });
             }
+            const parsed = result.data;
 
             const html = renderInfographic(parsed, {
                 dna,
