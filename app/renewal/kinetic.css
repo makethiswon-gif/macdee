@@ -104,7 +104,7 @@
     & .mt-jcard h3 { font-size: 30px; font-weight: 750; letter-spacing: -.05em; }
     & .mt-jcard > .mt-body { font-size: 16px; min-height: 86px; }
     & .mt-jcard ul:last-child li { font-size: 12px; }
-    & .mt-jloop, & .mt-jdot, & .mt-jvline { display: none; }
+    & .mt-jloop, & .mt-jdot, & .mt-jvline, & .mt-jvdot, & .mt-jvfill { display: none; }
 
     /* Existing estimates, with the numbers now carrying the composition. */
     & .mt-plan { border: 1px solid #90a7c6 !important; border-top: 8px solid #004aad !important; border-radius: 0; }
