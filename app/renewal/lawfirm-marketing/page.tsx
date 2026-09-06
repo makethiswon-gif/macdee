@@ -204,7 +204,7 @@ export default function Page() {
             />
 
             {/* ── HERO ── */}
-            <section className="pt-[120px] md:pt-[168px] pb-14 md:pb-20">
+            <section className="mt-k-masthead" data-page="services">
                 <Container>
                     <Reveal>
                         <Eyebrow>What we do</Eyebrow>
@@ -232,7 +232,7 @@ export default function Page() {
                         {AREAS.map((area, i) => (
                             <Reveal key={area.no} index={i % 2}>
                                 <div
-                                    className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-x-10 gap-y-4 py-9"
+                                    className="mt-k-area grid grid-cols-1 md:grid-cols-[240px_1fr] gap-x-10 gap-y-4 py-9"
                                     style={{ borderBottom: "1px solid var(--mt-line)" }}
                                 >
                                     <div>
@@ -426,7 +426,7 @@ export default function Page() {
                         {SYSTEM_STEPS.map((s, i) => (
                             <Reveal key={s.no} as="li" index={i % 3}>
                                 <div
-                                    className="grid grid-cols-1 md:grid-cols-[72px_260px_1fr] gap-x-8 gap-y-3 py-8"
+                                    className="mt-k-process grid grid-cols-1 md:grid-cols-[72px_260px_1fr] gap-x-8 gap-y-3 py-8"
                                     style={{ borderTop: "1px solid var(--mt-line)" }}
                                 >
                                     <span className="mt-en mt-num text-[12px] font-medium pt-1" style={{ color: "var(--mt-accent)" }}>

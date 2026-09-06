@@ -69,7 +69,7 @@ export default function Page() {
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
             />
-            <section className="pt-[120px] md:pt-[168px] pb-14 md:pb-20">
+<section className="mt-k-masthead" data-page="about">
                 <Container>
                     <Reveal>
                         <Eyebrow>About</Eyebrow>
@@ -95,7 +95,7 @@ export default function Page() {
                 <Container>
                     <Reveal>
                         <div
-                            className="pt-12 flex flex-wrap gap-x-16 gap-y-10"
+className="mt-k-proof pt-12 flex flex-wrap gap-x-16 gap-y-10"
                             style={{ borderTop: "1px solid var(--mt-line)" }}
                         >
                             {PROOF_STATS.map((s) => (
@@ -131,7 +131,7 @@ export default function Page() {
                         lead="기자와 방송작가가 글을 쓰고, 법학 전공자가 검수하고, 퍼포먼스 마케터가 예산을 조정합니다."
                     />
                     <div
-                        className="mt-14 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-px"
+                        className="mt-disciplines mt-14 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-px"
                         style={{ background: "var(--mt-line)" }}
                     >
                         {DISCIPLINES.map((d, i) => (

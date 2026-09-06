@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // 로펌 마케팅 구조 진단 요청 폼.
 //
@@ -50,6 +50,9 @@ export default function DiagnoseForm() {
     const [state, setState] = useState<State>("idle");
     const [error, setError] = useState("");
     const [channels, setChannels] = useState<string[]>([]);
+    const [ready, setReady] = useState(false);
+    const received = useRef<HTMLDivElement>(null);
+    useEffect(() => { if (state === "done") received.current?.focus(); }, [state]);
 
     // #plans 의 세 CTA 가 ?plan=standard|growth|market-leader 를 전달한다.
     // 첫 렌더는 서버와 동일(빈 값) — 마운트 후 쿼리를 읽어 반영한다.
@@ -57,15 +60,10 @@ export default function DiagnoseForm() {
     useEffect(() => {
         const q = new URLSearchParams(window.location.search).get("plan") ?? "";
         if (PLAN_LABELS[q]) setPlan(q);
+        setReady(true);
     }, []);
 
-    // 추가 정보(선택)는 모바일에서 접어 초기 길이를 줄인다.
-    // 첫 렌더는 서버와 동일하게 접힌 상태(false) — 하이드레이션 불일치를 피한다.
-    // 데스크톱은 폼이 길어도 문제되지 않으므로 마운트 후 자동으로 펼친다.
-    const [showOptional, setShowOptional] = useState(false);
-    useEffect(() => {
-        if (window.matchMedia("(min-width: 768px)").matches) setShowOptional(true);
-    }, []);
+    // Native disclosure has identical SSR/hydrated geometry and works without JS.
 
     const toggleChannel = (c: string) =>
         setChannels((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
@@ -95,7 +93,7 @@ export default function DiagnoseForm() {
 
     if (state === "done") {
         return (
-            <div className="py-16" style={{ borderTop: "1px solid var(--mt-line)" }}>
+            <div ref={received} tabIndex={-1} role="status" className="py-16" style={{ borderTop: "1px solid var(--mt-line)" }}>
                 <p className="mt-en mt-label" style={{ color: "var(--mt-accent)" }}>
                     Received
                 </p>
@@ -123,11 +121,11 @@ export default function DiagnoseForm() {
         "w-full h-[52px] px-4 text-[15px] rounded-[2px] bg-[var(--mt-surface)] border border-[var(--mt-line-strong)] focus:border-[var(--mt-accent)] outline-none transition-colors";
     const area =
         "w-full px-4 py-3.5 text-[15px] leading-relaxed rounded-[2px] bg-[var(--mt-surface)] border border-[var(--mt-line-strong)] focus:border-[var(--mt-accent)] outline-none transition-colors";
-    const label = "block text-[12.5px] font-medium mb-2.5";
+    const label = "block text-[14px] font-medium mb-2.5";
     const legend = "mt-en mt-label mb-4 block";
 
     return (
-        <form onSubmit={onSubmit} className="max-w-[760px]">
+        <form onSubmit={onSubmit} className="mt-k-form max-w-[760px]">
             {/* 허니팟 — 사람에게는 보이지 않는다 */}
             <input
                 type="text"
@@ -193,11 +191,8 @@ export default function DiagnoseForm() {
             {/* 추가 정보(선택) — 모바일에서 접어 초기 길이를 줄인다.
                 hidden 속성은 DOM 에서 제거하지 않으므로, 펼쳐 입력한 뒤 다시 접어도
                 제출 시 FormData 에 그대로 담긴다. 미작성 시에도 기존처럼 제출된다. */}
-            <button
-                type="button"
-                onClick={() => setShowOptional((v) => !v)}
-                aria-expanded={showOptional}
-                aria-controls="optional-fields"
+            <details>
+            <summary
                 className="mt-12 w-full flex items-center justify-between gap-4 h-[56px] px-5 text-[14px] font-medium rounded-[2px] transition-colors"
                 style={{ border: "1px solid var(--mt-line-strong)", color: "var(--mt-ink)" }}
             >
@@ -207,13 +202,13 @@ export default function DiagnoseForm() {
                 <span
                     aria-hidden
                     className="text-[12px] transition-transform duration-200"
-                    style={{ color: "var(--mt-gray)", transform: showOptional ? "rotate(180deg)" : "none" }}
+                    style={{ color: "var(--mt-gray)" }}
                 >
                     ▾
                 </span>
-            </button>
+            </summary>
 
-            <div id="optional-fields" hidden={!showOptional}>
+            <div id="optional-fields">
             {/* 사무소 성격 */}
             <fieldset className="mt-14 pt-10" style={{ borderTop: "1px solid var(--mt-line)" }}>
                 <legend className={legend} style={{ color: "var(--mt-gray)" }}>
@@ -351,6 +346,7 @@ export default function DiagnoseForm() {
                 </div>
             </fieldset>
             </div>
+            </details>
 
             {error && (
                 <p className="mt-8 text-[13.5px]" style={{ color: "#B4232A" }} role="alert">
@@ -361,7 +357,7 @@ export default function DiagnoseForm() {
             <div className="mt-12 flex flex-col sm:flex-row sm:items-center gap-5">
                 <button
                     type="submit"
-                    disabled={state === "sending"}
+                    disabled={!ready || state === "sending"}
                     className="inline-flex items-center justify-center gap-2 h-[54px] px-8 text-[14px] font-medium rounded-[2px] transition-opacity hover:opacity-85 disabled:opacity-50"
                     style={{ background: "var(--mt-ink)", color: "var(--mt-bg)" }}
                 >

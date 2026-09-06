@@ -198,7 +198,7 @@ export default async function InsightArticlePage({
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
             />
 
-            <article className="pt-[130px] md:pt-[160px] pb-[88px] md:pb-[140px]">
+            <article className="mt-k-article pt-[130px] md:pt-[160px] pb-[88px] md:pb-[140px]">
                 <Container>
                     <div className="max-w-[720px] mx-auto">
                         {/* ── 헤드 ── */}

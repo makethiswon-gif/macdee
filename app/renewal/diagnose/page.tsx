@@ -73,7 +73,7 @@ export default function Page() {
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
             />
-            <section className="pt-[120px] md:pt-[168px] pb-14 md:pb-20">
+            <section className="mt-k-masthead" data-page="diagnose">
                 <Container>
                     <Reveal>
                         <Eyebrow>Marketing Diagnosis</Eyebrow>

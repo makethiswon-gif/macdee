@@ -56,7 +56,7 @@ export default function Page() {
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
             />
-            <section className="pt-[120px] md:pt-[168px] pb-14 md:pb-20">
+<section className="mt-k-masthead" data-page="work">
                 <Container>
                     <Reveal>
                         <Eyebrow>Work</Eyebrow>
@@ -83,7 +83,7 @@ export default function Page() {
                                 <Eyebrow>Selected Clients</Eyebrow>
                             </Reveal>
                             <Reveal index={1}>
-                                <div className="mt-10 flex flex-row lg:flex-col gap-10 lg:gap-8 flex-wrap">
+                                <div className="mt-k-proof mt-10 flex flex-row lg:flex-col gap-10 lg:gap-8 flex-wrap">
                                     {PROOF_STATS.map((s) => (
                                         <div key={s.label}>
                                             <div className="flex items-baseline gap-0.5">

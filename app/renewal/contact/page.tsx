@@ -47,7 +47,7 @@ export default function Page() {
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
             />
-            <section className="pt-[120px] md:pt-[168px] pb-14 md:pb-20">
+            <section className="mt-k-masthead" data-page="contact">
                 <Container>
                     <Reveal>
                         <Eyebrow>Contact</Eyebrow>
@@ -66,7 +66,7 @@ export default function Page() {
             <Section tight>
                 <Container>
                     <div
-                        className="pt-12 grid grid-cols-1 md:grid-cols-2 gap-px"
+                        className="mt-k-contact-grid pt-12 grid grid-cols-1 md:grid-cols-2 gap-px"
                         style={{ borderTop: "1px solid var(--mt-line)", background: "var(--mt-line)" }}
                     >
                         <Reveal>
@@ -100,7 +100,7 @@ export default function Page() {
                                         </p>
                                         <a
                                             href={`tel:${COMPANY.phone.replace(/-/g, "")}`}
-                                            className="mt-num text-[22px] font-medium tracking-tight hover:opacity-60"
+                                            className="mt-k-phone mt-num text-[22px] font-medium tracking-tight hover:opacity-60"
                                         >
                                             {COMPANY.phone}
                                         </a>

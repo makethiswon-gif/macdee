@@ -15,7 +15,7 @@ export default function ServicePage({ service }: { service: ServiceContent }) {
     return (
         <>
             {/* ── HERO ── */}
-            <section className="pt-[120px] md:pt-[168px] pb-14 md:pb-20">
+            <section className="mt-k-masthead" data-service={service.slug}>
                 <Container>
                     <Reveal>
                         <nav aria-label="현재 위치" className="mb-8">
@@ -114,7 +114,7 @@ export default function ServicePage({ service }: { service: ServiceContent }) {
                         {service.process.map((s, i) => (
                             <Reveal key={s.step} as="li" index={i % 3}>
                                 <div
-                                    className="grid grid-cols-1 md:grid-cols-[72px_280px_1fr] gap-x-8 gap-y-3 py-8"
+                                    className="mt-k-process grid grid-cols-1 md:grid-cols-[72px_280px_1fr] gap-x-8 gap-y-3 py-8"
                                     style={{ borderTop: "1px solid var(--mt-line)" }}
                                 >
                                     <span

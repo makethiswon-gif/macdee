@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { createServiceClient } from "@/lib/supabase/server";
 import { Container, Eyebrow } from "@/components/renewal/primitives";
-import Reveal from "@/components/renewal/Reveal";
 import InsightsIndex, { type InsightListItem } from "@/components/renewal/InsightsIndex";
 import { COMPANY, ogImage } from "@/data/renewal/site";
 import { renewalRobots } from "../flags";
@@ -81,7 +80,7 @@ export default async function InsightsPage() {
             />
 
             {/* 헤더가 fixed 라 첫 섹션이 직접 상단 여백을 진다 */}
-            <section className="pt-[152px] md:pt-[190px] pb-[88px] md:pb-[140px]">
+            <section className="mt-k-masthead" data-page="magazine">
                 <Container>
                     <div className="max-w-[820px]">
                         <Eyebrow className="mt-hero-in">Insights</Eyebrow>
@@ -99,11 +98,10 @@ export default async function InsightsPage() {
                         </p>
                     </div>
 
-                    <Reveal variant="rise" className="mt-14 md:mt-20">
-                        <InsightsIndex items={magazines} />
-                    </Reveal>
+
                 </Container>
             </section>
+            <section className="mt-section mt-k-insights"><Container><InsightsIndex items={magazines} /></Container></section>
         </>
     );
 }
