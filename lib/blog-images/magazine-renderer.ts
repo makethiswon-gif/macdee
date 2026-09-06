@@ -73,7 +73,7 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
     const contactNumSize = primary?.href.startsWith("tel:") ? 68 : 38;
     const ctaH = primary ? 110 + th(primary.display, I - 94, contactNumSize, "sans") + (web && web !== primary ? th(web.display, I, 27) + 20 : 0) + 64 : 0;
     if (card.type === "contact") H = Math.ceil(Math.max(1280, ctaY + ctaH));
-    if (card.type === "illustration") H = Math.ceil(infoHeader + 632 + footerH + 80);
+    if (card.type === "illustration") H = Math.ceil(infoHeader + 580 + footerH + 64);
     if (H > 2800) throw new Error("한 장에 담을 내용이 너무 많습니다. 제목·설명을 줄여 다시 기획해 주세요. 잘린 이미지로 저장하지 않았습니다.");
     const canvas = createCanvas(W, H), c = canvas.getContext("2d");
     rect(c, 0, 0, W, H, p.paper);
@@ -112,14 +112,13 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
                 type(c, card.deck, P + 24, deckY, I - 70, 36, p.paper);
             }
             rect(c, P, deckY + 8, 4, Math.max(26, deckH - 10), p.accent);
-            rect(c, 0, H - footerH - 44, W, footerH + 44, p.ink);
-            type(c, opts.artLabel || "AI 설명용 시각물 · 실제 사건 자료 아님", P, H - footerH - 34, I, 21, p.paper);
+            rect(c, 0, H - footerH, W, footerH, p.ink);
             footer(H - footerH, true);
         } else {
             masthead();
             const title = fitTitle(measure, headline, I, 335, 88, face);
             type(c, title.text, P, 146, I, title.size, p.ink, face, 1.28);
-            const artY = 146 + title.h + 36, artH = H - artY - footerH - 108;
+            const artY = 146 + title.h + 36, artH = H - artY - footerH - 64;
             if (artH < 450) throw new Error("표지 제목이 너무 깁니다. 시각물을 축소하지 않도록 제목을 줄여 주세요.");
             rect(c, 0, artY + 60, W, artH - 10, p.field);
             d.picture(c, art, P, artY, I, artH);
@@ -128,7 +127,6 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
                 rect(c, P + 28, artY + artH - h - 28, I - 56, h, p.paper);
                 type(c, card.deck, P + 60, artY + artH - h - 8, I - 120, 30, p.ink);
             }
-            type(c, opts.artLabel || "AI 설명용 시각물 · 실제 사건 자료 아님", P, H - footerH - 44, I, 21, p.muted);
             footer();
         }
     } else if (card.type === "illustration" && art) {
@@ -137,7 +135,6 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
         if (card.deck) type(c, card.deck, P, 150 + infoTitle.h + 28, I - 20, 36, p.muted);
         rect(c, 0, infoHeader + 50, W, 480, p.ink);
         d.picture(c, art, P, infoHeader, I, 580);
-        type(c, opts.artLabel || "AI 설명용 시각물 · 실제 사건 자료 아님", P, infoHeader + 610, I, 22, p.muted);
         footer();
     } else if (card.type === "info") {
         // Editorial data spread: open rows, strong reading order, no decorative boxes posing as data.

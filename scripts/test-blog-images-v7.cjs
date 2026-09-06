@@ -87,6 +87,7 @@ async function main() {
     }
     for (const style of ["paper", "contrast"]) {
         await save(await renderBriefCard({ plan, card: plan.cards[0], profile, style, art: normalArt }), "cover-" + style);
+        await save(await renderBriefCard({ plan, card: plan.cards[1], profile, style, art: normalArt }), "illustration-" + style);
         await save(await renderBriefCard({ plan, card: plan.cards[3], profile, style }), "contact-" + style);
     }
     const longPlan = JSON.parse(JSON.stringify(plan));
@@ -146,6 +147,7 @@ async function main() {
         const overlapH = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y);
         assert.ok(overlapW <= 1 || overlapH <= 1, "Text overlap: " + a.text + " / " + b.text);
     }
+    assert.ok(boxes.every((b) => !/AI 설명용 시각물|실제 사건 자료 아님|등록된 사무실 사진/.test(b.text)), "Production captions are never printed into exported pixels");
     drawingPrototype.fillText = fillText;
     const oldFetch = global.fetch;
     let calls = 0;
