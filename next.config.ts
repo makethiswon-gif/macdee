@@ -43,8 +43,12 @@ const nextConfig: NextConfig = {
       { source: "/renewal", destination: "/", statusCode: 301 },
       { source: "/renewal/diagnose", destination: "/consult", statusCode: 301 },
       { source: "/renewal/concepts/:path*", destination: "/", statusCode: 301 },
-      // 이전에 공유한 upgrade/서비스/기사 주소의 문맥과 query를 그대로 보존.
-      { source: "/renewal/:path+", destination: "/:path+", statusCode: 301 },
+      // 실제 페이지만 이동한다. public/renewal의 글꼴·이미지는 이 접두어를
+      // 계속 쓰므로 전체 wildcard를 걸면 디자인 자산까지 404가 된다.
+      ...["about", "contact", "conversion", "geo", "lawfirm-blog", "lawfirm-marketing",
+        "lawfirm-seo", "lawfirm-website", "naver-ads", "upgrade", "work", "magazine", "og.png"]
+        .map(slug => ({ source: `/renewal/${slug}`, destination: `/${slug}`, statusCode: 301 as const })),
+      { source: "/renewal/magazine/:slug", destination: "/magazine/:slug", statusCode: 301 },
       // 1. Legacy Column Redirects (With ID)
       {
         source: "/COLUMN",
