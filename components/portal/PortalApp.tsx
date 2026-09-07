@@ -9,7 +9,9 @@
 // 화려한 효과 없이 상태(핀·언더라인·점 스피너)로만 말한다.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import Logo from "../renewal/Logo";
+import RequestsTab from "./RequestsTab";
 
 /* ═══════════════ 타입 ═══════════════ */
 
@@ -75,7 +77,7 @@ interface Message {
     created_at: string;
 }
 
-type Tab = "today" | "records" | "advice" | "worklog" | "messages" | "firms";
+type Tab = "today" | "records" | "requests" | "advice" | "worklog" | "messages" | "firms";
 
 /* ═══════════════ 공용 소품 ═══════════════ */
 
@@ -315,6 +317,7 @@ export default function PortalApp({ initial }: { initial: InitialSession }) {
     const tabs: { key: Tab; label: string }[] = [
         { key: "today", label: "오늘" },
         { key: "records", label: "자료" },
+        { key: "requests", label: "요청사항" },
         { key: "advice", label: "AI 조언" },
         { key: "worklog", label: "업무일지" },
         { key: "messages", label: "메시지" },
@@ -326,14 +329,19 @@ export default function PortalApp({ initial }: { initial: InitialSession }) {
             {/* ── 헤더 ── */}
             <header style={{ borderBottom: "1px solid var(--mt-line)", background: "var(--mt-bg)" }}>
                 <div className="max-w-[1080px] mx-auto px-6">
-                    <div className="flex items-center justify-between h-[64px]">
+                    <div className="flex flex-wrap items-center justify-between gap-3 min-h-[64px] py-3">
                         <div className="flex items-baseline gap-3">
                             <Logo size={15} />
                             <span className="mt-en text-[9.5px] font-medium" style={{ color: "var(--mt-gray)", letterSpacing: "0.16em" }}>
                                 Client Portal
                             </span>
                         </div>
-                        <div className="flex items-center gap-4">
+                        <div className="flex min-w-0 flex-wrap items-center gap-3">
+                            {role === "admin" && (
+                                <Link href="/admin/client-strategy" className="text-[12px] underline underline-offset-4">
+                                    대표 전략실 ↗
+                                </Link>
+                            )}
                             {role === "admin" && firms.length > 0 && (
                                 <select
                                     className="pt-select"
@@ -357,7 +365,7 @@ export default function PortalApp({ initial }: { initial: InitialSession }) {
                     </div>
 
                     {/* 탭 */}
-                    <nav className="flex gap-7" role="tablist" style={{ borderTop: "1px solid var(--mt-line)" }}>
+                    <nav className="flex flex-wrap gap-x-6 gap-y-0" role="tablist" aria-label="포털 메뉴" style={{ borderTop: "1px solid var(--mt-line)" }}>
                         {tabs.map((t) => (
                             <button
                                 key={t.key}
@@ -384,6 +392,9 @@ export default function PortalApp({ initial }: { initial: InitialSession }) {
                         )}
                         {tab === "records" && (
                             <RecordsTab key={activeFirmId} role={role} firmQuery={firmQuery} activeFirmId={activeFirmId} notify={notify} />
+                        )}
+                        {tab === "requests" && (
+                            <RequestsTab key={activeFirmId} role={role} firmQuery={firmQuery} activeFirmId={activeFirmId} notify={notify} />
                         )}
                         {tab === "advice" && (
                             <AdviceTab key={activeFirmId} role={role} firmQuery={firmQuery} activeFirmId={activeFirmId} notify={notify} />

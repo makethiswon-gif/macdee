@@ -27,6 +27,7 @@ import {
 
 const ADMIN_NAV = [
     { href: "/admin/dashboard", label: "대시보드", icon: LayoutDashboard },
+    { href: "/admin/client-strategy", label: "클라이언트 전략실", icon: BarChart3 },
     { href: "/admin/lawyers", label: "변호사 관리", icon: Users },
     { href: "/admin/contents", label: "콘텐츠 관리", icon: FileText },
     { href: "/admin/blog-images", label: "블로그 이미지", icon: ImageIcon },
@@ -52,6 +53,7 @@ export default function AdminLayout({
 }) {
     const pathname = usePathname();
     const isImageStudio = pathname === "/admin/blog-images";
+    const compactMobileNav = isImageStudio || pathname === "/admin/client-strategy";
     const router = useRouter();
     const [authenticated, setAuthenticated] = useState<boolean | null>(null);
 
@@ -98,7 +100,7 @@ export default function AdminLayout({
     return (
         <div className="min-h-screen bg-[#0B0F1A] flex">
             {/* Sidebar */}
-            <aside className={`w-56 shrink-0 bg-[#0F1320] border-r border-[#1A2035] ${isImageStudio ? "hidden md:flex" : "flex"} flex-col`}>
+            <aside className={`w-56 shrink-0 bg-[#0F1320] border-r border-[#1A2035] ${compactMobileNav ? "hidden md:flex" : "flex"} flex-col`}>
                 <div className="p-5 flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-lg bg-[#3563AE] flex items-center justify-center">
                         <Shield size={16} className="text-white" />
@@ -144,7 +146,7 @@ export default function AdminLayout({
 
             {/* Main */}
             <main className="min-w-0 flex-1 overflow-auto">
-                {isImageStudio && <nav aria-label="모바일 관리자 메뉴" className="flex items-center gap-3 border-b border-[#1A2035] p-4 md:hidden">
+                {compactMobileNav && <nav aria-label="모바일 관리자 메뉴" className="flex items-center gap-3 border-b border-[#1A2035] p-4 md:hidden">
                     <select aria-label="관리자 메뉴 이동" value={pathname} onChange={(event) => router.push(event.target.value)} className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-900 p-2 text-sm text-white">
                         {ADMIN_NAV.map((item) => <option key={item.href} value={item.href}>{item.label}</option>)}
                     </select>
