@@ -1,12 +1,18 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { signPortalToken, getPortalSession } from "@/lib/portal-auth";
+import { getClientIp, rateLimitOk, tooManyRequests } from "@/lib/ratelimit";
 
 // 로펌 접속 코드 로그인.
 // 대표(admin)는 기존 admin_token 으로 이미 인증되므로 여기를 쓰지 않는다.
 
 export async function POST(request: Request) {
     try {
+        const ip = getClientIp(request);
+        if (!(await rateLimitOk("portal-login", ip, 10, "10 m"))) {
+            return tooManyRequests("접속 코드 확인 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.");
+        }
+
         const { code } = await request.json();
         if (!code || typeof code !== "string") {
             return NextResponse.json({ error: "접속 코드를 입력해 주세요." }, { status: 400 });

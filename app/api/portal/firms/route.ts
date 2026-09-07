@@ -42,9 +42,10 @@ export async function POST(request: Request) {
         const { name, memo } = await request.json();
         if (!name?.trim()) return NextResponse.json({ error: "로펌 이름을 입력해 주세요." }, { status: 400 });
 
-        // 접속 코드: 사람이 전달하기 쉬운 형식 (예: MT1-7F3K-9Q2X)
-        const raw = crypto.randomBytes(4).toString("hex").toUpperCase();
-        const accessCode = `MT1-${raw.slice(0, 4)}-${raw.slice(4)}`;
+        // 접속 코드도 비밀번호다. 법률 자료를 다루므로 80-bit 난수를
+        // 복사하기 쉬운 4자 단위로 나눠 발급한다.
+        const raw = crypto.randomBytes(10).toString("hex").toUpperCase();
+        const accessCode = `MT1-${raw.match(/.{4}/g)!.join("-")}`;
 
         const supabase = createServiceClient();
         const { data, error } = await supabase
