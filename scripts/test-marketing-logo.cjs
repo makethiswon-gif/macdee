@@ -8,6 +8,8 @@ const sharp = require('sharp');
 const origin = process.argv[2] || 'http://localhost:3103';
 const out = process.argv[3] || path.join(process.cwd(), '.next', 'logo-qa');
 const asset = '/brand/makethis1-white-v1.png';
+// Vercel appends its deployment ID (?dpl=...) to public image URLs.
+const logoSelector = `img[src^="${asset}"]`;
 const report = { pages: [], viewports: [], accessibility: [], protected: [] };
 let browser;
 
@@ -32,8 +34,9 @@ let browser;
         assert.equal(res.status, 200, route);
         const $ = load(await res.text());
         for (const location of ['header', 'footer']) {
-            const logo = $(`[data-marketing] > ${location} img[src="${asset}"]`);
+            const logo = $(`[data-marketing] > ${location} ${logoSelector}`);
             assert.equal(logo.length, 1, `${route} ${location}`);
+            assert.equal(new URL(logo.attr('src'), origin).pathname, asset);
             assert.equal(logo.attr('width'), '768');
             assert.equal(logo.attr('height'), '396');
             assert.equal(logo.attr('alt'), '메이크디스원 MAKETHIS1');
@@ -63,7 +66,7 @@ let browser;
         await page.setViewportSize({ width, height: 1000 });
         await page.goto(origin, { waitUntil: 'networkidle' });
         await page.evaluate(() => document.fonts.ready);
-        const logo = page.locator('header img[src="' + asset + '"]');
+        const logo = page.locator('header ' + logoSelector);
         await logo.evaluate(img => img.decode());
         const bounds = await logo.boundingBox();
         const header = await page.locator('[data-marketing] > header').boundingBox();
@@ -84,8 +87,13 @@ let browser;
         if (width === 375 || width === 1440) {
             await page.screenshot({ path: path.join(out, `home-${width}.png`) });
             await page.locator('[data-marketing] > footer').scrollIntoViewIfNeeded();
-            await page.locator('footer img[src="' + asset + '"]').evaluate(img => img.decode());
-            await page.locator('[data-marketing] > footer').screenshot({ path: path.join(out, `footer-${width}.png`) });
+            await page.locator('footer ' + logoSelector).evaluate(img => img.decode());
+            await page.evaluate(() => {
+                const footer = document.querySelector('[data-marketing] > footer');
+                const header = document.querySelector('[data-marketing] > header');
+                scrollTo({ top: footer.getBoundingClientRect().top + scrollY - header.getBoundingClientRect().height, behavior: 'instant' });
+            });
+            await page.screenshot({ path: path.join(out, `footer-${width}.png`) });
         }
         report.viewports.push({ width, logoWidth: bounds.width, logoHeight: bounds.height, horizontalOverflow: false });
     }
@@ -100,16 +108,16 @@ let browser;
         const p = await c.newPage();
         await p.goto(origin, { waitUntil: 'networkidle' });
         assert.ok(await p.locator('h1').isVisible());
-        assert.ok(await p.locator('header img[src="' + asset + '"]').isVisible());
+        assert.ok(await p.locator('header ' + logoSelector).isVisible());
         await p.locator('footer').scrollIntoViewIfNeeded();
-        assert.ok(await p.locator('footer img[src="' + asset + '"]').isVisible());
+        assert.ok(await p.locator('footer ' + logoSelector).isVisible());
         report.accessibility.push(options.javaScriptEnabled === false ? 'No-JS logos and heading visible' : 'Reduced-motion logos and heading visible');
         await c.close();
     }
     for (const route of ['/admin', '/login', '/portal']) {
         const res = await get(route);
         assert.equal(res.status, 200);
-        assert.equal(load(await res.text())(`img[src="${asset}"]`).length, 0, 'No marketing logo in ' + route);
+        assert.equal(load(await res.text())(logoSelector).length, 0, 'No marketing logo in ' + route);
         report.protected.push(route);
     }
     assert.deepEqual(errors, [], 'Browser runtime errors');
