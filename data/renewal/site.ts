@@ -12,10 +12,13 @@ import { STANDARD_OFFER, GROWTH_OFFER } from "./upgrade";
 
 // string 명시 — 리터럴 타입으로 좁혀지면 "교체 후인가(=== '')" 비교가
 // 타입 에러가 된다(매거진 상세의 조회수 가드가 이 비교를 쓴다).
-export const DEMO_BASE: string = "/renewal";
+export const DEMO_BASE: string = "";
 
 export function path(p: string): string {
     if (p.startsWith("http") || p.startsWith("#")) return p;
+
+    // 기존 /diagnose는 맥디 제품이다. 마케팅 CTA·query·anchor만 /consult로 승격한다.
+    if (DEMO_BASE === "") p = p.replace(/^\/diagnose(?=[?#/]|$)/, "/consult");
 
     // "/#system" 처럼 앵커가 붙은 경로도 데모 베이스를 타야 한다
     const hash = p.indexOf("#");
@@ -27,7 +30,7 @@ export function path(p: string): string {
 
     // 교체 후(DEMO_BASE="")에는 path("/") 가 빈 문자열이 된다.
     // href="" 는 현재 페이지를 가리키므로 "/" 로 보정한다.
-    return `${DEMO_BASE}${base === "/" ? "" : base}${frag}` || "/";
+    return `${DEMO_BASE}${base === "/" ? (DEMO_BASE ? "" : "/") : base}${frag}` || "/";
 }
 
 /* ═══════════════ canonical / OG 절대 URL ═══════════════

@@ -28,15 +28,23 @@ const nextConfig: NextConfig = {
     ];
   },
   async rewrites() {
-    return [
-      {
-        source: "/makethisone",
-        destination: "/makethisone/index.html",
-      },
-    ];
+    return [];
   },
   async redirects() {
     return [
+      // 공개 마케팅 URL만 승격한다. /makethisone/subscribe와 팀 이미지 등
+      // 실제 제품·정적 자산을 삼키는 /makethisone/* 와일드카드는 금지한다.
+      { source: "/makethisone", destination: "/", statusCode: 301 },
+      { source: "/makethisone/index.html", destination: "/", statusCode: 301 },
+      { source: "/insights", destination: "/magazine", statusCode: 301 },
+      { source: "/insights/:slug", destination: "/magazine/:slug", statusCode: 301 },
+      { source: "/services", destination: "/lawfirm-marketing", statusCode: 301 },
+      { source: "/portfolio", destination: "/work", statusCode: 301 },
+      { source: "/renewal", destination: "/", statusCode: 301 },
+      { source: "/renewal/diagnose", destination: "/consult", statusCode: 301 },
+      { source: "/renewal/concepts/:path*", destination: "/", statusCode: 301 },
+      // 이전에 공유한 upgrade/서비스/기사 주소의 문맥과 query를 그대로 보존.
+      { source: "/renewal/:path+", destination: "/:path+", statusCode: 301 },
       // 1. Legacy Column Redirects (With ID)
       {
         source: "/COLUMN",

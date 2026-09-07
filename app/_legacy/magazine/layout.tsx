@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+// 2026-09-07 이전 마케팅 화면 보관. _legacy는 공개 라우트가 아니다.
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
 

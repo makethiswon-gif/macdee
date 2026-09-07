@@ -21,7 +21,7 @@ const DESCRIPTION =
     "변호사 광고, 로펌 마케팅, 법무법인 광고 트렌드와 전략을 다루는 MAKETHIS1 Insights. " +
     "법률 마케팅 전문가가 직접 쓰는 시장 분석과 트렌드 리포트.";
 
-export const metadata: Metadata = {
+const pageMetadata: Metadata = {
     title: { absolute: TITLE },
     description: DESCRIPTION,
     alternates: { canonical: CANONICAL },
@@ -36,6 +36,15 @@ export const metadata: Metadata = {
         images: [ogImage()],
     },
 };
+
+// origin/main 00f3662의 중복 query URL 색인 정책을 리스킨에도 유지한다.
+export async function generateMetadata({ searchParams }: {
+    searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}): Promise<Metadata> {
+    const params = searchParams ? await searchParams : {};
+    const hasQuery = Object.values(params).some(value => Array.isArray(value) ? value.some(Boolean) : Boolean(value));
+    return { ...pageMetadata, robots: { index: !hasQuery, follow: true } };
+}
 
 export default async function InsightsPage() {
     let magazines: InsightListItem[] = [];

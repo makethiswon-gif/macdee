@@ -7,11 +7,11 @@ const BASE_URL = "https://www.makethis1.com";
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
   title: {
-    default: "macdee | 변호사 광고 · 로펌 마케팅 자동화 플랫폼",
-    template: "%s | macdee - 변호사 마케팅 자동화",
+    default: "MAKETHIS1 | 로펌 마케팅 · 변호사 광고",
+    template: "%s | MAKETHIS1",
   },
   description:
-    "2019년부터 변호사 법무법인 광고 트렌드를 선도하는 메이크디스원",
+    "광고·검색·블로그·홈페이지·상담 분석까지, 메이크디스원 한 팀이 운영합니다.",
   keywords: [
     "변호사 광고",
     "로펌 마케팅",
@@ -55,28 +55,28 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "macdee | 변호사 광고 · 로펌 마케팅 자동화 플랫폼",
+    title: "MAKETHIS1 | 로펌 마케팅 · 변호사 광고",
     description:
-      "2019년부터 변호사 법무법인 광고 트렌드를 선도하는 메이크디스원",
+      "광고·검색·블로그·홈페이지·상담 분석까지, 메이크디스원 한 팀이 운영합니다.",
     type: "website",
     locale: "ko_KR",
     url: BASE_URL,
-    siteName: "macdee - 변호사 마케팅 자동화",
+    siteName: "MAKETHIS1 — 로펌 마케팅 통합 운영",
     images: [
       {
-        url: "/og-image.png",
+        url: "/og.png",
         width: 1200,
         height: 630,
-        alt: "macdee - 변호사 광고 · 로펌 마케팅 자동화 플랫폼",
+        alt: "MAKETHIS1 — 로펌 마케팅 통합 운영",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "macdee | 변호사 광고 · 로펌 마케팅 자동화",
+    title: "MAKETHIS1 | 로펌 마케팅 · 변호사 광고",
     description:
-      "2019년부터 변호사 법무법인 광고 트렌드를 선도하는 메이크디스원",
-    images: ["/og-image.png"],
+      "광고·검색·블로그·홈페이지·상담 분석까지, 메이크디스원 한 팀이 운영합니다.",
+    images: ["/og.png"],
   },
 };
 

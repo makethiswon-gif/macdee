@@ -38,7 +38,7 @@ const JS_MARKER = "document.documentElement.classList.add('mt-js')";
 
 export default function RenewalLayout({ children }: { children: React.ReactNode }) {
     return (
-        <div className="mt-root min-h-screen flex flex-col">
+        <div data-marketing className="mt-root min-h-screen flex flex-col">
             <StudyFont />
             {/* 검색엔진에만 색인 금지. 일반 robots 는 비워 둔다 —
                 거기에 noindex 를 넣으면 외부 AI 리더까지 본문을 안 읽는다.

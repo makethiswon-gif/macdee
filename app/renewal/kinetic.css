@@ -1,12 +1,12 @@
 /* Anchor navigation scrolls the document, not .mt-root. Keep reduced-motion
    effective at the scrolling element, scoped to renewal pages only. */
 @media (prefers-reduced-motion: reduce) {
-    html:has(.mt-root) { scroll-behavior: auto !important; }
+    html:has([data-marketing]) { scroll-behavior: auto !important; }
 }
 
 /* Selected direction D. Reference card sampled at #004AAD; logo preserved.
    Comparison studies keep their own layouts. Shared copy may evolve with approval. */
-.mt-root:not(:has([data-renewal-study])) {
+.mt-root:where([data-marketing]):not(:has([data-renewal-study])) {
     --mt-bg: #fff;
     --mt-surface: #f1f5fb;
     --mt-ink: #071526;

@@ -66,6 +66,7 @@ const jsonLd = {
             "@id": `${URL}#organization`,
             name: COMPANY.brand,
             legalName: COMPANY.legalName,
+            alternateName: ["메이크디스원", "macdee", "맥디"],
             url: COMPANY.site,
             description:
                 "로펌 마케팅에 집중하는 팀. 광고·검색·콘텐츠·홈페이지·상담 분석을 함께 운영합니다.",

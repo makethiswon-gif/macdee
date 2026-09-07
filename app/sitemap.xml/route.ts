@@ -100,7 +100,8 @@ export async function GET() {
                 "/conversion",
                 "/work",
                 "/contact",
-                "/diagnose",
+                "/consult",
+                "/upgrade",
             ];
             for (const p of marketingPages) {
                 xml += `<url>

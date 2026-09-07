@@ -104,7 +104,7 @@ export default async function InsightArticlePage({
 
     // 조회수는 교체 후(DEMO_BASE === "")에만 올린다.
     // 데모 검토 트래픽이 라이브 지표를 오염시키면 안 된다.
-    if (DEMO_BASE === "") {
+    if (DEMO_BASE === "" && process.env.RENEWAL_QA_READ_ONLY !== "1") {
         try {
             const supabase = createServiceClient();
             supabase
