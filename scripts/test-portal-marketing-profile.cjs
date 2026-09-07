@@ -17,9 +17,9 @@ const vault = require('../lib/portal-credentials.ts');
 const firmA = '00000000-0000-4000-8000-000000000001';
 const firmB = '00000000-0000-4000-8000-000000000002';
 
-const profile = schema.validateMarketingProfile({ website_url: ' https://law.example ', approval_process: ' 담당자 승인 ' });
-assert.deepEqual(profile, { website_url: 'https://law.example', approval_process: '담당자 승인' });
-for (const bad of [null, [], { unknown: 'x' }, { website_url: 'javascript:alert(1)' }, { website_url: 'ftp://law.example' }, { other_notes: 'x'.repeat(5001) }]) assert.throws(() => schema.validateMarketingProfile(bad));
+const profile = schema.validateMarketingProfile({ website_url: ' https://law.example ', naver_place_url: ' https://naver.me/place ' });
+assert.deepEqual(profile, { website_url: 'https://law.example', naver_place_url: 'https://naver.me/place' });
+for (const bad of [null, [], { unknown: 'x' }, { website_url: 'javascript:alert(1)' }, { website_url: 'ftp://law.example' }, { ftp_host: 'x'.repeat(2001) }]) assert.throws(() => schema.validateMarketingProfile(bad));
 assert.deepEqual(schema.validateMarketingSecrets({ ftp_username: ' user ', ftp_password: ' password ' }), { ftp_username: 'user', ftp_password: 'password' });
 for (const bad of [null, [], { unknown: 'x' }, { ftp_password: 'x'.repeat(1001) }]) assert.throws(() => schema.validateMarketingSecrets(bad));
 assert.deepEqual(schema.validateClearSecrets(['ftp_password', 'ftp_password']), ['ftp_password']);

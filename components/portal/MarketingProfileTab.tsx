@@ -122,26 +122,28 @@ export default function MarketingProfileTab({ role, firmQuery, activeFirmId, not
             <header className="pt-card p-5 sm:p-8 mb-6 overflow-hidden relative">
                 <div className="absolute top-0 left-0 h-1" style={{ width: `${Math.round((completed / MARKETING_PROFILE_SECTIONS.length) * 100)}%`, background: "var(--mt-accent)", transition: "width .25s ease" }} />
                 <p className="mt-en mt-label" style={{ color: "var(--mt-accent)" }}>Marketing Workspace</p>
-                <h2 className="mt-serif text-[22px] sm:text-[26px] font-semibold mt-3">작업에 필요한 정보를 한 번만 정리합니다.</h2>
-                <p className="mt-body text-[13px] mt-3 max-w-[680px]">홈페이지, 네이버 플레이스, SNS, 광고·분석 정보를 남겨 주세요. 변경된 내용은 언제든 다시 저장할 수 있습니다.</p>
+                <h2 className="mt-serif text-[22px] sm:text-[26px] font-semibold mt-3">필요한 계정만 남겨 주세요.</h2>
+                <p className="mt-body text-[13px] mt-3 max-w-[680px]">홈페이지·네이버·Instagram·Threads의 접속 주소, 아이디, 비밀번호만 입력하면 끝입니다.</p>
                 <div className="flex flex-wrap gap-2 mt-5">
-                    <span className="pt-pill pt-pill-blue">{completed} / {MARKETING_PROFILE_SECTIONS.length}개 영역 입력</span>
+                    <span className="pt-pill pt-pill-blue">{completed} / {MARKETING_PROFILE_SECTIONS.length}개 계정 입력</span>
                     {updatedAt && <span className="pt-pill">최근 저장 {new Date(updatedAt).toLocaleString("ko-KR", { dateStyle: "medium", timeStyle: "short" })}</span>}
                     {updatedBy && <span className="pt-pill">{updatedBy === "firm" ? "로펌 입력" : "MAKETHIS1 수정"}</span>}
                 </div>
+                {role === "admin" && Object.values(presence).some(Boolean) && <div className="mt-5">{Object.keys(revealed).length ? <button type="button" className="pt-btn pt-btn-ghost" onClick={() => setRevealed({})}>저장값 숨기기</button> : <button type="button" className="pt-btn pt-btn-ghost" onClick={reveal} disabled={revealing}>{revealing ? "확인 중…" : "아이디·비밀번호 확인"}</button>}</div>}
             </header>
 
             <aside className="p-5 mb-6 text-[12.5px] leading-6 border" style={{ borderColor: "var(--mt-line)", background: "color-mix(in srgb, var(--mt-accent) 5%, transparent)" }}>
                 <strong className="block text-[13px] mb-1">계정 공유 전 확인</strong>
-                Meta·Google·네이버 등 관리자 초대가 가능한 서비스는 초대를 우선 사용해 주세요. 비밀번호는 서버에서 암호화하며 일반 조회에는 표시하지 않습니다. 사건 당사자·의뢰인의 개인정보는 이 페이지에 입력하지 마세요.
+                관리자 초대가 가능한 서비스는 초대를 우선 사용해 주세요. 입력한 비밀번호는 암호화되며 저장 후 화면에 다시 표시되지 않습니다.
             </aside>
 
             {error && <div role="alert" className="pt-card p-4 mb-5 text-[13px]" style={{ color: "var(--mt-stamp)" }}>{error}</div>}
             {role === "admin" && !activeFirmId && <p className="mt-body text-[13px] mb-5">상단에서 로펌을 먼저 선택해 주세요.</p>}
 
             <fieldset disabled={saving || setupRequired || (role === "admin" && !activeFirmId)} className="flex flex-col gap-4 min-w-0">
-                {MARKETING_PROFILE_SECTIONS.map((section, sectionIndex) => (
-                    <details key={section.id} className="pt-card group" open={sectionIndex < 2}>
+                {MARKETING_PROFILE_SECTIONS.map((section, sectionIndex) => {
+                    const credentialSection = MARKETING_CREDENTIAL_SECTIONS.find((item) => item.id === section.id)!;
+                    return <details key={section.id} className="pt-card group" open={sectionIndex === 0}>
                         <summary className="cursor-pointer list-none p-5 sm:p-6 flex items-center justify-between gap-4">
                             <span><span className="mt-en text-[9px]" style={{ color: "var(--mt-accent)" }}>{String(sectionIndex + 1).padStart(2, "0")}</span><span className="block mt-serif text-[18px] font-semibold mt-1">{section.title}</span><span className="block mt-body text-[12px] mt-1">{section.description}</span></span>
                             <span className={`pt-pill shrink-0 ${sectionHasValue(section.id, profile, presence) ? "pt-pill-blue" : ""}`}>{sectionHasValue(section.id, profile, presence) ? "입력됨" : "펼치기"}</span>
@@ -149,27 +151,16 @@ export default function MarketingProfileTab({ role, firmQuery, activeFirmId, not
                         <div className="px-5 pb-6 sm:px-6 border-t" style={{ borderColor: "var(--mt-line)" }}>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-5">
                                 {section.fields.map(([key, label, type]) => (
-                                    <div key={key} className={type === "textarea" ? "sm:col-span-2" : ""}>
+                                    <div key={key}>
                                         <label htmlFor={`marketing-${key}`} className="block text-[12.5px] font-medium mb-2">{label}</label>
-                                        {type === "textarea" ? <textarea id={`marketing-${key}`} className="pt-textarea w-full" rows={4} maxLength={5000} value={profile[key] ?? ""} onChange={(event) => setProfileValue(key, event.target.value)} /> : <input id={`marketing-${key}`} className="pt-input w-full" type={type} maxLength={5000} value={profile[key] ?? ""} onChange={(event) => setProfileValue(key, event.target.value)} />}
+                                        <input id={`marketing-${key}`} className="pt-input w-full" type={type} maxLength={2000} value={profile[key] ?? ""} onChange={(event) => setProfileValue(key, event.target.value)} />
                                     </div>
                                 ))}
                             </div>
-                        </div>
-                    </details>
-                ))}
-
-                <section className="pt-card p-5 sm:p-7 mt-2">
-                    <div className="flex flex-wrap items-start justify-between gap-4">
-                        <div><p className="mt-en mt-label" style={{ color: "var(--mt-accent)" }}>Encrypted Access</p><h3 className="mt-serif text-[20px] font-semibold mt-2">계정·비밀번호</h3><p className="mt-body text-[12px] mt-2">빈칸은 기존 저장값을 유지합니다. 새 값을 입력하면 교체됩니다.</p></div>
-                        {role === "admin" && Object.values(presence).some(Boolean) && (Object.keys(revealed).length ? <button type="button" className="pt-btn pt-btn-ghost" onClick={() => setRevealed({})}>저장값 숨기기</button> : <button type="button" className="pt-btn pt-btn-ghost" onClick={reveal} disabled={revealing}>{revealing ? "확인 중…" : "저장값 확인"}</button>)}
-                    </div>
-                    <div className="flex flex-col gap-7 mt-7">
-                        {MARKETING_CREDENTIAL_SECTIONS.map((section) => (
-                            <div key={section.id}>
-                                <h4 className="text-[14px] font-semibold">{section.title}</h4><p className="mt-body text-[11.5px] mt-1">{section.note}</p>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-                                    {section.fields.map(([key, label]) => {
+                            <div className="mt-6 pt-5 border-t" style={{ borderColor: "var(--mt-line)" }}>
+                                <p className="mt-body text-[11.5px] mb-4">{credentialSection.note}</p>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {credentialSection.fields.map(([key, label]) => {
                                         const hasStored = presence[key];
                                         const stored = hasStored && !clearSecrets.includes(key);
                                         return <div key={key}>
@@ -180,9 +171,9 @@ export default function MarketingProfileTab({ role, firmQuery, activeFirmId, not
                                     })}
                                 </div>
                             </div>
-                        ))}
-                    </div>
-                </section>
+                        </div>
+                    </details>;
+                })}
 
                 <div className="sticky bottom-4 z-10 pt-card p-3 sm:p-4 flex flex-wrap items-center justify-between gap-3 shadow-lg">
                     <p className="mt-body text-[11.5px]">입력한 비밀번호는 저장 후 화면에서 사라집니다.</p>

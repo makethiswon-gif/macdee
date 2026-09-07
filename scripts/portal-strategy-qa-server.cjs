@@ -39,10 +39,9 @@ const requests = Array.from({ length: 13 }, (_, i) => ({
 }));
 const stats = { aiCalls: 0, requestCreates: 0, requestUpdates: 0 };
 let marketingProfile = {
-    website_url: 'https://lawfirm-a.example', cms_admin_url: 'https://lawfirm-a.example/admin', hosting_provider: '검증용 호스팅',
+    website_url: 'https://lawfirm-a.example', cms_admin_url: 'https://lawfirm-a.example/admin', ftp_host: 'sftp.qa-lawfirm.example',
     naver_blog_url: 'https://blog.naver.com/qa-lawfirm', naver_place_url: 'https://naver.me/qa-place',
     instagram_url: 'https://instagram.com/qa-lawfirm', threads_url: 'https://threads.net/@qa-lawfirm',
-    key_services: '상속 · 가사', target_regions: '서울 · 경기', approval_process: '가상 담당자 검수 후 승인',
 };
 let marketingSecrets = { ftp_username: 'qa-ftp-user', ftp_password: 'qa-password-not-real', naver_id: 'qa-naver-not-real' };
 const payload = `qa-owner:${Date.now()}:qa-only`;
@@ -78,7 +77,7 @@ http.createServer(async (req, res) => {
                 for (const key of input.clearSecrets || []) delete marketingSecrets[key];
                 for (const [key, value] of Object.entries(input.secrets || {})) if (value) marketingSecrets[key] = value;
             }
-            const secretPresence = Object.fromEntries(['cms_admin_id','cms_admin_password','hosting_id','hosting_password','ftp_username','ftp_password','naver_id','naver_password','instagram_id','instagram_password','threads_id','threads_password','kakao_id','kakao_password','other_account_id','other_account_password'].map(key => [key, !!marketingSecrets[key]]));
+            const secretPresence = Object.fromEntries(['cms_admin_id','cms_admin_password','ftp_username','ftp_password','naver_id','naver_password','instagram_id','instagram_password','threads_id','threads_password'].map(key => [key, !!marketingSecrets[key]]));
             return json(res, { profile: marketingProfile, secretPresence, updatedBy: 'firm', updatedAt: now });
         }
         if (url.pathname === '/api/admin/client-strategy') {
