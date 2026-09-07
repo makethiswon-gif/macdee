@@ -7,10 +7,13 @@ const path = require('node:path');
 const origin = process.argv[2] || 'http://localhost:3101';
 const out = process.argv[3] || 'C:/클로드/renewal-kinetic-qa/production';
 const base = JSON.parse(fs.readFileSync('C:/클로드/renewal-kinetic-qa/baseline.json','utf8'));
-const routes = base.map(r=>r.route);
+const production = process.env.QA_PRODUCTION === '1';
+const promote = route => route.replace(/^\/renewal\/diagnose(?=[?#/]|$)/, '/consult').replace(/^\/renewal/, '') || '/';
+let routes = base.map(r=>r.route);
 if(!routes.includes('/renewal/upgrade')) routes.push('/renewal/upgrade');
 const article = base.find(r=>r.route.endsWith('/magazine')).links.find(h=>h.startsWith('/renewal/magazine/'));
 if(article) routes.push(article);
+if(production) routes=routes.map(promote);
 fs.mkdirSync(out,{recursive:true});
 const report=process.env.QA_FORMS ? JSON.parse(fs.readFileSync(path.join(out,'report.json'),'utf8')) : {origin,runs:[],raw:[],links:[],form:[],failures:[]};
 if(process.env.QA_FORMS) report.form=[];
@@ -23,8 +26,9 @@ const curl=(url,args=[])=>execFileSync('curl.exe',['-sS','--max-time','60',...ar
   const h1=$('h1').text(),canonical=$('link[rel=canonical]').attr('href');
   const previous=base.find(r=>r.route===route);
   const raw={route,h1,canonical,named:['googlebot','Yeti','bingbot'].every(n=>$(`meta[name="${n}"]`).attr('content')==='noindex, nofollow'),generalNoindex:/noindex/.test($('meta[name=robots]').attr('content')||'')};
-  check(!!h1&&raw.named&&!raw.generalNoindex&&(!previous||previous.canonical===canonical),'raw HTML/meta '+route);
-  if(route==='/renewal')check(h1==='로펌 마케팅에 필요한\u00a0모든\u00a0것.메이크디스원 하나로'&&html.includes('광고부터 상담 분석까지, 한 팀이 맡습니다.'),'approved minimal hero SSR');
+  if(production) check(!!h1&&!raw.named&&!raw.generalNoindex&&decodeURI(canonical||'')===('https://www.makethis1.com'+(route==='/'?'':decodeURI(route))),'production raw HTML/meta '+route);
+  else check(!!h1&&raw.named&&!raw.generalNoindex&&(!previous||previous.canonical===canonical),'raw HTML/meta '+route);
+  if(route==='/renewal'||route==='/')check(h1==='로펌 마케팅에 필요한\u00a0모든\u00a0것.메이크디스원 하나로'&&html.includes('광고부터 상담 분석까지, 한 팀이 맡습니다.'),'approved minimal hero SSR');
   $('.mt-root a[href]').each((_,a)=>{const h=$(a).attr('href');if(h.startsWith('/')||h.startsWith('#'))links.add(new URL(h,origin+route).href)});
   report.raw.push(raw);fs.writeFileSync(path.join(out,route.replaceAll('/','_')+'-raw.html'),html);
  }
@@ -42,10 +46,12 @@ const curl=(url,args=[])=>execFileSync('curl.exe',['-sS','--max-time','60',...ar
    new PerformanceObserver(l=>{for(const e of l.getEntries())window.qaLCP={ms:e.startTime,tag:e.element?.tagName,animated:!!e.element?.closest('[data-motion-part]')};}).observe({type:'largest-contentful-paint',buffered:true});
   });
   const p=await context.newPage();const errors=[];p.on('pageerror',e=>errors.push(e.message));
+  p.on('response',r=>{if(r.status()>=400&&['font','image','stylesheet','script'].includes(r.request().resourceType()))errors.push('Asset '+r.status()+' '+r.url());});
   const res=await p.goto(origin+route,{waitUntil:'networkidle'});
   // Page-side promises can remain pending with script execution disabled.
   if(mode!=='no-js')await p.evaluate(()=>document.fonts.ready);
   await p.waitForTimeout(1300);
+  if(production) check(await p.evaluate(()=>[...document.fonts].some(f=>f.family.includes('Renewal Study')&&f.status==='loaded')),'approved brand font loaded '+name);
   const initial=await p.evaluate(()=>({cls:window.qaCLS??null,lcp:window.qaLCP??null,shifts:window.qaShifts??[]}));
   if(mode==='normal')await p.screenshot({path:path.join(out,name+'-hero.png')});
   for(const details of await p.locator('main details').all()){if(await details.isVisible()&&!(await details.getAttribute('open'))){await details.locator('summary').click();}}

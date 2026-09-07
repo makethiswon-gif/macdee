@@ -1,5 +1,7 @@
 # /renewal 인수인계 (→ Codex)
 
+> **2026-09-07 라이브 교체 승인:** 대표가 리뉴얼을 실제 메인으로 교체하고 고객 전환 안내도 병합하도록 명시 승인했다. 공개 홈 `/`, 고객 안내 `/upgrade`, 마케팅 상담 `/consult`로 전환한다. 기존 맥디 `/diagnose`, 관리자·API·결제·포털은 보존한다. 아래의 main 미병합/승인 대기 표기는 과거 이력이다. 최신 실행·검증 기록은 `docs/RENEWAL_PRODUCTION_CUTOVER.md`.
+
 > **최신 상품 승인 (2026-09-07):** GROWTH는 월 500만원. 기존 업무 + 유튜브 월 총 20회(쇼츠 12회 포함), 촬영·편집 포함. STANDARD 월 250만원과 MARKET LEADER 월 1,300만원부터는 유지. `docs/RENEWAL_CLIENT_UPGRADE.md`의 최신 승인 항목이 이전 가격 기록보다 우선한다. main 미병합.
 
 > **2026-09-07 통합 상품 전환 승인:** STANDARD를 월 250만원·블로그 월 20회 + 검색/AI 검색·홈페이지 연결·광고·상담 분석·쓰레드/인스타그램으로 변경하고 `/renewal/upgrade` 기존 고객 안내를 추가했다. 상위 두 상품 가격은 유지. 매체비 별도, 부가세 확인 대기. 상세 범위·조건·검증은 [RENEWAL_CLIENT_UPGRADE.md](RENEWAL_CLIENT_UPGRADE.md). 이 승인이 아래의 기존 가격 보호 기록보다 우선한다. main 미병합.
