@@ -5,6 +5,7 @@
 ## 화면과 운영
 
 - `/portal`: 기존 접속 코드 로그인 유지. `요청사항` 메뉴에서 제목·내용·분야·우선순위·선택 희망일 입력. 고객은 자기 로펌 요청 원문과 상태만 확인한다.
+- `/portal?tab=marketing`: `마케팅 정보` 메뉴에서 홈페이지·호스팅·FTP, 네이버 블로그·플레이스·광고, Instagram·Threads·Meta, Google·YouTube·측정, 카카오, 담당·승인·브랜드 기준을 로펌별로 관리한다.
 - `/admin/client-strategy`: 기존 관리자 로그인 사용. 서버에서 관리자 권한을 확인한다. 월별·로펌별 보고서와 전체 기간 요청함을 분리한다.
 - 요청 상태: 접수 / 진행중 / 완료 / 보류. 상태 변경은 고객에게 보이고 **내부 메모는 대표에게만 보인다**.
 - 요청함: 로펌·상태·제목/본문 검색, 페이지네이션. 우선순위 필터는 명시적으로 현재 페이지에 적용한다.
@@ -32,11 +33,13 @@ Vercel Cron `/api/cron/client-consulting`, `0 0 1 * *` = 매월 1일 09:00 한�
 
 ## 데이터베이스
 
-`016_portal_requests.sql` → `017_portal_strategy_reports.sql` 순서. 새 테이블 2개와 `claim_portal_strategy_report` 함수만 추가한다. 기존 고객 데이터 수정·삭제 없음.
+`016_portal_requests.sql` → `017_portal_strategy_reports.sql` → `018_portal_marketing_profiles.sql` 순서. 기존 고객 데이터 수정·삭제 없이 요청, 전략, 마케팅 정보 테이블과 `claim_portal_strategy_report` 함수만 추가한다.
+
+계정·비밀번호는 `PORTAL_CREDENTIALS_KEY`로 AES-256-GCM 암호화한 단일 봉투만 DB에 저장한다. 로펌의 일반 조회는 저장 여부만 반환하고 비밀번호 원문은 반환하지 않는다. 대표 관리자만 동일 출처의 별도 요청으로 일시 확인할 수 있으며, 암호문은 로펌 ID에 결합되어 다른 로펌 ID로 복호화되지 않는다. 빈 비밀번호 입력은 기존 값을 보존하고 명시적 삭제만 제거한다. 초대·대행 권한을 제공하는 플랫폼은 비밀번호 공유보다 초대를 우선한다.
 
 RLS 활성화. anon/authenticated 직접 권한 차단. 서비스 역할만 서버의 검증된 API를 통해 접근한다. 고객 응답에서는 내부 메모를 명시적 필드 목록으로 제외한다. 관리자 전략 조회는 접속 코드 세션으로 접근 불가하다.
 
-배포 전 조건: 016/017 적용과 함수 확인, Production `CRON_SECRET` 및 `ANTHROPIC_API_KEY` 존재 확인. 이번 점검에서 Vercel Production 변수 이름의 등록은 확인했으며 비밀값은 출력하거나 변경하지 않았다.
+배포 전 조건: 016/017/018 적용과 함수 확인, Production `CRON_SECRET`, `ANTHROPIC_API_KEY`, `PORTAL_CREDENTIALS_KEY` 존재 확인. 이번 점검에서 필요한 변수의 등록을 확인했으며 비밀값은 출력하지 않았다.
 
 ## 검증
 

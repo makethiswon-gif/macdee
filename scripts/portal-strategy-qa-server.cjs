@@ -38,6 +38,13 @@ const requests = Array.from({ length: 13 }, (_, i) => ({
     admin_note: '대표만 보이는 QA 내부 메모', created_by: 'firm', created_at: now, updated_at: now,
 }));
 const stats = { aiCalls: 0, requestCreates: 0, requestUpdates: 0 };
+let marketingProfile = {
+    website_url: 'https://lawfirm-a.example', cms_admin_url: 'https://lawfirm-a.example/admin', hosting_provider: '검증용 호스팅',
+    naver_blog_url: 'https://blog.naver.com/qa-lawfirm', naver_place_url: 'https://naver.me/qa-place',
+    instagram_url: 'https://instagram.com/qa-lawfirm', threads_url: 'https://threads.net/@qa-lawfirm',
+    key_services: '상속 · 가사', target_regions: '서울 · 경기', approval_process: '가상 담당자 검수 후 승인',
+};
+let marketingSecrets = { ftp_username: 'qa-ftp-user', ftp_password: 'qa-password-not-real', naver_id: 'qa-naver-not-real' };
 const payload = `qa-owner:${Date.now()}:qa-only`;
 const token = Buffer.from(payload + ':' + crypto.createHmac('sha256', 'portal-local-qa-only').update(payload).digest('hex')).toString('base64url');
 function json(res, body, status = 200, headers = {}) {
@@ -53,12 +60,27 @@ http.createServer(async (req, res) => {
         const client = /qa_role=firm/.test(req.headers.cookie || '');
         if (url.pathname === '/__qa/stats') return json(res, stats);
         if (url.pathname === '/api/admin/auth') return json(res, { authenticated: true, username: 'qa-owner' });
-        if (url.pathname === '/api/portal/auth') return json(res, { firm: firms[0] }, 200, { 'Set-Cookie': 'qa_role=firm; Path=/; SameSite=Lax' });
+        if (url.pathname === '/api/portal/auth') {
+            if (req.method === 'DELETE') return json(res, { ok: true }, 200, { 'Set-Cookie': 'qa_role=; Path=/; Max-Age=0; SameSite=Lax' });
+            return json(res, { firm: firms[0] }, 200, { 'Set-Cookie': 'qa_role=firm; Path=/; SameSite=Lax' });
+        }
         if (url.pathname === '/api/portal/firms') return json(res, { firms });
         if (url.pathname === '/api/portal/records') return json(res, { records: [] });
         if (url.pathname === '/api/portal/advice') return json(res, { advice: [], today: now.slice(0, 10) });
         if (url.pathname === '/api/portal/worklog') return json(res, { worklogs: [] });
         if (url.pathname === '/api/portal/messages') return json(res, { messages: [] });
+        if (url.pathname === '/api/portal/marketing-profile/reveal') {
+            return client ? json(res, { error: '대표 관리자만 계정 정보를 확인할 수 있습니다.' }, 401) : json(res, { credentials: marketingSecrets });
+        }
+        if (url.pathname === '/api/portal/marketing-profile') {
+            if (req.method === 'PATCH') {
+                const input = await body(req); marketingProfile = { ...marketingProfile, ...(input.profile || {}) };
+                for (const key of input.clearSecrets || []) delete marketingSecrets[key];
+                for (const [key, value] of Object.entries(input.secrets || {})) if (value) marketingSecrets[key] = value;
+            }
+            const secretPresence = Object.fromEntries(['cms_admin_id','cms_admin_password','hosting_id','hosting_password','ftp_username','ftp_password','naver_id','naver_password','instagram_id','instagram_password','threads_id','threads_password','kakao_id','kakao_password','other_account_id','other_account_password'].map(key => [key, !!marketingSecrets[key]]));
+            return json(res, { profile: marketingProfile, secretPresence, updatedBy: 'firm', updatedAt: now });
+        }
         if (url.pathname === '/api/admin/client-strategy') {
             if (req.method === 'POST') {
                 const input = await body(req); stats.aiCalls++;
@@ -94,8 +116,12 @@ http.createServer(async (req, res) => {
         // All unrecognized API traffic is blocked, never forwarded to a live backend.
         if (url.pathname.startsWith('/api/')) return json(res, { error: 'Blocked by local QA gateway' }, 403);
         const headers = { ...req.headers, host: `127.0.0.1:${upstreamPort}` };
-        headers.cookie = url.pathname.startsWith('/admin') ? `admin_token=${token}` : '';
-        const upstream = http.request({ hostname: '127.0.0.1', port: upstreamPort, path: req.url, method: 'GET', headers }, response => { res.writeHead(response.statusCode, response.headers); response.pipe(res); });
+        headers.cookie = url.pathname.startsWith('/admin') || (url.pathname === '/portal' && url.searchParams.get('__qaAdmin') === '1') ? `admin_token=${token}` : '';
+        const upstream = http.request({ hostname: '127.0.0.1', port: upstreamPort, path: req.url, method: 'GET', headers }, response => {
+            const responseHeaders = { ...response.headers };
+            if (url.pathname === '/portal' && url.searchParams.get('__qaAdmin') === '1') responseHeaders['set-cookie'] = 'qa_role=admin; Path=/; SameSite=Lax';
+            res.writeHead(response.statusCode, responseHeaders); response.pipe(res);
+        });
         upstream.on('error', () => json(res, { error: 'Start local QA Next server first' }, 502)); upstream.end();
     } catch (error) { json(res, { error: error.message }, 500); }
 }).listen(port, '127.0.0.1', () => console.log(`Synthetic QA only: http://127.0.0.1:${port}/admin/client-strategy and /portal (any test code). No live API writes.`));

@@ -12,6 +12,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Logo from "../renewal/Logo";
 import RequestsTab from "./RequestsTab";
+import MarketingProfileTab from "./MarketingProfileTab";
 
 /* ═══════════════ 타입 ═══════════════ */
 
@@ -77,7 +78,7 @@ interface Message {
     created_at: string;
 }
 
-type Tab = "today" | "records" | "requests" | "advice" | "worklog" | "messages" | "firms";
+type Tab = "today" | "records" | "requests" | "marketing" | "advice" | "worklog" | "messages" | "firms";
 
 /* ═══════════════ 공용 소품 ═══════════════ */
 
@@ -158,7 +159,7 @@ function Login({ onLogin }: { onLogin: (firm: { id: string; name: string }) => v
                     <input
                         className="pt-input mt-en"
                         style={{ letterSpacing: "0.08em" }}
-                        placeholder="MT1-XXXX-XXXX"
+                        placeholder="MT1-XXXX-XXXX-XXXX-XXXX-XXXX"
                         value={code}
                         onChange={(e) => setCode(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && submit()}
@@ -296,6 +297,10 @@ export default function PortalApp({ initial }: { initial: InitialSession }) {
         if (role === "admin") loadFirms();
     }, [role, loadFirms]);
 
+    useEffect(() => {
+        if (new URLSearchParams(window.location.search).get("tab") === "marketing") setTab("marketing");
+    }, []);
+
     const logout = async () => {
         await fetch("/api/portal/auth", { method: "DELETE" });
         setRole(null);
@@ -318,6 +323,7 @@ export default function PortalApp({ initial }: { initial: InitialSession }) {
         { key: "today", label: "오늘" },
         { key: "records", label: "자료" },
         { key: "requests", label: "요청사항" },
+        { key: "marketing", label: "마케팅 정보" },
         { key: "advice", label: "AI 조언" },
         { key: "worklog", label: "업무일지" },
         { key: "messages", label: "메시지" },
@@ -395,6 +401,9 @@ export default function PortalApp({ initial }: { initial: InitialSession }) {
                         )}
                         {tab === "requests" && (
                             <RequestsTab key={activeFirmId} role={role} firmQuery={firmQuery} activeFirmId={activeFirmId} notify={notify} />
+                        )}
+                        {tab === "marketing" && (
+                            <MarketingProfileTab key={activeFirmId} role={role} firmQuery={firmQuery} activeFirmId={activeFirmId} notify={notify} />
                         )}
                         {tab === "advice" && (
                             <AdviceTab key={activeFirmId} role={role} firmQuery={firmQuery} activeFirmId={activeFirmId} notify={notify} />
