@@ -13,24 +13,27 @@ const TITLE = "법무법인 마케팅·변호사 광고 인사이트 | 메이크
 const DESCRIPTION = "법무법인 마케팅, 변호사 블로그, 네이버·구글 광고, SEO와 AI 검색을 다루는 메이크디스원 매거진. 로펌 운영에 필요한 전략과 칼럼을 주제별로 읽어보세요.";
 
 function readQuery(params: Record<string, string | string[] | undefined>) {
+    const hasUnsupportedParameters = Object.keys(params).some((key) => key !== "page" && key !== "category");
     const rawPage = params.page;
     const rawCategory = params.category;
     if (Array.isArray(rawPage) || Array.isArray(rawCategory)) notFound();
     if (rawPage && !/^[1-9]\d*$/.test(rawPage)) notFound();
     const page = rawPage ? Number(rawPage) : 1;
     if (!Number.isSafeInteger(page)) notFound();
-    return { page, category: rawCategory?.trim() || null };
+    return { page, category: rawCategory?.trim() || null, hasUnsupportedParameters };
 }
 
 export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
-    const { page, category } = readQuery(searchParams ? await searchParams : {});
+    const { page, category, hasUnsupportedParameters } = readQuery(searchParams ? await searchParams : {});
     const title = category ? `${category} 인사이트${page > 1 ? ` · ${page}페이지` : ""} | 메이크디스원` : page > 1 ? `법무법인 마케팅 인사이트 · ${page}페이지 | 메이크디스원` : TITLE;
     const canonical = `${SITE_BASE}${insightIndexHref(page, category)}`;
     return {
         title: { absolute: title },
         description: DESCRIPTION,
         alternates: { canonical },
-        robots: { index: true, follow: true },
+        // Legacy q= URLs show the same archive without applying a search filter.
+        // Preserve the canonical archive and crawl links, but keep duplicates out of Google.
+        robots: { index: !hasUnsupportedParameters, follow: true },
         openGraph: { title, description: DESCRIPTION, url: canonical, type: "website", locale: "ko_KR", siteName: COMPANY.brand, images: [ogImage()] },
     };
 }
