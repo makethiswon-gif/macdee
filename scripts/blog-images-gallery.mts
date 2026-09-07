@@ -86,22 +86,41 @@ const coverArt = await fakeArt(1024, 1280, "#B4562B");
 const wideArt = await fakeArt(1536, 1024, "#5B6B4A");
 
 const cells: string[] = [];
+// 글 단위 조판 변주 검증 — 같은 변호사가 다른 원고(시드)에서 다른 골격을 받는지
+const SEEDS = ["fx-a", "fx-b", "fx-c"];
 for (const lawyer of LAWYERS) {
     lawyer.profileImages = [portrait];
     const identity = getMagazineIdentity(lawyer);
+    for (const seed of SEEDS) {
     const plan = fixturePlan();
-    plan.direction = { ...plan.direction!, palette: identity.palette, typography: identity.typography };
+    plan.sourceHash = seed;
+    // 마지막 변호사는 숫자 스파인(checklist) 검증용
+    if (lawyer.id === "t-green") {
+        const infoCard = plan.cards.find((x) => x.type === "info")!;
+        infoCard.infographic = { kind: "checklist", heading: "상담 전 준비 서류", items: [
+            { label: "처분서 원본과 송달 봉투", note: "송달일 확인이 첫 단추" },
+            { label: "영업 관련 인허가증 사본", note: "" },
+            { label: "매출·계약 자료", note: "회복하기 어려운 손해의 근거" },
+            { label: "행정심판 재결서", note: "거쳤다면" },
+        ] };
+        infoCard.heading = "상담 전 준비 서류";
+    }
+    // 팔레트는 원고 분위기(기획 모델)의 몫 — 갤러리는 시드별로 다르게 시뮬레이션
+    const seedPalette = ({ "fx-a": "vermilion", "fx-b": "teal", "fx-c": "aubergine" } as const)[seed as "fx-a" | "fx-b" | "fx-c"]!;
+    plan.direction = { ...plan.direction!, palette: seedPalette, typography: identity.typography };
     for (const card of plan.cards) {
+        if (seed !== "fx-a" && (card.type === "illustration" || card.type === "contact")) continue; // 변주 검증은 표지·정보 중심
         const art = card.type === "thumbnail" ? coverArt : card.type === "illustration" ? wideArt : undefined;
         try {
             const out = await renderMagazineCard({ plan, card, profile: lawyer, style: identity.style, art, artLabel: "픽스처" });
-            const file = `${lawyer.id}-${card.type}.png`;
+            const file = `${lawyer.id}-${seed}-${card.type}.png`;
             writeFileSync(join(OUT, file), Buffer.from(out.imageDataUrl.split(",")[1], "base64"));
-            cells.push(`<figure><img src="${file}"><figcaption>${lawyer.lawyerName} · ${identity.label} · ${card.type} · ${out.width}x${out.height}</figcaption></figure>`);
+            cells.push(`<figure><img src="${file}"><figcaption>${lawyer.lawyerName} · ${seed} · ${identity.label} · ${card.type} · ${out.width}x${out.height}</figcaption></figure>`);
             console.log(`● ${file}  ${out.width}x${out.height}  ${identity.label}  경고 ${out.warnings.length}`);
         } catch (e) {
-            console.log(`✗ ${lawyer.id}-${card.type}: ${e instanceof Error ? e.message : e}`);
+            console.log(`✗ ${lawyer.id}-${seed}-${card.type}: ${e instanceof Error ? e.message : e}`);
         }
+    }
     }
 }
 writeFileSync(join(OUT, "gallery.html"),

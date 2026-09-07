@@ -7,7 +7,7 @@ export interface ArtDirection {
     concept: string;
     rationale: string;
     alternatives: { concept: string; reasonNotChosen: string }[];
-    palette: "cobalt" | "vermilion" | "forest" | "aubergine" | "graphite";
+    palette: "cobalt" | "vermilion" | "forest" | "aubergine" | "graphite" | "amber" | "burgundy" | "teal" | "slate" | "olive";
     typography: "serif" | "sans";
     composition: "immersive" | "split";
     motif: string;

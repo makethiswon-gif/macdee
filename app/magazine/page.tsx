@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { createServiceClient } from "@/lib/supabase/server";
 import MagazinePageClient from "./MagazinePageClient";
 
@@ -6,6 +7,24 @@ import MagazinePageClient from "./MagazinePageClient";
 export const revalidate = 600;
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
+
+type Props = {
+    searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
+};
+
+export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+    const params = searchParams ? await searchParams : {};
+    const hasQueryParameters = Object.values(params).some((value) =>
+        Array.isArray(value) ? value.some(Boolean) : Boolean(value)
+    );
+
+    // The magazine is a single collection page. Query variants are duplicate URLs
+    // from the legacy site, so keep their crawl paths but exclude them from indexing.
+    return {
+        alternates: { canonical: `${BASE_URL}/magazine` },
+        robots: { index: !hasQueryParameters, follow: true },
+    };
+}
 
 /* ─── Types ─── */
 interface Magazine {

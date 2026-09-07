@@ -63,7 +63,7 @@ export function validateVisualPlan(value: unknown, title: string, content: strin
     let direction: ArtDirection | undefined;
     if (raw.direction != null) {
         const a = object(raw.direction);
-        if (!["cobalt", "vermilion", "forest", "aubergine", "graphite"].includes(String(a.palette))
+        if (!["cobalt", "vermilion", "forest", "aubergine", "graphite", "amber", "burgundy", "teal", "slate", "olive"].includes(String(a.palette))
             || !["serif", "sans"].includes(String(a.typography)) || !["immersive", "split"].includes(String(a.composition))
             || !Array.isArray(a.alternatives) || a.alternatives.length !== 2) throw new PlanValidationError("아트디렉션 형식을 확인해 주세요.");
         direction = { concept: string(a.concept, "시각 콘셉트", 160), rationale: string(a.rationale, "선정 근거", 400),
@@ -169,8 +169,8 @@ export async function planArticle(title: string, content: string, identity?: Mag
 const MAGAZINE_DIRECTION_SYSTEM = `
 추가 V9 아트디렉션: 너는 15년차 법률·문화 매거진의 크리에이티브 디렉터다. 원고에 적합한 하나의 선명한 시각 콘셉트를 선택한다. 대안 2개는 각각 한 문장으로만 짧게 비교한다. alternatives도 완성도 높은 구체적 구상이어야 한다. '해커', '베이지 서류'처럼 이미 금지한 클리셰를 허수아비 대안으로 내지 않는다. 선택안과 대안 모두 독자가 주제를 추론할 구체적 단서가 있어야 한다. 제목을 가려도 최소한 원고의 분야·행위가 짐작되어야 한다. 실제 세계의 구체적인 물건이나 상황을 출발점으로 삼고, 그 위에 오직 한 가지 새로운 시각 장치를 적용한다. 예컨대 휴대전화는 조각판으로 추상화하지 말고 휴대전화로, 집은 격자판으로 치환하지 말고 주거 공간으로 알아볼 수 있게 남겨야 한다. 의료를 단순 종이 두 묶음으로 치환하지 않는다. 익명 인물/손/실루엣이나 건축적 단면, 정교한 드로잉, 거시적 오브젝트도 가능하다. 모든 주제를 금속판·유리판·종이·회색 정물로 바꾸지 않는다. 출판 수준의 작업: 핵심 관계를 보여주는 시각적 아이디어, 단단한 조형, 과감한 스케일, 물성, 의도된 여백. 아이콘 모음/강의 슬라이드/밋밋한 카드뉴스는 아니다. 내용과 무관한 장식은 혁신이 아니다.
 최상위 direction을 반드시 추가:
-{concept:"선택 콘셉트 이름",rationale:"이 원고와 연결되는 이유 및 대안보다 나은 점",alternatives:[{concept:"다른 콘셉트",reasonNotChosen:"선택하지 않은 이유"},{concept:"다른 콘셉트",reasonNotChosen:"선택하지 않은 이유"}],palette:"cobalt|vermilion|forest|aubergine|graphite",typography:"serif|sans",composition:"immersive|split",motif:"이 시리즈만의 구체적 시각 장치"}.
-palette는 원고의 분위기에 따라 선택. 무조건 브랜드색이나 베이지로 통일하지 않는다. cobalt=잉크블루/아이보리/라임, vermilion=버밀리언/차콜/크림, forest=깊은 녹색/페일옐로, aubergine=가지색/라일락, graphite=차콜/실버/라임. 실물의 본래 색은 유지한다. 배경과 빛에 팔레트를 사용한다.
+{concept:"선택 콘셉트 이름",rationale:"이 원고와 연결되는 이유 및 대안보다 나은 점",alternatives:[{concept:"다른 콘셉트",reasonNotChosen:"선택하지 않은 이유"},{concept:"다른 콘셉트",reasonNotChosen:"선택하지 않은 이유"}],palette:"cobalt|vermilion|forest|aubergine|graphite|amber|burgundy|teal|slate|olive",typography:"serif|sans",composition:"immersive|split",motif:"이 시리즈만의 구체적 시각 장치"}.
+palette는 원고의 분위기에 따라 선택. 무조건 브랜드색이나 베이지로 통일하지 않는다. cobalt=잉크블루/아이보리/라임, vermilion=버밀리언/차콜/크림, forest=깊은 녹색/페일옐로, aubergine=가지색/라일락, graphite=차콜/실버/라임, amber=호박색/짙은 갈색/크림, burgundy=버건디/장미빛 크림/골드, teal=청록/아이스그린/샛노랑, slate=청회색/코랄, olive=올리브/모래빛/오렌지. 실물의 본래 색은 유지한다. 배경과 빛에 팔레트를 사용한다.
 composition immersive: 4:5 세로 잡지 표지. 핵심 오브젝트/관계는 화면 아래쪽 48~86%에 큼직하게. 상단 45%는 제목이 들어갈 조용한 짙은 배경, 단색이 아니라 이미지와 자연스럽게 이어지는 빛과 공간. 하단 8%는 짙은 여백. 그림이 잘려도 되는 장식은 가능하나 핵심 관계가 잘리면 안 된다.
 composition split: 같은 4:5 세로 아트가 밝은 별도 지면의 하단 패널에 들어간다. 이미지 전체에서 중심 관계가 충분히 크게 보이는 마크로/조각적 구도. 상단 여백을 억지로 비우지 않는다.
 thumbnail은 매우 구체적인 하나의 시각적 논증, illustration은 다른 부분을 설명하는 가로 3:2 편집 삽화로 장면을 반복하지 않는다. illustration에는 상단 제목 여백을 만들지 않고 중요한 관계가 화면 중앙 85% 안에서 크게 읽히게 한다. 시각물마다 새로 생성한다. 모든 scene에 색/빛/시점/주인공 크기/관계/텍스트 안전영역을 명시. 단순 배경 소품 나열 말고 그 관계를 어떻게 볼 것인가를 설계한다.

@@ -2,6 +2,7 @@
 /* eslint-disable @next/next/no-img-element -- Preview and export intentionally share the exact PNG pixels. */
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { getMagazineIdentity } from "@/lib/blog-images/magazine-identity";
 import { Download, Loader2, Plus, Settings, RefreshCw, X, ImageIcon, BookOpen, Layers, WandSparkles } from "lucide-react";
 import JSZip from "jszip";
 import ProfileManagerModal from "./ProfileManagerModal";
@@ -11,7 +12,7 @@ import { contactReadiness } from "@/lib/blog-images/contact-details";
 
 interface PostItem { id: string; title: string; body: string | null }
 type Job = { state: "waiting" | "running" | "done" | "error" | "skipped"; message?: string };
-type GenerationInput = { profile: EditorialProfile; title: string; content: string; quality: BlogImageQuality; photoSource: BlogPhotoSource; style: EditorialStyle; plan: ArticleVisualPlan };
+type GenerationInput = { profile: EditorialProfile; title: string; content: string; quality: BlogImageQuality; photoSource: BlogPhotoSource; style: EditorialStyle | ""; plan: ArticleVisualPlan };
 
 async function readResponse(res: Response) {
     const text = await res.text();
@@ -34,7 +35,9 @@ export default function BlogImagesPage() {
     const [content, setContent] = useState("");
     const [photoSource, setPhotoSource] = useState<BlogPhotoSource>("ai");
     const [quality, setQuality] = useState<BlogImageQuality>("medium");
-    const [style, setStyle] = useState<EditorialStyle>("contrast");
+    // "" = 변호사 기본 지면. 전에는 "contrast" 고정이라 명암 축이 전원 동일했다 —
+    // 사진만 바뀌고 틀이 같아 보이던 원인 중 하나.
+    const [style, setStyle] = useState<EditorialStyle | "">("");
     const [includePhoto, setIncludePhoto] = useState(false);
     const [plan, setPlan] = useState<ArticleVisualPlan | null>(null);
     const [showPlan, setShowPlan] = useState(false);
@@ -107,7 +110,7 @@ export default function BlogImagesPage() {
             const res = await fetch("/api/admin/blog-images/generate-design", { method: "POST", credentials: "include",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ ...frozen, profile: cardRequestProfile(frozen.profile, type, frozen.photoSource), cardType: type,
-                    style: layout, renderOnly, headingOverride: !freshBatch && (renderOnly || existing) ? headingEdits[type] : undefined,
+                    style: layout || undefined, renderOnly, headingOverride: !freshBatch && (renderOnly || existing) ? headingEdits[type] : undefined,
                     reuseArt: renderOnly && existing?.artDataUrl ? { dataUrl: existing.artDataUrl, sourceHash: existing.artSourceHash } : undefined }),
             });
             const data = await readResponse(res);
@@ -186,9 +189,9 @@ export default function BlogImagesPage() {
 
     return <div className="mx-auto max-w-[1500px] p-4 text-slate-100 md:p-8">
         <header className="mb-7 flex flex-wrap items-start justify-between gap-4">
-            <div><p className="mb-2 text-xs tracking-[.18em] text-emerald-300">BLOG MAGAZINE STUDIO · V9</p>
+            <div><p className="mb-2 text-xs tracking-[.18em] text-emerald-300">BLOG MAGAZINE STUDIO · V10</p>
                 <h1 className="text-3xl font-bold">원고를 한 편의 매거진으로.</h1>
-                <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-400">표지의 시각적 아이디어부터 본문의 정보 설계, 실제 변호사가 등장하는 마지막 장까지. 한 원고에 맞춰 색·서체·구도를 설계하고 완성 지면을 검수합니다.</p></div>
+                <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-400">표지의 시각적 아이디어부터 본문의 정보 설계, 실제 변호사가 등장하는 마지막 장까지. 팔레트·서체·지면은 변호사별로 고정되고, 콘셉트와 장면은 원고가 정합니다.</p></div>
             <button disabled={busy} onClick={() => { setEditingProfileId(selectedId || null); setProfileModal(true); }} className="flex items-center gap-2 rounded-lg border border-slate-700 px-4 py-3 text-sm disabled:opacity-40"><Settings size={16} /> 사진·로고 관리</button>
         </header>
         {error && <div role="alert" className="mb-5 rounded-lg border border-red-800 bg-red-950/40 p-4 text-sm text-red-200">{error}</div>}
@@ -197,6 +200,8 @@ export default function BlogImagesPage() {
                 <legend className="sr-only">원고 및 이미지 설정</legend>
                 <div className="flex items-center justify-between"><h2 className="font-semibold">1. 원고 준비</h2><button type="button" className="flex items-center gap-1 text-xs text-blue-300" onClick={() => { setEditingProfileId(null); setProfileModal(true); }}><Plus size={14} /> 변호사 등록</button></div>
                 <label className="block text-sm">변호사<select aria-label="변호사" value={selectedId} onChange={(e) => void changeLawyer(e.target.value)} className={inputClass + " mt-2"}><option value="">{loading ? "불러오는 중…" : "변호사를 선택하세요"}</option>{profiles.map((p) => <option key={p.id} value={p.id}>{p.lawyerName} · {p.officeName || "사무소 미등록"}</option>)}</select></label>
+                {selectedProfile && (() => { const idn = getMagazineIdentity(selectedProfile);
+                    return <p className="text-xs text-slate-400">이 변호사의 고정: <span className="text-emerald-300">{idn.typography === "serif" ? "명조" : "고딕"} · {idn.style === "contrast" ? "어두운 지면" : "밝은 지면"}</span> — 지면 색은 원고 분위기로, 골격·구도·장면은 원고마다 새로 조판됩니다(같은 원고는 항상 같게).</p>; })()}
                 <label className="block text-sm">기존 원고 불러오기<select value={selectedPostId} disabled={postsLoading || !posts.length} onChange={(e) => { setSelectedPostId(e.target.value); const p = posts.find((p) => p.id === e.target.value); if (p) { setTitle(p.title); setContent(p.body || ""); invalidatePlan(); } }} className={inputClass + " mt-2"}><option value="">{postsLoading ? "원고 조회 중…" : "직접 입력하거나 원고를 선택하세요"}</option>{posts.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}</select></label>
                 {postError && <p className="text-xs leading-5 text-amber-200">{postError}</p>}
                 <label className="block text-sm">제목<input value={title} maxLength={180} onChange={(e) => { setTitle(e.target.value); invalidatePlan(); }} placeholder="블로그 원고 제목" className={inputClass + " mt-2"} /></label>
@@ -204,7 +209,7 @@ export default function BlogImagesPage() {
                 <h2 className="border-t border-slate-800 pt-4 font-semibold">2. 표현 방식</h2>
                 <label className="block text-sm">시각물<select value={photoSource} onChange={(e) => setPhotoSource(e.target.value as BlogPhotoSource)} className={inputClass + " mt-2"}><option value="ai">AI가 원고에 맞춰 사진·일러스트 기획</option><option value="office">등록된 실제 사무실 사진 사용</option></select></label>
                 {photoSource === "ai" && <label className="block text-sm">AI 이미지 품질<select value={quality} onChange={(e) => setQuality(e.target.value as BlogImageQuality)} className={inputClass + " mt-2"}><option value="medium">표준 · 속도와 품질 균형 (기본)</option><option value="high">고품질 · 세부 묘사 강화, 대기 시간 증가</option></select></label>}
-                <label className="block text-sm">편집 스타일<select value={style} onChange={(e) => setStyle(e.target.value as EditorialStyle)} className={inputClass + " mt-2"}><option value="contrast">매거진 커버 · 아트디렉션 적용</option><option value="paper">갤러리 에디션 · 밝은 지면</option></select></label>
+                <label className="block text-sm">편집 스타일<select value={style} onChange={(e) => setStyle(e.target.value as EditorialStyle | "")} className={inputClass + " mt-2"}><option value="">변호사 기본 지면 (권장)</option><option value="contrast">매거진 커버 · 어두운 지면 강제</option><option value="paper">갤러리 에디션 · 밝은 지면 강제</option></select></label>
                 <label className="flex items-start gap-3 text-sm"><input type="checkbox" checked={includePhoto} onChange={(e) => setIncludePhoto(e.target.checked)} className="mt-1" /><span>보조 시각물 1장 추가<span className="mt-1 block text-xs leading-5 text-slate-400">표지·설명·변호사 상담 안내가 기본입니다. 원문 근거가 부족한 설명은 생략합니다.</span></span></label>
                 {selectedProfile && <div className="rounded-lg border border-slate-700 p-3"><p className="text-xs font-semibold text-slate-200">마지막 장 · 실제 변호사와 상담 연결</p><div className="mt-3 flex items-center gap-3">{selectedProfile.profileImages[0] && <img src={selectedProfile.profileImages[0]} alt="등록된 변호사 사진" width={56} height={72} className="h-[72px] w-14 bg-white object-contain" />}<p className="text-xs leading-6 text-slate-300">{selectedProfile.lawyerName}<br />{selectedProfile.officeName}<br />{selectedProfile.phone || selectedProfile.website || "상담 연락처 미등록"}</p></div>{missingContact.length > 0 ? <p className="mt-3 text-xs leading-5 text-amber-200">{missingContact.join(" · ")} 등록이 필요합니다. 등록 전에는 상담 안내 카드를 완성하지 않습니다.</p> : <p className="mt-3 text-xs leading-5 text-slate-400">등록된 사진을 그대로 사용합니다. 인물·직함·상담 조건을 AI가 만들지 않습니다.</p>}</div>}
                 <p className="text-xs leading-6 text-slate-400">기획·완성본 검수: Claude Opus 5 · 그림: GPT Image 2. 기본 세트는 기획 1회, 이미지 생성 1회, 완성본 검수 최대 3회입니다. 그림만 따로 검수하는 중복 호출은 없습니다. 보조 시각물 추가 시 생성·검수를 각 1회 추가합니다. 각 API 비용이 발생하며 실패 시 자동 중복 요청은 하지 않습니다. 제목·레이아웃 편집은 AI 호출 없이 가능합니다.</p>
