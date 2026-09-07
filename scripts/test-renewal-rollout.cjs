@@ -33,6 +33,7 @@ const curl=(url,args=[])=>execFileSync('curl.exe',['-sS','--max-time','60',...ar
  const jobs=[];
  if(!process.env.QA_FORMS)for(const width of [1440,375])for(const mode of ['normal','no-js','reduced'])for(const route of routes)jobs.push({width,mode,route});
  if(process.env.QA_ROUTE){for(let i=jobs.length-1;i>=0;i--)if(!jobs[i].route.endsWith(process.env.QA_ROUTE))jobs.splice(i,1);}
+ if(process.env.QA_ROUTES){const selected=process.env.QA_ROUTES.split(',');for(let i=jobs.length-1;i>=0;i--)if(!selected.includes(jobs[i].route))jobs.splice(i,1);}
  async function worker(){while(jobs.length){const {width,mode,route}=jobs.shift();const name=route.replaceAll('/','_')+'-'+width+'-'+mode;
   const context=await browser.newContext({viewport:{width,height:width===1440?1000:900},javaScriptEnabled:mode!=='no-js',reducedMotion:mode==='reduced'?'reduce':'no-preference'});
   if(mode!=='no-js')await context.addInitScript(()=>{

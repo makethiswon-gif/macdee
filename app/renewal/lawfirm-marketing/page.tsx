@@ -13,7 +13,7 @@ import { renewalRobots } from "../flags";
 //
 // §42 가드레일:
 //  - "AI 검색 노출·추천 보장" 류 표현 금지 — 오히려 안 쓴다는 사실을 명시한다.
-//  - Client Portal 은 확정 서비스가 아니다 — "로드맵 · 구상 중" 을 화면에 박는다.
+//  - 자료 공유는 통합 상품에 포함. 통합 현황·승인 화면 확장은 여전히 구상 중이다.
 //  - 수임·매출 연결은 "로펌이 제공한 범위 안에서" 를 항상 붙인다.
 
 const URL = absUrl("/lawfirm-marketing");
@@ -491,13 +491,16 @@ export default function Page() {
                                     className="mt-en text-[9px] font-medium px-2 pt-[4px] pb-[3px] rounded-[2px]"
                                     style={{ border: "1px solid var(--mt-line-strong)", color: "var(--mt-gray)" }}
                                 >
-                                    로드맵 · 구상 중
+                                    자료 공유 · 확장 계획
                                 </span>
                             </div>
-                            <h2 className="mt-h3 mt-5">내 로펌의 마케팅을 한눈에.</h2>
+                            <h2 className="mt-h3 mt-5">현장의 기록을, 광고 전략으로.</h2>
                             <p className="mt-body mt-4 max-w-[64ch] text-[14px]">
-                                광고비·상담·수임·콘텐츠를 함께 확인하고 승인하는 고객용 화면을 구상 중입니다.
-                                현재 제공되는 서비스는 아닙니다.
+                                통합 상품에는 상담 내역·승소사례를 간단히 올리는 자료 공유가 포함됩니다.
+                                월 1회 모아서 전달해도 됩니다. 메이크디스원은 이를 광고와 콘텐츠 전략에 반영합니다.
+                            </p>
+                            <p className="mt-body mt-4 max-w-[64ch] text-[14px]">
+                                광고비·상담·수임·콘텐츠를 한 화면에서 확인하고 승인하는 통합 화면 확장은 구상 중이며, 아직 제공되지 않습니다.
                             </p>
                             <ul className="mt-6 flex flex-wrap gap-2" aria-label="구상 중인 포털 메뉴">
                                 {PORTAL_MENU.map((m) => (

@@ -30,7 +30,8 @@ function verifyFacts() {
   assert.equal(now.PLANS[0].price, '월 250만원');
   assert.equal(now.PLANS[0].priceNote, '광고 매체비 별도');
   assert.equal(now.PLANS[0].includes[0], '블로그 월 20회 포스팅');
-  assert.equal(now.PLANS[0].includes.length, 8);
+  assert.equal(now.PLANS[0].includes.length, 9);
+  assert.ok(now.PLANS[0].includes.includes('상담·승소사례 공유 및 광고 전략 반영'));
   const serviceFields = list => list.map(({ no, en, href, items }) => ({ no, en, href, badges: items.map(i => i.badge || null) }));
   assert.deepEqual(serviceFields(now.SERVICES), serviceFields(old.SERVICES), 'All service items and conditional badges retained');
   const oldServices = readData('data/renewal/services.ts', true), newServices = readData('data/renewal/services.ts');

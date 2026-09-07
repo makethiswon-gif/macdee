@@ -83,16 +83,17 @@ export default function UpgradePage() {
                 </Container>
             </section>
 
-            <section className={styles.connection} aria-labelledby="connection-title">
+            <section className={styles.connection} id="records" aria-labelledby="connection-title">
                 <Container>
-                    <div className={styles.sectionTop}><span>02 / 운영 방식</span><span>콘텐츠는 연결하고, 성과는 함께 봅니다.</span></div>
-                    <h2 id="connection-title" className={styles.heading}>한 편의 글,<br />여러 곳에서 일하도록.</h2>
+                    <div className={styles.sectionTop}><span>02 / 상담·사례 공유</span><span>월 1회 모아서 올려도 됩니다.</span></div>
+                    <h2 id="connection-title" className={styles.heading}>현장의 기록이,<br />다음 광고의 기준으로.</h2>
                     <ol className={styles.flow}>
-                        <li><span className={styles.flowLabel}>출발</span><h3>법률 콘텐츠</h3><p>사건 분야와 의뢰인의 질문을<br />블로그 한 편에 담습니다.</p></li>
-                        <li><span className={styles.flowLabel}>연결</span><h3>홈페이지 · SNS</h3><p>홈페이지에는 관련 글을,<br />SNS에는 핵심을 짧게 전합니다.</p></li>
-                        <li><span className={styles.flowLabel}>점검</span><h3>검색 · 광고 · 상담</h3><p>유입과 상담 경로를 확인해<br />다음 콘텐츠와 광고에 반영합니다.</p></li>
+                        <li><span className={styles.flowLabel}>로펌에서</span><h3>간단히 올리고</h3><p>상담 내역·승소사례를 전용 자료함에.<br />제목과 핵심만 적거나 붙여넣으세요.</p></li>
+                        <li><span className={styles.flowLabel}>메이크디스원이</span><h3>함께 분석하고</h3><p>실제 문의와 사건 결과를 살펴<br />집중할 분야와 로펌의 강점을 찾습니다.</p></li>
+                        <li><span className={styles.flowLabel}>다음 운영에</span><h3>전략으로 반영</h3><p>광고 검색어·예산·콘텐츠 주제를 조정하고,<br />다음 운영 결과를 함께 확인합니다.</p></li>
                     </ol>
-                    <p className={styles.connectionNote}>콘텐츠 활용 예시입니다. 모든 글을 모든 채널에 그대로 복제하지 않고, 채널에 맞는 내용을 골라 재구성합니다.</p>
+                    <p className={styles.connectionNote}>별도 보고서는 필요 없습니다. 상담은 ‘사건 분야·주요 질문·결과’, 승소사례는 ‘쟁점·대응·결과’ 정도면 됩니다.</p>
+                    <p className={styles.connectionNote}>의뢰인 이름·연락처·사건번호 등 식별정보는 빼고 올려 주세요. 자료가 자동으로 공개되지는 않으며, 사례 콘텐츠 활용은 로펌과 먼저 확인합니다.</p>
                 </Container>
             </section>
 
@@ -107,7 +108,8 @@ export default function UpgradePage() {
                                 <div><dt>포함</dt><dd>블로그 월 20회와 위의 통합 운영 업무</dd></div>
                                 <div><dt>광고 매체비</dt><dd>별도 · 집행 예산은 사전 협의</dd></div>
                                 <div><dt>홈페이지</dt><dd>기존 사이트 연결 기준<br />신규 제작·대규모 개편은 별도</dd></div>
-                                <div><dt>SNS</dt><dd>블로그 콘텐츠 재구성 중심<br />발행 횟수·채널별 범위는 사전 합의</dd></div>
+                                <div><dt>자료 공유</dt><dd>상담 내역·승소사례 간단 입력<br />월 1회 취합 가능 · 광고 전략에 반영</dd></div>
+                                <div><dt>SNS</dt><dd>채널별 콘텐츠와 필요한 운영 활동<br />발행 횟수·활동 범위는 사전 합의</dd></div>
                                 <div><dt>부가세</dt><dd>포함 여부는 최종 견적서에서 확인</dd></div>
                             </dl>
                         </div>
