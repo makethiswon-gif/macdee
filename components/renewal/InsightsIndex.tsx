@@ -1,27 +1,12 @@
-"use client";
-
 import Link from "next/link";
-import { useMemo, useState } from "react";
 import { path } from "@/data/renewal/site";
+import { insightIndexHref, type InsightItem } from "@/lib/renewal/magazine";
 
 // INSIGHTS 목록 — 카테고리 필터 + 리드 기사 + 목록.
 //
-// 필터는 클라이언트에서만 돈다. searchParams 로 하면 페이지가 동적 렌더링이
-// 되어 ISR 캐시(전환기 안정성 대책)가 깨진다. 60편 텍스트 메타는 가볍다.
-//
-// 필터 전환 시 리스트에 리빌 애니메이션을 걸지 않는다 — 탭을 누를 때마다
-// 화면이 출렁이는 것은 §18(절제)에 어긋난다. 등장 연출은 페이지 헤더만 갖는다.
-
-export interface InsightListItem {
-    id: string;
-    title: string;
-    slug: string;
-    excerpt: string | null;
-    category: string | null;
-    cover_image_url: string | null;
-    published_at: string | null;
-    author: string | null;
-}
+// Category and page navigation use actual links so the entire archive is
+// reachable in the original HTML, including when JavaScript is disabled.
+export type InsightListItem = InsightItem;
 
 function formatDate(iso: string | null): string {
     if (!iso) return "";
@@ -48,49 +33,41 @@ function Meta({ item, accent = false }: { item: InsightListItem; accent?: boolea
     );
 }
 
-export default function InsightsIndex({ items }: { items: InsightListItem[] }) {
-    const [active, setActive] = useState<string | null>(null);
-
-    // 카테고리는 글 수 내림차순. 한 편뿐인 카테고리도 그대로 보여준다 —
-    // 실제 발행 현황이 곧 목차다.
-    const categories = useMemo(() => {
-        const count = new Map<string, number>();
-        for (const it of items) {
-            if (!it.category) continue;
-            count.set(it.category, (count.get(it.category) ?? 0) + 1);
-        }
-        return [...count.entries()].sort((a, b) => b[1] - a[1]);
-    }, [items]);
-
-    const filtered = active ? items.filter((it) => it.category === active) : items;
-    const [lead, ...rest] = filtered;
+export default function InsightsIndex({ items, categories, active, total, page, totalPages }: {
+    items: InsightListItem[];
+    categories: [string, number][];
+    active: string | null;
+    total: number;
+    page: number;
+    totalPages: number;
+}) {
+    const [lead, ...rest] = items;
 
     return (
         <div>
             {/* ── 필터 ── */}
             {categories.length > 1 && (
-                <div
+                <nav
                     className="flex flex-wrap items-center gap-x-6 gap-y-3 py-5"
                     style={{ borderTop: "1px solid var(--mt-ink)", borderBottom: "1px solid var(--mt-line)" }}
-                    role="group"
-                    aria-label="카테고리 필터"
+                    aria-label="매거진 카테고리"
                 >
-                    <button
-                        onClick={() => setActive(null)}
-                        aria-pressed={active === null}
+                    <Link
+                        href={insightIndexHref()}
+                        aria-current={active === null ? "page" : undefined}
                         className="mt-en mt-label transition-opacity hover:opacity-60"
                         style={{ color: active === null ? "var(--mt-ink)" : "var(--mt-gray-light)" }}
                     >
-                        All
+                        전체
                         <span className="mt-num ml-1.5" style={{ color: "var(--mt-gray-light)" }}>
-                            {items.length}
+                            {total}
                         </span>
-                    </button>
+                    </Link>
                     {categories.map(([cat, n]) => (
-                        <button
+                        <Link
                             key={cat}
-                            onClick={() => setActive(active === cat ? null : cat)}
-                            aria-pressed={active === cat}
+                            href={insightIndexHref(1, cat)}
+                            aria-current={active === cat ? "page" : undefined}
                             className="mt-label transition-opacity hover:opacity-60"
                             style={{
                                 color: active === cat ? "var(--mt-ink)" : "var(--mt-gray-light)",
@@ -101,12 +78,12 @@ export default function InsightsIndex({ items }: { items: InsightListItem[] }) {
                             <span className="mt-num ml-1.5" style={{ color: "var(--mt-gray-light)" }}>
                                 {n}
                             </span>
-                        </button>
+                        </Link>
                     ))}
-                </div>
+                </nav>
             )}
 
-            {!filtered.length && (
+            {!items.length && (
                 <p className="mt-body py-20 text-center">이 카테고리에는 아직 발행된 글이 없습니다.</p>
             )}
 
@@ -165,6 +142,23 @@ export default function InsightsIndex({ items }: { items: InsightListItem[] }) {
                         </li>
                     ))}
                 </ul>
+            )}
+            {totalPages > 1 && (
+                <nav aria-label="매거진 페이지" className="mt-14 flex flex-wrap items-center justify-center gap-2 border-t pt-8" style={{ borderColor: "var(--mt-line)" }}>
+                    {page > 1 && (
+                        <Link href={insightIndexHref(page - 1, active)} rel="prev" className="px-3 py-3 text-[13px]">← 이전</Link>
+                    )}
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((number) => (
+                        <Link key={number} href={insightIndexHref(number, active)} aria-label={`${number}페이지`} aria-current={page === number ? "page" : undefined}
+                            className="mt-num flex h-11 min-w-11 items-center justify-center text-[13px]"
+                            style={{ background: page === number ? "var(--mt-ink)" : undefined, color: page === number ? "var(--mt-bg)" : "var(--mt-ink)" }}>
+                            {number}
+                        </Link>
+                    ))}
+                    {page < totalPages && (
+                        <Link href={insightIndexHref(page + 1, active)} rel="next" className="px-3 py-3 text-[13px]">다음 →</Link>
+                    )}
+                </nav>
             )}
         </div>
     );

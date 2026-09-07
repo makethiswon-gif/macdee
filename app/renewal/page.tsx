@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { createServiceClient } from "@/lib/supabase/server";
+import { getInsightCatalogue, getRelatedInsights } from "@/lib/renewal/magazine";
 
 import HeroSection from "@/components/renewal/home/HeroSection";
 import ClientJourney from "@/components/renewal/home/ClientJourney";
@@ -9,7 +9,7 @@ import ServicesSection from "@/components/renewal/home/ServicesSection";
 import InvariantClause from "@/components/renewal/home/InvariantClause";
 import CaseStudies from "@/components/renewal/home/CaseStudies";
 import WhyMakethis1 from "@/components/renewal/home/WhyMakethis1";
-import InsightsPreview, { type InsightItem } from "@/components/renewal/home/InsightsPreview";
+import InsightsPreview from "@/components/renewal/home/InsightsPreview";
 import PlansSection from "@/components/renewal/home/PlansSection";
 import FinalCTA from "@/components/renewal/home/FinalCTA";
 
@@ -20,9 +20,9 @@ import { renewalRobots } from "./flags";
 export const revalidate = 600;
 
 const URL = absUrl("/");
-const TITLE = "로펌 마케팅에 필요한 모든 것 | MAKETHIS1";
+const TITLE = "법무법인 마케팅 · 변호사 광고 | 메이크디스원 MAKETHIS1";
 const DESCRIPTION =
-    "광고·검색·블로그·홈페이지·상담 분석까지, 메이크디스원 한 팀이 운영합니다. 로펌에 맞는 서비스와 비용을 확인하세요.";
+    "법무법인·법률사무소를 위한 통합 마케팅. 변호사 블로그, 네이버·구글 광고, SEO·AI 검색, 홈페이지와 상담 분석까지 메이크디스원이 운영합니다. 서비스 범위와 월 운영비를 확인하세요.";
 
 // 루트 레이아웃의 title 템플릿(macdee)이 붙지 않도록 absolute 로 고정한다.
 export const metadata: Metadata = {
@@ -42,8 +42,7 @@ export const metadata: Metadata = {
     twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
 };
 
-// 루트 레이아웃은 macdee 기준의 WebSite·Organization 을 전역 삽입한다.
-// 리뉴얼 route 에서는 MAKETHIS1 기준으로 다시 선언한다.
+// 공개 홈에서 사이트와 회사를 선언한다. 하위 서비스·매거진은 같은 @id를 참조한다.
 //
 // ⚠️ 검증되지 않은 정보를 넣지 않는다.
 //    사업자등록번호·설립연도·수상 이력처럼 확인하지 못한 값은 비워둔다.
@@ -69,7 +68,7 @@ const jsonLd = {
             alternateName: ["메이크디스원", "macdee", "맥디"],
             url: COMPANY.site,
             description:
-                "로펌 마케팅에 집중하는 팀. 광고·검색·콘텐츠·홈페이지·상담 분석을 함께 운영합니다.",
+                "법무법인·법률사무소의 마케팅을 통합 운영하는 메이크디스원. 변호사 광고·검색·콘텐츠·홈페이지·상담 분석을 함께 관리합니다.",
             founder: {
                 "@type": "Person",
                 name: FOUNDER.name,
@@ -82,6 +81,7 @@ const jsonLd = {
             areaServed: { "@type": "Country", name: "KR" },
             knowsAbout: [
                 "로펌 마케팅",
+                "법무법인 마케팅",
                 "변호사 광고",
                 "법무법인 광고",
                 "네이버 파워링크",
@@ -120,24 +120,10 @@ const jsonLd = {
 };
 
 export default async function RenewalHome() {
-    // 실제 매거진을 그대로 읽는다. 데모라고 가짜 글을 만들지 않는다.
-    let insights: InsightItem[] = [];
-    let insightsTotal = 0;
-    try {
-        const supabase = createServiceClient();
-        const { data, count } = await supabase
-            .from("magazines")
-            .select("id, title, slug, excerpt, category, published_at", { count: "exact" })
-            .eq("status", "published")
-            .order("published_at", { ascending: false, nullsFirst: false })
-            .order("created_at", { ascending: false })
-            .limit(3);
-        insights = data || [];
-        insightsTotal = count ?? 0;
-    } catch {
-        // DB가 안 붙어도 데모 화면은 떠야 한다. 섹션만 조용히 빠진다.
-        insights = [];
-    }
+    // 날짜만으로 고르지 않고, 기존 발행글 중 로펌 마케팅과 관련 있는 글을 연결한다.
+    const [catalogue, insights] = await Promise.all([
+        getInsightCatalogue().catch(() => []), getRelatedInsights("lawfirm-marketing", 3),
+    ]);
 
     return (
         <>
@@ -162,7 +148,7 @@ export default async function RenewalHome() {
             <CaseStudies cases={CASES} growthLimit={1} />
             <InvariantClause />
             <WhyMakethis1 />
-            <InsightsPreview items={insights} total={insightsTotal} />
+            <InsightsPreview items={insights} total={catalogue.length} />
             <PlansSection />
             <FinalCTA />
         </>

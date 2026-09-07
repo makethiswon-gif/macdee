@@ -18,7 +18,7 @@ export default function PlansSection() {
                     <SectionHeader
                         eyebrow="Sample Estimate"
                         serif
-                        title="서비스와 비용"
+                        title="변호사 마케팅 비용과 서비스"
                         lead="필요한 범위에 맞춰 선택하세요."
                     />
                 </Reveal>

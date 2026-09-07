@@ -65,7 +65,8 @@ let browser;
     const sitemap=await(await get('/sitemap.xml')).text();
     for(const route of ['/upgrade','/consult','/naver-ads','/lawfirm-seo','/geo','/lawfirm-blog','/lawfirm-website','/conversion','/work','/contact']) assert.ok(sitemap.includes('https://www.makethis1.com'+route+'</loc>'), 'sitemap '+route);
     assert.ok(!sitemap.includes('/renewal')&&!sitemap.includes('/makethisone'));
-    const duplicate=load(await(await get('/magazine?page=2')).text());assert.ok(duplicate('meta[name=robots]').attr('content').includes('noindex'));assert.equal(duplicate('link[rel=canonical]').attr('href'),'https://www.makethis1.com/magazine');
+    // Archive pages now contain distinct older articles and must be indexable with self canonicals.
+    const archivePage2=load(await(await get('/magazine?page=2')).text());assert.ok(!/noindex/.test(archivePage2('meta[name=robots]').attr('content')||''));assert.equal(archivePage2('link[rel=canonical]').attr('href'),'https://www.makethis1.com/magazine?page=2');
     const llms=await(await get('/llms.txt')).text();assert.ok(llms.startsWith('# MAKETHIS1')&&llms.includes('월 250만원')&&llms.includes('월 500만원')&&!llms.includes('대표: 김정환'));
     for(const route of ['/admin','/admin/blog-images','/admin/blog-publish','/admin/blog-settings','/login','/diagnose','/portal','/makethisone/subscribe','/makethisone/purchase/success']) {
         const res=await get(route,{redirect:'manual'}); assert.equal(res.status,200,route); const s=load(await res.text());

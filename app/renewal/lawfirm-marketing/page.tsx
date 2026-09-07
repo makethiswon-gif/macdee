@@ -5,6 +5,7 @@ import Reveal from "@/components/renewal/Reveal";
 import { CHANNELS, SYSTEM_STEPS, PRIMARY_CTA, path, absUrl, ogImage } from "@/data/renewal/site";
 import { breadcrumbJsonLd, graph, organizationId } from "@/lib/renewal/schema";
 import { renewalRobots } from "../flags";
+import RelatedInsights from "@/components/renewal/RelatedInsights";
 
 // WHAT WE DO 허브 — 한 팀이 실제로 하는 일의 전체 문서.
 //
@@ -17,9 +18,9 @@ import { renewalRobots } from "../flags";
 //  - 수임·매출 연결은 "로펌이 제공한 범위 안에서" 를 항상 붙인다.
 
 const URL = absUrl("/lawfirm-marketing");
-const TITLE = "로펌 통합 마케팅 | MAKETHIS1";
+const TITLE = "법무법인·로펌 마케팅 서비스와 운영 범위 | 메이크디스원";
 const DESC =
-    "검색광고, 블로그, SEO, AI 검색, 홈페이지, 상담 분석까지 — 로펌에 필요한 모든 마케팅을 메이크디스원 한 팀이 운영합니다.";
+    "법무법인 마케팅을 어디까지 맡길 수 있을까요? 변호사 블로그, 네이버·구글 광고, SEO·AI 검색, 홈페이지, 상담 분석의 업무 범위와 연결 방식을 확인하세요.";
 
 export const metadata: Metadata = {
     title: { absolute: TITLE },
@@ -208,14 +209,14 @@ export default function Page() {
                     </Reveal>
                     <Reveal index={1}>
                         <h1 className="mt-serif mt-h1 mt-7 max-w-[22ch]">
-                            로펌 마케팅,
+                            법무법인 마케팅,
                             <br />
                             한 팀에서.
                         </h1>
                     </Reveal>
                     <Reveal index={2}>
                         <p className="mt-body-lg mt-8 max-w-[600px]">
-                            광고·검색·콘텐츠·홈페이지를 함께 운영합니다.
+                            블로그부터 검색광고·홈페이지·상담 분석까지, 로펌에 필요한 업무를 함께 운영합니다.
                         </p>
                     </Reveal>
                 </Container>
@@ -517,6 +518,8 @@ export default function Page() {
                     </Reveal>
                 </Container>
             </Section>
+
+            <RelatedInsights serviceSlug="lawfirm-marketing" />
 
             {/* ── Future Ready ── */}
             <Section dark tight>

@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 import { createServiceClient } from "@/lib/supabase/server";
 import { Container } from "@/components/renewal/primitives";
 import { renderMagazineBody } from "@/lib/renewal/markdown";
-import { COMPANY, DEMO_BASE, path } from "@/data/renewal/site";
+import { COMPANY, DEMO_BASE, path, SITE_BASE, ogImage } from "@/data/renewal/site";
+import { getInsightServices, insightAuthor, insightIndexHref, insightJsonLd, insightUrl } from "@/lib/renewal/magazine";
 import { renewalRobots } from "../../flags";
 
 // 매거진 상세 리스킨 (Phase 8).
@@ -19,7 +21,7 @@ export function generateStaticParams(): { slug: string }[] {
     return [];
 }
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
+const BASE_URL = SITE_BASE;
 
 interface Magazine {
     id: string;
@@ -38,7 +40,7 @@ interface Magazine {
     author: string;
 }
 
-async function getMagazine(slug: string): Promise<Magazine | null> {
+const getMagazine = cache(async (slug: string): Promise<Magazine | null> => {
     try {
         const decodedSlug = decodeURIComponent(slug);
         const supabase = createServiceClient();
@@ -53,7 +55,7 @@ async function getMagazine(slug: string): Promise<Magazine | null> {
     } catch {
         return null;
     }
-}
+});
 
 function formatDate(iso: string | null): string {
     if (!iso) return "";
@@ -73,22 +75,27 @@ export async function generateMetadata({
 
     // canonical 은 최종 URL(/magazine/slug). 데모 기간에는 라이브 기사로
     // 정규화되고, 교체 후에는 자기 자신이 된다. (목록 page.tsx 주석 참고)
-    const canonicalUrl = `${BASE_URL}/magazine/${magazine.slug}`;
+    const canonicalUrl = insightUrl(magazine.slug);
     const title = `${magazine.meta_title || magazine.title} | MAKETHIS1 Insights`;
     const description = magazine.meta_description || magazine.excerpt;
 
     return {
         title: { absolute: title },
         description,
-        keywords: [...(magazine.tags || []), "변호사", "법률", "법률 정보"].filter(Boolean),
         alternates: { canonical: canonicalUrl },
         robots: renewalRobots(),
         openGraph: {
             title: magazine.meta_title || magazine.title,
             description,
-            images: [magazine.cover_image_url || `${BASE_URL}/og-image.png`],
+            images: [magazine.cover_image_url || ogImage()],
             type: "article",
             url: canonicalUrl,
+            locale: "ko_KR",
+            siteName: COMPANY.brand,
+            ...(magazine.published_at ? { publishedTime: magazine.published_at } : {}),
+            authors: [magazine.author || "MAKETHIS1 편집팀"],
+            ...(magazine.category ? { section: magazine.category } : {}),
+            tags: magazine.tags || [],
         },
     };
 }
@@ -148,7 +155,8 @@ export default async function InsightArticlePage({
     }
 
     const bodyHtml = renderMagazineBody(magazine.body);
-    const canonicalUrl = `${BASE_URL}/magazine/${magazine.slug}`;
+    const canonicalUrl = insightUrl(magazine.slug);
+    const services = getInsightServices(magazine);
 
     const plainText = magazine.body
         .replace(/```[\s\S]*?```/g, "")
@@ -163,17 +171,16 @@ export default async function InsightArticlePage({
         "@type": "Article",
         headline: magazine.title,
         description: magazine.meta_description || magazine.excerpt,
-        datePublished: magazine.published_at,
-        dateModified: magazine.updated_at || magazine.published_at,
+        ...(magazine.published_at ? { datePublished: magazine.published_at } : {}),
+        // updated_at also changes on view_count updates; it is not an editorial
+        // revision date. Do not claim an article was revised when it was viewed.
         wordCount,
-        author: {
-            "@type": "Person",
-            name: magazine.author || "MAKETHIS1 편집팀",
-            url: `${BASE_URL}/about`,
-        },
-        publisher: { "@type": "Organization", name: COMPANY.brand, url: BASE_URL },
+        author: insightAuthor(magazine.author),
+        publisher: { "@type": "Organization", name: COMPANY.brand, url: BASE_URL, logo: { "@type": "ImageObject", url: `${BASE_URL}/brand/makethis1-white-v1.png` } },
         mainEntityOfPage: { "@type": "WebPage", "@id": canonicalUrl },
-        ...(magazine.cover_image_url ? { image: magazine.cover_image_url } : {}),
+        image: magazine.cover_image_url || ogImage().url,
+        inLanguage: "ko-KR",
+        ...(magazine.category ? { articleSection: magazine.category } : {}),
         keywords: (magazine.tags || []).join(", "),
     };
 
@@ -182,7 +189,7 @@ export default async function InsightArticlePage({
         "@type": "BreadcrumbList",
         itemListElement: [
             { "@type": "ListItem", position: 1, name: "홈", item: BASE_URL },
-            { "@type": "ListItem", position: 2, name: "Insights", item: `${BASE_URL}/magazine` },
+            { "@type": "ListItem", position: 2, name: "마케팅 인사이트", item: `${BASE_URL}${path("/magazine")}` },
             { "@type": "ListItem", position: 3, name: magazine.title, item: canonicalUrl },
         ],
     };
@@ -191,11 +198,11 @@ export default async function InsightArticlePage({
         <>
             <script
                 type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+                dangerouslySetInnerHTML={{ __html: insightJsonLd(articleJsonLd) }}
             />
             <script
                 type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+                dangerouslySetInnerHTML={{ __html: insightJsonLd(breadcrumbJsonLd) }}
             />
 
             <article className="mt-k-article pt-[130px] md:pt-[160px] pb-[88px] md:pb-[140px]">
@@ -212,13 +219,11 @@ export default async function InsightArticlePage({
 
                         <div className="mt-10 flex items-center gap-3">
                             {magazine.category && (
-                                <span className="mt-en mt-label" style={{ color: "var(--mt-accent)" }}>
+                                <Link href={insightIndexHref(1, magazine.category)} className="mt-en mt-label underline-offset-4 hover:underline" style={{ color: "var(--mt-accent)" }}>
                                     {magazine.category}
-                                </span>
+                                </Link>
                             )}
-                            <span className="mt-num text-[12px]" style={{ color: "var(--mt-gray-light)" }}>
-                                {formatDate(magazine.published_at)}
-                            </span>
+                            {magazine.published_at && <time dateTime={magazine.published_at} className="mt-num text-[12px]" style={{ color: "var(--mt-gray-light)" }}>{formatDate(magazine.published_at)}</time>}
                         </div>
 
                         <h1 className="mt-h1 mt-6">{magazine.title}</h1>
@@ -284,12 +289,17 @@ export default async function InsightArticlePage({
                                 MAKETHIS1 편집팀이 작성하는 법률 마케팅 인사이트입니다. 기자·방송작가
                                 출신이 쓰고, 법학 전공자가 법률 표현을 검수합니다.
                             </p>
-                            {(magazine.updated_at || magazine.published_at) && (
-                                <p className="mt-num mt-4 text-[12px]" style={{ color: "var(--mt-gray-light)" }}>
-                                    최종 업데이트 {formatDate(magazine.updated_at || magazine.published_at)}
-                                </p>
-                            )}
+                            <Link href={path("/about")} className="mt-4 inline-block text-[13px] underline underline-offset-4">메이크디스원 팀 소개 →</Link>
                         </div>
+
+                        <aside aria-labelledby="article-services-heading" className="mt-12 border-y py-8" style={{ borderColor: "var(--mt-line)" }}>
+                            <h2 id="article-services-heading" className="text-[19px] font-semibold">우리 로펌에 적용하려면</h2>
+                            <p className="mt-body mt-3 text-[14px]">메이크디스원이 맡는 업무와 운영 방식을 확인해 보세요.</p>
+                            <ul className="mt-5 space-y-3 text-[14px]">
+                                {services.map((service) => <li key={service.href}><Link href={service.href} className="underline underline-offset-4">{service.label} →</Link></li>)}
+                                <li><Link href={path("/lawfirm-marketing")} className="underline underline-offset-4">법무법인 통합 마케팅 서비스 →</Link></li>
+                            </ul>
+                        </aside>
                     </div>
 
                     {/* ── 관련 글 ── */}

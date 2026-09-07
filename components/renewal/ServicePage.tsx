@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { Container, Section, SectionHeader, Eyebrow, Button, ArrowLink } from "./primitives";
 import Reveal from "./Reveal";
-import { PRIMARY_CTA, path } from "@/data/renewal/site";
+import RelatedInsights from "./RelatedInsights";
+import { COMPANY, PRIMARY_CTA, path, absUrl } from "@/data/renewal/site";
 import { getService, SERVICES_UPDATED_AT, type ServiceContent } from "@/data/renewal/services";
+import { breadcrumbJsonLd, organizationId } from "@/lib/renewal/schema";
 
 // 서비스 상세 공용 템플릿.
 // RENEWAL_PLAN §7 의 GEO 구조를 그대로 따른다 —
@@ -19,7 +21,7 @@ export default function ServicePage({ service }: { service: ServiceContent }) {
                 <Container>
                     <Reveal>
                         <nav aria-label="현재 위치" className="mb-8">
-                            <ol className="flex items-center gap-2 text-[11.5px]" style={{ color: "var(--mt-gray)" }}>
+                            <ol className="flex flex-wrap items-center gap-2 text-[11.5px]" style={{ color: "var(--mt-gray)" }}>
                                 <li>
                                     <Link href={path("/")} className="hover:opacity-60">
                                         홈
@@ -32,13 +34,13 @@ export default function ServicePage({ service }: { service: ServiceContent }) {
                                     </Link>
                                 </li>
                                 <li aria-hidden>/</li>
-                                <li style={{ color: "var(--mt-ink)" }}>{service.en}</li>
+                                <li style={{ color: "var(--mt-ink)" }}>{service.name}</li>
                             </ol>
                         </nav>
                     </Reveal>
 
                     <Reveal index={1}>
-                        <Eyebrow>{service.en}</Eyebrow>
+                        <Eyebrow>{service.name}</Eyebrow>
                     </Reveal>
 
                     <Reveal index={2}>
@@ -182,6 +184,8 @@ export default function ServicePage({ service }: { service: ServiceContent }) {
                 </Container>
             </Section>
 
+            <RelatedInsights serviceSlug={service.slug} />
+
             {/* ── 관련 · CTA ── */}
             <Section dark tight>
                 <Container>
@@ -192,7 +196,7 @@ export default function ServicePage({ service }: { service: ServiceContent }) {
                                 {related.map((r) => (
                                     <li key={r.slug}>
                                         <ArrowLink href={path("/" + r.slug)}>
-                                            <span style={{ color: "var(--mt-bg)" }}>{r.h1}</span>
+                                            <span style={{ color: "var(--mt-bg)" }}>{r.name}</span>
                                         </ArrowLink>
                                     </li>
                                 ))}
@@ -226,6 +230,18 @@ export function serviceJsonLd(service: ServiceContent, url: string) {
                 description: service.metaDescription,
                 inLanguage: "ko-KR",
                 dateModified: SERVICES_UPDATED_AT,
+                isPartOf: { "@id": `${absUrl("/")}#website` },
+                mainEntity: { "@id": `${url}#service` },
+            },
+            {
+                "@type": "Service",
+                "@id": `${url}#service`,
+                name: service.name,
+                serviceType: service.name,
+                description: service.definition,
+                url,
+                provider: { "@type": "Organization", "@id": organizationId(), name: COMPANY.brand, url: COMPANY.site },
+                areaServed: { "@type": "Country", name: "대한민국" },
             },
             {
                 "@type": "FAQPage",
@@ -236,27 +252,11 @@ export function serviceJsonLd(service: ServiceContent, url: string) {
                     acceptedAnswer: { "@type": "Answer", text: f.a },
                 })),
             },
-            // 화면의 breadcrumb nav 와 동일한 경로. url 에서 잘라내므로
-            // 데모(/renewal/*)와 최종(/*) 어느 쪽에서도 맞는다.
-            {
-                "@type": "BreadcrumbList",
-                "@id": `${url}#breadcrumb`,
-                itemListElement: [
-                    {
-                        "@type": "ListItem",
-                        position: 1,
-                        name: "홈",
-                        item: url.replace(/\/[^/]+$/, "") || url,
-                    },
-                    {
-                        "@type": "ListItem",
-                        position: 2,
-                        name: "로펌 통합 마케팅",
-                        item: `${url.replace(/\/[^/]+$/, "")}/lawfirm-marketing`,
-                    },
-                    { "@type": "ListItem", position: 3, name: service.metaTitle, item: url },
-                ],
-            },
+            breadcrumbJsonLd([
+                { name: "홈", path: "/" },
+                { name: "로펌 통합 마케팅", path: "/lawfirm-marketing" },
+                { name: service.name, path: `/${service.slug}` },
+            ]),
         ],
     };
 }

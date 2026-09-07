@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
+import { SITE_BASE } from "@/data/renewal/site";
 
 export function GET() {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
+    const baseUrl = SITE_BASE;
 
     // 비공개 앱 페이지(/admin, /dashboard, /login 등)는 "크롤 허용 + noindex(X-Robots-Tag)"로 색인만 차단한다.
     // robots.txt로 막으면 봇이 noindex를 못 읽어 색인 제거가 안 되므로, 검색봇에는 /api(비-HTML)만 차단한다.
@@ -19,20 +20,18 @@ export function GET() {
     //      - sitemap.xml 에 넣지 않는다
     //      - 어디에서도 데모 경로로 링크하지 않는다
     //      - 홈페이지 교체 시 데모 경로 → / 301 을 반드시 건다
-    const robots = `# robots.txt — macdee (변호사 마케팅 자동화 플랫폼)
+    const robots = `# robots.txt — MAKETHIS1 (메이크디스원 · 법무법인 마케팅)
 # 비공개 앱 페이지는 noindex(X-Robots-Tag)로 처리. 여기서는 /api만 차단.
 
 # Google
 User-agent: Googlebot
 Disallow: /api
 Allow: /
-Crawl-delay: 0
 
 # Naver
 User-agent: Yeti
 Disallow: /api
 Allow: /
-Crawl-delay: 0
 
 # Bing
 User-agent: Bingbot

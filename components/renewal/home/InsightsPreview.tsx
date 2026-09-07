@@ -67,11 +67,11 @@ export default function InsightsPreview({ items, total }: { items: InsightItem[]
                             )}
                         </div>
                         <Reveal variant="mask">
-                            <h2 className="mt-h2">로펌 마케팅, 지금 알아둘 것.</h2>
+                            <h2 className="mt-h2">법무법인 마케팅, 먼저 읽어볼 글.</h2>
                         </Reveal>
                     </div>
                     <Reveal variant="rise" index={1}>
-                        <ArrowLink href={path("/magazine")}>전체 보기</ArrowLink>
+                        <ArrowLink href={path("/magazine")}>마케팅 매거진 전체 보기</ArrowLink>
                     </Reveal>
                 </div>
 

@@ -16,6 +16,7 @@ export interface ServiceFaq {
 export interface ServiceContent {
     slug: string;
     en: string;
+    name: string;
     /** 브라우저 탭·검색 결과용 */
     metaTitle: string;
     metaDescription: string;
@@ -38,7 +39,8 @@ export const SERVICES: ServiceContent[] = [
     {
         slug: "naver-ads",
         en: "Paid Media",
-        metaTitle: "변호사 네이버 광고 · 파워링크 운영 | MAKETHIS1",
+        name: "변호사 네이버·구글 광고",
+        metaTitle: "변호사 네이버·구글 광고 대행 · 파워링크 | 메이크디스원",
         metaDescription:
             "네이버 파워링크와 Google Ads를 상담·수임 데이터에 연결해 운영합니다. 클릭수가 아니라 실제로 상담이 잡힌 키워드를 기준으로 예산을 재배분합니다.",
         h1: "상담을 기준으로 광고합니다.",
@@ -99,6 +101,7 @@ export const SERVICES: ServiceContent[] = [
     {
         slug: "lawfirm-seo",
         en: "Search",
+        name: "법무법인·변호사 SEO",
         metaTitle: "로펌 SEO · 변호사 검색 노출 | MAKETHIS1",
         metaDescription:
             "네이버·구글 검색에서 로펌을 찾기 쉽도록 홈페이지와 글을 정비합니다. 사건 분야별 검색어, 페이지 구조, 기술 문제를 함께 확인합니다.",
@@ -151,6 +154,7 @@ export const SERVICES: ServiceContent[] = [
     {
         slug: "geo",
         en: "AI Search",
+        name: "로펌 AI 검색 최적화 · GEO",
         metaTitle: "로펌 AI 검색 대응 · GEO | MAKETHIS1",
         metaDescription:
             "AI가 로펌의 정보를 정확히 이해하도록 정보 구조를 정리합니다. 노출을 보장하는 서비스가 아니라, 이해되기 쉬운 상태를 만드는 작업입니다.",
@@ -203,7 +207,8 @@ export const SERVICES: ServiceContent[] = [
     {
         slug: "lawfirm-blog",
         en: "Content",
-        metaTitle: "변호사 블로그 마케팅 · 법률 콘텐츠 | MAKETHIS1",
+        name: "변호사 블로그 마케팅",
+        metaTitle: "변호사 블로그 마케팅 · 운영 대행 | 메이크디스원",
         metaDescription:
             "변호사의 사건 경험과 법률 정보를 의뢰인이 이해하기 쉬운 글로 만듭니다. 기자·방송작가 출신이 쓰고 오래된 글도 점검합니다.",
         h1: "사건 경험을 글로.",
@@ -255,7 +260,8 @@ export const SERVICES: ServiceContent[] = [
     {
         slug: "lawfirm-website",
         en: "Website",
-        metaTitle: "변호사 홈페이지 제작 · 운영 | MAKETHIS1",
+        name: "법무법인·변호사 홈페이지 제작",
+        metaTitle: "법무법인·변호사 홈페이지 제작과 운영 | 메이크디스원",
         metaDescription:
             "로펌의 업무 분야를 쉽게 확인하고 상담할 수 있는 홈페이지를 만듭니다. 검색 노출과 모바일 사용을 함께 고려합니다.",
         h1: "상담하기 쉬운 홈페이지.",
@@ -307,6 +313,7 @@ export const SERVICES: ServiceContent[] = [
     {
         slug: "conversion",
         en: "Data & Conversion",
+        name: "로펌 상담·광고 성과 분석",
         metaTitle: "로펌 상담 전환 · 수임 데이터 분석 | MAKETHIS1",
         metaDescription:
             "상담이 들어온 경로와 비용을 비교합니다. 수임 데이터는 로펌이 제공한 범위에서 연결합니다.",

@@ -7,7 +7,7 @@ import SiteFooter from "@/components/renewal/SiteFooter";
 
 // 마케팅 표면에만 적용. 관리자·제품·포털은 이 레이아웃을 상속하지 않는다.
 export const metadata: Metadata = {
-    title: { default: "MAKETHIS1 — 로펌 마케팅 통합 운영", template: "%s | MAKETHIS1" },
+    title: { default: "법무법인 마케팅 · 변호사 광고 | 메이크디스원", template: "%s | MAKETHIS1" },
     keywords: ["로펌 마케팅", "변호사 광고", "법무법인 광고", "변호사 네이버 광고", "로펌 SEO", "변호사 홈페이지 제작", "변호사 블로그 마케팅", "로펌 AI 검색", "상담 전환 분석", "MAKETHIS1", "메이크디스원"],
     robots: { index: true, follow: true },
 };

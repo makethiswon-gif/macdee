@@ -286,7 +286,7 @@ export const CHANNELS: ChannelCategory[] = [
 export const HERO_OVERLINE = "LAW FIRM MARKETING, MADE SIMPLE.";
 
 export const HERO_BODY =
-    "광고부터 상담 분석까지, 한 팀이 맡습니다.";
+    "법무법인·법률사무소를 위한 통합 마케팅. 광고부터 상담 분석까지 맡습니다.";
 
 // 기존 취소선 질문 5줄을 한 줄 Before→After 로 압축했다.
 export const HERO_BEFORE = ["광고대행사", "블로그 업체", "제작사", "SEO 업체"];
