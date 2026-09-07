@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import Logo from "./Logo";
+import BrandWordmark from "./BrandWordmark";
 import { NAV, PRIMARY_CTA, path } from "@/data/renewal/site";
 
 export default function SiteHeader() {
@@ -55,10 +55,11 @@ export default function SiteHeader() {
                     <Link
                         href={path("/")}
                         aria-label="MAKETHIS1 홈"
+                        className="shrink-0"
                         style={{ color: "var(--mt-ink)" }}
                         onClick={() => setOpenMenu(false)}
                     >
-                        <Logo size={18} />
+                        <BrandWordmark className="w-[104px] md:w-[120px]" eager />
                     </Link>
 
                     {/* ── Desktop ── */}

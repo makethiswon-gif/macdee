@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Container } from "./primitives";
-import Logo from "./Logo";
+import BrandWordmark from "./BrandWordmark";
 import { COMPANY, NAV, path } from "@/data/renewal/site";
 
 export default function SiteFooter() {
@@ -13,14 +13,16 @@ export default function SiteFooter() {
                 color: "var(--mt-bg)",
                 ["--mt-gray" as string]: "var(--mt-dark-gray)",
                 ["--mt-line" as string]: "var(--mt-dark-line)",
-                // 다크 위에서 로고 마침표가 살도록 라이트 블루로 재정의
+                // 다크 배경 위 링크·강조 색상 유지
                 ["--mt-accent" as string]: "var(--mt-accent-on-dark)",
             }}
         >
             <Container className="py-20 md:py-28">
                 <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr_1fr_1fr] gap-12 lg:gap-10">
                     <div>
-                        <Logo size={18} />
+                        <Link href={path("/")} aria-label="MAKETHIS1 홈" className="inline-block">
+                            <BrandWordmark className="w-[160px] md:w-[180px]" />
+                        </Link>
                         <p className="mt-body mt-5 max-w-[300px] text-[14px] leading-[1.75]">
                             사건에 집중하세요.
                             <br />

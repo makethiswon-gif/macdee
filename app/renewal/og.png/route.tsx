@@ -18,17 +18,13 @@ export const revalidate = 86400;
 const SIZE = { width: 1200, height: 630 };
 
 const FONT_DIR = join(process.cwd(), "node_modules/pretendard/dist/public/static");
-// 워드마크 전용 세리프(라틴 서브셋만 — satori 는 woff 까지 지원, woff2 불가)
-const SERIF_LATIN = join(
-    process.cwd(),
-    "node_modules/@fontsource/noto-serif-kr/files/noto-serif-kr-latin-600-normal.woff"
-);
+const WORDMARK = join(process.cwd(), "public/brand/makethis1-white-v1.png");
 
 export async function GET() {
-    const [bold, medium, serif] = await Promise.all([
+    const [bold, medium, wordmark] = await Promise.all([
         readFile(join(FONT_DIR, "Pretendard-Bold.otf")),
         readFile(join(FONT_DIR, "Pretendard-Medium.otf")),
-        readFile(SERIF_LATIN),
+        readFile(WORDMARK),
     ]);
 
     return new ImageResponse(
@@ -55,19 +51,14 @@ export async function GET() {
                         justifyContent: "space-between",
                     }}
                 >
-                    {/* 워드마크 — 세리프 + 브랜드 블루 마침표 (components/renewal/Logo.tsx 와 동일 규칙) */}
-                    <div
-                        style={{
-                            display: "flex",
-                            alignItems: "baseline",
-                            fontFamily: "NotoSerif",
-                            fontSize: 32,
-                            fontWeight: 600,
-                            letterSpacing: "0.05em",
-                        }}
-                    >
-                        MAKETHIS1<span style={{ color: "#8ab4f8" }}>.</span>
-                    </div>
+                    {/* Use the exact approved artwork, not a font approximation. */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                        src={`data:image/png;base64,${wordmark.toString("base64")}`}
+                        width={160}
+                        height={82.5}
+                        alt="메이크디스원 MAKETHIS1"
+                    />
                     <div
                         style={{
                             fontSize: 17,
@@ -128,7 +119,6 @@ export async function GET() {
             fonts: [
                 { name: "Pretendard", data: bold, weight: 700, style: "normal" },
                 { name: "Pretendard", data: medium, weight: 500, style: "normal" },
-                { name: "NotoSerif", data: serif, weight: 600, style: "normal" },
             ],
         }
     );

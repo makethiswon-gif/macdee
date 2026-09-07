@@ -1,5 +1,7 @@
 # /renewal 인수인계 (→ Codex)
 
+> **2026-09-07 홈페이지 로고 적용:** 대표가 승인한 MAKE / THIS1 2단 워드마크를 공개 마케팅 헤더·푸터와 `/og.png`에 적용했다. 흰색 투명 PNG 원형을 그대로 사용(`public/brand/makethis1-white-v1.png`, 768×396, 26,660 bytes). `BrandWordmark`를 분리하여 기존 `Logo`를 쓰는 포털·제품·관리자·favicon은 보존했다. 본문 카피·상품·키네틱 타이포 연출은 변경하지 않았다. `npx tsc --noEmit`, `npm run build`, `node scripts/test-marketing-logo.cjs http://localhost:3103` 통과: 공개 14개 경로 HTTP 200/SSR 로고, 375·640·768·1024·1440px 비율/겹침/가로 넘침, 메뉴/Escape/포커스, JS 비활성·reduced-motion, 관리자·로그인·포털 분리 확인. 375/1440px 헤더·푸터 및 1200×630 OG 스크린샷 육안 검수.
+
 > **2026-09-07 라이브 교체 승인:** 대표가 리뉴얼을 실제 메인으로 교체하고 고객 전환 안내도 병합하도록 명시 승인했다. 공개 홈 `/`, 고객 안내 `/upgrade`, 마케팅 상담 `/consult`로 전환한다. 기존 맥디 `/diagnose`, 관리자·API·결제·포털은 보존한다. 아래의 main 미병합/승인 대기 표기는 과거 이력이다. 최신 실행·검증 기록은 `docs/RENEWAL_PRODUCTION_CUTOVER.md`.
 
 > **최신 상품 승인 (2026-09-07):** GROWTH는 월 500만원. 기존 업무 + 유튜브 월 총 20회(쇼츠 12회 포함), 촬영·편집 포함. STANDARD 월 250만원과 MARKET LEADER 월 1,300만원부터는 유지. `docs/RENEWAL_CLIENT_UPGRADE.md`의 최신 승인 항목이 이전 가격 기록보다 우선한다. main 미병합.
