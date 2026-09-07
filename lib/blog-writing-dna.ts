@@ -89,12 +89,10 @@ const EMPHASIS: EmphasisDensity[] = [
     { name: "적극", highlight: [3, 4], underline: [7, 9], bold: 14 },
 ];
 
-// 변호사별 분량 중심값. 짧게 쓰는 블로그와 길게 쓰는 블로그가 갈리도록.
-// ±400을 해도 2,000~4,000 안에 정확히 들어가는 값만 쓴다.
-// 범위 밖으로 나가 잘리면 2,000과 4,000에 값이 몰려 그것 자체가 패턴이 된다.
-// 목표가 3,600을 넘기면 모델이 따라오지 못하고 800자쯤 미달한다(실측).
-// 실제로 지켜지는 구간에서만 중심값을 잡는다. 상한을 낮춰도 블로그 간 낙차는 충분하다.
-const LENGTH_CENTERS = [2300, 2550, 2800, 3050, 3300];
+// 분량 중심값 — 대표 지시(2026-09-07): 리서치급으로 자세히, 3천자 수준.
+// 중심을 3,000 부근으로 좁히되 완전히 같으면 그것 자체가 패턴이라 소폭 낙차만 남긴다.
+// 목표가 3,600을 넘기면 모델이 따라오지 못하고 800자쯤 미달한다(실측) — 상한 유지.
+const LENGTH_CENTERS = [2900, 3000, 3100, 3200];
 
 /**
  * 변호사의 글쓰기 DNA를 뽑는다.
@@ -126,9 +124,9 @@ export function getWritingDNA(profileId: string, salt = "", postSeed = ""): Writ
     const postHash = fnv1a(key + "|" + postSeed, 0x2545f491);
     const structure = structures[postHash % structures.length];
 
-    // 중심값 ±300, 2,000~3,600 안에 가둔다
-    const drift = (fnv1a(key + "|" + postSeed, 0x7feb352d) % 601) - 300;
-    const targetLength = Math.max(2000, Math.min(3600, lengthCenter + drift));
+    // 중심값 ±150, 2,700~3,400 안에 가둔다 — 전 편이 리서치급 분량대에 머문다
+    const drift = (fnv1a(key + "|" + postSeed, 0x7feb352d) % 301) - 150;
+    const targetLength = Math.max(2700, Math.min(3400, lengthCenter + drift));
 
     // 카드 종류가 썸네일·상황·정보·요약 넷뿐이라 3~4장 사이에서만 흔든다.
     const imageCount = 3 + (fnv1a(key + "|" + postSeed, 0x9e3779b9) % 2); // 3~4

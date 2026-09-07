@@ -5,18 +5,20 @@ import { wrapText } from "./editorial-renderer";
 import type { ArtDirection } from "./visual-plan-types";
 
 export const MAGAZINE_PALETTES = {
-    cobalt: { ink: "#122445", paper: "#F3F4EA", accent: "#C4E36C", field: "#294C9C", muted: "#515968" },
-    vermilion: { ink: "#282626", paper: "#F7F0E4", accent: "#E6472F", field: "#A92D24", muted: "#625953" },
-    forest: { ink: "#163B32", paper: "#F1F2DB", accent: "#D1DF85", field: "#34634F", muted: "#4D6257" },
-    aubergine: { ink: "#322438", paper: "#F4EEF4", accent: "#D3B8E9", field: "#624469", muted: "#68586D" },
-    graphite: { ink: "#222727", paper: "#F0F0E9", accent: "#D5EB75", field: "#535D5A", muted: "#58605A" },
-    // V10.2 — 5종 추가. 실측에서 등록 변호사 다수의 브랜드색이 무채색이라 해시로
-    // 갈리는데, 풀이 5종이면 활동 8명 중 충돌이 잦았다. 10종이면 체감 충돌이 준다.
-    amber: { ink: "#2A1F12", paper: "#F7EFDF", accent: "#FFB53F", field: "#A6690F", muted: "#6E5A3C" },
-    burgundy: { ink: "#351520", paper: "#F6EDE9", accent: "#F2B33D", field: "#8C2540", muted: "#6E5560" },
-    teal: { ink: "#0F2F2C", paper: "#EDF3EE", accent: "#FFCC5C", field: "#1F6E63", muted: "#4C6660" },
-    slate: { ink: "#202833", paper: "#EEF0F3", accent: "#FF7A59", field: "#4A6076", muted: "#5B6672" },
-    olive: { ink: "#23281A", paper: "#F4F3E4", accent: "#FF8C42", field: "#5A6B2F", muted: "#5F6650" },
+    // 대표 지시(2026-09-07): 트렌디하되 보수적으로, 튀지 않게.
+    // 전 팔레트를 톤다운했다 — 잉크는 깊게, 액센트는 채도를 눌러 더스티하게.
+    // 형광·네온 계열 금지. 액센트는 작은 장치(대시·바)에만 쓰이므로
+    // 낮춘 채도로도 충분히 구분된다.
+    cobalt: { ink: "#1B2A44", paper: "#F4F3ED", accent: "#9DB483", field: "#3D5A8F", muted: "#5A6272" },
+    vermilion: { ink: "#2B2725", paper: "#F6F1E8", accent: "#C4593F", field: "#96473A", muted: "#6A5F58" },
+    forest: { ink: "#1D3A31", paper: "#F2F2E6", accent: "#B7C08A", field: "#44685A", muted: "#566459" },
+    aubergine: { ink: "#342B3B", paper: "#F4F0F2", accent: "#B49CC4", field: "#6A5474", muted: "#6A6070" },
+    graphite: { ink: "#26292B", paper: "#F1F0EB", accent: "#A9B7A0", field: "#5C6466", muted: "#5E6467" },
+    amber: { ink: "#2C231A", paper: "#F6F0E3", accent: "#C99B4E", field: "#8F6E33", muted: "#6E6250" },
+    burgundy: { ink: "#362028", paper: "#F5EFEC", accent: "#B98E63", field: "#7E3B4A", muted: "#6E5A60" },
+    teal: { ink: "#17322F", paper: "#EFF2EC", accent: "#C9B268", field: "#33685F", muted: "#526560" },
+    slate: { ink: "#232B35", paper: "#EFF0F1", accent: "#C97C5F", field: "#526B80", muted: "#5D6570" },
+    olive: { ink: "#282B1D", paper: "#F4F2E6", accent: "#C08552", field: "#6B7442", muted: "#626650" },
 } as const;
 export const DEFAULT_DIRECTION: ArtDirection = { concept: "핵심을 크게 보는 지면", rationale: "이전 구성안과의 호환을 위한 기본 편집", alternatives: [],
     palette: "cobalt", typography: "serif", composition: "immersive", motif: "구체적 대상의 대비" };
