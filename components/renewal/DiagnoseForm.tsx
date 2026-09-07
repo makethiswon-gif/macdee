@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { STANDARD_OFFER } from "@/data/renewal/upgrade";
+import { STANDARD_OFFER, GROWTH_OFFER } from "@/data/renewal/upgrade";
 
 // 로펌 마케팅 구조 진단 요청 폼.
 //
@@ -41,7 +41,7 @@ const TRACKING = [
 // 홈 #plans 카드에서 넘어온 ?plan= 값 → 폼 표기. 모르는 값은 무시한다.
 const PLAN_LABELS: Record<string, string> = {
     standard: `STANDARD · ${STANDARD_OFFER.name} · ${STANDARD_OFFER.price}`,
-    growth: "GROWTH · 분야 확장",
+    growth: `GROWTH · 분야 확장 · ${GROWTH_OFFER.price}`,
     "market-leader": "MARKET LEADER · 시장 선점",
 };
 

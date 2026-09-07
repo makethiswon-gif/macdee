@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Container } from "@/components/renewal/primitives";
 import { COMPANY, path, absUrl, ogImage } from "@/data/renewal/site";
-import { STANDARD_OFFER, UPGRADE_SERVICES, UPGRADE_EXTRAS, UPGRADE_FAQ } from "@/data/renewal/upgrade";
+import { STANDARD_OFFER, GROWTH_OFFER, UPGRADE_SERVICES, UPGRADE_EXTRAS, UPGRADE_FAQ } from "@/data/renewal/upgrade";
 import { breadcrumbJsonLd, graph, organizationId } from "@/lib/renewal/schema";
 import { renewalRobots } from "../flags";
 import ConnectionArt from "./ConnectionArt";
@@ -112,6 +112,12 @@ export default function UpgradePage() {
                                 <div><dt>SNS</dt><dd>채널별 콘텐츠와 필요한 운영 활동<br />발행 횟수·활동 범위는 사전 합의</dd></div>
                                 <div><dt>부가세</dt><dd>포함 여부는 최종 견적서에서 확인</dd></div>
                             </dl>
+                            <div className="mt-8 border-t-2 border-[#004aad] pt-6">
+                                <h3 className="text-[22px] font-semibold tracking-tight">유튜브 운영까지 필요하다면.</h3>
+                                <p className="pt-4 text-[18px] font-semibold text-[#004aad]">GROWTH · {GROWTH_OFFER.price}</p>
+                                <p className="pt-3 text-[16px] leading-7 text-[#485971]">STANDARD 전체 + 유튜브 월 {GROWTH_OFFER.videoPosts}회<br />쇼츠 {GROWTH_OFFER.shortsPosts}회 포함 · 촬영·편집 포함</p>
+                                <Link href={path("/diagnose?plan=growth#form")} className={styles.darkLink}>GROWTH 상담하기 <span aria-hidden="true">↗</span></Link>
+                            </div>
                         </div>
                     </div>
                 </Container>

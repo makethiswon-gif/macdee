@@ -1,4 +1,4 @@
-import { STANDARD_OFFER } from "./upgrade";
+import { STANDARD_OFFER, GROWTH_OFFER } from "./upgrade";
 
 // MAKETHIS1 리뉴얼 — 사이트 공통 데이터
 //
@@ -529,11 +529,12 @@ export const PLANS: Plan[] = [
         key: "growth",
         en: "GROWTH",
         ko: "분야 확장",
-        price: "약 월 600~700만원",
+        price: GROWTH_OFFER.price,
         priceNote: "광고 매체비 별도",
-        desc: "사건 분야별로 광고와 콘텐츠를 넓힙니다.",
+        desc: "사건 분야를 넓히고, 유튜브까지 함께 운영합니다.",
         includesLabel: "STANDARD 전체 +",
         includes: [
+            ...GROWTH_OFFER.videoIncludes,
             "사건 분야별 전용 페이지",
             "사건 주제별 검색 콘텐츠",
             "실제 사건·판례 콘텐츠",
@@ -566,7 +567,7 @@ export const PLANS: Plan[] = [
 ];
 
 export const PLANS_FOOTNOTE =
-    "STANDARD는 월 250만원입니다. 추가 제작·확장 업무와 상위 상품의 세부 견적은 상담 후 정합니다. 광고 매체비는 별도이며, 부가세 여부는 최종 견적서에서 확인합니다.";
+    "STANDARD는 월 250만원, GROWTH는 월 500만원입니다. 상품 범위 밖의 추가 제작·확장 업무는 별도 협의합니다. 광고 매체비는 별도이며, 부가세 여부는 최종 견적서에서 확인합니다.";
 
 // 가격표 옆에 붙는 미니 FAQ — 상담 전에 걸리는 질문을 미리 치운다.
 // ⚠️ §42 — 확정되지 않은 기간·금액·절차를 지어내지 않는다. 협의 사항은 협의라고 쓴다.

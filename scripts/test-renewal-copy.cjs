@@ -25,8 +25,15 @@ function verifyFacts() {
   for (const key of keys) assert.deepEqual(now[key], old[key], key);
   const priceFields = plans => plans.map(({ key, en, price, priceNote, includesLabel, featured, badge, includes }) => ({ key, en, price, priceNote, includesLabel, featured, badge, inclusionCount: includes.length }));
   // Later explicit approval: STANDARD becomes the 250만원 / 20-blog-post offer.
-  // Higher-tier prices, inheritance and scope remain protected against the original baseline.
-  assert.deepEqual(priceFields(now.PLANS.slice(1)), priceFields(old.PLANS.slice(1)), 'Higher-tier prices, inheritance, scope count');
+  // Subsequent approval: GROWTH 500만원, 20 YouTube posts including 12 Shorts, filming/editing included.
+  assert.deepEqual(priceFields(now.PLANS.slice(2)), priceFields(old.PLANS.slice(2)), 'MARKET LEADER price, inheritance, scope count');
+  assert.equal(now.PLANS[1].price, '월 500만원');
+  assert.equal(now.PLANS[1].includesLabel, 'STANDARD 전체 +');
+  assert.equal(now.PLANS[1].priceNote, '광고 매체비 별도');
+  // This baseline predates the approved plain-language rewrite; literal scope
+  // preservation against the newer baseline is checked in test-renewal-upgrade.
+  assert.equal(now.PLANS[1].includes.slice(2).length, old.PLANS[1].includes.length);
+  assert.deepEqual(now.PLANS[1].includes.slice(0,2), ['유튜브 월 20회 (쇼츠 12회 포함)', '유튜브 촬영·편집 포함']);
   assert.equal(now.PLANS[0].price, '월 250만원');
   assert.equal(now.PLANS[0].priceNote, '광고 매체비 별도');
   assert.equal(now.PLANS[0].includes[0], '블로그 월 20회 포스팅');
@@ -41,7 +48,7 @@ function verifyFacts() {
   const protectedFiles = ['data/renewal/cases.ts', 'app/renewal/flags.ts', 'app/layout.tsx', 'app/renewal/magazine/[slug]/page.tsx'];
   const diff = execFileSync('git', ['-c', `safe.directory=${root.replaceAll('\\', '/')}`, 'diff', beforeCommit, '--', ...protectedFiles], { cwd: root, encoding: 'utf8' });
   assert.equal(diff, '', 'Cases, indexing, verification metadata, published articles unchanged');
-  return { immutableExports: keys, approvedStandard250And20Posts: true, higherTierPricesAndScopeCount: true, serviceConditions: true, otherFaqConditions: true, protectedFiles };
+  return { immutableExports: keys, approvedStandard250And20Posts: true, approvedGrowth500And20VideosIncluding12Shorts: true, marketLeaderAndExistingGrowthScope: true, serviceConditions: true, otherFaqConditions: true, protectedFiles };
 }
 (async () => {
   const facts = verifyFacts();
