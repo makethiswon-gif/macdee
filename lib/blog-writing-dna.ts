@@ -92,7 +92,9 @@ const EMPHASIS: EmphasisDensity[] = [
 // 분량 중심값 — 대표 지시(2026-09-07): 리서치급으로 자세히, 3천자 수준.
 // 중심을 3,000 부근으로 좁히되 완전히 같으면 그것 자체가 패턴이라 소폭 낙차만 남긴다.
 // 목표가 3,600을 넘기면 모델이 따라오지 못하고 800자쯤 미달한다(실측) — 상한 유지.
-const LENGTH_CENTERS = [2900, 3000, 3100, 3200];
+// V10.7 — 실측 3편(2795·2388·2023 공백제외)이 연속 하한 미달이라 +150 보정.
+// 모델은 목표 대비 짧게 쓰는 경향이 있어 목표를 올려 실착지를 3천자대에 맞춘다.
+const LENGTH_CENTERS = [3050, 3150, 3250, 3350];
 
 /**
  * 변호사의 글쓰기 DNA를 뽑는다.
@@ -124,9 +126,9 @@ export function getWritingDNA(profileId: string, salt = "", postSeed = ""): Writ
     const postHash = fnv1a(key + "|" + postSeed, 0x2545f491);
     const structure = structures[postHash % structures.length];
 
-    // 중심값 ±150, 2,700~3,400 안에 가둔다 — 전 편이 리서치급 분량대에 머문다
+    // 중심값 ±150, 2,850~3,550 안에 가둔다 — 전 편이 리서치급 분량대에 머문다
     const drift = (fnv1a(key + "|" + postSeed, 0x7feb352d) % 301) - 150;
-    const targetLength = Math.max(2700, Math.min(3400, lengthCenter + drift));
+    const targetLength = Math.max(2850, Math.min(3550, lengthCenter + drift));
 
     // 카드 종류가 썸네일·상황·정보·요약 넷뿐이라 3~4장 사이에서만 흔든다.
     const imageCount = 3 + (fnv1a(key + "|" + postSeed, 0x9e3779b9) % 2); // 3~4
