@@ -59,7 +59,6 @@ export default function BlogPublishPage() {
 
     const [cards, setCards] = useState<BlogImageCard[]>([]);
     const [cardUrls, setCardUrls] = useState<{ type: string; url: string }[]>([]);
-    const [imageCount, setImageCount] = useState(4);
     const [progress, setProgress] = useState("");
 
     const [step, setStep] = useState<Step>("idle");
@@ -147,15 +146,13 @@ export default function BlogPublishPage() {
             setTitle(data.title || "");
             setBody(data.body || "");
             setPolished(!!data.polished);
-            const count = data.dna?.imageCount || imageCount;
-            if (data.dna?.imageCount) setImageCount(count);
 
             // 원고가 나오면 카드까지 이어서 만든다.
             // 전에는 여기서 멈추고 사용자가 버튼을 한 번 더 눌러야 했다.
             // 상태(title·body)는 아직 반영 전이므로 값을 직접 넘긴다 —
             // setState 는 비동기라 이 시점에 읽으면 빈 문자열이다.
             if (data.title && data.body) {
-                await saveAndMakeCards({ t: data.title, b: data.body, count });
+                await saveAndMakeCards({ t: data.title, b: data.body });
                 return;
             }
         } catch (e) {
@@ -201,11 +198,10 @@ export default function BlogPublishPage() {
 
     // 저장 → 카드 생성 → PNG 변환 → 업로드까지 한 번에.
     // 이미지가 Storage에 남아야 발행기가 집어갈 수 있다.
-    const saveAndMakeCards = async (over?: { t: string; b: string; count?: number }) => {
+    const saveAndMakeCards = async (over?: { t: string; b: string }) => {
         // write() 직후 호출될 때는 state 가 아직 갱신 전이라 값을 직접 받는다
         const t = over?.t ?? title;
         const b = over?.b ?? body;
-        const n = over?.count ?? imageCount;
         if (!profileId || !t || !b) return;
         setStep("saving");
         setError("");
@@ -242,9 +238,9 @@ export default function BlogPublishPage() {
                 headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: t, content: b, profile: fullProfile }) });
             const planData = await planRes.json();
             if (!planRes.ok || !planData.plan) throw new Error(planData.error || "이미지 기획에 실패했습니다.");
-            const types = n >= 4
-                ? ["thumbnail", "illustration", "info", "contact"]
-                : ["thumbnail", "info", "contact"];
+            // 항상 4장 — 대표 지시. 오류·검수 지적이 있어도 만든 카드는 전부 보여주고
+            // 문제는 안내문으로만 알린다. 편집은 사람이 한다.
+            const types = ["thumbnail", "illustration", "info", "contact"];
 
             const skipped: string[] = [];
             setProgress(`카드 ${types.length}장 만드는 중… (사진은 수십 초~2분 이상 걸릴 수 있습니다)`);
@@ -259,15 +255,17 @@ export default function BlogPublishPage() {
                     if (!r.ok) {
                         // 422 skipped 는 실패가 아니다 — 본문에 도표로 만들 구조가
                         // 없다는 뜻이다. 없는 절차를 그리면 오정보가 되므로 건너뛴다.
+                        // 그 외 실패도 전체를 멈추지 않고 이유만 알린다.
                         try {
                             const e = await r.json();
-                            if (e.skipped) skipped.push(`${ct}: ${e.error}`);
-                        } catch { /* ignore */ }
+                            skipped.push(`${ct}: ${e.error || `생성 실패 (${r.status})`}`);
+                        } catch { skipped.push(`${ct}: 생성 실패 (${r.status})`); }
                         return null;
                     }
                     const d = await r.json();
+                    // 검수 지적이 있어도 카드는 그대로 보여준다 — 판단과 편집은 사람 몫.
                     if (d.card?.designReview && d.card.designReview.status !== "pass") {
-                        throw new Error(`${ct} 완성본에 직접 검수가 필요합니다. 블로그 이미지 화면에서 확인해 주세요. ${d.card.designReview.summary}`);
+                        skipped.push(`${ct} 검수 지적(이미지는 저장됨): ${d.card.designReview.summary}`);
                     }
                     return d.card || null;
                 })
@@ -584,7 +582,7 @@ export default function BlogPublishPage() {
                                 ) : (
                                     <ImageIcon size={14} />
                                 )}
-                                {cardUrls.length > 0 ? `카드 ${cardUrls.length}장 완료` : `저장하고 카드 ${imageCount}장 만들기`}
+                                {cardUrls.length > 0 ? `카드 ${cardUrls.length}장 완료` : "저장하고 카드 4장 만들기"}
                             </button>
                         </div>
                     </div>

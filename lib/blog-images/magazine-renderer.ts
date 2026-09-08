@@ -8,7 +8,7 @@ import { ContactProfileError } from "./contact-renderer";
 import { cardPlacement } from "./visual-plan-types";
 import type { BriefRenderOptions } from "./brief-renderer";
 import { DEFAULT_DIRECTION, MAGAZINE_PALETTES, magazineFonts, type, typeHeight, fitTitle, rect, rule } from "./magazine-design";
-import { getMagazineIdentity, fnv, type LayoutFamily, type AccentShape, type MastheadStyle } from "./magazine-identity";
+import { getMagazineIdentity, fnv, type LayoutFamily, type MastheadStyle } from "./magazine-identity";
 
 // ══ V10.3 — 글 단위 조판 변주 ══
 //
@@ -58,7 +58,6 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
     const seedKey = `${opts.plan.sourceHash}|${profile.id || profile.lawyerName || ""}`;
     const pick = (salt: string, n: number) => fnv(seedKey + ":" + salt) % n;
     const fam: LayoutFamily = (["journal", "poster", "column"] as const)[pick("fam", 3)];
-    const accentShape: AccentShape = (["dash", "vbar", "dots"] as const)[pick("acc", 3)];
     const mastheadStyle: MastheadStyle = pick("mh", 2) === 0 ? "rules" : "block";
     const BAND = [190, 212, 236][pick("band", 3)];           // column 밴드 폭
     const barH = [6, 8, 11][pick("bar", 3)];                 // poster 상단 바
@@ -106,13 +105,8 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
             rule(c, rx, 105, rw, dark ? "#FFFFFF59" : `${p.ink}40`, 1);
         }
     };
-    // 제목 위 장치 — 형태(dash/vbar/dots)는 변호사 축
-    const dash = (c: SKRSContext2D, x: number, y: number) => {
-        if (accentShape === "vbar") rect(c, x, y - 12, 6, 38, p.accent);
-        else if (accentShape === "dots") { rect(c, x, y, 10, 10, p.accent); rect(c, x + 16, y, 10, 10, p.accent); }
-        else rect(c, x, y, 30, 6, p.accent);
-    };
-    const dashW = accentShape === "dots" ? 26 : accentShape === "vbar" ? 6 : 30;
+    // 액센트 색 장식 바(dash·틱·밑줄)는 대표 지시로 전부 제거했다 —
+    // "주황색 줄 디자인 같은 건 불필요". 위계는 괘선·서체 크기만으로 만든다.
     const footerH = 96;
     const footer = (c: SKRSContext2D, y: number, dark = false) => {
         const darkRail = logo ? lightLogo : dark;
@@ -201,7 +195,6 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
             masthead(c, true, card.kicker || "법률 읽기");
             const tx = fam === "column" ? colX : P;
             const tW = fam === "poster" ? I - 80 : fam === "column" ? colW - 10 : I - 24;
-            dash(c, fam === "poster" ? Math.round(W / 2 - dashW / 2) : tx, mastheadH + 24);
             const deckBodyH = card.deck ? th(card.deck, fam === "poster" ? I - 200 : tW - 60, 33) : 0;
             const title = fitTitle(measure, headline, tW, Math.min(378, 664 - mastheadH - 54 - deckBodyH), 100, face);
             center(c, fam === "poster");
@@ -212,8 +205,7 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
                 const backing = c.createLinearGradient(0, deckY - 28, 0, deckY + deckBodyH + 24);
                 backing.addColorStop(0, p.ink + "00"); backing.addColorStop(0.2, p.ink + "CC"); backing.addColorStop(0.85, p.ink + "CC"); backing.addColorStop(1, p.ink + "00");
                 c.fillStyle = backing; c.fillRect(0, deckY - 28, W, deckBodyH + 52);
-                if (fam !== "poster") rect(c, tx, deckY + 2, 5, Math.max(26, deckBodyH - 6), p.accent);
-                type(c, card.deck, fam === "poster" ? W / 2 : tx + 30, deckY, fam === "poster" ? I - 200 : tW - 60, 33, p.paper);
+                type(c, card.deck, fam === "poster" ? W / 2 : tx, deckY, fam === "poster" ? I - 200 : tW - 60, 33, p.paper);
             }
             center(c, false);
             c.strokeStyle = "#FFFFFF38"; c.lineWidth = 1; c.strokeRect(26.5, 26.5, W - 53, H - 53);
@@ -223,7 +215,6 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
             if (fam === "column") rect(c, 0, 0, W, mastheadH - 2, bandBg); // 밝은 표지의 밴드는 상단 가로형
             masthead(c, fam === "column", card.kicker || "법률 읽기");
             const tx = P, tW = fam === "poster" ? I - 80 : I;
-            dash(c, fam === "poster" ? Math.round(W / 2 - dashW / 2) : tx, mastheadH + 24);
             const title = fitTitle(measure, headline, tW, 320, 86, face);
             center(c, fam === "poster");
             type(c, title.text, fam === "poster" ? W / 2 : tx, mastheadH + 50, tW, title.size, p.ink, face, 1.26);
@@ -237,7 +228,6 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
                 const h = th(card.deck, dW, 29) + 54;
                 const boxY = artY + artH - h - 30;
                 rect(c, P + 30, boxY, I - 60, h, p.paper);
-                rect(c, P + 30, boxY, 6, h, p.accent);
                 type(c, card.deck, P + 66, boxY + 27, dW, 29, p.ink);
             }
             footer(c, H - footerH - 8);
@@ -248,7 +238,6 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
         band();
         masthead(c, false, card.kicker || "사건을 보는 관점");
         const tx = fam === "column" ? colX : P;
-        dash(c, fam === "poster" ? Math.round(W / 2 - dashW / 2) : tx, mastheadH + 24);
         center(c, fam === "poster");
         type(c, infoTitle.text, fam === "poster" ? W / 2 : tx, titleY, titleW, infoTitle.size, p.ink, face, 1.26);
         center(c, false);
@@ -263,8 +252,7 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
                 type(c, card.deck, W / 2, capY, capW, 27, p.muted);
                 center(c, false);
             } else {
-                rect(c, px, capY + 7, 18, 5, p.accent);
-                type(c, card.deck, px + 34, capY, capW, 27, p.muted);
+                type(c, card.deck, px, capY, capW, 27, p.muted);
             }
         }
         footer(c, H - footerH - 8);
@@ -276,7 +264,6 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
         masthead(c, strong || fam === "column", "핵심 정리");
         const tx = fam === "column" ? colX : P;
         const fg = strong ? p.paper : p.ink;
-        dash(c, fam === "poster" ? Math.round(W / 2 - dashW / 2) : tx, mastheadH + 24);
         center(c, fam === "poster");
         type(c, infoTitle.text, fam === "poster" ? W / 2 : tx, titleY, titleW, infoTitle.size, fg, face, 1.26);
         if (card.deck) type(c, card.deck, fam === "poster" ? W / 2 : tx, titleY + infoTitle.h + 24, deckW, 29, strong ? "#FFFFFFC4" : p.muted);
@@ -349,7 +336,6 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
     } else if (portrait && primary && nameFit) {
         band();
         masthead(c, fam === "column", "상담 안내");
-        rect(c, portraitX - matIn, heroY + matIn, portraitW + matIn, portraitH, fam === "column" ? p.accent : p.field);
         rect(c, portraitX, heroY, portraitW, portraitH, p.paper);
         d.picture(c, portrait, portraitX, heroY, portraitW, portraitH, "contain");
         c.strokeStyle = `${p.ink}22`; c.lineWidth = 1; c.strokeRect(portraitX + 0.5, heroY + 0.5, portraitW - 1, portraitH - 1);
@@ -360,7 +346,7 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
             y += type(c, profile.jobTitle || "변호사", W / 2, y, nameW, 24, p.muted, "sans") + 8;
             y += type(c, nameFit.text, W / 2, y, nameW, nameFit.size, p.ink, "serif", 1.18) + 18;
             center(c, false);
-            rect(c, Math.round(W / 2 - 37), y, 74, 5, p.accent); y += 10 + 16;
+            y += 10 + 16; // 장식 바 자리였던 간격은 유지한다 — ctaY 계산과 맞물려 있다
             if (profile.officeName) { center(c, true); type(c, profile.officeName, W / 2, y, nameW, 28, p.ink, "sans"); center(c, false); }
         } else if (fam === "column") {
             // 밴드가 신원을 담는다
@@ -368,7 +354,6 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
             y += type(c, profile.jobTitle || "변호사", 26, y, BAND - 52, 22, `${p.paper}C4`, "sans") + 22;
             const bandName = fitTitle(measure, profile.lawyerName, BAND - 52, 260, 64, "serif");
             y += type(c, bandName.text, 26, y, BAND - 52, bandName.size, p.paper, "serif", 1.2) + 26;
-            rect(c, 26, y, 54, 5, p.accent);
             if (profile.officeName) {
                 const oh = th(profile.officeName, BAND - 52, 26, "sans");
                 type(c, profile.officeName, 26, heroY + portraitH - oh, BAND - 52, 26, p.paper, "sans");
@@ -377,7 +362,6 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
             let y = heroY + 8;
             y += type(c, profile.jobTitle || "변호사", P, y, nameW, 24, p.muted, "sans") + 26;
             y += type(c, nameFit.text, P, y, nameW, nameFit.size, p.ink, "serif", 1.18) + 34;
-            rule(c, P, y, 74, p.accent, 5);
             if (profile.officeName) {
                 const by = heroY + portraitH - officeH;
                 type(c, profile.officeName, P, by > y + 44 ? by : y + 38, nameW, 30, p.ink, "sans");
