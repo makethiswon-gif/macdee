@@ -152,8 +152,15 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
     const nameFit = card.type === "contact" ? fitTitle(measure, profile.lawyerName, nameW, 300, fam === "poster" ? 88 : 100, "serif") : null;
     const roleH = card.type === "contact" ? th(profile.jobTitle || "변호사", nameW, 24, "sans") : 0;
     const officeH = card.type === "contact" && profile.officeName ? th(profile.officeName, nameW, fam === "poster" ? 28 : 30, "sans") : 0;
+    // 자랑 경력(심층리서치가 채운 상위 1~2줄) — 이름 아래에 작게, 상담 카드에만.
+    // 『』《》 같은 서명 괄호는 산세리프 폰트에 글리프가 없어 깨진다 — 따옴표로 정리.
+    const credentials = card.type === "contact"
+        ? (profile.career || []).map((s) => s.trim().replace(/[『「《]/g, "'").replace(/[』」》]/g, "'")).filter(Boolean)
+            .slice(0, fam === "column" ? 1 : 2)
+        : [];
+    const credH = credentials.reduce((a, s) => a + th(s, nameW, 23, "sans") + 8, 0);
     const ctaY = fam === "poster"
-        ? heroY + portraitH + 34 + roleH + 8 + (nameFit?.h || 0) + 18 + 10 + (officeH ? officeH + 16 : 0) + 46
+        ? heroY + portraitH + 34 + roleH + 8 + (nameFit?.h || 0) + 18 + 10 + (credH ? credH + 12 : 0) + (officeH ? officeH + 16 : 0) + 46
         : heroY + portraitH + 72;
     const numSize = primary?.href.startsWith("tel:") ? 74 : 38;
     const ctaH = primary ? 94 + th(primary.display, I - 110, numSize, "sans") + (web && web !== primary ? th(web.display, I, 26) + 18 : 0) + 56 : 0;
@@ -333,6 +340,12 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
             y += type(c, nameFit.text, W / 2, y, nameW, nameFit.size, p.ink, "serif", 1.18) + 18;
             center(c, false);
             y += 10 + 16; // 장식 바 자리였던 간격은 유지한다 — ctaY 계산과 맞물려 있다
+            if (credentials.length) {
+                center(c, true);
+                for (const cred of credentials) y += type(c, cred, W / 2, y, nameW, 23, p.muted, "sans") + 8;
+                center(c, false);
+                y += 12;
+            }
             if (profile.officeName) { center(c, true); type(c, profile.officeName, W / 2, y, nameW, 28, p.ink, "sans"); center(c, false); }
         } else if (fam === "column") {
             // 밴드가 신원을 담는다
@@ -340,6 +353,7 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
             y += type(c, profile.jobTitle || "변호사", 26, y, BAND - 52, 22, `${p.paper}C4`, "sans") + 22;
             const bandName = fitTitle(measure, profile.lawyerName, BAND - 52, 260, 64, "serif");
             y += type(c, bandName.text, 26, y, BAND - 52, bandName.size, p.paper, "serif", 1.2) + 26;
+            for (const cred of credentials) y += type(c, cred, 26, y, BAND - 52, 20, `${p.paper}C4`, "sans") + 8;
             if (profile.officeName) {
                 const oh = th(profile.officeName, BAND - 52, 26, "sans");
                 type(c, profile.officeName, 26, heroY + portraitH - oh, BAND - 52, 26, p.paper, "sans");
@@ -348,6 +362,7 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
             let y = heroY + 8;
             y += type(c, profile.jobTitle || "변호사", P, y, nameW, 24, p.muted, "sans") + 26;
             y += type(c, nameFit.text, P, y, nameW, nameFit.size, p.ink, "serif", 1.18) + 34;
+            for (const cred of credentials) y += type(c, cred, P, y, nameW, 23, p.muted, "sans") + 8;
             if (profile.officeName) {
                 const by = heroY + portraitH - officeH;
                 type(c, profile.officeName, P, by > y + 44 ? by : y + 38, nameW, 30, p.ink, "sans");

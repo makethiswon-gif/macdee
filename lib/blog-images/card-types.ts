@@ -48,6 +48,8 @@ export interface EditorialProfile {
     /** 두 변호사의 지면 조합이 겹칠 때 관리화면(dna_salt)에서 넣는 조정값.
         같은 사람은 salt 가 같으므로 결정론은 유지된다. */
     dnaSalt?: string;
+    /** 등록 경력(자랑 경력이 앞에 온다) — 상담 카드에 상위 1~2줄을 표기한다. */
+    career?: string[];
     profileImages: string[];
     officeImages: string[];
     logoImage: string;
@@ -62,6 +64,9 @@ export interface EditorialCopy {
 export function cardRequestProfile(p: Partial<EditorialProfile>, type: string, photoSource: BlogPhotoSource = "ai") {
     return { id: p.id, lawyerName: p.lawyerName, officeName: p.officeName, jobTitle: p.jobTitle,
         phone: p.phone, website: p.website, brandColor: p.brandColor, logoImage: p.logoImage,
+        dnaSalt: p.dnaSalt,
+        // 자랑 경력은 상담 카드에만 얹는다 — 심층리서치가 채운 상위 2줄.
+        career: type === "contact" ? (p.career || []).filter(Boolean).slice(0, 2) : [],
         profileImages: type === "contact" ? p.profileImages?.slice(0, 1) : [],
         officeImages: photoSource === "office" ? p.officeImages?.slice(0, 1) : [] };
 }

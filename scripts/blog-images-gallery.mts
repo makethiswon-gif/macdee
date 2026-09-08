@@ -76,9 +76,9 @@ function fixturePlan(): ArticleVisualPlan {
 }
 
 const LAWYERS: EditorialProfile[] = [
-    { id: "t-red", lawyerName: "오승준", officeName: "법무법인 액시스", jobTitle: "대표 변호사", phone: "02-2038-9185", website: "https://axislaw.co.kr", brandColor: "#A92D24", profileImages: [], officeImages: [], logoImage: "" },
+    { id: "t-red", lawyerName: "오승준", officeName: "법무법인 액시스", jobTitle: "대표 변호사", phone: "02-2038-9185", website: "https://axislaw.co.kr", brandColor: "#A92D24", career: ["보건복지부 규제법무심사위원", "『변호사가 병원을 말하다』 저자"], profileImages: [], officeImages: [], logoImage: "" },
     { id: "t-blue", lawyerName: "유지은", officeName: "법률사무소 진성", jobTitle: "대표 변호사", phone: "02-555-0101", website: "https://example.co.kr", brandColor: "#2A4F8A", profileImages: [], officeImages: [], logoImage: "" },
-    { id: "t-green", lawyerName: "이정도", officeName: "법무법인 서름", jobTitle: "변호사", phone: "031-777-0202", website: "", brandColor: "#34634F", profileImages: [], officeImages: [], logoImage: "" },
+    { id: "t-green", lawyerName: "이정도", officeName: "법무법인 서름", jobTitle: "변호사", phone: "031-777-0202", website: "", brandColor: "#34634F", career: ["대한변협 우수변호사상 수상", "수행사건 175건"], profileImages: [], officeImages: [], logoImage: "" },
 ];
 
 const portrait = await fakePortrait();

@@ -31,6 +31,7 @@ export async function POST(request: Request) {
         // 변호사가 지정되면 그 블로그의 글쓰기 DNA로 문체·분량·강조를 덮어쓴다.
         // 없으면 기존 기본값 그대로 (단독 사용 시 동작 유지).
         let dnaBlock = "";
+        let trustBlock = "";
         let dnaInfo: { voice: string; heading: string; structure: string; imageCount: number } | null = null;
         let lengthRule = "본문은 공백 포함 3,000~3,500자를 반드시 지킵니다.";
         let emphasisRule = `  · ==형광펜== : 이 글의 결론, 결론이 갈리는 경계선. 글 전체에서 **2~3곳만**. 가장 아껴 쓰는 강조입니다.
@@ -42,11 +43,29 @@ export async function POST(request: Request) {
                 const supabase = await createAdminClient();
                 const { data: profile } = await supabase
                     .from("blog_profiles")
-                    .select("id, dna_salt")
+                    .select("id, dna_salt, lawyer_name, office_name, specialty, brand_lines")
                     .eq("id", profileId)
                     .single();
 
                 if (profile) {
+                    // 심층리서치로 채워진 신뢰 신호 — 등록된 사실만 글에 녹인다.
+                    const [name, title, careerStr] = ((profile.lawyer_name as string) || "").split("||");
+                    const career = (careerStr || "").split(/\n|\\n/).map((s) => s.trim()).filter(Boolean);
+                    const brandLines = ((profile.brand_lines as string[]) || []).filter(Boolean);
+                    const specialty = ((profile.specialty as string[]) || []).filter(Boolean);
+                    if (name && (career.length || brandLines.length)) {
+                        trustBlock = `
+[이 변호사의 신뢰 신호 — 실제 등록 프로필입니다. 여기 있는 사실만 쓰고, 없는 경력·수상·직책은 절대 만들지 마세요]
+- 이름·직함: ${name} ${title || "변호사"}${profile.office_name ? ` (${profile.office_name})` : ""}
+${career.length ? `- 경력: ${career.join(" / ")}` : ""}
+${brandLines.length ? `- 특장점: ${brandLines.join(" / ")}` : ""}
+${specialty.length ? `- 전문 분야: ${specialty.join(", ")}` : ""}
+활용 규칙:
+- 이 중 **이번 주제와 맞닿는 신호 1~2개만** 골라, 글의 흐름 속에 자연스럽게 녹입니다. 좋은 자리: 판단 근거에 권위를 싣는 순간("규제를 심사하는 자리에 앉아 보면…", "법원에서 이런 사건을 다뤄 보면…"), 사례 서술의 시점("제가 ○○을 맡던 시절…"), 마무리 안내의 신뢰 근거.
+- 자기소개 문단, 경력 나열, 자화자찬 문장은 금지입니다. 신호는 스치듯 지나가야 신뢰가 됩니다.
+- 주제와 관련 없는 신호는 쓰지 않습니다. 이번 글에 맞는 게 없으면 생략해도 됩니다.
+- 본문 맨 끝 [작성] 줄의 변호사명과 취급 분야는 이 프로필 값을 그대로 씁니다.`;
+                    }
                     const dna = getWritingDNA(profile.id as string, (profile.dna_salt as string) || "", topic || "");
                     dnaBlock = dnaDirective(dna);
                     dnaInfo = { voice: dna.voice.name, heading: dna.heading.name, structure: dna.structure.name, imageCount: dna.imageCount };
@@ -147,6 +166,7 @@ ${emphasisRule}
 [분량] ${lengthRule} 모자라면 사례와 설명을 더 깊게, 넘치면 군더더기를 덜어내 범위 안에 맞추세요.
 
 ${dnaBlock}
+${trustBlock}
 
 [출력 형식] 아래 구분자 형식을 정확히 지키고, 그 외의 말은 한마디도 붙이지 마세요. JSON이 아닙니다.
 ===TITLE===
