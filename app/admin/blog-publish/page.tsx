@@ -49,6 +49,7 @@ export default function BlogPublishPage() {
     const [profileId, setProfileId] = useState("");
     const [topics, setTopics] = useState<TopicCandidate[]>([]);
     const [picked, setPicked] = useState<TopicCandidate | null>(null);
+    const [directTopic, setDirectTopic] = useState("");
     const [detail, setDetail] = useState("");
 
     const [title, setTitle] = useState("");
@@ -85,6 +86,7 @@ export default function BlogPublishPage() {
     const reset = () => {
         setTopics([]);
         setPicked(null);
+        setDirectTopic("");
         setTitle("");
         setBody("");
         setSavedId(null);
@@ -116,8 +118,11 @@ export default function BlogPublishPage() {
         setStep("idle");
     }, [profileId]);
 
-    const write = async () => {
-        if (!picked) return;
+    // 추천에서 고른 주제로도, 직접 입력한 한 줄로도 부른다.
+    // 직접 입력 경로는 setPicked 직후라 state 가 아직 비어 있어 값을 인자로 받는다.
+    const write = async (over?: TopicCandidate) => {
+        const t = over ?? picked;
+        if (!t) return;
         setStep("writing");
         setError("");
         setTitle("");
@@ -127,13 +132,15 @@ export default function BlogPublishPage() {
             // 사건 내용을 따로 적지 않으면 주제와 관점을 재료로 쓴다
             const content = detail.trim()
                 ? detail.trim()
-                : `${picked.topic}\n\n[다룰 관점]\n${picked.angle}`;
+                : t.angle
+                    ? `${t.topic}\n\n[다룰 관점]\n${t.angle}`
+                    : t.topic;
 
             const res = await fetch("/api/admin/claude-blog-write", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
-                body: JSON.stringify({ content, field: picked.field, profileId, topic: picked.topic }),
+                body: JSON.stringify({ content, field: t.field, profileId, topic: t.topic }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "원고 생성에 실패했습니다.");
@@ -155,6 +162,15 @@ export default function BlogPublishPage() {
             setError(e instanceof Error ? e.message : "원고 생성에 실패했습니다.");
         }
         setStep("idle");
+    };
+
+    // 한 줄 주제로 바로 발행 — 추천 없이 원고→저장→카드까지 이어진다.
+    const writeDirect = () => {
+        const topic = directTopic.trim();
+        if (!topic || !profileId || step !== "idle") return;
+        const t: TopicCandidate = { topic, field: "", angle: "", titleIdea: "", reason: "" };
+        setPicked(t); // save()가 topic 을 기록하도록 상태에도 남긴다
+        write(t);
     };
 
     const save = async () => {
@@ -357,7 +373,7 @@ export default function BlogPublishPage() {
         <div className="p-6 max-w-[980px]">
             <h1 className="text-[19px] font-semibold text-white mb-1">블로그 발행</h1>
             <p className="text-[13px] text-[#6B7280] mb-5">
-                변호사를 고르고 주제를 선택하면 그 블로그의 문체로 원고가 만들어집니다.
+                변호사를 고르고 주제를 한 줄 적거나 추천에서 고르면 그 블로그의 문체로 원고가 만들어집니다.
             </p>
 
             {error && (
@@ -425,10 +441,36 @@ export default function BlogPublishPage() {
                 )}
             </div>
 
-            {/* 2. 주제 */}
+            {/* 2. 주제 — 한 줄 직접 입력이 기본 루트, 추천은 보조 */}
             <div className={`${card} mt-3`}>
-                <div className="flex items-center justify-between mb-3">
-                    <label className="text-[11px] font-medium text-[#6B7280]">2 · 주제 고르기</label>
+                <label className="block text-[11px] font-medium text-[#6B7280] mb-2">2 · 주제 직접 입력</label>
+                <div className="flex gap-2">
+                    <input
+                        type="text"
+                        value={directTopic}
+                        onChange={(e) => setDirectTopic(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.nativeEvent.isComposing) writeDirect();
+                        }}
+                        placeholder="예: 전세보증금 반환, 집주인이 연락을 끊었을 때 순서"
+                        disabled={!profileId || step !== "idle"}
+                        className="flex-1 px-3.5 py-2.5 bg-[#0B0F1A] border border-[#1F2937] rounded-lg text-[13.5px] text-white focus:outline-none focus:border-[#3563AE] disabled:opacity-40"
+                    />
+                    <button
+                        onClick={writeDirect}
+                        disabled={!profileId || !directTopic.trim() || step !== "idle"}
+                        className={`${btn} bg-[#3563AE] hover:bg-[#2d559a] text-white shrink-0`}
+                    >
+                        {step === "writing" ? <Loader2 size={14} className="animate-spin" /> : <PenLine size={14} />}
+                        {step === "writing" ? "생성 중…" : "바로 원고 생성"}
+                    </button>
+                </div>
+                <p className="mt-2 text-[11.5px] text-[#4B5563]">
+                    한 줄이면 됩니다. 원고 생성 → 저장 → 카드 이미지까지 한 번에 진행됩니다.
+                </p>
+
+                <div className="flex items-center justify-between mb-3 mt-6 pt-5" style={{ borderTop: "1px solid #1A2035" }}>
+                    <label className="text-[11px] font-medium text-[#6B7280]">또는 · 주제 추천받기</label>
                     <button
                         onClick={loadTopics}
                         disabled={!profileId || step !== "idle"}
@@ -486,7 +528,7 @@ export default function BlogPublishPage() {
                         className="w-full px-3.5 py-3 bg-[#0B0F1A] border border-[#1F2937] rounded-lg text-[13.5px] text-[#D1D5DE] leading-relaxed focus:outline-none focus:border-[#3563AE] resize-y"
                     />
                     <button
-                        onClick={write}
+                        onClick={() => write()}
                         disabled={step !== "idle"}
                         className={`${btn} mt-3 bg-[#3563AE] hover:bg-[#2d559a] text-white`}
                     >
