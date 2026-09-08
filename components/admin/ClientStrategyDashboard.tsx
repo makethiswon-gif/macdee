@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import {
     ArrowDown, ArrowRight, CalendarDays, Check, ChevronDown, Copy,
-    FileText, Inbox, LoaderCircle, LockKeyhole, RefreshCw, Sparkles,
+    FileText, Globe, Inbox, LoaderCircle, LockKeyhole, RefreshCw, Sparkles,
 } from "lucide-react";
 import { getPreviousKstMonth, type ReportRow, type SourceCounts, type StrategyReport } from "@/lib/portal-strategy";
 import type { PortalRequest, PortalRequestListResponse, RequestStatus } from "@/lib/portal-requests";
@@ -17,6 +17,25 @@ type StrategyResponse = {
     month: string; firms: Firm[]; reports: ReportRow[]; setupRequired?: boolean; error?: string;
 };
 type RequestResponse = PortalRequestListResponse & { error?: string };
+// 로펌 심층 리서치 — 웹 검색 기반 보고서. 서버 타입과 필드가 같아야 한다.
+type FirmResearch = {
+    firm_id: string;
+    report: {
+        overview: string;
+        lawyers: { name: string; role: string; note: string }[];
+        practiceAreas: string[];
+        strengths: string[];
+        positioning: string;
+        strategy: { summary: string; channels: { channel: string; action: string; reason: string }[]; topics: { title: string; keyword: string; angle: string }[] };
+        homepage: { url: string; mood: string; brandColorHex: string };
+        sources: string[];
+        caveats: string[];
+    };
+    model: string | null;
+    brand_color: string | null;
+    applied_profiles: { id: string; name: string }[];
+    generated_at: string;
+};
 
 const EMPTY_COUNTS: SourceCounts = { records: 0, requests: 0, worklogs: 0, messages: 0 };
 const STATUSES: RequestStatus[] = ["접수", "진행중", "완료", "보류"];
@@ -144,6 +163,53 @@ function ReportContent({ report, firmName }: { report: StrategyReport; firmName:
                 </section>
             </div>
             <div className={styles.reviewNote}><LockKeyhole size={17} aria-hidden /><p><strong>대표 검토용 AI 초안입니다.</strong> 클라이언트에게 자동 공개되지 않습니다. 사실관계·개인정보·공개 동의·광고 표현을 확인한 뒤 사용하세요. 광고 집행, 포스팅, 메시지 발송은 자동 실행하지 않습니다.</p></div>
+        </div>
+    );
+}
+
+function ResearchContent({ research }: { research: FirmResearch }) {
+    const { report } = research;
+    return (
+        <div className={styles.reportContent}>
+            <section className={styles.summaryBlock}>
+                <span className={styles.sectionIndex}>DEEP RESEARCH</span>
+                <h3>로펌 리서치 요약</h3>
+                <p>{report.overview}</p>
+                {report.positioning && <div className={styles.nextFocus}><ArrowRight size={18} aria-hidden /><div><strong>차별화 포지셔닝</strong><p>{report.positioning}</p></div></div>}
+            </section>
+            {report.lawyers.length > 0 && <section className={styles.reportSection} aria-label="소속 변호사">
+                <div className={styles.sectionHeading}><div><span className={styles.sectionIndex}>01 / LAWYERS</span><h3>소속 변호사 <span>{report.lawyers.length}</span></h3></div></div>
+                <div className={styles.signalGrid}>{report.lawyers.map((lawyer, index) => <article key={index} className={styles.signal}><h4>{lawyer.name}{lawyer.role && ` · ${lawyer.role}`}</h4><p>{lawyer.note}</p></article>)}</div>
+            </section>}
+            <section className={styles.reportSection} aria-label="분야와 특장점">
+                <div className={styles.sectionHeading}><div><span className={styles.sectionIndex}>02 / APPEAL</span><h3>분야 · 대중 어필 특장점</h3></div></div>
+                {report.practiceAreas.length > 0 && <p className={styles.copyMessage}>전문 분야: {report.practiceAreas.join(" · ")}</p>}
+                {report.strengths.length ? <ul className={styles.gaps}>{report.strengths.map((item, index) => <li key={index}>{item}</li>)}</ul> : <p className={styles.emptyInline}>웹에서 확인한 특장점이 없습니다.</p>}
+            </section>
+            <section className={styles.reportSection} aria-label="마케팅 전략">
+                <div className={styles.sectionHeading}><div><span className={styles.sectionIndex}>03 / STRATEGY</span><h3>전체 마케팅 전략</h3></div></div>
+                <p className={styles.copyMessage}>{report.strategy.summary}</p>
+                {report.strategy.channels.length > 0 && <ol className={styles.priorities}>{report.strategy.channels.map((channel, index) => <li key={index}><span className={styles.actionNumber}>{String(index + 1).padStart(2, "0")}</span><div><div className={styles.actionHeading}><h4>{channel.action}</h4><span className={styles.neutralBadge}>{channel.channel}</span></div><div className={styles.reason}><strong>이유</strong><p>{channel.reason}</p></div></div></li>)}</ol>}
+                {report.strategy.topics.length > 0 && <ol className={styles.topics}>{report.strategy.topics.map((topic, index) => <li key={index} className={styles.topic}><div className={styles.topicTop}><span className={styles.topicNumber}>{String(index + 1).padStart(2, "0")}</span></div><h4>{topic.title}</h4><dl><div><dt>키워드</dt><dd>{topic.keyword}</dd></div><div><dt>작성 방향</dt><dd>{topic.angle}</dd></div></dl></li>)}</ol>}
+            </section>
+            <section className={styles.reportSection} aria-label="홈페이지와 브랜드">
+                <div className={styles.sectionHeading}><div><span className={styles.sectionIndex}>04 / BRAND</span><h3>홈페이지 · 브랜드</h3></div></div>
+                {report.homepage.url && <p className={styles.copyMessage}><a href={report.homepage.url} target="_blank" rel="noreferrer">{report.homepage.url}</a></p>}
+                {report.homepage.mood && <p className={styles.copyMessage}>{report.homepage.mood}</p>}
+                {research.brand_color && <p className={styles.copyMessage}>수집한 브랜드 컬러: <span style={{ display: "inline-block", width: 14, height: 14, borderRadius: 3, background: research.brand_color, verticalAlign: "-2px", marginRight: 6 }} /><code>{research.brand_color}</code> — 이미지 생성 팔레트에 반영됩니다.</p>}
+                {research.applied_profiles.length > 0 && <p className={styles.copyMessage}>프로필 반영 완료: {research.applied_profiles.map((profile) => profile.name).join(", ")} — 분야·특장점·브랜드 컬러가 변호사 프로필에 업데이트됐습니다.</p>}
+            </section>
+            {(report.caveats.length > 0 || report.sources.length > 0) && <div className={styles.bottomGrid}>
+                <section className={styles.reportSection} aria-label="확인하지 못한 것">
+                    <div className={styles.sectionHeading}><div><span className={styles.sectionIndex}>05 / CAVEATS</span><h3>확인하지 못한 것</h3></div></div>
+                    {report.caveats.length ? <ul className={styles.gaps}>{report.caveats.map((caveat, index) => <li key={index}>{caveat}</li>)}</ul> : <p className={styles.emptyInline}>없음</p>}
+                </section>
+                <section className={styles.reportSection} aria-label="참고 출처">
+                    <div className={styles.sectionHeading}><div><span className={styles.sectionIndex}>06 / SOURCES</span><h3>참고 출처 <span>{report.sources.length}</span></h3></div></div>
+                    <ul className={styles.gaps}>{report.sources.map((source, index) => <li key={index}><a href={source} target="_blank" rel="noreferrer" style={{ wordBreak: "break-all" }}>{source}</a></li>)}</ul>
+                </section>
+            </div>}
+            <div className={styles.reviewNote}><LockKeyhole size={17} aria-hidden /><p><strong>웹 공개 정보 기반 AI 리서치입니다.</strong> 동명 로펌 혼동·오래된 정보 가능성이 있으니 사실관계를 확인한 뒤 사용하세요. 프로필에 반영된 분야·특장점·컬러는 프로필 관리 화면에서 수정할 수 있습니다.</p></div>
         </div>
     );
 }
@@ -280,6 +346,9 @@ export default function ClientStrategyDashboard() {
     const [generationError, setGenerationError] = useState<{ firmId: string; month: string; message: string } | null>(null);
     const [generationMessage, setGenerationMessage] = useState("");
     const [requestCounts, setRequestCounts] = useState<Record<RequestStatus, number> | null>(null);
+    const [research, setResearch] = useState<Record<string, FirmResearch>>({});
+    const [researching, setResearching] = useState<string | null>(null);
+    const [researchNotice, setResearchNotice] = useState<{ firmId: string; message: string; failed: boolean } | null>(null);
     const activeMonth = useRef(month);
     activeMonth.current = month;
     const controllerRef = useRef<AbortController | null>(null);
@@ -320,6 +389,42 @@ export default function ClientStrategyDashboard() {
     }, [firmId, revision]);
 
     useEffect(() => () => controllerRef.current?.abort(), []);
+
+    // 저장된 심층 리서치 불러오기 — 화면 진입 시 1회. AI 실행은 버튼으로만.
+    useEffect(() => {
+        const controller = new AbortController();
+        fetch("/api/admin/firm-research", { cache: "no-store", credentials: "include", signal: controller.signal })
+            .then((response) => readResponse<{ research?: FirmResearch[]; error?: string }>(response, true))
+            .then((result) => setResearch(Object.fromEntries((result.research || []).map((row) => [row.firm_id, row]))))
+            .catch(() => { /* 리서치 기록이 없어도 전략실 사용에는 지장 없다. */ });
+        return () => controller.abort();
+    }, []);
+
+    async function runResearch(firm: Firm) {
+        if (researching) return;
+        setResearching(firm.id);
+        setResearchNotice({ firmId: firm.id, message: `${firm.name}을(를) 웹에서 조사하고 있습니다. 검색·열람·분석까지 2~4분 걸립니다.`, failed: false });
+        try {
+            const result = await readResponse<{ research?: FirmResearch; saved?: boolean; setupRequired?: boolean; error?: string }>(
+                await fetch("/api/admin/firm-research", {
+                    method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
+                    body: JSON.stringify({ firmId: firm.id }),
+                })
+            );
+            if (result.research) {
+                setResearch((current) => ({ ...current, [firm.id]: result.research! }));
+                const applied = result.research.applied_profiles;
+                setResearchNotice({
+                    firmId: firm.id, failed: false,
+                    message: `${firm.name} 리서치 완료.${applied.length ? ` 프로필 ${applied.length}건(${applied.map((p) => p.name).join(", ")})에 분야·특장점·브랜드 컬러를 반영했습니다.` : " 로펌명이 일치하는 변호사 프로필이 없어 보고서만 저장했습니다."}${result.saved === false ? " (저장소 미설정 — 보고서는 이 화면에서만 보입니다. 마이그레이션 019 적용 필요)" : ""}`,
+                });
+            }
+        } catch (failure) {
+            setResearchNotice({ firmId: firm.id, failed: true, message: failure instanceof Error ? failure.message : "리서치에 실패했습니다. 잠시 후 다시 시도해 주세요." });
+        } finally {
+            setResearching(null);
+        }
+    }
 
     const firms = data?.firms || [];
     const visibleFirms = firmId ? firms.filter((firm) => firm.id === firmId) : firms;
@@ -394,10 +499,12 @@ export default function ClientStrategyDashboard() {
                         const finalized = row?.status === "completed" || row?.status === "insufficient_data";
                         const failure = generationError?.firmId === firm.id && generationError.month === month ? generationError.message : null;
                         return <article key={firm.id} className={styles.reportCard}>
-                            <div className={styles.reportCardTop}><div><span className={styles.firmEyebrow}>{readableMonth(month)} · 등록 기준</span><h2>{firm.name}</h2><div className={styles.reportMeta}><span className={busy ? styles.blueBadge : row?.status === "failed" || stale ? styles.urgentBadge : row?.status === "completed" ? styles.greenBadge : styles.neutralBadge}>{busy ? "분석 중" : stale ? "분석 지연 · 재시도 가능" : row ? REPORT_LABELS[row.status] : "아직 생성하지 않음"}</span><span>{row?.generated_at ? `생성 ${readableDate(row.generated_at, true)}` : "월간 전략 초안"}</span></div></div><button className={styles.primaryButton} disabled={Boolean(generation) || busy || finalized} onClick={() => generate(firm, row)}>{busy ? <LoaderCircle className={styles.spinner} size={16} /> : finalized ? <Check size={16} /> : <Sparkles size={16} />}{busy ? "분석 중" : row?.status === "completed" ? "이번 달 생성 완료" : row?.status === "insufficient_data" ? "자료 없음 · 분석 마감" : stale ? "중단된 분석 재시도" : row?.status === "failed" ? "다시 시도" : "AI 전략 만들기"}</button></div>
+                            <div className={styles.reportCardTop}><div><span className={styles.firmEyebrow}>{readableMonth(month)} · 등록 기준</span><h2>{firm.name}</h2><div className={styles.reportMeta}><span className={busy ? styles.blueBadge : row?.status === "failed" || stale ? styles.urgentBadge : row?.status === "completed" ? styles.greenBadge : styles.neutralBadge}>{busy ? "분석 중" : stale ? "분석 지연 · 재시도 가능" : row ? REPORT_LABELS[row.status] : "아직 생성하지 않음"}</span><span>{row?.generated_at ? `생성 ${readableDate(row.generated_at, true)}` : "월간 전략 초안"}</span></div></div><div className={styles.badges}><button className={styles.primaryButton} disabled={Boolean(generation) || busy || finalized} onClick={() => generate(firm, row)}>{busy ? <LoaderCircle className={styles.spinner} size={16} /> : finalized ? <Check size={16} /> : <Sparkles size={16} />}{busy ? "분석 중" : row?.status === "completed" ? "이번 달 생성 완료" : row?.status === "insufficient_data" ? "자료 없음 · 분석 마감" : stale ? "중단된 분석 재시도" : row?.status === "failed" ? "다시 시도" : "AI 전략 만들기"}</button><button className={styles.secondaryButton} disabled={Boolean(researching)} onClick={() => runResearch(firm)}>{researching === firm.id ? <LoaderCircle className={styles.spinner} size={16} /> : <Globe size={16} />}{researching === firm.id ? "리서치 중" : research[firm.id] ? "심층리서치 다시 실행" : "로펌 심층리서치"}</button></div></div>
                             <div className={styles.sourceBar} aria-label="보고서에 반영한 근거"><span>반영 자료</span><span>상담·사례 <b>{counts.records}</b></span><span>요청사항 <b>{counts.requests}</b></span><span>업무일지 <b>{counts.worklogs}</b></span><span>메시지 <b>{counts.messages}</b></span></div>
                             {failure && <div className={styles.cardError} role="alert">{failure}</div>}
                             {row?.status === "failed" && row.error_message && <div className={styles.cardError} role="alert">{row.error_message}</div>}
+                            {researchNotice?.firmId === firm.id && <div className={researchNotice.failed ? styles.cardError : styles.generationNotice} role={researchNotice.failed ? "alert" : "status"}>{researching === firm.id && <LoaderCircle className={styles.spinner} size={14} />}{researchNotice.message}</div>}
+                            {research[firm.id] && <details className={styles.reportDetails}><summary><span>심층 리서치 보고서 <span>{new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "2-digit", day: "2-digit" }).format(new Date(research[firm.id].generated_at))} 생성</span></span><ArrowDown size={18} aria-hidden /></summary><ResearchContent research={research[firm.id]} />{research[firm.id].model && <p className={styles.modelNote}>생성 모델: {research[firm.id].model} · 웹 공개 정보 기반 제안이며 확정된 사실이 아닙니다.</p>}</details>}
                             {row?.report ? <details className={styles.reportDetails} open={visibleFirms.length === 1}><summary><span>전략·포스팅 주제 확인 <span>{row.report.topics.length}개 주제</span></span><ArrowDown size={18} aria-hidden /></summary><ReportContent report={row.report} firmName={firm.name} />{row.model && <p className={styles.modelNote}>생성 모델: {row.model} · 내용은 AI 제안이며 확정된 업무 지시가 아닙니다.</p>}</details> : <div className={styles.reportPlaceholder}>{busy ? "자료를 분석하고 실행 우선순위와 콘텐츠 주제를 정리하고 있습니다. 새로고침해도 중복으로 생성하지 않습니다." : row?.status === "insufficient_data" ? "이 달에 분석할 자료가 없습니다. 새로 등록한 상담 내역, 사례, 요청사항은 다음 월간 분석에 반영됩니다." : row?.status === "failed" ? "보고서 생성에 실패했습니다. 자료와 연결 설정을 확인한 뒤 다시 시도해 주세요." : "이 달의 상담·사례·업무일지·요청사항을 함께 분석합니다. 이 페이지에서는 버튼을 누를 때만 AI 생성이 실행됩니다."}</div>}
                         </article>;
                     })}</div>}

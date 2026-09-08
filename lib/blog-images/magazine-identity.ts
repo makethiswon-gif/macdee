@@ -24,6 +24,34 @@ export type LayoutFamily = "journal" | "poster" | "column";
 const PALETTE_KEYS: readonly PaletteKey[] = ["cobalt", "vermilion", "forest", "aubergine", "graphite", "amber", "burgundy", "teal", "slate", "olive"];
 const FAMILIES: readonly LayoutFamily[] = ["journal", "poster", "column"];
 
+// 팔레트 field 색의 색상(hue) 기준표 — magazine-design 의 field 값에서 계산.
+// (이 파일은 관리화면 클라이언트에서도 쓰여 canvas 의존인 design 모듈을 import 못한다.)
+// graphite 는 무채색이라 hue 후보에서 제외 — 무채/미등록 브랜드는 해시로 배정된다.
+const PALETTE_HUES: readonly [PaletteKey, number][] = [
+    ["vermilion", 8], ["amber", 38], ["olive", 71], ["forest", 157], ["teal", 170],
+    ["slate", 207], ["cobalt", 219], ["aubergine", 281], ["burgundy", 347],
+];
+
+/** 등록 브랜드 컬러가 유채색이면 가장 가까운 hue 의 팔레트를 돌려준다. */
+function brandPalette(hex: string | undefined): PaletteKey | null {
+    const match = (hex || "").trim().match(/^#?([0-9a-fA-F]{6})$/);
+    if (!match) return null;
+    const n = parseInt(match[1], 16);
+    const r = (n >> 16) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+    const l = (max + min) / 2;
+    const s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
+    // 무채색·극단 명도는 "색 정보 없음" — 로고 추출 검정(#080808)이 대표 사례.
+    if (s < 0.18 || l < 0.12 || l > 0.92) return null;
+    const hue = 60 * (max === r ? ((g - b) / d + 6) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4);
+    let best: PaletteKey = PALETTE_HUES[0][0], bestDist = 361;
+    for (const [key, h] of PALETTE_HUES) {
+        const dist = Math.min(Math.abs(hue - h), 360 - Math.abs(hue - h));
+        if (dist < bestDist) { best = key; bestDist = dist; }
+    }
+    return best;
+}
+
 export interface MagazineIdentity {
     typography: "serif" | "sans";
     style: EditorialStyle;
@@ -58,7 +86,9 @@ export function getMagazineIdentity(profile: Pick<EditorialProfile, "id" | "lawy
     const roll = (axis: string, n: number) => fnv1a(key + "#" + axis, 0x811c9dc5) % n;
     const typography: "serif" | "sans" = roll("typo", 2) === 0 ? "serif" : "sans";
     const style: EditorialStyle = roll("style", 2) === 0 ? "contrast" : "paper";
-    const palette = PALETTE_KEYS[roll("palette", PALETTE_KEYS.length)];
+    // 브랜드 컬러(심층 리서치·로고에서 수집)가 유채색이면 그 색과 가장 가까운
+    // 팔레트로 — 로고·홈페이지와 지면이 자연스럽게 어울린다. 없으면 해시 배정.
+    const palette = brandPalette(profile.brandColor) ?? PALETTE_KEYS[roll("palette", PALETTE_KEYS.length)];
     const family = FAMILIES[roll("family", FAMILIES.length)];
     return { typography, style, palette, family, label: `${palette} · ${family} · ${typography} · ${style}` };
 }
