@@ -105,9 +105,8 @@ for (const lawyer of LAWYERS) {
         ] };
         infoCard.heading = "상담 전 준비 서류";
     }
-    // 팔레트는 원고 분위기(기획 모델)의 몫 — 갤러리는 시드별로 다르게 시뮬레이션
-    const seedPalette = ({ "fx-a": "vermilion", "fx-b": "teal", "fx-c": "aubergine" } as const)[seed as "fx-a" | "fx-b" | "fx-c"]!;
-    plan.direction = { ...plan.direction!, palette: seedPalette, typography: identity.typography };
+    // V10.6 — 팔레트·골격은 변호사 정체성 고정. 렌더러가 identity 에서 직접 읽는다.
+    plan.direction = { ...plan.direction!, typography: identity.typography };
     for (const card of plan.cards) {
         if (seed !== "fx-a" && (card.type === "illustration" || card.type === "contact")) continue; // 변주 검증은 표지·정보 중심
         const art = card.type === "thumbnail" ? coverArt : card.type === "illustration" ? wideArt : undefined;

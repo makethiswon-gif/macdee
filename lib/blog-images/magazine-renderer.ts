@@ -8,7 +8,7 @@ import { ContactProfileError } from "./contact-renderer";
 import { cardPlacement } from "./visual-plan-types";
 import type { BriefRenderOptions } from "./brief-renderer";
 import { DEFAULT_DIRECTION, MAGAZINE_PALETTES, magazineFonts, type, typeHeight, fitTitle, rect, rule } from "./magazine-design";
-import { getMagazineIdentity, fnv, type LayoutFamily, type MastheadStyle } from "./magazine-identity";
+import { getMagazineIdentity, fnv, type LayoutFamily } from "./magazine-identity";
 
 // ══ V10.3 — 글 단위 조판 변주 ══
 //
@@ -22,12 +22,14 @@ import { getMagazineIdentity, fnv, type LayoutFamily, type MastheadStyle } from 
 // 등록 자산 밖의 어떤 사실·글자도 만들지 않는다.
 
 const W = 1024, P = 72, I = W - 2 * P;
-const FOLIO: Record<BlogCardType, string> = { thumbnail: "01", illustration: "02", info: "03", contact: "04" };
 
 export async function renderMagazineCard(opts: BriefRenderOptions): Promise<BlogImageCard> {
     magazineFonts();
     const { card, profile } = opts, direction = opts.plan.direction || DEFAULT_DIRECTION;
-    const p = MAGAZINE_PALETTES[direction.palette], face = direction.typography;
+    const identity = getMagazineIdentity(profile);
+    // 색·서체·골격은 변호사 정체성에서 직접 읽는다(V10.6) — 기획 응답이 흔들려도
+    // 같은 변호사의 지면은 항상 같은 색·형식으로 나온다.
+    const p = MAGAZINE_PALETTES[identity.palette], face = identity.typography;
     const strong = opts.style !== "paper", warnings: string[] = [];
     const heading = card.type === "contact" ? "상담 안내" : opts.headingOverride?.trim() || card.heading;
     if (heading.length > 70) throw new Error("이미지 제목은 70자 이내로 입력해 주세요.");
@@ -53,21 +55,17 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
         const prepared = await prepareMagazineLogo(await readBrandAsset(profile.logoImage));
         logo = await decode(prepared.bytes); lightLogo = prepared.lightInk;
     } catch { warnings.push("등록 로고를 읽지 못해 사무소명을 표시했습니다."); }
-    const identity = getMagazineIdentity(profile);
-    // ── 글 단위 조판 시드 — 원고가 바뀌면 골격이 바뀐다. 같은 글은 항상 같게. ──
+    // ── 글 단위 조판 시드 — 골격 가족은 변호사 고정, 미세 조판만 원고마다 변주. ──
     const seedKey = `${opts.plan.sourceHash}|${profile.id || profile.lawyerName || ""}`;
     const pick = (salt: string, n: number) => fnv(seedKey + ":" + salt) % n;
-    const fam: LayoutFamily = (["journal", "poster", "column"] as const)[pick("fam", 3)];
-    const mastheadStyle: MastheadStyle = pick("mh", 2) === 0 ? "rules" : "block";
+    const fam: LayoutFamily = identity.family;
     const BAND = [190, 212, 236][pick("band", 3)];           // column 밴드 폭
-    const barH = [6, 8, 11][pick("bar", 3)];                 // poster 상단 바
-    const ruleW = [4, 5, 6][pick("rule", 3)];                // 여닫는 괘선 무게
+    const ruleW = [2, 3, 4][pick("rule", 3)];                // 여닫는 괘선 무게 — 미니멀 톤
     const matIn = [14, 18, 24][pick("mat", 3)];              // 도판 매트 여백
     const spineBoost = [-8, 0, 8][pick("spine", 3)];         // 숫자 스파인 크기 미세 변주
     const rowVar = pick("rowvar", 2) === 0 ? "side" : "stacked"; // journal 행 구조: 좌측 스파인 vs 적층
     const tPref = [64, 78, 90][pick("tsize", 3)];            // 제목 스케일 3단
     const brand = [profile.officeName, profile.lawyerName].filter(Boolean).join(" · ");
-    const folio = `${FOLIO[card.type]} / 04`;
 
     // 가족별 본문 기둥 — 측정과 그리기가 이 값만 쓴다
     const colX = fam === "column" ? BAND + 44 : P;              // 본문 좌측
@@ -78,32 +76,23 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
     /* ── 공통 부품 ── */
     const mastheadH = 120;
     const center = (c: SKRSContext2D, on: boolean) => { c.textAlign = on ? "center" : "left"; };
+    // 미니멀 마스트헤드 — 킥커 한 줄 + 얇은 괘선 하나. 폴리오(01/04)·상단 바·
+    // 블록 박스는 대표 지시로 제거했다("1/3 같은 텍스트 불필요, 최대한 미니멀").
     const masthead = (c: SKRSContext2D, dark: boolean, label: string) => {
         const fg = dark ? p.paper : p.ink;
-        if (fam === "poster") {
-            rect(c, P, 18, I, barH, fg); // 포스터의 상단 바 — 이 가족의 서명
-            center(c, true);
-            type(c, label, W / 2, 46, I - 240, 24, fg, "sans");
-            center(c, false);
-        } else if (fam === "column") {
-            type(c, label, 26, 46, BAND - 52, 23, p.paper, "sans"); // 밴드 안 킥커
-        } else if (mastheadStyle === "block") {
-            const boxW = Math.min(I - 220, label.length * 25 + 40);
-            rect(c, P, 32, boxW, 46, dark ? p.paper : p.ink);
-            type(c, label, P + 20, 43, boxW - 30, 23, dark ? p.ink : p.paper, "sans");
-        } else {
-            type(c, label, P, 46, I - 200, 24, fg, "sans");
+        if (label) {
+            if (fam === "poster") {
+                center(c, true);
+                type(c, label, W / 2, 46, I - 240, 23, fg, "sans");
+                center(c, false);
+            } else if (fam === "column") {
+                type(c, label, 26, 46, BAND - 52, 23, p.paper, "sans"); // 밴드 안 킥커
+            } else {
+                type(c, label, P, 46, I - 200, 23, fg, "sans");
+            }
         }
-        c.textAlign = "right";
-        type(c, folio, W - P, 49, 180, 21, dark ? `${p.paper}B3` : p.muted, "body");
-        c.textAlign = "left";
         const rx = fam === "column" ? colX : P, rw = fam === "column" ? colW : I;
-        if (fam === "journal" && mastheadStyle === "block") {
-            rule(c, rx, 103, rw, dark ? "#FFFFFF59" : `${p.ink}55`, 1);
-        } else {
-            rule(c, rx, 94, rw, dark ? p.paper : p.ink, ruleW);
-            rule(c, rx, 105, rw, dark ? "#FFFFFF59" : `${p.ink}40`, 1);
-        }
+        rule(c, rx, 94, rw, dark ? "#FFFFFF59" : `${p.ink}55`, 1);
     };
     // 액센트 색 장식 바(dash·틱·밑줄)는 대표 지시로 전부 제거했다 —
     // "주황색 줄 디자인 같은 건 불필요". 위계는 괘선·서체 크기만으로 만든다.
@@ -116,9 +105,6 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
         rule(c, rx, y, W - rx - P, darkRail ? "#FFFFFF55" : "#80808055");
         if (logo) d.picture(c, logo, P, y + 26, 176, 42, "contain");
         type(c, brand, logo ? P + 206 : rx, y + 30, W - rx - P - 276, 23, fg);
-        c.textAlign = "right";
-        type(c, `— ${FOLIO[card.type]}`, W - P, y + 32, 60, 21, fg, "body");
-        c.textAlign = "left";
     };
 
     /* ── 높이 계산 ── */
@@ -192,7 +178,7 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
             shade.addColorStop(0, p.ink + "F5"); shade.addColorStop(0.30, p.ink + "D9"); shade.addColorStop(0.56, p.ink + "00"); shade.addColorStop(0.86, p.ink + "00"); shade.addColorStop(1, p.ink + "F5");
             c.fillStyle = shade; c.fillRect(0, 0, W, H);
             if (fam === "column") { c.fillStyle = bandBg + "E0"; c.fillRect(0, 0, BAND, H); } // 사진 위 반투명 스파인
-            masthead(c, true, card.kicker || "법률 읽기");
+            masthead(c, true, card.kicker || "");
             const tx = fam === "column" ? colX : P;
             const tW = fam === "poster" ? I - 80 : fam === "column" ? colW - 10 : I - 24;
             const deckBodyH = card.deck ? th(card.deck, fam === "poster" ? I - 200 : tW - 60, 33) : 0;
@@ -213,7 +199,7 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
             footer(c, H - footerH - 8, true);
         } else {
             if (fam === "column") rect(c, 0, 0, W, mastheadH - 2, bandBg); // 밝은 표지의 밴드는 상단 가로형
-            masthead(c, fam === "column", card.kicker || "법률 읽기");
+            masthead(c, fam === "column", card.kicker || "");
             const tx = P, tW = fam === "poster" ? I - 80 : I;
             const title = fitTitle(measure, headline, tW, 320, 86, face);
             center(c, fam === "poster");
@@ -236,7 +222,7 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
     /* ═══ 삽화 — 도판 플레이트 ═══ */
     } else if (card.type === "illustration" && art) {
         band();
-        masthead(c, false, card.kicker || "사건을 보는 관점");
+        masthead(c, false, card.kicker || "");
         const tx = fam === "column" ? colX : P;
         center(c, fam === "poster");
         type(c, infoTitle.text, fam === "poster" ? W / 2 : tx, titleY, titleW, infoTitle.size, p.ink, face, 1.26);
@@ -261,7 +247,7 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
     } else if (card.type === "info") {
         if (strong) rect(c, 0, 0, W, infoHeader - 28, p.ink);
         band();
-        masthead(c, strong || fam === "column", "핵심 정리");
+        masthead(c, strong || fam === "column", card.kicker || "");
         const tx = fam === "column" ? colX : P;
         const fg = strong ? p.paper : p.ink;
         center(c, fam === "poster");
