@@ -214,6 +214,66 @@ function ResearchContent({ research }: { research: FirmResearch }) {
     );
 }
 
+// 대표 전용 심층 브리핑 — 본문은 비공개 Storage 에만 있고 이 컴포넌트는 렌더만 한다.
+type BriefingData = {
+    title: string; generatedAt: string; intro: string;
+    summary: { firm: string; base: string; asset: string; gapText: string; maturity: { label: string; tone: "ok" | "warn" | "gap" } }[];
+    patterns: { title: string; detail: string }[];
+    firms: { name: string; sub: string; oneline: string; finding: string; risk: string; strengths: string[]; brand: string[]; actions: { title: string; why: string }[] }[];
+    fixes: { item: string; firm: string; reason: string }[];
+    footnote: string;
+};
+
+function BriefingView({ data }: { data: BriefingData }) {
+    const toneClass = { ok: styles.greenBadge, warn: styles.blueBadge, gap: styles.urgentBadge } as const;
+    return (
+        <div className={styles.reportContent}>
+            <section className={styles.summaryBlock}>
+                <span className={styles.sectionIndex}>DEEP RESEARCH BRIEFING · {data.generatedAt}</span>
+                <h3>{data.title}</h3>
+                <p>{data.intro}</p>
+            </section>
+            <section className={styles.reportSection} aria-label="한눈에 보는 요약">
+                <div className={styles.sectionHeading}><div><span className={styles.sectionIndex}>SUMMARY</span><h3>한눈에 보는 {data.summary.length}곳</h3></div></div>
+                <div style={{ overflowX: "auto" }}>
+                    <table style={{ borderCollapse: "collapse", width: "100%", minWidth: 640, fontSize: 13.5 }}>
+                        <thead><tr>{["로펌", "거점 · 축", "가장 강한 자산", "가장 급한 공백", "성숙도"].map((h) => <th key={h} style={{ textAlign: "left", padding: "8px 10px", borderBottom: "2px solid currentColor", opacity: 0.7, whiteSpace: "nowrap" }}>{h}</th>)}</tr></thead>
+                        <tbody>{data.summary.map((row) => <tr key={row.firm}>
+                            <td style={{ padding: "9px 10px", fontWeight: 700, whiteSpace: "nowrap" }}>{row.firm}</td>
+                            <td style={{ padding: "9px 10px" }}>{row.base}</td>
+                            <td style={{ padding: "9px 10px" }}>{row.asset}</td>
+                            <td style={{ padding: "9px 10px" }}>{row.gapText}</td>
+                            <td style={{ padding: "9px 10px", whiteSpace: "nowrap" }}><span className={toneClass[row.maturity.tone]}>{row.maturity.label}</span></td>
+                        </tr>)}</tbody>
+                    </table>
+                </div>
+            </section>
+            <section className={styles.reportSection} aria-label="공통 패턴">
+                <div className={styles.sectionHeading}><div><span className={styles.sectionIndex}>PATTERNS</span><h3>전 고객사를 관통하는 패턴</h3></div></div>
+                <div className={styles.signalGrid}>{data.patterns.map((pattern) => <article key={pattern.title} className={styles.signal}><h4>{pattern.title}</h4><p>{pattern.detail}</p></article>)}</div>
+            </section>
+            {data.firms.map((firm, firmIndex) => (
+                <section key={firm.name} className={styles.reportSection} aria-label={firm.name}>
+                    <div className={styles.sectionHeading}><div><span className={styles.sectionIndex}>FIRM {String(firmIndex + 1).padStart(2, "0")}</span><h3>{firm.name} <span>{firm.sub}</span></h3></div></div>
+                    <p className={styles.copyMessage}>{firm.oneline}</p>
+                    <div className={styles.nextFocus}><ArrowRight size={18} aria-hidden /><div><strong>핵심 발견</strong><p>{firm.finding}</p></div></div>
+                    <div className={styles.nextFocus}><ArrowRight size={18} aria-hidden /><div><strong>리스크</strong><p>{firm.risk}</p></div></div>
+                    <div className={styles.bottomGrid}>
+                        <div><p className={styles.sectionIndex}>어필 특장점</p><ul className={styles.gaps}>{firm.strengths.map((item, index) => <li key={index}>{item}</li>)}</ul></div>
+                        <div><p className={styles.sectionIndex}>브랜드</p><ul className={styles.gaps}>{firm.brand.map((item, index) => <li key={index}>{item}</li>)}</ul></div>
+                    </div>
+                    <ol className={styles.priorities}>{firm.actions.map((action, index) => <li key={index}><span className={styles.actionNumber}>{String(index + 1).padStart(2, "0")}</span><div><div className={styles.actionHeading}><h4>{action.title}</h4></div><p>{action.why}</p></div></li>)}</ol>
+                </section>
+            ))}
+            <section className={styles.reportSection} aria-label="즉시 처리 목록">
+                <div className={styles.sectionHeading}><div><span className={styles.sectionIndex}>NEXT</span><h3>즉시 처리 목록</h3></div></div>
+                <ol className={styles.priorities}>{data.fixes.map((fix, index) => <li key={index}><span className={styles.actionNumber}>{String(index + 1).padStart(2, "0")}</span><div><div className={styles.actionHeading}><h4>{fix.item}</h4><span className={styles.neutralBadge}>{fix.firm}</span></div><p>{fix.reason}</p></div></li>)}</ol>
+            </section>
+            <div className={styles.reviewNote}><LockKeyhole size={17} aria-hidden /><p><strong>대표 전용 브리핑입니다.</strong> {data.footnote}</p></div>
+        </div>
+    );
+}
+
 function RequestCard({ request, firmName, onSaved }: { request: PortalRequest; firmName: string; onSaved: (request: PortalRequest) => void }) {
     const id = useId();
     const [status, setStatus] = useState<RequestStatus>(request.status);
@@ -337,7 +397,9 @@ function RequestInbox({ firmId, firms, onCounts }: { firmId: string; firms: Firm
 export default function ClientStrategyDashboard() {
     const [month, setMonth] = useState(getPreviousKstMonth);
     const [firmId, setFirmId] = useState("");
-    const [tab, setTab] = useState<"strategy" | "requests">("strategy");
+    const [tab, setTab] = useState<"strategy" | "requests" | "briefing">("strategy");
+    const [briefing, setBriefing] = useState<BriefingData | null>(null);
+    const [briefingState, setBriefingState] = useState<"idle" | "loading" | "error" | "ready">("idle");
     const [data, setData] = useState<StrategyResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -389,6 +451,16 @@ export default function ClientStrategyDashboard() {
     }, [firmId, revision]);
 
     useEffect(() => () => controllerRef.current?.abort(), []);
+
+    // 심층 브리핑 — 탭을 처음 열 때만 불러온다. 본문은 비공개 저장소에만 있다.
+    useEffect(() => {
+        if (tab !== "briefing" || briefingState !== "idle") return;
+        setBriefingState("loading");
+        fetch("/api/admin/strategy-briefing", { cache: "no-store", credentials: "include" })
+            .then((response) => readResponse<{ briefing?: BriefingData; error?: string }>(response))
+            .then((result) => { setBriefing(result.briefing || null); setBriefingState(result.briefing ? "ready" : "error"); })
+            .catch(() => setBriefingState("error"));
+    }, [tab, briefingState]);
 
     // 저장된 심층 리서치 불러오기 — 화면 진입 시 1회. AI 실행은 버튼으로만.
     useEffect(() => {
@@ -484,11 +556,17 @@ export default function ClientStrategyDashboard() {
                 <article><span>보고서에 반영한 자료</span><strong>{loading ? "—" : totalSources.records}<small>건</small></strong><p>상담·수임·판결·승소사례</p></article>
                 <article><span>확인할 요청사항</span><strong>{requestCounts ? requestCounts.접수 + requestCounts.진행중 : "—"}<small>건</small></strong><p>접수 + 진행중 · 전체 기간</p></article>
             </section>
-            <nav className={styles.tabs} aria-label="전략실 메뉴"><button onClick={() => setTab("strategy")} aria-pressed={tab === "strategy"} className={tab === "strategy" ? styles.activeTab : ""}><Sparkles size={17} />월간 전략</button><button onClick={() => setTab("requests")} aria-pressed={tab === "requests"} className={tab === "requests" ? styles.activeTab : ""}><Inbox size={17} />요청사항{requestCounts && requestCounts.접수 > 0 && <span>{requestCounts.접수}</span>}</button></nav>
+            <nav className={styles.tabs} aria-label="전략실 메뉴"><button onClick={() => setTab("strategy")} aria-pressed={tab === "strategy"} className={tab === "strategy" ? styles.activeTab : ""}><Sparkles size={17} />월간 전략</button><button onClick={() => setTab("briefing")} aria-pressed={tab === "briefing"} className={tab === "briefing" ? styles.activeTab : ""}><Globe size={17} />심층 브리핑</button><button onClick={() => setTab("requests")} aria-pressed={tab === "requests"} className={tab === "requests" ? styles.activeTab : ""}><Inbox size={17} />요청사항{requestCounts && requestCounts.접수 > 0 && <span>{requestCounts.접수}</span>}</button></nav>
             <div className={styles.generationNotice} role="status" aria-live="polite">{generation && <LoaderCircle className={styles.spinner} size={15} />}{generationMessage}</div>
             {error && <div role="alert" className={styles.errorBox}><p>{error}</p><div><button onClick={() => setRevision((value) => value + 1)} className={styles.secondaryButton}>다시 불러오기</button><Link href="/admin">관리자 로그인</Link></div></div>}
             {data?.setupRequired && <div role="status" className={styles.setupBox}><strong>월간 전략 저장소 설정이 필요합니다.</strong><p>아직 데이터베이스 설정이 완료되지 않았습니다. 마이그레이션 적용 후 전략 생성과 저장을 사용할 수 있습니다.</p></div>}
-            {tab === "requests" ? <RequestInbox key={firmId} firmId={firmId} firms={firms} onCounts={captureCounts} /> : <section aria-label="월간 전략 보고서">
+            {tab === "briefing" ? (
+                <section aria-label="심층 리서치 브리핑">
+                    {briefingState === "loading" && <div role="status" className={styles.loading}><LoaderCircle size={20} className={styles.spinner} />브리핑을 불러오는 중</div>}
+                    {briefingState === "error" && <div role="alert" className={styles.errorBox}><p>등록된 브리핑이 없거나 불러오지 못했습니다.</p><button onClick={() => setBriefingState("idle")} className={styles.secondaryButton}>다시 불러오기</button></div>}
+                    {briefingState === "ready" && briefing && <BriefingView data={briefing} />}
+                </section>
+            ) : tab === "requests" ? <RequestInbox key={firmId} firmId={firmId} firms={firms} onCounts={captureCounts} /> : <section aria-label="월간 전략 보고서">
                 <div className={styles.strategyIntro}><div><span className={styles.sectionIndex}>MONTHLY STRATEGY</span><h2>{readableMonth(month)} 등록 자료 → 다음 달 실행안</h2><p>자료 등록일 기준으로 분석하며, 현재 미처리 요청도 함께 봅니다. 미생성·실패 건은 직접 생성하고 완료한 보고서는 보존합니다.</p></div><span className={styles.draftPill}><FileText size={14} aria-hidden />대표 검토용 초안</span></div>
                 {loading ? <div role="status" className={styles.loading}><LoaderCircle size={20} className={styles.spinner} />월간 전략을 불러오는 중</div> : !error && !data?.setupRequired && <>
                     {!visibleFirms.length ? <div className={styles.emptyState}><FileText size={30} /><h3>등록된 클라이언트가 없습니다.</h3><p>클라이언트 CMS에서 로펌을 등록하고 자료를 모아 주세요. 샘플 전략이나 가상 수치는 표시하지 않습니다.</p><Link href="/portal" className={styles.primaryButton}>클라이언트 등록하기<ArrowRight size={15} /></Link></div> : <div className={styles.reports}>{visibleFirms.map((firm) => {
