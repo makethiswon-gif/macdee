@@ -123,8 +123,12 @@ export function toNaverHtml(body: string, title?: string): string {
     // 소제목이 다음 문단의 제목이라는 게 보이도록. 그 외 블록 사이는 빈 줄 하나(=<br> 2개).
     let afterHeading = false;
 
+    // 소제목은 h2/h3 로 내보낸다 — 스마트에디터가 정식 '소제목' 컴포넌트로
+    // 매핑하면 DIA 구조 신호를 받고, 매핑하지 않아도 인라인 스타일이 남아
+    // 기존 괘선 모양 그대로 나온다. (styled <p>는 붙여넣기에서 표/인용구로
+    // 변형되는 문제가 있었다.)
     if (title && title.trim()) {
-        out.push(`<p style="${headingStyle(20)}">${inline(title.trim(), hl())}</p>`);
+        out.push(`<h2 style="${headingStyle(20)}">${inline(title.trim(), hl())}</h2>`);
         afterHeading = true;
     }
 
@@ -135,7 +139,7 @@ export function toNaverHtml(body: string, title?: string): string {
             case "heading":
                 section++;
                 gap(tight ? 1 : 2);
-                out.push(`<p style="${headingStyle(18)}">${inline(block.text, hl())}</p>`);
+                out.push(`<h3 style="${headingStyle(18)}">${inline(block.text, hl())}</h3>`);
                 afterHeading = true;
                 break;
 
