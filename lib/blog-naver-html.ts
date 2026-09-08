@@ -5,7 +5,25 @@
 //   · <mark>는 배경이 사라진다 → background-color를 직접 지정
 //   · u / strong / ol / ul / hr / font-size / color 는 그대로 살아남는다
 
-const HIGHLIGHT = "#CFE8F5"; // 기존 블로그에서 쓰던 하늘색 형광펜
+// 형광펜 5색 — 전부 저채도 파스텔(V10.5 보수 톤). 소제목 단위로 돌아가며 쓴다.
+// 사람 블로거의 습관과 같다: 한 단락 안에서는 한 색, 단락이 바뀌면 색이 바뀐다.
+const HIGHLIGHTS = [
+    "#CFE8F5", // 하늘
+    "#FBF3C4", // 연노랑
+    "#FADCE0", // 연분홍
+    "#DCEDD5", // 연초록
+    "#E7DFF2", // 연보라
+];
+
+// 글마다 시작 색이 달라지도록 본문 해시로 시드를 만든다. 같은 글은 항상 같은 색.
+function fnv1a(input: string): number {
+    let h = 0x811c9dc5;
+    for (let i = 0; i < input.length; i++) {
+        h ^= input.charCodeAt(i);
+        h = Math.imul(h, 0x01000193) >>> 0;
+    }
+    return h >>> 0;
+}
 
 const headingStyle = (fontSize: number) =>
     `border-left:4px solid #000000;padding-left:14px;font-weight:700;font-size:${fontSize}px;`;
@@ -15,9 +33,9 @@ function escapeHtml(s: string): string {
 }
 
 // 인라인 강조. 이스케이프 뒤에 적용하므로 태그 주입 걱정이 없다.
-function inline(s: string): string {
+function inline(s: string, highlight: string): string {
     return escapeHtml(s)
-        .replace(/==(.+?)==/g, `<span style="background-color:${HIGHLIGHT};">$1</span>`)
+        .replace(/==(.+?)==/g, `<span style="background-color:${highlight};">$1</span>`)
         .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
         .replace(/__(.+?)__/g, "<u>$1</u>");
 }
@@ -96,29 +114,42 @@ export function toNaverHtml(body: string, title?: string): string {
         for (let i = have; i < n; i++) out.push("<br>");
     };
 
+    // 형광펜은 소제목 단위로 색이 바뀐다. 시작 색은 글 해시로 정해 글마다 다르다.
+    const seed = fnv1a(body);
+    let section = 0;
+    const hl = () => HIGHLIGHTS[(seed + section) % HIGHLIGHTS.length];
+
+    // 소제목(괘선 인용구) 바로 아래는 빈 줄 없이 한 줄만 띈다 —
+    // 소제목이 다음 문단의 제목이라는 게 보이도록. 그 외 블록 사이는 빈 줄 하나(=<br> 2개).
+    let afterHeading = false;
+
     if (title && title.trim()) {
-        out.push(`<p style="${headingStyle(20)}">${inline(title.trim())}</p>`);
+        out.push(`<p style="${headingStyle(20)}">${inline(title.trim(), hl())}</p>`);
+        afterHeading = true;
     }
 
     for (const block of parse(body)) {
+        const tight = afterHeading;
+        afterHeading = false;
         switch (block.kind) {
             case "heading":
-                gap(2);
-                out.push(`<p style="${headingStyle(18)}">${inline(block.text)}</p>`);
-                gap(1);
+                section++;
+                gap(tight ? 1 : 2);
+                out.push(`<p style="${headingStyle(18)}">${inline(block.text, hl())}</p>`);
+                afterHeading = true;
                 break;
 
             case "para":
-                gap(2);
+                gap(tight ? 1 : 2);
                 // 문단 안에서 줄만 바뀐 경우는 <br> 하나로 잇는다
-                out.push(block.lines.map(inline).join("<br>"));
+                out.push(block.lines.map((l) => inline(l, hl())).join("<br>"));
                 break;
 
             case "list":
                 gap(1);
                 out.push(
                     `<${block.ordered ? "ol" : "ul"}>` +
-                        block.items.map((i) => `<li>${inline(i)}</li>`).join("") +
+                        block.items.map((i) => `<li>${inline(i, hl())}</li>`).join("") +
                         `</${block.ordered ? "ol" : "ul"}>`
                 );
                 break;
