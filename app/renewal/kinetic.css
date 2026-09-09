@@ -67,16 +67,6 @@
     & > header .mt-label { font-size: 14px; }
     & .mt-kinetic-home :is(a,button):focus-visible { outline-color: #fff; }
     & .mt-kinetic-home [data-service] a:focus-visible { outline-color: #004aad; }
-    /* Stronger pointer response on the approved home only. Keep the title/LCP
-       static and leave touch, reduced motion and archived studies unchanged. */
-    @media (min-width: 768px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-        & .mt-kinetic-home [data-motion-part="kinetic-perspective"] {
-            transform: translate3d(calc(var(--mx) * 64px),calc(var(--my) * 34px),0)
-                rotateX(calc(46deg - var(--progress) * 22deg + var(--my) * 12deg))
-                rotateY(calc(var(--mx) * -8deg))
-                rotateZ(calc(-9deg + var(--progress) * 17deg + var(--mx) * 7deg));
-        }
-    }
     & > footer { --mt-dark-bg: #071526; --mt-dark-gray: #c6d5e9; --mt-dark-line: #ffffff30; --mt-gray: #c6d5e9; }
     & > footer a:focus-visible { outline-color: #fff; }
 
