@@ -16,7 +16,6 @@ const { articleParagraphs } = require("../lib/blog-images/visual-plan-types.ts")
 const { contactActions } = require("../lib/blog-images/contact-details.ts");
 const { renderBriefCard, balanceHeadline } = require("../lib/blog-images/brief-renderer.ts");
 const { editorialPhotoPrompt, generateEditorialPhoto, normalizeEditorialArt } = require("../lib/blog-images/photo-generator.ts");
-const { reviewMagazineCard, DESIGN_REVIEW_MODEL } = require("../lib/blog-images/design-review.ts");
 const { DEFAULT_DIRECTION, MAGAZINE_PALETTES } = require("../lib/blog-images/magazine-design.ts");
 if (!live && !liveArt && !liveRest && !refreshFinal && !registeredId) {
     const moduleLoad = Module._load;
@@ -166,9 +165,9 @@ async function main() {
     try {
         global.fetch = async (url) => { assert.match(String(url), /anthropic/); calls++; throw new Error("Fixture review unavailable"); };
         let r = await POST(req({ profile, title, content: article, cardType: "info", plan, renderOnly: true, style: "contrast" }));
-        assert.equal(r.status, 200, JSON.stringify(await r.clone().json())); assert.equal(calls, 1);
+        assert.equal(r.status, 200, JSON.stringify(await r.clone().json())); assert.equal(calls, 0);
         r = await POST(req({ profile, title, content: article, cardType: "thumbnail", plan, renderOnly: true, reuseArt: { sourceHash: plan.sourceHash, dataUrl: "data:image/jpeg;base64," + normalArt.toString("base64") }, headingOverride: "제목만 바꿉니다" }));
-        assert.equal(r.status, 200, JSON.stringify(await r.clone().json())); assert.equal(calls, 2);
+        assert.equal(r.status, 200, JSON.stringify(await r.clone().json())); assert.equal(calls, 0);
         await save((await r.json()).card, "cover-reused");
         const skip = JSON.parse(JSON.stringify(plan)); skip.cards[2].skipReason = "도표로 정리할 근거가 없습니다."; delete skip.cards[2].infographic;
         r = await POST(req({ profile, title, content: article, cardType: "info", plan: skip })); assert.equal(r.status, 422);
@@ -192,29 +191,10 @@ async function main() {
         };
         r = await POST(req({ profile, title, content: article, cardType: "thumbnail", plan }));
         assert.equal(r.status, 200);
-        const held = (await r.json()).card;
-        assert.equal(held.designReview.status, "revise"); assert.match(held.warnings.join(" "), /확인 필요/);
-        assert.ok(held.productionId && held.artSourceHash, "Private paid artwork has a reusable production ID");
-        assert.equal(images, 1); assert.equal(reviews, 1);
-        let finalReviews = 0;
-        const testCard = await renderBriefCard({ plan, card: plan.cards[2], profile, style: "contrast" });
-        const criticResult = { design: 4, readability: 4, fidelity: 5, critical: false, summary: "픽셀·원고 검수 완료", issues: [] };
-        global.fetch = async (url, init) => {
-            finalReviews++;
-            assert.match(String(url), /anthropic.com\/v1\/messages$/);
-            const body = JSON.parse(init.body);
-            assert.equal(body.model, DESIGN_REVIEW_MODEL); assert.equal(body.thinking.type, "disabled");
-            assert.equal(body.max_tokens, 1800);
-            assert.equal(body.messages[0].content[1].source.media_type, "image/jpeg");
-            assert.ok(body.messages[0].content[1].source.data.length > 0);
-            return Response.json({ content: [{ type: "text", text: JSON.stringify(criticResult) }] });
-        };
-        assert.equal((await reviewMagazineCard(testCard, plan.cards[2], plan)).status, "pass");
-        criticResult.critical = true;
-        assert.equal((await reviewMagazineCard(testCard, plan.cards[2], plan)).status, "revise");
-        global.fetch = async () => { finalReviews++; return new Response("{}", { status: 429 }); };
-        assert.equal((await reviewMagazineCard(testCard, plan.cards[2], plan)).status, "unavailable");
-        assert.equal(finalReviews, 3, "Final critic does not silently retry or regenerate paid artwork");
+        const ready = (await r.json()).card;
+        assert.equal(ready.designReview, undefined); assert.ok(ready.releaseToken && ready.layoutChecks.passed);
+        assert.ok(ready.productionId && ready.artSourceHash, "Private paid artwork has a reusable production ID");
+        assert.equal(images, 1); assert.equal(reviews, 0);
         let timeouts = 0;
         global.fetch = async () => { timeouts++; throw new DOMException("The operation was aborted due to timeout", "TimeoutError"); };
         r = await PLAN(req({ title, content: article }));
@@ -240,14 +220,11 @@ async function main() {
         r = await POST(req({ profile, title, content: article, cardType: "thumbnail", plan }));
         assert.equal(r.status, 200);
         const preserved = (await r.json()).card;
-        assert.equal(preserved.designReview.status, "unavailable");
+        assert.equal(preserved.designReview, undefined);
         assert.ok(preserved.productionId && preserved.artSourceHash && preserved.imageDataUrl);
-        assert.match(preserved.warnings.join(" "), /보존/);
-        assert.equal(generated, 1); assert.equal(timedReviews, 1);
-        await save(preserved, "cover-review-timeout");
-        // A timeout while consuming the HTTP body is handled too, not only before response headers.
-        global.fetch = async () => ({ ok: true, json: async () => { throw new DOMException("timeout", "TimeoutError"); } });
-        assert.equal((await reviewMagazineCard(testCard, plan.cards[2], plan)).status, "unavailable");
+        assert.ok(preserved.releaseToken);
+        assert.equal(generated, 1); assert.equal(timedReviews, 0);
+        await save(preserved, "cover-no-ai-review");
     } finally { global.fetch = oldFetch; }
     if (live || liveArt || liveRest || refreshFinal || recompose) {
         const sampleIdx = process.argv.indexOf("--sample");
@@ -259,14 +236,12 @@ async function main() {
             fs.writeFileSync(planPath, JSON.stringify(p, null, 2));
             console.log("PLANNED " + sample.key + " in " + (Date.now() - planStarted) + "ms: " + p.cards[0].art.subject);
             if (refreshFinal) {
-                // Explicit opt-in: recompose saved artwork and review, NO image-generation or planning calls.
+                // Recompose saved artwork without any AI calls.
                 for (const pc of p.cards.filter((c) => !c.skipReason)) {
                     const name = sample.key + "-" + (pc.type === "thumbnail" ? "cover" : pc.type) + "-live";
                     const saved = JSON.parse(fs.readFileSync(path.join(out, name + ".json"), "utf8")).card;
                     const result = await renderBriefCard({ plan: p, card: pc, profile: liveProfile, style: "contrast", model: saved.model, art: saved.artDataUrl ? Buffer.from(saved.artDataUrl.split(",")[1], "base64") : undefined });
                     Object.assign(result, { artDataUrl: saved.artDataUrl, artSourceHash: saved.artSourceHash, artReview: saved.artReview });
-                    result.designReview = await reviewMagazineCard(result, pc, p);
-                    if (result.designReview.status !== "pass") result.warnings.push("완성본 검수에서 직접 확인이 필요합니다.");
                     await save(result, name);
                 }
                 continue;
@@ -275,7 +250,7 @@ async function main() {
                 const started = Date.now();
                 const r = await POST(req({ profile: liveProfile, title: sample.title, content: sample.content, cardType: "thumbnail", plan: p, quality: "medium", style: "contrast" }));
                 const result = await r.json(); assert.equal(r.status, 200, result.error); await save(result.card, sample.key + "-cover-live");
-                console.log("LIVE COVER " + (Date.now() - started) + "ms, review=" + result.card.designReview?.status);
+                console.log("LIVE COVER " + (Date.now() - started) + "ms, layout=" + result.card.layoutChecks?.passed);
             }
             if (recompose) {
                 const oldCard = JSON.parse(fs.readFileSync(path.join(out, sample.key + "-cover-live.json"), "utf8")).card;
@@ -291,6 +266,6 @@ async function main() {
             else for (const card of p.cards.filter((c) => ["info", "contact"].includes(c.type) && !c.skipReason)) await save(await renderBriefCard({ plan: p, card, profile: liveProfile, style: "contrast" }), sample.key + "-" + card.type + "-live");
         }
     }
-    console.log("PASS V9: evidence, full article, source mismatch, 5 palettes / 2 typefaces, text bounds/overlaps, payload, zero-AI re-render, art relevance rejection, independent finished-pixel critic.");
+    console.log("PASS V11: evidence, full article, source mismatch, palettes/typefaces, text bounds/overlaps, payload, zero-AI re-render, no finished-image AI review, signed layout-checked output.");
 }
 main().catch((e) => { console.error(e.stack); process.exitCode = 1; });

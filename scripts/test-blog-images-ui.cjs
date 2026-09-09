@@ -9,7 +9,7 @@ const plan = JSON.parse(fs.readFileSync(path.join(out, "plan.json"), "utf8"));
 const names = { thumbnail: "메인 썸네일", illustration: "본문 시각물", info: "정보 정리", contact: "변호사·상담 안내" };
 const responses = { thumbnail: fixture("cover-reused"), illustration: fixture("illustration-paper"), info: fixture("compare-paper"), contact: fixture("contact-paper") };
 for (const [type, c] of Object.entries(responses)) Object.assign(c, { type, name: names[type], designVersion: "editorial-v11", setId: "fixture-set", productionId: (type === "thumbnail" ? "a" : "b").repeat(64),
-    releaseToken: "fixture-release", layoutChecks: { passed: true, issues: [], textBlocks: 5 }, designReview: { status: "pass", model: "fixture", summary: "검수 통과", issues: [] },
+    releaseToken: "fixture-release", layoutChecks: { passed: true, issues: [], textBlocks: 5 }, designReview: undefined,
     artSourceHash: plan.cards.find((c) => c.type === type)?.art ? plan.sourceHash : undefined });
 (async () => {
     const browser = await chromium.launch({ channel: "chrome", headless: true });
@@ -34,7 +34,7 @@ for (const [type, c] of Object.entries(responses)) Object.assign(c, { type, name
                 requests.push(data);
                 if (data.cardType === "info" && failInfo) { failInfo = false; return send({ error: "검수용 장애" }, 503); }
                 const card = { ...responses[data.cardType], layout: data.style || "paper" };
-                if (data.cardType === "info" && holdInfo) { delete card.releaseToken; card.designReview = { status: "unavailable", model: "fixture", summary: "검수 대기", issues: [] }; }
+                if (data.cardType === "info" && holdInfo) { delete card.releaseToken; card.layoutChecks = { passed: false, issues: ["글자 겹침"], textBlocks: 5 }; }
                 return send({ card });
             }
             throw new Error("Unexpected API: " + url.pathname);
@@ -53,15 +53,16 @@ for (const [type, c] of Object.entries(responses)) Object.assign(c, { type, name
         const info = page.getByRole("article", { name: "정보 정리 결과", exact: true });
         assert.equal(await info.getByRole("button", { name: "PNG 저장", exact: true }).isDisabled(), true);
         await page.getByRole("button", { name: "4장 ZIP 저장", exact: true }).click();
-        await page.getByRole("alert").filter({ hasText: "4장 모두 검수" }).waitFor();
+        await page.getByRole("alert").filter({ hasText: "4장 모두 제작과 레이아웃 검사" }).waitFor();
         await info.getByRole("button", { name: "정보 정리 크게 보기", exact: true }).click();
         assert.equal(await page.getByRole("button", { name: "미리보기 이미지 저장", exact: true }).isDisabled(), true);
         await page.keyboard.press("Escape");
-        holdInfo = false; await info.getByRole("button", { name: "재검수", exact: true }).click(); await idle();
+        holdInfo = false; await info.getByRole("button", { name: "다시 처리", exact: true }).click(); await idle();
         assert.equal(requests.length, 6); assert.equal(planning, 1);
         const zipEvent = page.waitForEvent("download"); await page.getByRole("button", { name: "4장 ZIP 저장", exact: true }).click();
         const zip = await JSZip.loadAsync(fs.readFileSync(await (await zipEvent).path()));
         assert.equal(Object.keys(zip.files).filter((p) => p.endsWith(".png")).length, 4);
+        assert.equal(await page.getByText(/완성 지면 검수|Claude Opus 5가 완성 지면/).count(), 0);
         const cover = page.getByRole("article", { name: "메인 썸네일 결과", exact: true });
         await cover.getByText("제목·레이아웃 편집", { exact: true }).click();
         await cover.getByLabel("메인 썸네일 제목 수정", { exact: true }).fill("수정한 이미지 제목");
@@ -82,6 +83,6 @@ for (const [type, c] of Object.entries(responses)) Object.assign(c, { type, name
         await page.getByText(/이전 원고·프로필·구성안으로 만든 이미지/).waitFor();
         for (const button of await page.getByRole("button", { name: "PNG 저장", exact: true }).all()) assert.ok(await button.isDisabled());
         assert.deepEqual(errors, []);
-        console.log("PASS V11 studio: High default, four-card plan, partial failure, review hold/PNG/modal/ZIP gate, recheck, private art reuse, four anchors, stale export gate, responsive 1440/390/320px.");
+        console.log("PASS V11 studio: High default, saved manuscript loading, four-card plan, no AI review requirement, layout hold/PNG/modal/ZIP gate, layout retry, private art reuse, four anchors, stale export gate, responsive 1440/390/320px.");
     } finally { await browser.close(); }
 })().catch((e) => { console.error(e); process.exitCode = 1; });

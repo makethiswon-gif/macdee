@@ -402,14 +402,7 @@ export default function ClaudeBlogWritePage() {
     const [error, setError] = useState("");
 
     const [title, setTitle] = useState("");
-    const [polishedBody, setPolishedBody] = useState("");
-    const [draftBody, setDraftBody] = useState("");
-    const [polished, setPolished] = useState(false);
-    const [polishReason, setPolishReason] = useState<string | null>(null);
-    const [showingDraft, setShowingDraft] = useState(false);
-    // 보고 있는 쪽을 편집한다 (윤문본/초안 각각 수정 내용이 유지됨)
-    const body = showingDraft ? draftBody : polishedBody;
-    const setBody = showingDraft ? setDraftBody : setPolishedBody;
+    const [body, setBody] = useState("");
     const [copied, setCopied] = useState(false);
     const [styledCopied, setStyledCopied] = useState(false);
     const [topicsData, setTopicsData] = useState<TopicResponse | null>(null);
@@ -488,11 +481,7 @@ export default function ClaudeBlogWritePage() {
                 return;
             }
             setTitle(data.title || "");
-            setPolishedBody(data.body || "");
-            setDraftBody(data.draftBody || data.body || "");
-            setPolished(!!data.polished);
-            setPolishReason(data.polishReason || null);
-            setShowingDraft(false);
+            setBody(data.body || "");
         } catch {
             setError("네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
         } finally {
@@ -715,28 +704,6 @@ export default function ClaudeBlogWritePage() {
                             </span>
                         </div>
                         <div className="flex items-center gap-2">
-                            {polished ? (
-                                <>
-                                    <span className="text-[11px] px-2 py-0.5 rounded-full font-medium bg-sky-500/15 text-sky-400">
-                                        2차 윤문 완료
-                                    </span>
-                                    <button
-                                        onClick={() => setShowingDraft((v) => !v)}
-                                        className="px-2.5 py-1 bg-[#1A2035] hover:bg-[#222a44] text-[#9CA3B0] hover:text-white text-[11px] rounded-lg transition-colors"
-                                    >
-                                        {showingDraft ? "윤문본 보기" : "초안 보기"}
-                                    </button>
-                                </>
-                            ) : (
-                                <span
-                                    className="text-[11px] px-2 py-0.5 rounded-full font-medium bg-[#1A2035] text-[#6B7280]"
-                                    title={polishReason || undefined}
-                                >
-                                    윤문 미적용
-                                </span>
-                            )}
-                        </div>
-                        <div className="flex items-center gap-2">
                             <button
                                 onClick={handleCopyStyled}
                                 title="소제목·형광펜·밑줄이 적용된 상태로 네이버에 붙여넣어집니다"
@@ -764,7 +731,7 @@ export default function ClaudeBlogWritePage() {
                             className="w-full px-3.5 py-2.5 mb-4 bg-[#0B0F1A] border border-[#1A2035] rounded-lg text-[15px] font-semibold text-white focus:outline-none focus:border-[#3563AE] transition-colors"
                         />
 
-                        <label className="block text-[11px] font-medium text-[#6B7280] mb-1.5">본문 (수정 가능){polished ? (showingDraft ? " · Claude 초안" : " · OpenAI 윤문본") : ""}</label>
+                        <label className="block text-[11px] font-medium text-[#6B7280] mb-1.5">본문 (수정 가능)</label>
                         <textarea
                             value={body}
                             onChange={(e) => setBody(e.target.value)}

@@ -9,12 +9,12 @@ export class ImageProductionError extends Error {
 }
 export const digest = (value: string | Buffer) => createHash("sha256").update(value).digest("hex");
 function key() {
-    if (!process.env.ADMIN_TOKEN_SECRET) throw new ImageProductionError("이미지 검수 서명 설정을 확인해주세요.");
+    if (!process.env.ADMIN_TOKEN_SECRET) throw new ImageProductionError("이미지 저장 서명 설정을 확인해주세요.");
     return process.env.ADMIN_TOKEN_SECRET;
 }
 interface Release { version: 11; profileId: string; sourceHash: string; type: string; pngHash: string; setId: string }
 export function signImageRelease(card: BlogImageCard, profileId: string, sourceHash: string): string {
-    if (!card.layoutChecks?.passed || card.designReview?.status !== "pass" || !card.setId) throw new ImageProductionError("검수 미통과 이미지는 발행할 수 없습니다.", 422);
+    if (!card.layoutChecks?.passed || !card.setId) throw new ImageProductionError("레이아웃 검사를 통과하지 않은 이미지는 저장할 수 없습니다.", 422);
     const payload = Buffer.from(JSON.stringify({ version: 11, profileId, sourceHash, type: card.type,
         pngHash: digest(Buffer.from(card.imageDataUrl.split(",")[1], "base64")), setId: card.setId } satisfies Release)).toString("base64url");
     return `${payload}.${createHmac("sha256", key()).update(`blog-image-release:${payload}`).digest("hex")}`;

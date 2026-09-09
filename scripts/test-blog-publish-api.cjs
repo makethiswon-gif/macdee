@@ -37,10 +37,11 @@ const cookie = Buffer.from(payload + ":" + crypto.createHmac("sha256", process.e
 const png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aK1sAAAAASUVORK5CYII=";
 const req = (body, auth = true) => new Request("http://localhost/api/admin/blog-posts/images", { method: "POST",
     headers: { "Content-Type": "application/json", ...(auth ? { cookie: "admin_token=" + cookie } : {}) }, body: JSON.stringify(body) });
-const approvedImage = (type, dataUrl = png, setId = "fixture-set") => ({ type, dataUrl, setId, releaseToken: signImageRelease({ type, setId, imageDataUrl: dataUrl, layoutChecks: { passed: true }, designReview: { status: "pass" } }, "fixture-profile", sourceHash("Title", "Body")) });
+const approvedImage = (type, dataUrl = png, setId = "fixture-set") => ({ type, dataUrl, setId, releaseToken: signImageRelease({ type, setId, imageDataUrl: dataUrl, layoutChecks: { passed: true } }, "fixture-profile", sourceHash("Title", "Body")) });
 const image = (type, extra = {}) => ({ postId: "fixture-post", image: approvedImage(type), index: types.indexOf(type), total: 3, requiredTypes: types, ...extra });
 
 (async () => {
+    assert.throws(() => signImageRelease({ type: "info", setId: "fixture-set", imageDataUrl: png, layoutChecks: { passed: false } }, "fixture-profile", sourceHash("Title", "Body")), /레이아웃/);
     assert.equal((await POST(req(image("thumbnail"), false))).status, 401);
     assert.equal((await POST(req(image("thumbnail", { requiredTypes: ["thumbnail"] })))).status, 400);
     assert.equal((await POST(req(image("thumbnail", { image: { type: "../bad", dataUrl: png } })))).status, 400);

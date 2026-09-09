@@ -256,7 +256,7 @@ export default function BlogFactoryPage() {
                 const uploaded = await post("/api/admin/blog-posts/images", {
                     postId, image: { type: c.type, dataUrl: c.imageDataUrl, releaseToken: c.releaseToken, setId: c.setId }, index: i, total: 4, requiredTypes: BLOG_CARD_TYPES,
                 });
-                if (i === 3 && !uploaded.done) throw new Error("이미지 네 장의 검수 버전이 일치하지 않습니다. 구성안을 다시 확인해주세요.");
+                if (i === 3 && !uploaded.done) throw new Error("이미지 네 장의 제작 버전이 일치하지 않습니다. 구성안을 다시 확인해주세요.");
             }
             return BLOG_CARD_TYPES.length;
         },

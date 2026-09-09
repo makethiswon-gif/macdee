@@ -9,16 +9,13 @@ Module._resolveFilename = function (name, ...args) {
 Module._extensions[".ts"] = (module, filename) => module._compile(ts.transpileModule(fs.readFileSync(filename, "utf8"), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true }, fileName: filename,
 }).outputText, filename);
-let profile, databaseFails = false, polishInput, selected, aiCalls = 0, aiPrompt;
+let profile, databaseFails = false, selected, aiCalls = 0, aiPrompt;
 const fixtureBody = "## 준비할 자료\n\n자료를 확인합니다.\n\n---\n**기준일** 2026년 9월 9일 작성\n**작성** 검수 변호사";
 const moduleLoad = Module._load;
 Module._load = function (name, ...args) {
     if (name === "@/lib/admin-auth") return { verifyAdminToken: (request) => request.headers.get("x-fixture-auth") === "yes" };
     if (name === "@/lib/blog-strengths-store") return { loadStrengthLibrary: async (id) => ({ profileId: id, firmId: "", lawyerId: "", revision: 0, designFamily: "auto", updatedAt: "", claims: [] }), signStrengthSelection: () => "fixture-token", StrengthStoreError: class StrengthStoreError extends Error { constructor(message, status = 503) { super(message); this.status = status; } } };
-    if (name === "@/lib/ai/blog-polish") return { polishBlogBody: async (body) => {
-        polishInput = body;
-        return { text: body.replace("자료를 확인합니다.", "관련 자료를 먼저 확인합니다."), polished: true, model: "fixture" };
-    } };
+    if (name === "@/lib/ai/blog-polish") throw new Error("Automatic GPT polishing must not be loaded");
     if (name === "@/lib/supabase/server") return { createAdminClient: async () => {
         if (databaseFails) throw new Error("Fixture database unavailable");
         return { from: (table) => {
@@ -37,6 +34,7 @@ Module._load = function (name, ...args) {
     return moduleLoad.call(this, name, ...args);
 };
 process.env.ANTHROPIC_API_KEY = "local-fixture-only";
+process.env.OPENAI_API_KEY = "local-fixture-only";
 global.fetch = async (url, options) => {
     assert.equal(url, "https://api.anthropic.com/v1/messages");
     aiCalls++;
@@ -92,7 +90,8 @@ const assertLink = (body, href, count = 1) => {
         const response = await POST(request(id)); assert.equal(response.status, 200);
         const data = await response.json();
         assertLink(data.body, expected); assertLink(data.draftBody, expected);
-        assert.ok(data.body.includes("관련 자료를 먼저 확인합니다.")); assert.equal(polishInput, fixtureBody);
+        assert.equal(data.body, appendBlogPhoneContact(fixtureBody, blogPhoneContact(phone)));
+        assert.equal(data.body, data.draftBody); assert.equal(data.polished, false); assert.equal(data.polishModel, null);
         assert.equal(data.contactWarning, null); assert.equal(data.charCount, data.body.replace(/\s/g, "").length);
         assert.ok(selected.split(", ").includes("phone")); assert.ok(aiPrompt.includes("전화 링크를 직접 만들거나"));
         assert.ok(!data.body.includes("070-0000-0000"));
@@ -108,5 +107,5 @@ const assertLink = (body, href, count = 1) => {
     assert.equal((await POST(request("unavailable"))).status, 500);
     const data = await (await POST(request(undefined))).json();
     assertLink(data.body, null, 0); assert.equal(data.contactWarning, null);
-    console.log("PASS: main phone only, validation, footer placement, idempotence, HTML escaping/tel links, four images, actual writer route, post-polish/draft links, profile isolation, missing phone warning, standalone compatibility");
+    console.log("PASS: Claude-only writer with OpenAI key present, unchanged wording, main phone only, validation, footer placement, idempotence, HTML escaping/tel links, four images, profile isolation, missing phone warning, standalone compatibility");
 })().catch((error) => { console.error(error); process.exitCode = 1; });

@@ -113,7 +113,7 @@ export default function BlogImagesPage() {
             const retain = (value: BlogImageCard) => setCards((prev) => [...prev.filter((c) => c.type !== type), value].sort((a, b) => BLOG_CARD_TYPES.indexOf(a.type) - BLOG_CARD_TYPES.indexOf(b.type)));
             const card = await generateQualityCard({ ...frozen, profile: cardRequestProfile(frozen.profile, type, frozen.photoSource), cardType: type,
                     style: layout || undefined, renderOnly, headingOverride: !freshBatch && (renderOnly || existing) ? headingEdits[type] : undefined,
-                    attemptId: regenerate ? crypto.randomUUID() : undefined, artFeedback: regenerate ? existing?.designReview?.issues : undefined,
+                    attemptId: regenerate ? crypto.randomUUID() : undefined,
                     reuseProductionId: renderOnly && existing?.artSourceHash ? existing.productionId : undefined }, new AbortController().signal, retain);
             retain(card);
             setJobs((prev) => ({ ...prev, [type]: imageReady(card) ? { state: "done" } : { state: "error", message: imageHoldReason(card) } }));
@@ -133,7 +133,7 @@ export default function BlogImagesPage() {
                     if (!res.ok || !data.profile) throw new Error("최신 사진·연락처를 불러오지 못했습니다.");
                     frozen = { ...frozen, profile: data.profile };
                 }
-                setPhase(renderOnly ? "기존 시각물로 편집 중 · 이미지 AI를 호출하지 않습니다." : "선택한 시각물만 새로 생성하고 검수합니다.");
+                setPhase(renderOnly ? "기존 시각물로 편집 중" : "선택한 이미지 제작 중");
                 await runCard(only, frozen, renderOnly, layout || cards.find((c) => c.type === only)?.layout || frozen.style, false, regenerate);
                 return;
             }
@@ -146,7 +146,7 @@ export default function BlogImagesPage() {
             generation.current = frozen;
             const types = BLOG_CARD_TYPES;
             setCards([]); setHeadingEdits({}); setJobs(Object.fromEntries(types.map((t) => [t, { state: "waiting" }])));
-            setPhase("아트디렉션에 맞춰 제작 중 · Claude Opus 5가 완성 지면에서 원고 적합성과 디자인을 함께 검수합니다. 검수가 지연돼도 생성 이미지는 보존합니다.");
+            setPhase("이미지 제작·레이아웃 검사 중");
             let cursor = 0;
             const worker = async () => { while (cursor < types.length) await runCard(types[cursor++], frozen, false, frozen.style, true); };
             await Promise.all([worker(), worker()]);
@@ -157,7 +157,7 @@ export default function BlogImagesPage() {
     const downloadAll = async () => {
         setSaving(true); setError("");
         try {
-            if (!imageSetReady(cards) || stale) throw new Error("동일한 원고·프로필 구성의 4장 모두 검수를 통과해야 저장할 수 있습니다.");
+            if (!imageSetReady(cards) || stale) throw new Error("동일한 원고·프로필 구성의 4장 모두 제작과 레이아웃 검사를 마쳐야 저장할 수 있습니다.");
             const zip = new JSZip();
             cards.forEach((c, i) => zip.file(String(i + 1).padStart(2, "0") + "_" + c.name + "_" + fileStem + ".png", c.imageDataUrl.split(",")[1], { base64: true }));
             zip.file("삽입안내.txt", cards.map((c) => c.name + " (" + c.width + "×" + c.height + ")\n위치: " + c.placement + "\n역할: " + (c.purpose || "") + "\n대체텍스트: " + c.altText + "\n" + c.warnings.join("\n") + (c.contactActions?.length ? "\n\n네이버 본문에 추가할 실제 상담 링크 (PNG 자체에는 클릭 기능이 없습니다):\n" + c.contactActions.map((a) => a.label + ": " + a.display + "\n" + a.href).join("\n") : "")).join("\n\n") + "\n\nAI 시각물은 설명용이며 실제 사건 자료가 아닙니다. 법률 표현·원문 조건·연락처를 검수한 뒤 발행하세요.");
@@ -202,7 +202,7 @@ export default function BlogImagesPage() {
                 {photoSource === "ai" && <label className="block text-sm">AI 이미지 품질<select aria-label="AI 이미지 품질" value={quality} onChange={(e) => setQuality(e.target.value as BlogImageQuality)} className={inputClass + " mt-2"}><option value="high">고품질 (기본)</option><option value="medium">표준</option></select></label>}
                 <label className="block text-sm">편집 스타일<select value={style} onChange={(e) => setStyle(e.target.value as EditorialStyle | "")} className={inputClass + " mt-2"}><option value="">변호사 기본 지면 (권장)</option><option value="contrast">매거진 커버 · 어두운 지면 강제</option><option value="paper">갤러리 에디션 · 밝은 지면 강제</option></select></label>
                 {selectedProfile && <div className="rounded-lg border border-slate-700 p-3"><p className="text-xs font-semibold text-slate-200">마지막 장 · 실제 변호사와 상담 연결</p><div className="mt-3 flex items-center gap-3">{selectedProfile.profileImages[0] && <img src={selectedProfile.profileImages[0]} alt="등록된 변호사 사진" width={56} height={72} className="h-[72px] w-14 bg-white object-contain" />}<p className="text-xs leading-6 text-slate-300">{selectedProfile.lawyerName}<br />{selectedProfile.officeName}<br />{selectedProfile.phone || selectedProfile.website || "상담 연락처 미등록"}</p></div>{missingContact.length > 0 ? <p className="mt-3 text-xs leading-5 text-amber-200">{missingContact.join(" · ")} 등록이 필요합니다. 등록 전에는 상담 안내 카드를 완성하지 않습니다.</p> : <p className="mt-3 text-xs leading-5 text-slate-400">등록된 사진을 그대로 사용합니다. 인물·직함·상담 조건을 AI가 만들지 않습니다.</p>}</div>}
-                <p className="text-xs leading-6 text-slate-400">Claude Opus 5 · GPT Image 2 High · 4장<br />기획·생성·검수와 수정 요청에는 API 비용이 발생합니다.</p>
+                <p className="text-xs leading-6 text-slate-400">기획 Claude Opus 5 · 그림 GPT Image 2 High · 4장<br />기획·이미지 생성에는 API 비용이 발생합니다.</p>
                 <div className="space-y-2">
                     <button type="button" onClick={() => void generate()} disabled={busy || !selectedId || !content.trim()} className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-400 px-4 py-4 font-semibold text-slate-950 disabled:opacity-40">{busy ? <Loader2 size={18} className="animate-spin" /> : <WandSparkles size={18} />}{busy ? "작업 중…" : plan ? "이 구성으로 이미지 만들기" : "기획하고 이미지 만들기"}</button>
                     <button type="button" onClick={() => void previewPlan()} disabled={busy || !content.trim()} className="w-full rounded-lg border border-slate-600 px-4 py-3 text-sm disabled:opacity-40">{plan ? "구성안 다시 기획하기" : "구성안 먼저 보기"}</button>
@@ -221,8 +221,8 @@ export default function BlogImagesPage() {
                     </div>)}</div>}
                 </div>}
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><h2 className="font-semibold">3. 확인하고 저장</h2>{cards.length > 0 && <button onClick={() => void downloadAll()} disabled={busy || saving} className="flex items-center gap-2 rounded-lg border border-slate-600 px-4 py-2.5 text-sm disabled:opacity-40"><Download size={16} />{saving ? "묶는 중…" : cards.length + "장 ZIP 저장"}</button>}</div>
-                <p className="mb-4 text-xs leading-6 text-slate-400">완성 이미지의 원문 조건·법률 표현·연락처를 확인하세요. AI 검수는 법률 검수를 대신하지 않습니다.</p>
-                <div aria-live="polite" className="mb-4 text-sm leading-6 text-emerald-200">{phase || (cards.length ? cards.filter(imageReady).length + "/4장 검수 통과" : "")}</div>
+                <p className="mb-4 text-xs leading-6 text-slate-400">발행 전 원문 조건·법률 표현·이미지·연락처를 직접 확인하세요.</p>
+                <div aria-live="polite" className="mb-4 text-sm leading-6 text-emerald-200">{phase || (cards.length ? cards.filter(imageReady).length + "/4장 제작 완료" : "")}</div>
                 {stale && <p role="status" className="mb-4 rounded-lg bg-amber-950/40 p-3 text-sm leading-6 text-amber-200">아래는 이전 원고·프로필·구성안으로 만든 이미지입니다. 새 입력으로 생성하기 전까지 보존합니다.</p>}
                 {!!cards.length && <div className="mb-5 flex flex-wrap gap-2"><button aria-pressed={view === "cards"} onClick={() => setView("cards")} className={"flex items-center gap-2 rounded-lg px-3 py-2 text-sm " + (view === "cards" ? "bg-slate-700" : "bg-slate-900")}><Layers size={16} /> 이미지 보기</button><button aria-pressed={view === "article"} onClick={() => setView("article")} className={"flex items-center gap-2 rounded-lg px-3 py-2 text-sm " + (view === "article" ? "bg-slate-700" : "bg-slate-900")}><BookOpen size={16} /> 본문에 넣어 보기</button></div>}
                 {!ordered.length && <div className="flex min-h-[360px] flex-col items-center justify-center rounded-xl border border-dashed border-slate-700 p-8 text-center"><ImageIcon size={40} className="mb-5 text-slate-600" /><p className="text-lg">무슨 그림인지보다, 무엇을 설명하는지.</p><p className="mt-3 max-w-md text-sm leading-7 text-slate-400">표지는 질문을, 설명 이미지는 관계와 차이를,<br />마무리는 다음에 확인할 내용을 보여줍니다.</p></div>}
@@ -230,7 +230,7 @@ export default function BlogImagesPage() {
                 : <div className="grid items-start gap-6 md:grid-cols-2">{ordered.map((type) => {
                     const card = cards.find((c) => c.type === type), job = jobs[type];
                     return <article key={type} aria-label={CARD_LABELS[type] + " 결과"} className="min-w-0 overflow-hidden rounded-xl border border-slate-800 bg-slate-900">
-                        <div className="flex items-center justify-between gap-2 p-4"><h3 className="text-sm font-semibold">{CARD_LABELS[type]}</h3><span className="text-xs text-slate-400">{card ? card.width + " × " + card.height : job?.state === "running" ? "제작·검수 중" : job?.state === "waiting" ? "대기" : ""}</span></div>
+                        <div className="flex items-center justify-between gap-2 p-4"><h3 className="text-sm font-semibold">{CARD_LABELS[type]}</h3><span className="text-xs text-slate-400">{card ? card.width + " × " + card.height : job?.state === "running" ? "제작 중" : job?.state === "waiting" ? "대기" : ""}</span></div>
                         {card ? <button className="block w-full cursor-zoom-in bg-[#f4f0e7]" onClick={() => setPreview(card)} aria-label={card.name + " 크게 보기"}><img src={card.imageDataUrl} alt={card.altText} width={card.width} height={card.height} className="block h-auto w-full" /></button>
                             : <div className="flex min-h-[240px] items-center justify-center bg-slate-950 p-6 text-center text-sm text-slate-400">{job?.state === "running" ? <Loader2 className="animate-spin" /> : job?.state === "waiting" ? "앞선 작업이 끝나면 시작합니다." : job?.state === "skipped" ? "원문 근거가 부족해 만들지 않았습니다." : "완성하지 못했습니다."}</div>}
                         <div className="space-y-3 p-4">
@@ -238,12 +238,11 @@ export default function BlogImagesPage() {
                             {card && <p className="text-xs leading-5 text-slate-400">넣을 위치 · {card.placement}</p>}
                             {job?.message && <p role={job.state === "error" ? "alert" : undefined} className="text-xs leading-6 text-amber-200">{job.message}{card && job.state === "error" ? " 이전 완성본은 보존했습니다." : ""}</p>}
                             {card?.warnings.map((w) => <p key={w} className="text-xs leading-5 text-amber-200">{w}</p>)}
-                            {card?.designReview && <div className={"rounded-lg border p-3 text-xs leading-6 " + (card.designReview.status === "pass" ? "border-emerald-900 text-emerald-200" : "border-amber-800 text-amber-200")}><p className="font-semibold">완성 지면 검수 · {card.designReview.status === "pass" ? "통과" : card.designReview.status === "revise" ? "수정 권고" : "직접 확인 필요"}</p><p>{card.designReview.summary}</p>{card.designReview.issues.map((issue, i) => <p key={i} className="mt-1">• {issue}</p>)}<p className="mt-2 text-slate-400">{card.designReview.model}의 보조 판단이며 발행 품질이나 법률 정확성을 보증하지 않습니다.</p></div>}
-                            {card?.artReview && <details className="text-xs leading-5 text-slate-400"><summary className="cursor-pointer">시각물 검수 메모</summary><p className="mt-2">{card.artReview}</p></details>}
+                            {card?.layoutChecks && <div className={"rounded-lg border p-3 text-xs leading-6 " + (card.layoutChecks.passed ? "border-emerald-900 text-emerald-200" : "border-amber-800 text-amber-200")}><p className="font-semibold">레이아웃 검사 · {card.layoutChecks.passed ? "통과" : "배치 확인 필요"}</p>{card.layoutChecks.issues.map((issue, i) => <p key={i} className="mt-1">{issue}</p>)}</div>}
                             {card?.contactActions && <div className="space-y-3 rounded-lg border border-emerald-900 bg-emerald-950/20 p-3"><p className="text-xs leading-5 text-slate-300">PNG 안의 번호는 클릭되지 않습니다. 이미지 바로 아래에 실제 상담 링크를 넣어 주세요.</p>{card.contactActions.map((a) => <div key={a.href}><p className="break-all text-xs leading-5 text-slate-300">{a.display}</p><button className="mt-1 text-xs text-emerald-300" onClick={() => void copyContactLink(a.href)}>{a.label} 링크 복사</button>{copiedLink === a.href && <p role="status" className="mt-1 text-xs text-emerald-300">복사했습니다.</p>}</div>)}</div>}
                             <div className="flex flex-wrap gap-3">{card && <button disabled={busy || stale || !imageReady(card)} onClick={() => download(card.imageDataUrl, card.name + "_" + fileStem + ".png")} className="flex items-center gap-1.5 text-sm text-emerald-200 disabled:opacity-40"><Download size={15} /> PNG 저장</button>}
                                 {card && type === "contact" && <button disabled={busy} onClick={() => void generate(type, true)} className="text-sm text-slate-300 disabled:opacity-40">사진·연락처 새로 반영</button>}
-                                {card && !imageReady(card) && <button disabled={busy || stale} onClick={() => void generate(type, !!card.artSourceHash)} className="flex items-center gap-1.5 text-sm text-amber-200 disabled:opacity-40"><RefreshCw size={14} />재검수</button>}
+                                {card && !imageReady(card) && <button disabled={busy || stale} onClick={() => void generate(type, !!card.artSourceHash)} className="flex items-center gap-1.5 text-sm text-amber-200 disabled:opacity-40"><RefreshCw size={14} />다시 처리</button>}
                                 {(!card || frozen?.plan.cards.find((c) => c.type === type)?.art) && <button disabled={busy || stale} onClick={() => void generate(type, false, undefined, !!card)} className="flex items-center gap-1.5 text-sm text-slate-300 disabled:opacity-40"><RefreshCw size={14} />{card ? "시각물 새로 생성" : "다시 시도"}</button>}
                             </div>
                             {card && <details className="border-t border-slate-800 pt-3 text-sm"><summary className="cursor-pointer text-slate-300">{type === "contact" ? "레이아웃 편집" : "제목·레이아웃 편집"}</summary><div className="mt-3 space-y-3">

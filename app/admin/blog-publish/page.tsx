@@ -35,7 +35,6 @@ export default function BlogPublishPage() {
     const [detail, setDetail] = useState("");
     const [title, setTitle] = useState("");
     const [body, setBody] = useState("");
-    const [polished, setPolished] = useState(false);
     const [contactWarning, setContactWarning] = useState("");
     const [strengthChoice, setStrengthChoice] = useState<StrengthChoice | null>(null);
     const [usedStrengths, setUsedStrengths] = useState<StrengthSelection | null>(null);
@@ -100,7 +99,7 @@ export default function BlogPublishPage() {
         active.current?.abort(); active.current = null;
         if (copyTimer.current) clearTimeout(copyTimer.current);
         clearImages(); setTopics([]); setPicked(null); setDraftTopic(null); setDirectTopic(""); setDetail("");
-        setTitle(""); setBody(""); setSavedId(null); setSavedDraft(null); setPolished(false);
+        setTitle(""); setBody(""); setSavedId(null); setSavedDraft(null);
         setContactWarning("");
         setStrengthChoice(null); setUsedStrengths(null); setStrengthReview(null); setEditorialWarnings([]);
         setError(""); setCopied(false); setProgress(""); setStep("idle"); setImagesStale(false);
@@ -109,7 +108,7 @@ export default function BlogPublishPage() {
     const edit = (value: string, kind: "title" | "body") => {
         if (active.current || exportingRef.current) return;
         if (batch.current || cards.length) setImagesStale(true);
-        clearImages(); setCopied(false); setPolished(false);
+        clearImages(); setCopied(false);
         setStrengthReview(null);
         if (kind === "title") setTitle(value); else setBody(value);
     };
@@ -158,7 +157,7 @@ export default function BlogPublishPage() {
             try {
                 const card = await generateQualityCard(
                     { profile: cardRequestProfile(frozen.profile, type), title: frozen.draft.title, content: frozen.draft.body, cardType: type, plan: frozen.plan, quality: "high",
-                        attemptId: regenerate ? crypto.randomUUID() : undefined, artFeedback: regenerate ? previous?.designReview?.issues : undefined,
+                        attemptId: regenerate ? crypto.randomUUID() : undefined,
                         renderOnly: !regenerate && !!previous?.artSourceHash, reuseProductionId: !regenerate && previous?.artSourceHash ? previous.productionId : undefined }, op.signal,
                     (value) => { if (current(op)) { frozen.cards[type] = value; syncBatch(frozen, op); } });
                 if (card.type !== type) throw new Error("요청한 이미지 종류와 결과가 다릅니다.");
@@ -209,20 +208,20 @@ export default function BlogPublishPage() {
     const write = async (topic = picked) => {
         if (!profileId || !topic) return;
         const op = begin("writing"); if (!op) return;
-        clearImages(); setTitle(""); setBody(""); setSavedId(null); setSavedDraft(null); setPolished(false);
+        clearImages(); setTitle(""); setBody(""); setSavedId(null); setSavedDraft(null);
         setContactWarning("");
         setUsedStrengths(null); setStrengthReview(null); setEditorialWarnings([]);
         setImagesStale(false); setDraftTopic(topic); setPicked(topic);
         try {
             const content = detail.trim() || (topic.angle ? `${topic.topic}\n\n[다룰 관점]\n${topic.angle}` : topic.topic);
             const choice = strengthChoice?.scope === strengthScope(profileId, `${topic.field} ${topic.topic}`.trim()) ? strengthChoice : null;
-            const data = await publishJson<{ title: string; body: string; polished: boolean; contactWarning?: string | null; strengthSelection?: StrengthSelection; strengthReview?: StrengthReview; editorialWarnings?: string[] }>("/api/admin/claude-blog-write", op.signal,
+            const data = await publishJson<{ title: string; body: string; contactWarning?: string | null; strengthSelection?: StrengthSelection; strengthReview?: StrengthReview; editorialWarnings?: string[] }>("/api/admin/claude-blog-write", op.signal,
                 { content, field: topic.field, profileId, topic: topic.topic, strengthIds: choice?.ids, strengthRevision: choice?.revision });
             if (!data.title?.trim() || !data.body?.trim()) throw new Error("생성된 원고가 비어 있습니다.");
             if (!current(op)) return;
             const snapshot: PublishDraft = { profileId, title: data.title, body: data.body, field: topic.field || null, topic: topic.topic,
                 ...(data.strengthSelection ? { strengthIds: data.strengthSelection.claims.map((c) => c.id), strengthRevision: data.strengthSelection.revision } : {}) };
-            setTitle(snapshot.title); setBody(snapshot.body); setPolished(!!data.polished);
+            setTitle(snapshot.title); setBody(snapshot.body);
             setContactWarning(data.contactWarning || "");
             setUsedStrengths(data.strengthSelection || null); setStrengthReview(data.strengthReview || null);
             setEditorialWarnings(data.editorialWarnings || []);
@@ -292,7 +291,7 @@ export default function BlogPublishPage() {
     };
 
     const validateExport = async () => {
-        if (cards.length && (!imageSetReady(cards) || cardUrls.length !== 4)) throw new Error("검수 또는 저장 대기 이미지가 있습니다. 미완료 카드의 작업을 마친 뒤 복사·저장해주세요.");
+        if (cards.length && (!imageSetReady(cards) || cardUrls.length !== 4)) throw new Error("제작 또는 저장 대기 이미지가 있습니다. 미완료 카드의 작업을 마친 뒤 복사·저장해주세요.");
         if (!usedStrengths) return;
         const checked = await publishJson<{ review: StrengthReview }>("/api/admin/blog-strengths/select", new AbortController().signal,
             { profileId, topic: `${draft.field || ""} ${draft.topic || ""}`, ids: draft.strengthIds, revision: draft.strengthRevision, title: draft.title, body });
@@ -357,7 +356,6 @@ export default function BlogPublishPage() {
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                     <div className="flex flex-wrap gap-2 text-xs text-[#9CA3B0]">
                         <span className="text-sm text-white">4 · 원고</span><span>공백 제외 {body.replace(/\s/g, "").length.toLocaleString()}자</span>
-                        {polished && <span className="text-sky-400">2차 윤문 완료</span>}
                         {savedId && dirty && <span className="text-amber-300">수정사항 미저장</span>}
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -418,14 +416,13 @@ export default function BlogPublishPage() {
                                     </button> : <ImageIcon className="text-[#4B5563]" />}
                                 </div>
                                 {issues[type] && <p role="alert" className="mt-2 break-words text-xs text-red-300">{issues[type]}</p>}
-                                {card?.designReview && card.designReview.status !== "pass" && <p className="mt-2 break-words text-xs text-amber-300">검수 확인 필요: {card.designReview.summary}</p>}
+                                {card?.layoutChecks && !card.layoutChecks.passed && <p className="mt-2 break-words text-xs text-amber-300">배치 확인 필요: {card.layoutChecks.issues.join(" ")}</p>}
                                 {card?.warnings?.map((warning, i) => <p key={i} className="mt-1 break-words text-xs text-amber-300">{warning}</p>)}
                                 <div className="mt-2 flex flex-wrap gap-2">
                                     {card && <button disabled={!imageReady(card)} title="PNG 다운로드" aria-label={`${CARD_LABELS[type]} PNG 다운로드`} onClick={() => download(card.imageDataUrl, `${type}.png`)} className={secondary}><Download size={14} /></button>}
-                                    {!url && <button onClick={() => void saveAndMakeCards(type)} disabled={busy} className={secondary} aria-label={`${CARD_LABELS[type]} 재시도`}><RefreshCw size={14} />{card ? imageReady(card) ? "업로드 재시도" : "재검수" : "재시도"}</button>}
+                                    {!url && <button onClick={() => void saveAndMakeCards(type)} disabled={busy} className={secondary} aria-label={`${CARD_LABELS[type]} 재시도`}><RefreshCw size={14} />{card ? imageReady(card) ? "업로드 재시도" : "다시 처리" : "재시도"}</button>}
                                     {!card && issues[type] && <button onClick={() => void saveAndMakeCards(type, true)} disabled={busy} className={secondary} title="기존 요청의 과금 여부를 확인한 후 새 유료 작업을 시작합니다."><RefreshCw size={14} />새 작업</button>}
-                                    {!url && card?.designReview?.repair === "art" && <button onClick={() => void saveAndMakeCards(type, true)} disabled={busy} className={secondary}><RefreshCw size={14} />시각물 재생성</button>}
-                                    {!url && card?.designReview?.repair === "content" && <a href="/admin/blog-images" className="text-xs text-sky-300 underline">구성안 수정</a>}
+                                    {!url && card?.artSourceHash && <button onClick={() => void saveAndMakeCards(type, true)} disabled={busy} className={secondary}><RefreshCw size={14} />시각물 재생성</button>}
                                     {url && <Check size={15} className="self-center text-emerald-400" aria-label="저장 완료" />}
                                 </div>
                             </article>;

@@ -6,7 +6,6 @@ import { articleParagraphs, type ArtDirection, type ArticleVisualPlan, type Plan
 import { identityDirective, lockDirection, type MagazineIdentity } from "./magazine-identity";
 
 export const PLANNING_MODEL = "claude-opus-5";
-export const ART_REVIEW_MODEL = "claude-opus-5";
 export const PLAN_VERSION = "visual-plan-v11";
 export class PlanValidationError extends Error {}
 const object = (value: unknown): Record<string, unknown> => {
@@ -26,19 +25,18 @@ export function parseJsonObject(raw: string): Record<string, unknown> {
     try { return object(JSON.parse(raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1))); }
     catch { throw new PlanValidationError("구성안 응답을 읽지 못했습니다. 다시 기획해 주세요."); }
 }
-export async function requestEditorialJson(system: string, user: unknown, image?: Buffer): Promise<Record<string, unknown>> {
+export async function requestEditorialJson(system: string, user: unknown): Promise<Record<string, unknown>> {
     if (!process.env.ANTHROPIC_API_KEY) throw new Error("원고 기획에 필요한 ANTHROPIC_API_KEY 설정을 확인해 주세요.");
     const content: unknown[] = [{ type: "text", text: typeof user === "string" ? user : JSON.stringify(user) }];
-    if (image) content.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: image.toString("base64") } });
-    const stage = image ? "완성 이미지 검수" : "원고 기획";
-    const model = image ? ART_REVIEW_MODEL : PLANNING_MODEL;
+    const stage = "원고 기획";
+    const model = PLANNING_MODEL;
     const started = Date.now();
     try {
         const response = await fetch("https://api.anthropic.com/v1/messages", {
-            method: "POST", signal: AbortSignal.timeout(image ? 35_000 : 100_000),
+            method: "POST", signal: AbortSignal.timeout(100_000),
             headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
-            body: JSON.stringify({ model, max_tokens: image ? 1800 : 10000,
-                thinking: { type: image ? "disabled" : "adaptive" }, output_config: { effort: image ? "low" : "high" },
+            body: JSON.stringify({ model, max_tokens: 10000,
+                thinking: { type: "adaptive" }, output_config: { effort: "high" },
                 system, messages: [{ role: "user", content }] }),
         });
         if (!response.ok) throw new Error(`${stage} 요청에 실패했습니다 (${response.status}). 자동으로 중복 요청하지 않았습니다.`);

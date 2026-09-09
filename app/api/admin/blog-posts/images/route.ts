@@ -70,7 +70,7 @@ export async function POST(request: Request) {
         // Validate the whole incoming set before uploading any bytes.
         if (requiredTypes && images.some((img) => !verifyImageRelease(img.releaseToken, { profileId: row.profile_id, sourceHash: hashOfSource,
             type: img.type, pngHash: digest(Buffer.from(img.dataUrl.split(",")[1], "base64")), setId: setId || "" }) || img.setId !== setId)) {
-            return NextResponse.json({ error: "품질 검수 통과 이미지가 아니거나 원고·변호사가 변경되었습니다. 재검수해주세요." }, { status: 422 });
+            return NextResponse.json({ error: "저장 가능한 이미지가 아니거나 원고·변호사가 변경되었습니다. 현재 구성으로 다시 처리해주세요." }, { status: 422 });
         }
 
         for (let i = 0; i < images.length; i++) {

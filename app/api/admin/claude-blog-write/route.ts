@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
-import { polishBlogBody } from "@/lib/ai/blog-polish";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getWritingDNA, dnaDirective } from "@/lib/blog-writing-dna";
 import { appendBlogPhoneContact, blogPhoneContact } from "@/lib/blog-contact";
@@ -244,12 +243,9 @@ ${strengthSelection ? strengthDirective(strengthSelection) : "[경력 자료 없
         const title = parsed.title;
         const rawDraftBody = parsed.body;
 
-        // 2차 윤문: 다른 모델(OpenAI)에 한 번 더 통과시켜 AI 문체의 지문을 흐린다.
-        // 실패하거나 검증에 걸리면 초안이 그대로 돌아온다 — 생성 자체가 깨지지 않는다.
-        const polish = await polishBlogBody(rawDraftBody, strengthSelection?.claims.map((c) => c.articleText) || []);
-        // Add the registered number after both models finish so polishing cannot change it.
-        const body = appendBlogPhoneContact(polish.text, phoneContact);
-        const draftBody = appendBlogPhoneContact(rawDraftBody, phoneContact);
+        // Keep Claude's final wording and append only the registered contact details.
+        const body = appendBlogPhoneContact(rawDraftBody, phoneContact);
+        const draftBody = body;
         const charCount = body.replace(/\s/g, "").length; // 공백 제외 글자 수
 
         return NextResponse.json({
@@ -261,9 +257,9 @@ ${strengthSelection ? strengthDirective(strengthSelection) : "[경력 자료 없
             body,
             charCount,
             draftBody,                       // 원문 비교용
-            polished: polish.polished,
-            polishModel: polish.model,
-            polishReason: polish.reason ?? null,
+            polished: false,
+            polishModel: null,
+            polishReason: null,
             dna: dnaInfo,
             contactWarning: profileId && !phoneContact
                 ? "대표번호를 확인하지 못해 전화 링크를 넣지 않았습니다. 변호사 프로필의 대표 전화번호 1(메인)을 확인해주세요."

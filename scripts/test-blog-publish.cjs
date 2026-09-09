@@ -70,7 +70,7 @@ const reports = [];
                         state.writes.push(data); await sleep(options.writeDelay || 90);
                         const phone = profiles.find((p) => p.id === data.profileId).phone.split(",")[0];
                         const contact = options.missingPhone ? "" : `\n\n[전화 상담 · 대표번호 ${phone}](tel:${phone.replace(/-/g, "")})`;
-                        return reply(route, { strengthSelection: { profileId: data.profileId, firmId: "", revision: 0, designFamily: "auto", claims: [], reason: "검수용 일반 정보 원고" }, title: "검수 원고 " + data.topic, body: `## 확인할 내용\n\n${data.topic} 원고입니다. ${data.profileId}\n\n**강조** 및 ==핵심 내용==.\n\n## 상담 준비\n\n서류를 확인합니다.${contact}`, polished: true,
+                        return reply(route, { strengthSelection: { profileId: data.profileId, firmId: "", revision: 0, designFamily: "auto", claims: [], reason: "검수용 일반 정보 원고" }, title: "검수 원고 " + data.topic, body: `## 확인할 내용\n\n${data.topic} 원고입니다. ${data.profileId}\n\n**강조** 및 ==핵심 내용==.\n\n## 상담 준비\n\n서류를 확인합니다.${contact}`, polished: false,
                             contactWarning: options.missingPhone ? "대표번호를 확인하지 못해 전화 링크를 넣지 않았습니다. 변호사 프로필의 대표 전화번호 1(메인)을 확인해주세요." : null });
                     }
                     case "/api/admin/blog-posts": {
@@ -95,8 +95,8 @@ const reports = [];
                         if (state.failType === data.cardType) return reply(route, { error: "검수용 생성 실패" }, 502);
                         return reply(route, { card: { type: data.cardType, name: data.cardType, imageDataUrl: png, width: 1024, height: 1145,
                             altText: "검수 이미지 " + data.title, placement: "관련 문단 다음", warnings: [], designVersion: "editorial-v11", sourceParagraphId: "p2",
-                            setId: "qa-set", releaseToken: state.heldType === data.cardType ? undefined : "qa-fixture", layoutChecks: { passed: true, issues: [], textBlocks: 5 },
-                            designReview: { status: state.heldType === data.cardType ? "unavailable" : "pass", model: "fixture", summary: "검수 상태", issues: [] } } });
+                            setId: "qa-set", releaseToken: state.heldType === data.cardType ? undefined : "qa-fixture",
+                            layoutChecks: { passed: state.heldType !== data.cardType, issues: state.heldType === data.cardType ? ["글자 겹침"] : [], textBlocks: 5 } } });
                     case "/api/admin/blog-posts/images": {
                         state.uploads.push(data);
                         if (state.uploadFailure === data.image.type) return reply(route, { error: "검수용 업로드 실패" }, 500);
@@ -195,17 +195,18 @@ const reports = [];
             await s.close();
         }
         {
-            const s = await session({ heldType: "contact" }); await s.start("품질 검수 보류"); await s.idle();
+            const s = await session({ heldType: "contact" }); await s.start("레이아웃 검사 보류"); await s.idle();
             assert.equal(s.state.posts[0].status, "draft"); assert.equal(s.state.uploads.length, 3);
             assert.equal(await s.page.getByRole("button", { name: "변호사·상담 안내 PNG 다운로드", exact: true }).isDisabled(), true);
             await s.page.getByRole("button", { name: "네이버용 복사", exact: true }).click(); await s.idle();
-            assert.match(await s.page.getByRole("alert").filter({ hasText: "복사에 실패" }).innerText(), /검수 또는 저장 대기/);
+            assert.match(await s.page.getByRole("alert").filter({ hasText: "복사에 실패" }).innerText(), /제작 또는 저장 대기/);
             assert.equal(await s.page.evaluate(() => window.__copiedHtml), "");
             s.state.heldType = null;
             await s.page.getByRole("button", { name: "변호사·상담 안내 재시도", exact: true }).click(); await s.done();
             assert.equal(s.state.images.length, 5); assert.equal(s.state.uploads.length, 4);
             assert.ok(s.state.uploads.every((u) => u.image.releaseToken === "qa-fixture"));
-            reports.push("quality hold: no upload/ready/PNG/copy; only held card rechecked; release receipts submitted"); await s.close();
+            assert.equal(await s.page.getByText("2차 윤문 완료", { exact: true }).count(), 0);
+            reports.push("layout hold: no upload/ready/PNG/copy; no AI review required; only held card retried; release receipts submitted"); await s.close();
         }
         {
             const s = await session({ writeDelay: 800 }); await s.start("전환 검수");
