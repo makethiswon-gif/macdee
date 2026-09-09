@@ -82,7 +82,7 @@ export default function BlogImagesPage() {
         if (!id) { setPostsLoading(false); return; }
         setPostsLoading(true);
         try {
-            const res = await fetch("/api/admin/blog-images/posts?lawyer_id=" + encodeURIComponent(id), { credentials: "include" });
+            const res = await fetch("/api/admin/blog-posts?full=1&profile_id=" + encodeURIComponent(id), { credentials: "include" });
             const data = await readResponse(res);
             if (!res.ok) throw new Error("기존 원고 조회가 되지 않습니다. 아래에 직접 붙여넣어도 이미지 제작은 가능합니다.");
             if (requestId === postRequest.current) setPosts(data.posts || []);

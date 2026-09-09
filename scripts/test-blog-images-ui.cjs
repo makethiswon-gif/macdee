@@ -24,7 +24,11 @@ for (const [type, c] of Object.entries(responses)) Object.assign(c, { type, name
             const send = (body, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
             if (url.pathname.endsWith("/auth")) return send({ authenticated: true });
             if (url.pathname.endsWith("/blog-profiles")) return send(url.searchParams.has("id") ? { profile } : { profiles: [profile] });
-            if (url.pathname.endsWith("/posts")) return send({ posts: [] });
+            if (url.pathname === "/api/admin/blog-posts") {
+                assert.equal(url.searchParams.get("profile_id"), profile.id);
+                assert.equal(url.searchParams.get("full"), "1");
+                return send({ posts: [{ id: "saved-draft", title, body: article }] });
+            }
             if (url.pathname.endsWith("/plan")) { planning++; return send({ plan }); }
             if (url.pathname.endsWith("/generate-design")) {
                 requests.push(data);
@@ -37,8 +41,9 @@ for (const [type, c] of Object.entries(responses)) Object.assign(c, { type, name
         });
         await page.goto(base + "/admin/blog-images", { waitUntil: "networkidle" });
         await page.getByLabel("변호사", { exact: true }).selectOption("fixture");
-        await page.getByLabel("제목", { exact: true }).fill(title);
-        await page.getByLabel("본문", { exact: true }).fill(article);
+        await page.getByLabel("기존 원고 불러오기").selectOption("saved-draft");
+        assert.equal(await page.getByLabel("제목", { exact: true }).inputValue(), title);
+        assert.equal(await page.getByLabel("본문", { exact: true }).inputValue(), article);
         assert.equal(await page.getByLabel("AI 이미지 품질", { exact: true }).inputValue(), "high");
         await page.getByRole("button", { name: "구성안 먼저 보기", exact: true }).click();
         const idle = () => page.getByRole("button", { name: "이 구성으로 이미지 만들기", exact: true }).waitFor();
