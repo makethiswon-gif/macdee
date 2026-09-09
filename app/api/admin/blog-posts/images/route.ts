@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
+import { createHash } from "node:crypto";
+import { BLOG_CARD_TYPES } from "@/lib/blog-images/card-types";
+import { hasCompleteCardSet } from "@/lib/blog-publish-workflow";
 
 // 브라우저에서 만든 카드 PNG를 받아 Storage에 올리고 원고에 붙인다.
 // 이미지가 서버에 남아야 발행기가 집어갈 수 있다.
@@ -34,8 +37,9 @@ export async function POST(request: Request) {
             image?: IncomingImage;
             index?: number;
             total?: number;
+            requiredTypes?: string[];
         };
-        const { postId, image, index, total } = payload;
+        const { postId, image, index, total, requiredTypes } = payload;
 
         // 한 장씩(image) 또는 한꺼번에(images) 둘 다 받는다
         const images = payload.images ?? (image ? [image] : []);
@@ -45,19 +49,29 @@ export async function POST(request: Request) {
         if (!Array.isArray(images) || images.length === 0) {
             return NextResponse.json({ error: "이미지가 없습니다." }, { status: 400 });
         }
+        if (requiredTypes !== undefined && (!Array.isArray(requiredTypes) || requiredTypes.length !== BLOG_CARD_TYPES.length
+            || !BLOG_CARD_TYPES.every((type) => requiredTypes.includes(type)))) {
+            return NextResponse.json({ error: "필수 이미지 4종이 필요합니다." }, { status: 400 });
+        }
+        if (images.some((img) => !/^[a-z][a-z0-9_-]*$/i.test(img.type) || !String(img.dataUrl).startsWith("data:image/png;base64,"))) {
+            return NextResponse.json({ error: "유효한 PNG 이미지가 필요합니다." }, { status: 400 });
+        }
 
         const supabase = await createAdminClient();
+        const { data: row, error: readError } = await supabase.from("blog_posts").select("card_images").eq("id", postId).single();
+        if (readError || !row) return NextResponse.json({ error: "저장된 원고를 찾지 못했습니다." }, { status: 404 });
         const saved: { type: string; url: string }[] = [];
 
         for (let i = 0; i < images.length; i++) {
             const img = images[i];
             const base64 = String(img.dataUrl || "").split(",")[1];
-            if (!base64) continue;
+            if (!base64) return NextResponse.json({ error: "빈 이미지입니다." }, { status: 400 });
 
             const bytes = Buffer.from(base64, "base64");
             // 한 장씩 올릴 때는 클라이언트가 준 순번을 쓴다(파일명 충돌 방지)
             const seq = single && typeof index === "number" ? index : i;
-            const path = `${postId}/${String(seq + 1).padStart(2, "0")}-${img.type}.png`;
+            const hash = createHash("sha256").update(bytes).digest("hex").slice(0, 16);
+            const path = `${postId}/${String(seq + 1).padStart(2, "0")}-${img.type}-${hash}.png`;
 
             const { error } = await supabase.storage
                 .from(BUCKET)
@@ -75,24 +89,20 @@ export async function POST(request: Request) {
         // 한 장씩 받을 때는 기존 목록과 병합한다. 덮어쓰면 앞 장이 사라진다.
         let merged = saved;
         if (single) {
-            const { data: row } = await supabase
-                .from("blog_posts")
-                .select("card_images")
-                .eq("id", postId)
-                .single();
             const prev = (row?.card_images as { type: string; url: string }[] | null) || [];
             // 같은 type 은 새 것으로 교체(재생성 대비)
             merged = [...prev.filter((x) => !saved.some((n) => n.type === x.type)), ...saved];
         }
 
         // 다 모였을 때만 발행 대기로 올린다
-        const done = !single || (typeof total === "number" ? merged.length >= total : true);
+        const done = requiredTypes ? hasCompleteCardSet(merged, requiredTypes)
+            : !single || (typeof total === "number" ? merged.length >= total : true);
 
         const { error: upErr } = await supabase
             .from("blog_posts")
             .update({
                 card_images: merged,
-                ...(done ? { status: "ready" } : {}),
+                ...(done ? { status: "ready" } : requiredTypes ? { status: "draft" } : {}),
                 updated_at: new Date().toISOString(),
             })
             .eq("id", postId);

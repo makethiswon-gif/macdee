@@ -1,3 +1,5 @@
+import { contactActions } from "./blog-images/contact-details";
+
 // ─── 원고 마크다운 → 네이버 스마트에디터용 HTML ───
 // 실제 붙여넣기 테스트로 확인한 사실만 반영한다.
 //   · <p>는 문단 간격이 죽는다 → 간격은 전부 <br>로 직접 만든다
@@ -33,11 +35,24 @@ function escapeHtml(s: string): string {
 }
 
 // 인라인 강조. 이스케이프 뒤에 적용하므로 태그 주입 걱정이 없다.
-function inline(s: string, highlight: string): string {
+function emphasis(s: string, highlight: string): string {
     return escapeHtml(s)
         .replace(/==(.+?)==/g, `<span style="background-color:${highlight};">$1</span>`)
         .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
         .replace(/__(.+?)__/g, "<u>$1</u>");
+}
+
+function inline(s: string, highlight: string): string {
+    const links = /\[([^\]\n]+)\]\(tel:(\+?[\d .-]+)\)/g;
+    let html = "", offset = 0;
+    for (const match of s.matchAll(links)) {
+        const contact = contactActions({ phone: match[2], website: "" })[0];
+        if (!contact) continue;
+        html += emphasis(s.slice(offset, match.index), highlight);
+        html += `<a href="${contact.href}" style="color:#1663c7;text-decoration:underline;">${emphasis(match[1], highlight)}</a>`;
+        offset = match.index + match[0].length;
+    }
+    return html + emphasis(s.slice(offset), highlight);
 }
 
 type Block =
@@ -100,9 +115,35 @@ function parse(body: string): Block[] {
     return blocks;
 }
 
-/** 원고 본문을 네이버에 붙여넣을 HTML로 바꾼다. */
-export function toNaverHtml(body: string, title?: string): string {
+export interface NaverImage {
+    type: string;
+    url: string;
+    altText?: string;
+    afterText?: string;
+}
+
+const attribute = (s: string) => escapeHtml(s).replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+const normalized = (s: string) => s.trim().replace(/^(?:#{1,6}|\d+\.|[-·])\s+/, "");
+const blockLines = (block: Block): string[] => block.kind === "para" ? block.lines
+    : block.kind === "list" ? block.items : block.kind === "heading" ? [block.text] : [];
+
+/** Optional uploaded images leave existing text-only callers unchanged. */
+export function toNaverHtml(body: string, title?: string, images: NaverImage[] = []): string {
     const out: string[] = [];
+    const blocks = parse(body);
+    const safeImages = images.filter((image) => {
+        try { return ["https:", "http:"].includes(new URL(image.url).protocol); } catch { return false; }
+    });
+    const insertImage = (image: NaverImage) => {
+        out.push(`<br><img src="${attribute(image.url)}" alt="${attribute(image.altText || "")}" style="display:block;max-width:100%;height:auto;"><br>`);
+    };
+    const anchors = new Map<number, NaverImage[]>();
+    safeImages.filter((image) => !["thumbnail", "contact"].includes(image.type)).forEach((image) => {
+        let index = image.afterText ? blocks.findIndex((block) => blockLines(block).some((line) => normalized(line) === normalized(image.afterText!))) : -1;
+        if (index < 0) index = Math.max(0, Math.floor(blocks.length * (image.type === "info" ? 0.75 : 0.4)));
+        while (index < blocks.length - 1 && blocks[index].kind === "heading") index++;
+        anchors.set(index, [...(anchors.get(index) || []), image]);
+    });
 
     // 블록 사이 간격은 <br>로 직접 만든다. 네이버가 블록 여백을 지워버리기 때문에
     // 이걸 빼면 글 전체가 한 덩어리로 붙는다.
@@ -132,7 +173,10 @@ export function toNaverHtml(body: string, title?: string): string {
         afterHeading = true;
     }
 
-    for (const block of parse(body)) {
+    safeImages.filter((image) => image.type === "thumbnail").forEach(insertImage);
+    if (safeImages.some((image) => image.type === "thumbnail")) afterHeading = false;
+
+    for (const [index, block] of blocks.entries()) {
         const tight = afterHeading;
         afterHeading = false;
         switch (block.kind) {
@@ -163,7 +207,14 @@ export function toNaverHtml(body: string, title?: string): string {
                 out.push("<hr>");
                 break;
         }
+        if (anchors.has(index)) {
+            anchors.get(index)!.forEach(insertImage);
+            afterHeading = false;
+        }
     }
+
+    if (!blocks.length) anchors.get(0)?.forEach(insertImage);
+    safeImages.filter((image) => image.type === "contact").forEach(insertImage);
 
     return out.join("\n");
 }

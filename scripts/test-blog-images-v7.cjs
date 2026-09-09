@@ -63,8 +63,10 @@ async function main() {
     const boxes = [];
     drawingPrototype.fillText = function (text, x, y, ...args) {
         const width = this.measureText(text).width, fontSize = parseFloat(this.font);
-        assert.ok(x >= -1 && y >= -1 && x + width <= this.canvas.width + 2 && y + fontSize <= this.canvas.height + 2, "Text inside canvas: " + text);
-        boxes.push({ context: this, text, x, y, width, height: fontSize });
+        // Canvas x is an anchor, not the left edge for centered/right-aligned text.
+        const left = this.textAlign === "center" ? x - width / 2 : this.textAlign === "right" ? x - width : x;
+        assert.ok(left >= -1 && y >= -1 && left + width <= this.canvas.width + 2 && y + fontSize <= this.canvas.height + 2, "Text inside canvas: " + text);
+        boxes.push({ context: this, text, x: left, y, width, height: fontSize });
         return fillText.call(this, text, x, y, ...args);
     };
     for (const variant of variants) for (const style of ["paper", "contrast"]) {

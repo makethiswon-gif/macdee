@@ -53,7 +53,7 @@ export default function AdminLayout({
 }) {
     const pathname = usePathname();
     const isImageStudio = pathname === "/admin/blog-images";
-    const compactMobileNav = isImageStudio || pathname === "/admin/client-strategy";
+    const compactMobileNav = isImageStudio || pathname === "/admin/client-strategy" || pathname === "/admin/blog-publish";
     const router = useRouter();
     const [authenticated, setAuthenticated] = useState<boolean | null>(null);
 

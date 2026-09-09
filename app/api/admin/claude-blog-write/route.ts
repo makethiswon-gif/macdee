@@ -3,6 +3,7 @@ import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
 import { polishBlogBody } from "@/lib/ai/blog-polish";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getWritingDNA, dnaDirective } from "@/lib/blog-writing-dna";
+import { appendBlogPhoneContact, blogPhoneContact } from "@/lib/blog-contact";
 
 // Opus 5 + adaptive thinking으로 한 편을 길게 뽑으므로 넉넉히
 export const maxDuration = 300;
@@ -32,6 +33,7 @@ export async function POST(request: Request) {
         // 없으면 기존 기본값 그대로 (단독 사용 시 동작 유지).
         let dnaBlock = "";
         let trustBlock = "";
+        let phoneContact: ReturnType<typeof blogPhoneContact> = null;
         let dnaInfo: { voice: string; heading: string; structure: string; imageCount: number } | null = null;
         let lengthRule = "본문은 공백 포함 3,000~3,500자를 반드시 지킵니다.";
         let emphasisRule = `  · ==형광펜== : 이 글의 결론, 결론이 갈리는 경계선. 글 전체에서 **2~3곳만**. 가장 아껴 쓰는 강조입니다.
@@ -43,11 +45,12 @@ export async function POST(request: Request) {
                 const supabase = await createAdminClient();
                 const { data: profile } = await supabase
                     .from("blog_profiles")
-                    .select("id, dna_salt, lawyer_name, office_name, specialty, brand_lines")
+                    .select("id, dna_salt, lawyer_name, office_name, specialty, brand_lines, phone")
                     .eq("id", profileId)
                     .single();
 
                 if (profile) {
+                    phoneContact = blogPhoneContact(profile.phone as string | null);
                     // 심층리서치로 채워진 신뢰 신호 — 등록된 사실만 글에 녹인다.
                     const [name, title, careerStr] = ((profile.lawyer_name as string) || "").split("||");
                     const career = (careerStr || "").split(/\n|\\n/).map((s) => s.trim()).filter(Boolean);
@@ -94,6 +97,7 @@ ${specialty.length ? `- 전문 분야: ${specialty.join(", ")}` : ""}
 4. 상담 절차의 사전 안내 — 상담 때 무엇을 준비해 오면 되는지, 어떻게 진행되는지 미리 알려 전화를 거는 일의 심리적 문턱을 낮춥니다.
 
 비용·착수금 액수는 글에서 언급하지 마세요. (사무소마다 다르고, 섣부른 금액 제시는 오히려 부담을 줍니다.)
+${profileId ? "상담용 전화번호와 tel: 링크는 서버가 등록된 대표번호로 따로 붙입니다. 본문에는 사무소 전화번호나 전화 링크를 직접 만들거나 입력에서 복사하지 마세요." : ""}
 
 [결과가 아니라 '판단 근거'를 쓰세요 — 이 글의 가장 큰 차별점]
 "이런 사건에서 이런 형이 나왔다"는 결과 정보는 앞으로 누구나 얻을 수 있게 됩니다. 남는 가치는 '왜 그렇게 갈렸는가'입니다. 글 안에 반드시 다음을 담으세요.
@@ -216,12 +220,14 @@ ${trustBlock}
 
         const parsed = parseDelimiterFormat(rawContent);
         const title = parsed.title;
-        const draftBody = parsed.body;
+        const rawDraftBody = parsed.body;
 
         // 2차 윤문: 다른 모델(OpenAI)에 한 번 더 통과시켜 AI 문체의 지문을 흐린다.
         // 실패하거나 검증에 걸리면 초안이 그대로 돌아온다 — 생성 자체가 깨지지 않는다.
-        const polish = await polishBlogBody(draftBody);
-        const body = polish.text;
+        const polish = await polishBlogBody(rawDraftBody);
+        // Add the registered number after both models finish so polishing cannot change it.
+        const body = appendBlogPhoneContact(polish.text, phoneContact);
+        const draftBody = appendBlogPhoneContact(rawDraftBody, phoneContact);
         const charCount = body.replace(/\s/g, "").length; // 공백 제외 글자 수
 
         return NextResponse.json({
@@ -233,6 +239,9 @@ ${trustBlock}
             polishModel: polish.model,
             polishReason: polish.reason ?? null,
             dna: dnaInfo,
+            contactWarning: profileId && !phoneContact
+                ? "대표번호를 확인하지 못해 전화 링크를 넣지 않았습니다. 변호사 프로필의 대표 전화번호 1(메인)을 확인해주세요."
+                : null,
         });
     } catch (err) {
         console.error("[Claude Blog Write] Error:", err);
