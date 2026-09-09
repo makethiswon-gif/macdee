@@ -65,7 +65,8 @@
 .splitFirst > span { display: block; font-size: clamp(24px,2.8vw,44px); letter-spacing: -.045em; font-weight: 550; }
 .splitFirst > strong { display: block; font-size: clamp(120px,21vw,330px); line-height: 1.05; letter-spacing: -.105em; font-weight: 740; margin-left: -.025em; }
 .kinetic .brandLine { font-size: clamp(44px,5.8vw,92px); letter-spacing: -.065em; margin-top: -8px; }
-.typeTheatre { position: relative; height: 350px; margin: -15px -5vw -20px; overflow: clip; pointer-events: none; perspective: 1100px; grid-column: 1 / -1; }
+/* Reserve the projected ribbon height before the service panel starts. */
+.typeTheatre { position: relative; height: clamp(420px,calc(30vw + 240px),980px); margin: -15px -5vw 24px; overflow: clip; pointer-events: none; perspective: 1100px; grid-column: 1 / -1; }
 .typePerspective { position: absolute; width: 125%; left: -12.5%; top: 45px; transform-style: preserve-3d; transform: rotateX(calc(46deg - var(--progress)*22deg + var(--my)*3deg)) rotateZ(calc(-9deg + var(--progress)*17deg + var(--mx)*2deg)); }
 .typeBelt { display: flex; width: max-content; background: #071526; color: #fff; border-top: 1px solid #004aad; line-height: 1; transform: translateX(-18%); animation: typeRun 18s linear infinite; animation-play-state: paused; }
 .typeBelt:nth-child(2) { color: #004aad; background: #fff; animation-direction: reverse; transform: translateX(-30%) rotateX(-15deg); }
@@ -211,7 +212,7 @@
     .splitFirst > span { font-size: 24px; }
     .splitFirst > strong { font-size: 31vw; margin-top: 13px; line-height: 1.08; }
     .kinetic .brandLine { font-size: 9.25vw; margin-top: 17px; line-height: 1.2; }
-    .typeTheatre { height: 245px; margin: 7px -20px -25px; }
+    .typeTheatre { height: 310px; margin: 7px -20px 12px; }
     .typePerspective { top: 28px; transform: rotateX(calc(22deg - var(--progress)*10deg)) rotateZ(calc(-10deg + var(--progress)*15deg)); }
     .typeBelt svg { width: min(195vw,730px); }
     .kineticDeck { display: block; padding: 25px 0 30px; }
