@@ -65,7 +65,7 @@
 .splitFirst > span { display: block; font-size: clamp(30px,3.3vw,52px); letter-spacing: -.045em; font-weight: 600; }
 .splitFirst > strong { display: block; font-size: clamp(84px,11vw,176px); line-height: 1.02; letter-spacing: -.08em; font-weight: 740; margin-left: -.02em; }
 .kinetic .brandLine { font-size: clamp(48px,5.2vw,84px); letter-spacing: -.065em; margin-top: 6px; }
-.typeTheatre { position: relative; height: 255px; margin: 22px -5vw -10px; overflow: clip; pointer-events: none; grid-column: 1 / -1; }
+.typeTheatre { position: relative; height: 342px; margin: 22px -5vw -10px; overflow: clip; pointer-events: none; grid-column: 1 / -1; }
 .typePerspective { position: absolute; width: 112%; left: -6%; top: 0; display: grid; gap: 10px; }
 .typeBelt { display: flex; width: max-content; min-width: 100%; background: #071526; color: #fff; border-block: 1px solid #ffffff38; line-height: 1; }
 .typeBelt:nth-child(2) { color: #004aad; background: #fff; }
@@ -210,7 +210,7 @@
     .splitFirst > span { font-size: 25px; }
     .splitFirst > strong { font-size: clamp(78px,21vw,114px); margin-top: 10px; line-height: 1.05; }
     .kinetic .brandLine { font-size: clamp(42px,8.8vw,52px); margin-top: 14px; line-height: 1.16; }
-    .typeTheatre { height: 188px; margin: 22px -20px -14px; }
+    .typeTheatre { height: 212px; margin: 22px -20px -14px; }
     .typePerspective { width: 124%; left: -12%; gap: 7px; }
     .ribbonCopy { gap: 30px; padding: 12px 8%; font-size: clamp(28px,8vw,42px); }
     .kineticDeck { display: block; padding: 25px 0 30px; }
