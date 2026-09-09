@@ -24,12 +24,16 @@ function Proof() {
 }
 function TypeRibbon({ row }: { row: number }) {
     const pair = SERVICES.slice(row * 2, row * 2 + 2);
-    return <div className={s.ribbonCopy}>
-        {pair.map((service) => <span key={service.no}>{service.en} <b aria-hidden>↗</b></span>)}
-    </div>;
+    const firstWidth = Math.round(1200 * pair[0].en.length / (pair[0].en.length + pair[1].en.length));
+    return <svg viewBox="0 0 1600 155" focusable="false">{pair.map((service, index) => {
+        const x = index === 0 ? 30 : firstWidth + 210;
+        const width = index === 0 ? firstWidth : 1200 - firstWidth;
+        return <g key={service.no}><text x={x} y="125" textLength={width} lengthAdjust="spacingAndGlyphs">{service.en}</text><text x={x + width + 30} y="125">↗</text></g>;
+    })}</svg>;
 }
 export function Kinetic() {
     return <section className={`${s.hero} ${s.kinetic}`} data-bold-hero="kinetic" data-motion-state="static">
+        <BoldMotion />
         <div className={s.kineticHead}><p className={s.overline}>{HERO_OVERLINE}</p><Title split /></div>
         <div className={s.typeTheatre} data-motion-viewport aria-hidden="true">
             <div className={s.typePerspective} data-motion-part="kinetic-perspective">
