@@ -22,7 +22,8 @@ const generated = faces.map(face => {
   // Keep all ranges available; the browser requests only ranges used on screen.
   fs.copyFileSync(path.join(sourceDir, 'woff2-dynamic-subset', file), path.join(targetDir, file));
   if (matches(range)) { preload.push(`/renewal/study-fonts/${file}`); bytes += fs.statSync(path.join(targetDir, file)).size; }
-  return face.replace("'Pretendard Variable'", "'Renewal Study'").replace('font-display: swap', 'font-display: optional').replace(/url\([^)]*\)/, `url('/renewal/study-fonts/${file}')`);
+  // Keep swap: late subsets must replace fallback glyphs within Korean sentences.
+  return face.replace("'Pretendard Variable'", "'Renewal Study'").replace(/url\([^)]*\)/, `url('/renewal/study-fonts/${file}')`);
 });
 fs.writeFileSync(path.join(root, 'components/renewal/concepts/study-font.css'), '/* Generated from installed Pretendard, SIL OFL 1.1. Do not hand-edit. */\n' + source.slice(0, source.indexOf('/* [0] */')) + '\n' + generated.join('\n'));
 fs.writeFileSync(path.join(root, 'components/renewal/concepts/study-font-preload.json'), JSON.stringify(preload, null, 2) + '\n');
