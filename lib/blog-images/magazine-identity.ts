@@ -1,16 +1,5 @@
-// 변호사별 매거진 정체성 — 지면의 "누구" 를 결정한다.
-//
-// V10.6 — 대표 지시: "변호사마다 색감이 비슷하니 변호사별로 색감과 디자인
-// 형식을 모두 바꿔라. 대신 아주 깔끔하고 시인성 좋게."
-// → 팔레트(10)·골격 가족(3)·서체(2)·명암(2)을 전부 변호사 해시로 고정한다.
-//   조합 120가지 — 등록 변호사끼리 겹칠 확률이 낮고, 겹치면 dna_salt 로 가른다.
-//
-// 원칙 — "무엇이 다른가"는 변호사가, "무엇을 그리나"는 원고가 정한다.
-//   변호사 고정: 팔레트 · 골격 가족 · 서체 계열 · 명암(paper/contrast)
-//   원고별 자유: 콘셉트 · 모티프 · 장면 · 미세 조판(밴드 폭·괘선·제목 크기 등)
-//
-// V10.4 에서 팔레트를 원고 분위기로 풀었더니 기획 모델이 차분한 색만 관성으로
-// 골라 변호사들이 전부 비슷해졌다. 색은 다시 변호사 축으로 되돌린다.
+// Registered brand and explicit editorial family determine identity.
+// Practice-based defaults replace ID-hashed palettes, fonts and layouts.
 
 import type { EditorialProfile } from "./card-types";
 import type { ArtDirection, EditorialStyle } from "./visual-plan-types";
@@ -19,10 +8,9 @@ export type PaletteKey = ArtDirection["palette"];
 
 export type AccentShape = "dash" | "vbar" | "dots";
 export type MastheadStyle = "rules" | "block";
-export type LayoutFamily = "journal" | "poster" | "column";
+export type LayoutFamily = "journal" | "poster" | "column" | "atlas" | "ledger" | "dossier";
 
-const PALETTE_KEYS: readonly PaletteKey[] = ["cobalt", "vermilion", "forest", "aubergine", "graphite", "amber", "burgundy", "teal", "slate", "olive"];
-const FAMILIES: readonly LayoutFamily[] = ["journal", "poster", "column"];
+const FAMILIES: readonly LayoutFamily[] = ["journal", "poster", "column", "atlas", "ledger", "dossier"];
 
 // 팔레트 field 색의 색상(hue) 기준표 — magazine-design 의 field 값에서 계산.
 // (이 파일은 관리화면 클라이언트에서도 쓰여 canvas 의존인 design 모듈을 import 못한다.)
@@ -78,18 +66,23 @@ function fnv1a(input: string, seed: number): number {
     return h >>> 0;
 }
 
-export function getMagazineIdentity(profile: Pick<EditorialProfile, "id" | "lawyerName" | "brandColor" | "dnaSalt">): MagazineIdentity {
-    // dna_salt: 두 변호사의 조합이 겹칠 때 관리화면에서 갈라내는 손잡이.
-    // 축별 솔트는 시드가 아니라 입력 문자열에 붙인다 — FNV 시드만 바꾸면
-    // 축들이 서로 동조해(sans↔paper) 조합 충돌이 속출한다. 실측으로 확인.
-    const key = (profile.id || profile.lawyerName || "default") + "|" + (profile.dnaSalt || "");
-    const roll = (axis: string, n: number) => fnv1a(key + "#" + axis, 0x811c9dc5) % n;
-    const typography: "serif" | "sans" = roll("typo", 2) === 0 ? "serif" : "sans";
-    const style: EditorialStyle = roll("style", 2) === 0 ? "contrast" : "paper";
-    // 브랜드 컬러(심층 리서치·로고에서 수집)가 유채색이면 그 색과 가장 가까운
-    // 팔레트로 — 로고·홈페이지와 지면이 자연스럽게 어울린다. 없으면 해시 배정.
-    const palette = brandPalette(profile.brandColor) ?? PALETTE_KEYS[roll("palette", PALETTE_KEYS.length)];
-    const family = FAMILIES[roll("family", FAMILIES.length)];
+export function getMagazineIdentity(profile: Pick<EditorialProfile, "id" | "lawyerName" | "brandColor" | "dnaSalt" | "designFamily" | "specialty">): MagazineIdentity {
+    // Explicit art direction wins. Otherwise choose an editorial system by registered practice,
+    // never by lawyer ID, the current article, or unapproved research/credentials.
+    const practice = (profile.specialty || []).join(" ");
+    const suggested: LayoutFamily = /의료|기업|조세|금융/.test(practice) ? "ledger"
+        : /건설|부동산|재개발/.test(practice) ? "atlas"
+        : /이혼|가사|가정|학교|성폭력/.test(practice) ? "journal"
+        : /상속|유언/.test(practice) ? "column"
+        : /회생|파산|채무/.test(practice) ? "poster" : "dossier";
+    const family = profile.designFamily && profile.designFamily !== "auto" && FAMILIES.includes(profile.designFamily) ? profile.designFamily : suggested;
+    const recipes: Record<LayoutFamily, { typography: "serif" | "sans"; palette: PaletteKey }> = {
+        journal: { typography: "serif", palette: "forest" }, poster: { typography: "sans", palette: "vermilion" },
+        column: { typography: "serif", palette: "burgundy" }, atlas: { typography: "sans", palette: "teal" },
+        ledger: { typography: "sans", palette: "cobalt" }, dossier: { typography: "sans", palette: "graphite" },
+    };
+    const { typography } = recipes[family], palette = brandPalette(profile.brandColor) ?? recipes[family].palette;
+    const style: EditorialStyle = "paper";
     return { typography, style, palette, family, label: `${palette} · ${family} · ${typography} · ${style}` };
 }
 
@@ -97,11 +90,12 @@ export function getMagazineIdentity(profile: Pick<EditorialProfile, "id" | "lawy
 export function identityDirective(id: MagazineIdentity): string {
     return `
 이 사무소의 시리즈 규정(변경 불가): palette는 반드시 "${id.palette}", typography는 반드시 "${id.typography}". ` +
-        `시각물의 빛·배경·소재 색도 이 팔레트 무드에 맞춘다. 콘셉트·모티프·장면은 원고에서 새로 설계한다.`;
+        `지면 가족은 ${id.family}. composition은 split. 글자는 별도 조판한다. 시각물에는 텍스트 여백을 만들지 말고 대상과 관계를 선명하게 보여준다. 브랜드 색은 포인트로만 사용하고 모든 사진에 같은 색 필터를 씌우지 않는다. 콘셉트·모티프·장면은 원고에서 설계한다. 네 장에 같은 소품을 반복하지 않는다.`;
 }
 
 /** 팔레트·서체를 변호사 값으로 강제한다. 장면·구도는 기획 모델의 몫 그대로. */
 export function lockDirection(direction: ArtDirection | undefined, id: MagazineIdentity): ArtDirection | undefined {
     if (!direction) return direction;
-    return { ...direction, palette: id.palette, typography: id.typography };
+    return { ...direction, palette: id.palette, typography: id.typography,
+        composition: "split" };
 }

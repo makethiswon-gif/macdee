@@ -1,14 +1,11 @@
 // 로펌 심층 리서치 — 웹 검색으로 로펌의 공개 정보를 수집해 전문가급
-// 마케팅 리서치 보고서를 만들고, 블로그/이미지 생성용 변호사 프로필에
-// 분야·특장점·브랜드 컬러를 반영한다. (대표 지시 2026-09-08)
+// 마케팅 리서치 보고서를 만든다. 공개 강점은 별도 ID 연결·검토·승인 후 사용한다.
 //
 // 원칙:
 // - 웹에서 확인한 사실과 추정을 구분한다. 확인 못한 것은 caveats 에 남긴다.
-// - 프로필 덮어쓰기는 보수적으로: 분야는 합집합, 웹사이트는 빈 칸만 채움.
-//   브랜드 컬러는 홈페이지에서 실측(theme-color·OG 이미지)한 값을 우선한다.
+// - 리서치가 기존 담당 분야·경력·브랜드 설정을 자동으로 덮어쓰지 않는다.
 // - 검색·수집은 대표가 버튼을 누를 때만 실행한다. 자동 실행 없음.
 
-import { createServiceClient } from "@/lib/supabase/server";
 import { extractClaudeText } from "@/lib/ai/claude-text";
 
 export const FIRM_RESEARCH_MODEL = "claude-opus-5";
@@ -159,34 +156,6 @@ export async function extractHomepageColor(url: string): Promise<{ hex: string; 
         }
     } catch { /* 홈페이지 실측 실패는 치명적이지 않다 — AI 관찰값으로 폴백 */ }
     return { hex: "", source: "" };
-}
-
-const normalizeName = (name: string) => name.replace(/법무법인|법률사무소|변호사|사무소|\s+/g, "").toLowerCase();
-
-/** 리서치 결과를 blog_profiles 에 반영한다. 로펌명이 일치하는 프로필만. */
-export async function applyResearchToProfiles(
-    firmName: string, report: FirmResearchReport, brandColor: string,
-    db = createServiceClient(),
-): Promise<{ id: string; name: string }[]> {
-    const { data, error } = await db.from("blog_profiles").select("id,lawyer_name,office_name,specialty,brand_lines,brand_color,website").abortSignal(AbortSignal.timeout(12_000));
-    if (error) throw new FirmResearchError("변호사 프로필을 읽지 못했습니다.");
-    const target = normalizeName(firmName);
-    if (!target) return [];
-    const matched = (data || []).filter((row) => {
-        const office = normalizeName((row.office_name as string) || "");
-        return office && (office.includes(target) || target.includes(office));
-    });
-    const applied: { id: string; name: string }[] = [];
-    for (const row of matched) {
-        const specialty = [...new Set([...((row.specialty as string[]) || []), ...report.practiceAreas])].slice(0, 15);
-        const update: Record<string, unknown> = { specialty };
-        if (report.strengths.length) update.brand_lines = report.strengths.slice(0, 6);
-        if (brandColor) update.brand_color = brandColor;
-        if (!row.website && report.homepage.url) update.website = report.homepage.url;
-        const { error: updateError } = await db.from("blog_profiles").update(update).eq("id", row.id).abortSignal(AbortSignal.timeout(12_000));
-        if (!updateError) applied.push({ id: row.id as string, name: ((row.lawyer_name as string) || "").split("||")[0] });
-    }
-    return applied;
 }
 
 export function researchSetupMissing(error: { code?: string; message?: string } | null): boolean {

@@ -30,5 +30,6 @@ export interface BriefRenderOptions {
     artLabel?: string;
     model?: string;
     headingOverride?: string;
+    repairLayout?: boolean;
 }
 export function renderBriefCard(opts: BriefRenderOptions): Promise<BlogImageCard> { return renderMagazineCard(opts); }

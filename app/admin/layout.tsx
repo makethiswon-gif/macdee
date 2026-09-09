@@ -42,6 +42,7 @@ const ADMIN_NAV = [
     { href: "/admin/blog-factory", label: "블로그 공장", icon: Factory },
     { href: "/admin/blog-publish", label: "블로그 발행", icon: Send },
     { href: "/admin/blog-settings", label: "블로그 발행 설정", icon: Settings },
+    { href: "/admin/blog-strengths", label: "블로그 공개 강점", icon: Settings },
     { href: "/admin/diagnose-leads", label: "무료 진단 리드", icon: Stethoscope },
     { href: "/admin/seo-titles", label: "SEO 제목 일괄수정", icon: Search },
 ];
@@ -53,7 +54,7 @@ export default function AdminLayout({
 }) {
     const pathname = usePathname();
     const isImageStudio = pathname === "/admin/blog-images";
-    const compactMobileNav = isImageStudio || pathname === "/admin/client-strategy" || pathname === "/admin/blog-publish";
+    const compactMobileNav = isImageStudio || pathname === "/admin/client-strategy" || pathname === "/admin/blog-publish" || pathname === "/admin/blog-strengths";
     const router = useRouter();
     const [authenticated, setAuthenticated] = useState<boolean | null>(null);
 

@@ -14,8 +14,13 @@ export interface BlogImageCard {
     placement: string;
     model?: string;
     warnings: string[];
-    designVersion: "editorial-v6" | "editorial-v7" | "editorial-v8" | "editorial-v9" | "editorial-v10";
-    designReview?: { status: "pass" | "revise" | "unavailable"; model: string; score?: number; summary: string; issues: string[] };
+    designVersion: "editorial-v6" | "editorial-v7" | "editorial-v8" | "editorial-v9" | "editorial-v10" | "editorial-v11";
+    designReview?: { status: "pass" | "revise" | "unavailable"; model: string; score?: number; summary: string; issues: string[];
+        repair?: "none" | "layout" | "art" | "content"; attempts?: number };
+    releaseToken?: string;
+    productionId?: string;
+    setId?: string;
+    layoutChecks?: { passed: boolean; issues: string[]; textBlocks: number };
     contactActions?: { label: string; display: string; href: string }[];
     // Optional, compressed original art permits typography/layout changes without image-model calls.
     artDataUrl?: string;
@@ -48,6 +53,8 @@ export interface EditorialProfile {
     /** 두 변호사의 지면 조합이 겹칠 때 관리화면(dna_salt)에서 넣는 조정값.
         같은 사람은 salt 가 같으므로 결정론은 유지된다. */
     dnaSalt?: string;
+    designFamily?: import("../blog-strengths").BlogDesignFamily;
+    specialty?: string[];
     /** 등록 경력(자랑 경력이 앞에 온다) — 상담 카드에 상위 1~2줄을 표기한다. */
     career?: string[];
     profileImages: string[];
@@ -64,7 +71,7 @@ export interface EditorialCopy {
 export function cardRequestProfile(p: Partial<EditorialProfile>, type: string, photoSource: BlogPhotoSource = "ai") {
     return { id: p.id, lawyerName: p.lawyerName, officeName: p.officeName, jobTitle: p.jobTitle,
         phone: p.phone, website: p.website, brandColor: p.brandColor, logoImage: p.logoImage,
-        dnaSalt: p.dnaSalt,
+        dnaSalt: p.dnaSalt, designFamily: p.designFamily,
         // 자랑 경력은 상담 카드에만 얹는다 — 심층리서치가 채운 상위 2줄.
         career: type === "contact" ? (p.career || []).filter(Boolean).slice(0, 2) : [],
         profileImages: type === "contact" ? p.profileImages?.slice(0, 1) : [],

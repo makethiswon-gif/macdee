@@ -35,9 +35,13 @@ export interface PlannedCard {
     infographic?: Infographic;
     points?: string[];
     skipReason?: string;
+    treatment?: "feature" | "analysis" | "guide";
 }
 export interface ArticleVisualPlan {
-    version: "visual-plan-v7" | "visual-plan-v9";
+    strengthToken?: string;
+    strengthSelection?: import("../blog-strengths").StrengthSelection;
+    version: "visual-plan-v7" | "visual-plan-v9" | "visual-plan-v11";
+    productionNotes?: string[];
     direction?: ArtDirection;
     planningModel?: string;
     sourceHash: string;

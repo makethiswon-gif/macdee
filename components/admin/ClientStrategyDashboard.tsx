@@ -209,7 +209,7 @@ function ResearchContent({ research }: { research: FirmResearch }) {
                     <ul className={styles.gaps}>{report.sources.map((source, index) => <li key={index}><a href={source} target="_blank" rel="noreferrer" style={{ wordBreak: "break-all" }}>{source}</a></li>)}</ul>
                 </section>
             </div>}
-            <div className={styles.reviewNote}><LockKeyhole size={17} aria-hidden /><p><strong>웹 공개 정보 기반 AI 리서치입니다.</strong> 동명 로펌 혼동·오래된 정보 가능성이 있으니 사실관계를 확인한 뒤 사용하세요. 프로필에 반영된 분야·특장점·컬러는 프로필 관리 화면에서 수정할 수 있습니다.</p></div>
+            <div className={styles.reviewNote}><LockKeyhole size={17} aria-hidden /><p><strong>웹 공개 정보 기반 AI 리서치입니다.</strong> 동명 로펌·오래된 정보 가능성이 있습니다. 공개 사용할 강점은 <a href="/admin/blog-strengths">블로그 공개 강점</a>에서 로펌과 변호사를 연결하고 근거를 확인한 뒤 승인하세요.</p></div>
         </div>
     );
 }
@@ -485,10 +485,9 @@ export default function ClientStrategyDashboard() {
             );
             if (result.research) {
                 setResearch((current) => ({ ...current, [firm.id]: result.research! }));
-                const applied = result.research.applied_profiles;
                 setResearchNotice({
                     firmId: firm.id, failed: false,
-                    message: `${firm.name} 리서치 완료.${applied.length ? ` 프로필 ${applied.length}건(${applied.map((p) => p.name).join(", ")})에 분야·특장점·브랜드 컬러를 반영했습니다.` : " 로펌명이 일치하는 변호사 프로필이 없어 보고서만 저장했습니다."}${result.saved === false ? " (저장소 미설정 — 보고서는 이 화면에서만 보입니다. 마이그레이션 019 적용 필요)" : ""}`,
+                    message: `${firm.name} 리서치 완료. 공개 강점은 검토·승인 후 반영됩니다.${result.saved === false ? " (보고서 저장 실패: 저장소 설정을 확인해주세요.)" : ""}`,
                 });
             }
         } catch (failure) {

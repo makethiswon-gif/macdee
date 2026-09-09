@@ -2,7 +2,7 @@ import { contactActions, type ContactAction } from "./blog-images/contact-detail
 
 export function blogPhoneContact(storedPhone: string | null | undefined): ContactAction | null {
     // ProfileManager stores the main number first, followed by optional numbers.
-    const mainPhone = (storedPhone || "").split(",")[0].trim();
+    const mainPhone = (storedPhone || "").split(",")[0].trim().replace(/^(?:대표\s*(?:전화\s*)?번호|대표\s*전화|대표|전화|TEL)\s*[:：]?\s*/i, "");
     return contactActions({ phone: mainPhone, website: "" })[0] || null;
 }
 

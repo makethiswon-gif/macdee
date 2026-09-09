@@ -14,6 +14,7 @@ const fixtureBody = "## 준비할 자료\n\n자료를 확인합니다.\n\n---\n*
 const moduleLoad = Module._load;
 Module._load = function (name, ...args) {
     if (name === "@/lib/admin-auth") return { verifyAdminToken: (request) => request.headers.get("x-fixture-auth") === "yes" };
+    if (name === "@/lib/blog-strengths-store") return { loadStrengthLibrary: async (id) => ({ profileId: id, firmId: "", lawyerId: "", revision: 0, designFamily: "auto", updatedAt: "", claims: [] }), signStrengthSelection: () => "fixture-token", StrengthStoreError: class StrengthStoreError extends Error { constructor(message, status = 503) { super(message); this.status = status; } } };
     if (name === "@/lib/ai/blog-polish") return { polishBlogBody: async (body) => {
         polishInput = body;
         return { text: body.replace("자료를 확인합니다.", "관련 자료를 먼저 확인합니다."), polished: true, model: "fixture" };
@@ -21,6 +22,7 @@ Module._load = function (name, ...args) {
     if (name === "@/lib/supabase/server") return { createAdminClient: async () => {
         if (databaseFails) throw new Error("Fixture database unavailable");
         return { from: (table) => {
+            if (table === "blog_posts") return { select: () => ({ eq: () => ({ order: () => ({ limit: async () => ({ data: [], error: null }) }) }) }) };
             assert.equal(table, "blog_profiles");
             return { select: (columns) => {
                 selected = columns;
@@ -60,6 +62,7 @@ const assertLink = (body, href, count = 1) => {
         ["031-000-0000", "tel:0310000000"], ["1588-0000", "tel:15880000"],
         ["010-0000-0000", "tel:01000000000"], ["+82 2 000 0000", "tel:+8220000000"],
         ["(02) 000-0000", "tel:020000000"],
+        ["대표 번호 053-754-9797, 변호사 직통 010-0000-0000", "tel:0537549797"],
     ]) assert.equal(blogPhoneContact(phone).href, href);
     for (const phone of [undefined, null, "", ", 02-000-0000", "bad, 02-000-0000", "02-000-0000 / 070-0000-0000",
         "02-000-0000;ext=123", "javascript:alert(1)", '020000000\" onclick=\"bad', "123", "1234567890123456"])
@@ -74,6 +77,7 @@ const assertLink = (body, href, count = 1) => {
     }
     assert.equal(appendBlogPhoneContact("", contact), "");
     assert.equal(appendBlogPhoneContact(fixtureBody, null), fixtureBody);
+    assertLink("[전화 상담 · 대표번호 02-2038-9185](tel:0220389185)", "tel:0220389185");
     const html = toNaverHtml('[**전화 상담** <img src=x onerror=bad>](tel:+8220000000)\n\n[unsafe](javascript:alert(1))\n\n[bad](tel:1234;ext=1)', "Title",
         ["thumbnail", "illustration", "info", "contact"].map((type) => ({ type, url: `https://example.com/${type}.png` })));
     const $ = load(html);
@@ -99,12 +103,10 @@ const assertLink = (body, href, count = 1) => {
         assertLink(data.body, null, 0); assert.ok(data.contactWarning);
     }
     profile = null;
-    let data = await (await POST(request("missing"))).json();
-    assertLink(data.body, null, 0); assert.ok(data.contactWarning);
+    assert.equal((await POST(request("missing"))).status, 404);
     databaseFails = true;
-    data = await (await POST(request("unavailable"))).json();
-    assertLink(data.body, null, 0); assert.ok(data.contactWarning);
-    data = await (await POST(request(undefined))).json();
+    assert.equal((await POST(request("unavailable"))).status, 500);
+    const data = await (await POST(request(undefined))).json();
     assertLink(data.body, null, 0); assert.equal(data.contactWarning, null);
     console.log("PASS: main phone only, validation, footer placement, idempotence, HTML escaping/tel links, four images, actual writer route, post-polish/draft links, profile isolation, missing phone warning, standalone compatibility");
 })().catch((error) => { console.error(error); process.exitCode = 1; });

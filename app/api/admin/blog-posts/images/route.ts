@@ -4,6 +4,8 @@ import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
 import { createHash } from "node:crypto";
 import { BLOG_CARD_TYPES } from "@/lib/blog-images/card-types";
 import { hasCompleteCardSet } from "@/lib/blog-publish-workflow";
+import { verifyImageRelease, digest } from "@/lib/blog-images/production-store";
+import { sourceHash } from "@/lib/blog-images/visual-planner";
 
 // 브라우저에서 만든 카드 PNG를 받아 Storage에 올리고 원고에 붙인다.
 // 이미지가 서버에 남아야 발행기가 집어갈 수 있다.
@@ -13,6 +15,8 @@ const BUCKET = "blog-cards";
 interface IncomingImage {
     type: string;
     dataUrl: string;
+    releaseToken?: string;
+    setId?: string;
 }
 
 // 요청 본문 상한(Vercel 4.5MB)을 넘지 않도록 한 장씩 받는 경로를 연다.
@@ -58,9 +62,16 @@ export async function POST(request: Request) {
         }
 
         const supabase = await createAdminClient();
-        const { data: row, error: readError } = await supabase.from("blog_posts").select("card_images").eq("id", postId).single();
+        const { data: row, error: readError } = await supabase.from("blog_posts").select("card_images,profile_id,title,body").eq("id", postId).single();
         if (readError || !row) return NextResponse.json({ error: "저장된 원고를 찾지 못했습니다." }, { status: 404 });
-        const saved: { type: string; url: string }[] = [];
+        const hashOfSource = sourceHash(row.title || "", row.body || "");
+        const saved: { type: string; url: string; releaseToken?: string; pngHash?: string; setId?: string }[] = [];
+        const setId = images[0].setId;
+        // Validate the whole incoming set before uploading any bytes.
+        if (requiredTypes && images.some((img) => !verifyImageRelease(img.releaseToken, { profileId: row.profile_id, sourceHash: hashOfSource,
+            type: img.type, pngHash: digest(Buffer.from(img.dataUrl.split(",")[1], "base64")), setId: setId || "" }) || img.setId !== setId)) {
+            return NextResponse.json({ error: "품질 검수 통과 이미지가 아니거나 원고·변호사가 변경되었습니다. 재검수해주세요." }, { status: 422 });
+        }
 
         for (let i = 0; i < images.length; i++) {
             const img = images[i];
@@ -83,19 +94,21 @@ export async function POST(request: Request) {
             }
 
             const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-            saved.push({ type: img.type, url: data.publicUrl });
+            saved.push({ type: img.type, url: data.publicUrl, ...(requiredTypes ? { releaseToken: img.releaseToken, pngHash: digest(bytes), setId } : {}) });
         }
 
         // 한 장씩 받을 때는 기존 목록과 병합한다. 덮어쓰면 앞 장이 사라진다.
         let merged = saved;
         if (single) {
-            const prev = (row?.card_images as { type: string; url: string }[] | null) || [];
+            const prev = (row?.card_images as typeof saved | null) || [];
             // 같은 type 은 새 것으로 교체(재생성 대비)
             merged = [...prev.filter((x) => !saved.some((n) => n.type === x.type)), ...saved];
         }
 
         // 다 모였을 때만 발행 대기로 올린다
-        const done = requiredTypes ? hasCompleteCardSet(merged, requiredTypes)
+        const done = requiredTypes ? hasCompleteCardSet(merged.filter((img) => verifyImageRelease(img.releaseToken, {
+            profileId: row.profile_id, sourceHash: hashOfSource, type: img.type, pngHash: img.pngHash || "", setId: setId || "",
+        })), requiredTypes)
             : !single || (typeof total === "number" ? merged.length >= total : true);
 
         const { error: upErr } = await supabase

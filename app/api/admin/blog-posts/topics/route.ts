@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
 import { extractClaudeText } from "@/lib/ai/claude-text";
+import { loadStrengthLibrary } from "@/lib/blog-strengths-store";
+import { eligibleStrengths, publicStrength } from "@/lib/blog-strengths";
 
 // 블로그 하나에 맞는 주제 후보를 여러 개 뽑는다. 관리자가 그중 하나를 골라 원고를 만든다.
 //
@@ -73,6 +75,7 @@ export async function POST(request: Request) {
             .slice(0, 40);
 
         const lawyerName = String(profile.lawyer_name || "").split("||")[0] || "변호사";
+        const approved = eligibleStrengths(await loadStrengthLibrary(profileId)).filter((c) => c.fields.some((field) => fields.includes(field))).map(publicStrength);
         const wantCount = Math.max(3, Math.min(10, Number(count) || 6));
 
         const system = `당신은 한국 변호사 블로그의 콘텐츠 전략가입니다.
@@ -80,6 +83,9 @@ export async function POST(request: Request) {
 
 [반드시 지킬 것]
 - 담당 분야를 벗어나지 마세요. 이 블로그가 다루는 분야는 다음뿐입니다: ${fields.join(", ")}
+- field 값은 위 담당 분야 중 하나를 그대로 반환하세요. 포괄적인 '형사'로 바꾸지 마세요.
+- 공개 승인 강점: ${JSON.stringify(approved)}
+- 위 강점을 독자의 준비·판단 질문과 연결하되, 전문 분야를 넓히거나 미확인 실제 수임 경험·새 경력을 만들지 마세요. 승인 자료가 없으면 일반 정보형 주제를 제안하세요.
 - 주제는 '키워드'가 아니라 '상황'입니다. "이혼 재산분할" 같은 큰 키워드는 금지. 의뢰인이 밤에 실제로 검색할 문장 단위로 좁히세요.
 - angle은 '결과'가 아니라 '판단 근거'여야 합니다. 어떤 결론이 나왔는지가 아니라, 사실관계의 어느 지점에서 결론이 갈리는지를 잡으세요.
 - 확인되지 않은 판례 번호(사건번호)는 쓰지 마세요.
@@ -135,10 +141,11 @@ JSON만 반환하세요.`;
         }
 
         // 담당 분야 밖으로 새어나간 항목은 버린다
-        const inScope = topics.filter((t) => !t.field || fields.some((f) => t.field.includes(f) || f.includes(t.field)));
+        const inScope = topics.filter((t) => typeof t.field === "string" && fields.includes(t.field.trim()));
+        if (!inScope.length) return NextResponse.json({ error: "담당 분야에 맞는 추천을 얻지 못했습니다. 분야 밖의 주제는 제외했습니다. 다시 추천받아 주세요." }, { status: 422 });
 
         return NextResponse.json({
-            topics: inScope.length ? inScope : topics,
+            topics: inScope,
             fields,
             avoided: written.length,
         });

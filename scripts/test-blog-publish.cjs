@@ -3,6 +3,7 @@ const { chromium } = require("playwright-core");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const http = require("node:http");
 const JSZip = require("jszip");
 const base = process.env.BLOG_PUBLISH_TEST_URL || "http://127.0.0.1:3106";
 assert.ok(["localhost", "127.0.0.1"].includes(new URL(base).hostname), "Never run mutation fixtures against production");
@@ -19,15 +20,26 @@ const profiles = ["A", "B"].map((name) => ({ id: "qa-" + name, lawyerName: "검�
 const reports = [];
 
 (async () => {
-    const browser = await chromium.launch({ channel: "chrome", headless: true });
+    // Sandboxed srcdoc image requests can bypass Playwright route interception.
+    // Serve fixture bytes on loopback so previews exercise actual image loading.
+    const imageServer = http.createServer((req, res) => {
+        if (!req.url.endsWith(".png")) { res.writeHead(404); return res.end(); }
+        res.writeHead(200, { "Content-Type": "image/png", "Cache-Control": "no-store" });
+        res.end(Buffer.from(png.split(",")[1], "base64"));
+    });
+    await new Promise((resolve, reject) => { imageServer.once("error", reject); imageServer.listen(0, "127.0.0.1", resolve); });
+    const imageBase = `http://127.0.0.1:${imageServer.address().port}`;
+    let browser;
     try {
+        browser = await chromium.launch({ channel: "chrome", headless: true });
         async function session(options = {}) {
             const context = await browser.newContext({ viewport: options.viewport || { width: 1440, height: 1100 }, acceptDownloads: true });
             await context.addInitScript(() => {
-                window.__copiedHtml = ""; window.__modernCopy = true; window.__legacyCopy = true;
+                window.__copiedHtml = ""; window.__copiedPlain = ""; window.__modernCopy = true; window.__legacyCopy = true;
                 Object.defineProperty(navigator, "clipboard", { configurable: true, value: { write: async (items) => {
                     if (!window.__modernCopy) throw new Error("Synthetic clipboard denial");
                     window.__copiedHtml = await (await items[0].getType("text/html")).text();
+                    window.__copiedPlain = await (await items[0].getType("text/plain")).text();
                 } } });
                 document.execCommand = () => {
                     const range = getSelection()?.rangeCount ? getSelection().getRangeAt(0) : null;
@@ -38,10 +50,11 @@ const reports = [];
                 };
             });
             const state = { posts: [], writes: [], plans: [], images: [], uploads: [], patches: [], errors: [], blocked: [],
-                failType: options.failType, networkFailure: options.networkFailure, uploadFailure: options.uploadFailure, planFailure: options.planFailure };
+                failType: options.failType, networkFailure: options.networkFailure, uploadFailure: options.uploadFailure, planFailure: options.planFailure, heldType: options.heldType };
             const reply = (route, data, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(data) });
             await context.route("**/*", async (route) => {
                 const req = route.request(), url = new URL(req.url());
+                if (url.origin === imageBase && url.pathname.endsWith(".png")) return route.continue();
                 if (url.origin !== new URL(base).origin) { state.blocked.push(url.href); return route.abort(); }
                 if (!url.pathname.startsWith("/api/")) {
                     if (!["GET", "HEAD"].includes(req.method())) return route.abort();
@@ -51,12 +64,13 @@ const reports = [];
                 switch (url.pathname) {
                     case "/api/admin/auth": return reply(route, { authenticated: true });
                     case "/api/admin/blog-settings": return reply(route, { profiles });
+                    case "/api/admin/blog-strengths/select": return reply(route, { selection: { profileId: data.profileId, firmId: "", revision: 0, designFamily: "auto", claims: [], reason: "검수용 일반 정보 원고" }, eligible: [], token: "fixture-only", review: { issues: [], applied: [] } });
                     case "/api/admin/blog-profiles": return reply(route, { profile: profiles.find((p) => p.id === url.searchParams.get("id")) });
                     case "/api/admin/claude-blog-write": {
                         state.writes.push(data); await sleep(options.writeDelay || 90);
                         const phone = profiles.find((p) => p.id === data.profileId).phone.split(",")[0];
                         const contact = options.missingPhone ? "" : `\n\n[전화 상담 · 대표번호 ${phone}](tel:${phone.replace(/-/g, "")})`;
-                        return reply(route, { title: "검수 원고 " + data.topic, body: `## 확인할 내용\n\n${data.topic} 원고입니다. ${data.profileId}\n\n**강조** 및 ==핵심 내용==.\n\n## 상담 준비\n\n서류를 확인합니다.${contact}`, polished: true,
+                        return reply(route, { strengthSelection: { profileId: data.profileId, firmId: "", revision: 0, designFamily: "auto", claims: [], reason: "검수용 일반 정보 원고" }, title: "검수 원고 " + data.topic, body: `## 확인할 내용\n\n${data.topic} 원고입니다. ${data.profileId}\n\n**강조** 및 ==핵심 내용==.\n\n## 상담 준비\n\n서류를 확인합니다.${contact}`, polished: true,
                             contactWarning: options.missingPhone ? "대표번호를 확인하지 못해 전화 링크를 넣지 않았습니다. 변호사 프로필의 대표 전화번호 1(메인)을 확인해주세요." : null });
                     }
                     case "/api/admin/blog-posts": {
@@ -80,12 +94,14 @@ const reports = [];
                         if (state.networkFailure === data.cardType) return route.abort("failed");
                         if (state.failType === data.cardType) return reply(route, { error: "검수용 생성 실패" }, 502);
                         return reply(route, { card: { type: data.cardType, name: data.cardType, imageDataUrl: png, width: 1024, height: 1145,
-                            altText: "검수 이미지 " + data.title, placement: "관련 문단 다음", warnings: [], designVersion: "editorial-v10", sourceParagraphId: "p2" } });
+                            altText: "검수 이미지 " + data.title, placement: "관련 문단 다음", warnings: [], designVersion: "editorial-v11", sourceParagraphId: "p2",
+                            setId: "qa-set", releaseToken: state.heldType === data.cardType ? undefined : "qa-fixture", layoutChecks: { passed: true, issues: [], textBlocks: 5 },
+                            designReview: { status: state.heldType === data.cardType ? "unavailable" : "pass", model: "fixture", summary: "검수 상태", issues: [] } } });
                     case "/api/admin/blog-posts/images": {
                         state.uploads.push(data);
                         if (state.uploadFailure === data.image.type) return reply(route, { error: "검수용 업로드 실패" }, 500);
                         const post = state.posts.find((p) => p.id === data.postId); assert.ok(post);
-                        post.card_images = [...post.card_images.filter((i) => i.type !== data.image.type), { type: data.image.type, url: `${base}/qa-images/${post.id}-${data.image.type}.png` }];
+                        post.card_images = [...post.card_images.filter((i) => i.type !== data.image.type), { type: data.image.type, url: `${imageBase}/${post.id}-${data.image.type}.png` }];
                         const done = types.every((type) => post.card_images.some((i) => i.type === type));
                         post.status = done ? "ready" : "draft";
                         return reply(route, { images: post.card_images, done });
@@ -111,8 +127,25 @@ const reports = [];
             let html = await s.page.evaluate(() => window.__copiedHtml);
             assert.equal((html.match(/<img/g) || []).length, 4); assert.match(html, /<strong>/); assert.match(html, /thumbnail.png/);
             assert.match(html, /href="tel:020000000"/); assert.doesNotMatch(html, /070-0000-0000/);
+            const plain = await s.page.evaluate(() => window.__copiedPlain);
+            assert.match(plain, /전화 상담 · 대표번호 02-000-0000/);
+            assert.doesNotMatch(plain, /\]\(tel:|\*\*|==|##/);
             assert.match(s.state.posts[0].body, /\]\(tel:020000000\)/);
             assert.match(s.state.plans[0].content, /\]\(tel:020000000\)/);
+            await s.page.getByRole("tab", { name: "서식 미리보기" }).click();
+            const article = s.page.frameLocator('iframe[title="네이버 복사용 서식 미리보기"]');
+            await article.locator("h1").waitFor();
+            assert.equal(await article.locator("img").count(), 4);
+            assert.deepEqual(await article.locator("img").evaluateAll(async (imgs) => (await Promise.all(imgs.map(async (img) => {
+                try { await img.decode(); return null; } catch (e) { return { src: img.src, width: img.naturalWidth, complete: img.complete, error: String(e) }; }
+            }))).filter(Boolean)), []);
+            assert.equal(await article.locator("a").getAttribute("href"), "tel:020000000");
+            assert.equal(await s.page.locator("iframe").getAttribute("sandbox"), "");
+            const srcDoc = await s.page.locator("iframe").getAttribute("srcdoc");
+            assert.ok(srcDoc.includes(html), "Preview and clipboard use the identical formatter and image anchors");
+            await s.page.getByRole("tab", { name: "서식 미리보기" }).press("ArrowLeft");
+            assert.equal(await s.page.getByRole("tab", { name: "원고 편집" }).getAttribute("aria-selected"), "true");
+            assert.equal(await s.page.getByLabel("원고 본문", { exact: true }).inputValue(), s.state.posts[0].body);
             await s.page.getByLabel("메인 썸네일 미리보기", { exact: true }).click();
             await s.page.getByRole("dialog").waitFor(); await s.page.keyboard.press("Escape");
             assert.equal(await s.page.getByRole("dialog").count(), 0);
@@ -125,6 +158,11 @@ const reports = [];
             await s.page.getByLabel("원고 제목", { exact: true }).fill("수정된 제목");
             await s.page.getByLabel("원고 본문", { exact: true }).fill("수정된 본문");
             assert.equal(await s.page.locator("article img").count(), 0);
+            await s.page.getByRole("tab", { name: "서식 미리보기" }).click();
+            await article.locator("h1").waitFor();
+            assert.equal(await article.locator("h1").innerText(), "수정된 제목");
+            assert.equal(await article.locator("img").count(), 0, "Edited drafts cannot preview stale cards");
+            await s.page.getByRole("tab", { name: "원고 편집" }).click();
             await s.page.getByRole("button", { name: "수정 저장", exact: true }).click(); await s.idle();
             assert.equal(s.state.posts[0].title, "수정된 제목"); assert.equal(s.state.posts[0].body, "수정된 본문");
             assert.equal(s.state.posts[0].status, "draft"); assert.deepEqual(s.state.posts[0].card_images, []);
@@ -155,6 +193,19 @@ const reports = [];
             assert.equal(s.state.posts.length, 1); assert.equal(s.state.posts[0].card_images.length, 4);
             reports.push(kind + ": successful cards retained, only failed generation/upload retried");
             await s.close();
+        }
+        {
+            const s = await session({ heldType: "contact" }); await s.start("품질 검수 보류"); await s.idle();
+            assert.equal(s.state.posts[0].status, "draft"); assert.equal(s.state.uploads.length, 3);
+            assert.equal(await s.page.getByRole("button", { name: "변호사·상담 안내 PNG 다운로드", exact: true }).isDisabled(), true);
+            await s.page.getByRole("button", { name: "네이버용 복사", exact: true }).click(); await s.idle();
+            assert.match(await s.page.getByRole("alert").filter({ hasText: "복사에 실패" }).innerText(), /검수 또는 저장 대기/);
+            assert.equal(await s.page.evaluate(() => window.__copiedHtml), "");
+            s.state.heldType = null;
+            await s.page.getByRole("button", { name: "변호사·상담 안내 재시도", exact: true }).click(); await s.done();
+            assert.equal(s.state.images.length, 5); assert.equal(s.state.uploads.length, 4);
+            assert.ok(s.state.uploads.every((u) => u.image.releaseToken === "qa-fixture"));
+            reports.push("quality hold: no upload/ready/PNG/copy; only held card rechecked; release receipts submitted"); await s.close();
         }
         {
             const s = await session({ writeDelay: 800 }); await s.start("전환 검수");
@@ -209,11 +260,19 @@ const reports = [];
             assert.deepEqual(layout, { page: true, main: true, images: true });
             await s.page.getByRole("button", { name: "네이버용 복사", exact: true }).click(); await s.idle();
             assert.match(await s.page.evaluate(() => window.__copiedHtml), /href="tel:020000000"/);
+            await s.page.getByRole("tab", { name: "서식 미리보기" }).click();
+            const frame = s.page.frameLocator('iframe[title="네이버 복사용 서식 미리보기"]');
+            await frame.locator("h1").waitFor();
+            assert.equal(await frame.locator("html").evaluate((el) => el.scrollWidth <= el.clientWidth + 1), true);
+            assert.equal(await frame.locator("img").count(), 4);
+            assert.ok((await frame.locator("img").evaluateAll(async (imgs) => Promise.all(imgs.map((img) => img.decode().then(() => img.naturalWidth > 0).catch(() => false))))).every(Boolean));
             await s.page.screenshot({ path: path.join(out, `mobile-${width}.png`), fullPage: true });
             reports.push(`responsive ${width}px: no horizontal overflow, all images loaded`); await s.close();
         }
     } finally {
-        await browser.close(); fs.writeFileSync(path.join(out, "report.json"), JSON.stringify(reports, null, 2));
+        await browser?.close(); imageServer.closeAllConnections();
+        await new Promise((resolve) => imageServer.close(resolve));
+        fs.writeFileSync(path.join(out, "report.json"), JSON.stringify(reports, null, 2));
         console.log(reports.join("\n"));
     }
 })().catch((e) => { console.error(e); process.exitCode = 1; });

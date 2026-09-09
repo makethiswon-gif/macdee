@@ -4,6 +4,9 @@ import { polishBlogBody } from "@/lib/ai/blog-polish";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getWritingDNA, dnaDirective } from "@/lib/blog-writing-dna";
 import { appendBlogPhoneContact, blogPhoneContact } from "@/lib/blog-contact";
+import { reviewStrengths, selectStrengths, strengthDirective, validProfileId, type StrengthSelection } from "@/lib/blog-strengths";
+import { loadStrengthLibrary, signStrengthSelection, StrengthStoreError } from "@/lib/blog-strengths-store";
+import { reviewBlogEditorial } from "@/lib/blog-editorial-review";
 
 // Opus 5 + adaptive thinking으로 한 편을 길게 뽑으므로 넉넉히
 export const maxDuration = 300;
@@ -19,7 +22,7 @@ export async function POST(request: Request) {
     if (!verifyAdmin(request)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     try {
-        const { content, field, profileId, topic } = await request.json();
+        const { content, field, profileId, topic, strengthIds, strengthRevision } = await request.json();
         if (!content || !content.trim()) {
             return NextResponse.json({ error: "내용을 입력해주세요." }, { status: 400 });
         }
@@ -33,6 +36,20 @@ export async function POST(request: Request) {
         // 없으면 기존 기본값 그대로 (단독 사용 시 동작 유지).
         let dnaBlock = "";
         let trustBlock = "";
+        let strengthSelection: StrengthSelection | null = null;
+        let recentBodies: string[] = [];
+        if (profileId) {
+            if (!validProfileId(profileId) || (strengthIds !== undefined && (!Array.isArray(strengthIds) || !strengthIds.every(validProfileId)))) {
+                return NextResponse.json({ error: "변호사와 강점 선택을 확인해주세요." }, { status: 400 });
+            }
+            const library = await loadStrengthLibrary(profileId);
+            if (strengthRevision !== undefined && strengthRevision !== library.revision) throw new StrengthStoreError("강점 버전이 변경됐습니다. 다시 확인해주세요.", 409);
+            const db = await createAdminClient();
+            const { data: recent, error } = await db.from("blog_posts").select("body").eq("profile_id", profileId).order("created_at", { ascending: false }).limit(20);
+            if (error) throw new StrengthStoreError("최근 원고를 읽지 못했습니다.");
+            recentBodies = (recent || []).map((p) => p.body || "");
+            strengthSelection = selectStrengths(library, `${field || ""} ${topic || content}`, recentBodies, strengthIds);
+        }
         let phoneContact: ReturnType<typeof blogPhoneContact> = null;
         let dnaInfo: { voice: string; heading: string; structure: string; imageCount: number } | null = null;
         let lengthRule = "본문은 공백 포함 3,000~3,500자를 반드시 지킵니다.";
@@ -43,30 +60,25 @@ export async function POST(request: Request) {
         if (profileId) {
             try {
                 const supabase = await createAdminClient();
-                const { data: profile } = await supabase
+                const { data: profile, error: profileError } = await supabase
                     .from("blog_profiles")
                     .select("id, dna_salt, lawyer_name, office_name, specialty, brand_lines, phone")
                     .eq("id", profileId)
                     .single();
+                if (profileError || !profile) throw new StrengthStoreError("변호사 프로필을 확인하지 못했습니다.", 404);
 
                 if (profile) {
                     phoneContact = blogPhoneContact(profile.phone as string | null);
-                    // 심층리서치로 채워진 신뢰 신호 — 등록된 사실만 글에 녹인다.
-                    const [name, title, careerStr] = ((profile.lawyer_name as string) || "").split("||");
-                    const career = (careerStr || "").split(/\n|\\n/).map((s) => s.trim()).filter(Boolean);
-                    const brandLines = ((profile.brand_lines as string[]) || []).filter(Boolean);
+                    const [name, title] = ((profile.lawyer_name as string) || "").split("||");
                     const specialty = ((profile.specialty as string[]) || []).filter(Boolean);
-                    if (name && (career.length || brandLines.length)) {
+                    if (name) {
                         trustBlock = `
 [이 변호사의 신뢰 신호 — 실제 등록 프로필입니다. 여기 있는 사실만 쓰고, 없는 경력·수상·직책은 절대 만들지 마세요]
 - 이름·직함: ${name} ${title || "변호사"}${profile.office_name ? ` (${profile.office_name})` : ""}
-${career.length ? `- 경력: ${career.join(" / ")}` : ""}
-${brandLines.length ? `- 특장점: ${brandLines.join(" / ")}` : ""}
-${specialty.length ? `- 전문 분야: ${specialty.join(", ")}` : ""}
+${specialty.length ? `- 취급 분야(전문등록 자격 표기가 아님): ${specialty.join(", ")}` : ""}
 활용 규칙:
-- 이번 주제와 맞닿는 신호가 위에 하나라도 있으면, **본문에 반드시 1곳(최대 2곳)** 자연스럽게 녹입니다. 이건 선택이 아니라 이 글의 요구사항입니다. 좋은 자리: 판단 근거에 권위를 싣는 순간("규제를 심사하는 자리에 앉아 보면…", "법원에서 이런 사건을 다뤄 보면…"), 사례 서술의 시점("제가 ○○을 맡던 시절…"), 마무리 안내의 신뢰 근거.
-- 자기소개 문단, 경력 나열, 자화자찬 문장은 금지입니다. 신호는 문장 속에 스치듯 지나가야 신뢰가 됩니다. ("~위원으로 심사에 참여해 보면, 반려되는 광고는 대개 세 가지입니다"처럼 정보와 한 몸으로.)
-- 주제와 전혀 관련 없는 신호를 억지로 끼워 넣는 것만 금지입니다. 모든 신호가 무관한 예외적인 글에서만 생략합니다.
+- 경력과 강점은 아래 공개 승인 자료에 있는 문구만 사용합니다. 기존 프로필의 자유 입력이나 사용자 메모는 공개 승인 근거가 아닙니다.
+- 자기소개·광고 반복보다 독자의 질문에 대한 답과 준비할 자료를 우선합니다.
 - 본문 맨 끝 [작성] 줄의 변호사명과 취급 분야는 이 프로필 값을 그대로 씁니다.`;
                     }
                     const dna = getWritingDNA(profile.id as string, (profile.dna_salt as string) || "", topic || "");
@@ -79,7 +91,8 @@ ${specialty.length ? `- 전문 분야: ${specialty.join(", ")}` : ""}
                     console.log(`[Blog Write] DNA ${profileId}: ${dna.voice.name} / ${dna.heading.name} / ${dna.structure.name} / ${dna.targetLength}자`);
                 }
             } catch (e) {
-                console.warn("[Blog Write] DNA 조회 실패, 기본값 사용:", e);
+                if (e instanceof StrengthStoreError) throw e;
+                throw new StrengthStoreError("변호사 프로필 조회에 실패했습니다. 다시 시도해주세요.");
             }
         }
 
@@ -91,7 +104,7 @@ ${specialty.length ? `- 전문 분야: ${specialty.join(", ")}` : ""}
 
 [이 글의 목적 — 조회수가 아니라 '상담 전화']
 아래 네 가지를 글 속에 자연스럽게 녹여내세요. 절대 목록처럼 나열하지 말고, 사례와 설명의 흐름 안에 스며들게 하세요.
-1. 구체적인 사실관계가 담긴 사례 — 실명·지명·날짜 등 개인정보는 반드시 가명과 세부 변경으로 비식별화하되, 읽는 사람이 '이건 딱 내 상황이다' 싶을 만큼 생생하고 구체적인 장면을 묘사합니다. (이 중 상담 전환에 가장 강력한 요소입니다.)
+1. 구체적인 판단 예시: 확인된 사례 자료가 없으면 반드시 '가상의 예시'라고 밝힙니다. 실제 수임·상담·승소 경험을 만들어내거나 가명 처리한 실화처럼 쓰지 않습니다.
 2. 시간의 압박 — "고소장 접수 후 OO일", "공소시효", "항소 기간 OO일" 등 구체적인 기한을 사실로 짚어, 미루면 불리해진다는 점을 담담하게 전합니다.
 3. 혼자 대응할 때의 위험 — 의뢰인이 스스로 처리하려다 일을 그르치게 되는 지점을, 겁주기가 아니라 차분한 사실 전달로 보여줍니다.
 4. 상담 절차의 사전 안내 — 상담 때 무엇을 준비해 오면 되는지, 어떻게 진행되는지 미리 알려 전화를 거는 일의 심리적 문턱을 낮춥니다.
@@ -103,7 +116,7 @@ ${profileId ? "상담용 전화번호와 tel: 링크는 서버가 등록된 대�
 "이런 사건에서 이런 형이 나왔다"는 결과 정보는 앞으로 누구나 얻을 수 있게 됩니다. 남는 가치는 '왜 그렇게 갈렸는가'입니다. 글 안에 반드시 다음을 담으세요.
 - 사실관계의 어느 지점이 결론을 바꿨는지 짚습니다. (예: 같은 수치라도 측정 시점과 운전 거리에서 갈린다)
 - 반대 결론이 난 사건과 무엇이 달랐는지 대조합니다. 결론이 뒤집히는 경계선을 보여주세요.
-- 실제로 해본 사람만 알 수 있는 판단의 결을 담습니다. "사안에 따라 다릅니다" 같은 일반론으로 뭉개지 마세요. 무엇에 따라 어떻게 다른지까지 씁니다.
+- 사실관계와 근거에 따른 판단의 차이를 설명합니다. 직접 수행한 경험으로 가장하지 않습니다.
 
 [법조문·판례 인용 규칙 — 반드시 지킬 것]
 - 근거 법조문은 정확한 조문 번호로 명시합니다. (예: 도로교통법 제44조 제1항, 형법 제268조) 조문을 인용할 때는 그 조문이 이 사안에서 왜 적용되는지까지 한 문장으로 붙여 근거를 탄탄히 하세요.
@@ -118,7 +131,7 @@ ${profileId ? "상담용 전화번호와 tel: 링크는 서버가 등록된 대�
 - 떼어내서 그대로 인용해도 뜻이 통하는 '독립된 덩어리'를 최소 1개 포함합니다: 핵심 개념을 규정하는 정의 문단, A와 B를 나란히 놓는 비교(표 또는 대조 문단), 또는 단계별 절차. 앞뒤 맥락 없이 읽혀도 완결되게 쓰세요.
 
 [문체 — 반드시 '사람이 직접 쓴 글'처럼]
-- 1인칭 변호사 시점으로 씁니다. ("제가 맡았던 사건 중에…", "실무에서 보면…", "상담을 와서 가장 많이 하시는 말씀이…")
+- 변호사가 독자에게 설명하는 문체로 씁니다. 확인되지 않은 '제가 맡았던 사건', '제가 상담한 의뢰인', 실적·경력·승소 경험을 만들지 않습니다.
 - 경어체(~합니다/~입니다). 따뜻하지만 단정적이고 신뢰감 있는 어조.
 - 짧은 문장과 긴 문장을 섞어 리듬감을 줍니다. 한 문단은 2~4문장, 문단 사이는 빈 줄로 분리.
 - ## 소제목 4~6개로 구조화합니다.
@@ -170,7 +183,16 @@ ${emphasisRule}
 [분량] ${lengthRule} 모자라면 사례와 설명을 더 깊게, 넘치면 군더더기를 덜어내 범위 안에 맞추세요.
 
 ${dnaBlock}
+[네이버 복사용 지면 편집]
+- 위 변호사별 문체와 소제목 스타일은 유지하되, 각 소제목 아래 첫 문단은 그 구간의 답이나 판단 기준을 먼저 제시합니다. 제목을 본문 첫 줄에 다시 적지 않습니다.
+- 한 문단은 한 논점, 2~3문장을 기본으로 합니다. 조건과 예외를 함께 읽어야 할 문장은 억지로 나누지 않습니다. 문단 사이와 소제목 앞뒤에는 빈 줄을 정확히 한 줄만 둡니다.
+- 글자 수에 맞춘 강제 줄바꿈, 문장 중간 개행, 연속 빈 줄, 공백으로 들여쓰기, HTML 태그는 사용하지 않습니다. 모바일 줄바꿈은 편집기가 처리합니다.
+- ## 는 주요 소제목, ### 는 같은 주제 안의 하위 항목에만 사용합니다. 소제목은 짧고 구체적으로 쓰되 키워드를 반복해서 채우지 않습니다.
+- 절차는 1. 2. 3. 번호목록, 준비자료는 - 목록으로 정리합니다. 목록 항목은 한두 문장으로, 항목 사이에는 빈 줄을 넣지 않습니다. 비교는 짧은 대조 문단이나 목록으로 쓰고, 가로로 넓은 마크다운 표는 쓰지 않습니다.
+- 강조는 이미 정한 개수 안에서 짧은 핵심 구절에만 사용합니다. ==형광펜==은 결론·조건, __밑줄__은 근거·기준, **굵게**는 기한·금액·수치에 사용합니다. 한 구절에 강조를 중첩하거나 소제목 전체·문단 전체를 형광펜 처리하지 않습니다.
+- 색상, 글자 크기, 소제목 태그에 검색 순위 효과가 있다고 가정하지 않습니다. 검색 질문에 대한 답과 확인 가능한 근거를 본문 텍스트로 남깁니다. 이미지가 없더라도 글만으로 이해되게 씁니다.
 ${trustBlock}
+${strengthSelection ? strengthDirective(strengthSelection) : "[경력 자료 없음] 확인되지 않은 경력과 수임 경험은 쓰지 않습니다."}
 
 [출력 형식] 아래 구분자 형식을 정확히 지키고, 그 외의 말은 한마디도 붙이지 마세요. JSON이 아닙니다.
 ===TITLE===
@@ -224,13 +246,17 @@ ${trustBlock}
 
         // 2차 윤문: 다른 모델(OpenAI)에 한 번 더 통과시켜 AI 문체의 지문을 흐린다.
         // 실패하거나 검증에 걸리면 초안이 그대로 돌아온다 — 생성 자체가 깨지지 않는다.
-        const polish = await polishBlogBody(rawDraftBody);
+        const polish = await polishBlogBody(rawDraftBody, strengthSelection?.claims.map((c) => c.articleText) || []);
         // Add the registered number after both models finish so polishing cannot change it.
         const body = appendBlogPhoneContact(polish.text, phoneContact);
         const draftBody = appendBlogPhoneContact(rawDraftBody, phoneContact);
         const charCount = body.replace(/\s/g, "").length; // 공백 제외 글자 수
 
         return NextResponse.json({
+            editorialWarnings: reviewBlogEditorial(title, body, recentBodies),
+            strengthSelection,
+            strengthReview: strengthSelection ? reviewStrengths(body, strengthSelection) : null,
+            strengthToken: strengthSelection ? signStrengthSelection(strengthSelection, title, body) : null,
             title,
             body,
             charCount,
@@ -244,6 +270,7 @@ ${trustBlock}
                 : null,
         });
     } catch (err) {
+        if (err instanceof StrengthStoreError) return NextResponse.json({ error: err.message }, { status: err.status });
         console.error("[Claude Blog Write] Error:", err);
         return NextResponse.json({ error: "서버 오류" }, { status: 500 });
     }

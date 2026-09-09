@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toNaverHtml } from "@/lib/blog-naver-html";
+import { copyBlogHtml } from "@/lib/blog-publish-workflow";
 import { PenLine, Sparkles, Copy, Check, Loader2, RefreshCw, Lightbulb, ExternalLink } from "lucide-react";
 
 interface TopicSuggestion {
@@ -499,43 +500,15 @@ export default function ClaudeBlogWritePage() {
         }
     };
 
-    // 네이버에 서식 그대로 붙여넣기 위한 리치 텍스트 복사.
-    // 숨긴 div에 HTML을 넣고 선택 → execCommand("copy")로 클립보드에 text/html을 싣는다.
-    // (Clipboard API는 브라우저·권한에 따라 막히는 경우가 있어 이 방식이 더 안전하다)
     const handleCopyStyled = async () => {
-        const html = toNaverHtml(body, title);
-        const holder = document.createElement("div");
-        holder.setAttribute("style", "position:fixed;left:-9999px;top:0;white-space:normal;");
-        holder.innerHTML = html;
-        document.body.appendChild(holder);
-
+        setStyledCopied(false);
+        setError("");
         try {
-            const range = document.createRange();
-            range.selectNodeContents(holder);
-            const sel = window.getSelection();
-            sel?.removeAllRanges();
-            sel?.addRange(range);
-
-            const ok = document.execCommand("copy");
-            sel?.removeAllRanges();
-            if (!ok) throw new Error("execCommand 실패");
-
+            await copyBlogHtml(toNaverHtml(body, title));
             setStyledCopied(true);
             setTimeout(() => setStyledCopied(false), 2000);
         } catch {
-            try {
-                const item = new ClipboardItem({
-                    "text/html": new Blob([html], { type: "text/html" }),
-                    "text/plain": new Blob([holder.innerText], { type: "text/plain" }),
-                });
-                await navigator.clipboard.write([item]);
-                setStyledCopied(true);
-                setTimeout(() => setStyledCopied(false), 2000);
-            } catch {
-                setError("서식 복사에 실패했습니다. 브라우저를 Chrome으로 열어보세요.");
-            }
-        } finally {
-            document.body.removeChild(holder);
+            setError("서식 복사에 실패했습니다. 브라우저를 Chrome으로 열어보세요.");
         }
     };
 

@@ -32,8 +32,11 @@ import {
     PenLine,
 } from "lucide-react";
 import { toNaverHtml } from "@/lib/blog-naver-html";
+import { copyBlogHtml } from "@/lib/blog-publish-workflow";
 import { BLOG_FACTORY_SQL } from "@/lib/blog-factory-sql";
-import { cardRequestProfile, type BlogImageCard } from "@/lib/blog-images/card-types";
+import { BLOG_CARD_TYPES, cardRequestProfile } from "@/lib/blog-images/card-types";
+import { generateQualityCard } from "@/lib/blog-images/generate-client";
+import { imageReady, imageHoldReason } from "@/lib/blog-images/quality-policy";
 
 /* ── 타입 ── */
 
@@ -238,39 +241,24 @@ export default function BlogFactoryPage() {
     );
 
     const makeCardsFor = useCallback(
-        async (postId: string, profileId: string, title: string, body: string, imageCount: number) => {
+        async (postId: string, profileId: string, title: string, body: string) => {
             const pData = await api(`/api/admin/blog-profiles?id=${profileId}`);
             const fullProfile = pData.profile;
             if (!fullProfile) throw new Error("변호사 상세 정보를 불러오지 못했습니다.");
 
             const planned = await post("/api/admin/blog-images/plan", { title, content: body, profile: fullProfile });
             if (!planned.plan) throw new Error("이미지 기획에 실패했습니다.");
-            const types = imageCount >= 4 ? ["thumbnail", "illustration", "info", "contact"] : ["thumbnail", "info", "contact"];
-            const cards: BlogImageCard[] = [];
-            for (const t of types) {
-                const response = await fetch("/api/admin/blog-images/generate-design", {
-                    method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ profile: cardRequestProfile(fullProfile, t), title, content: body, cardType: t, plan: planned.plan }),
+            for (const [i, t] of BLOG_CARD_TYPES.entries()) {
+                const c = await generateQualityCard({ profile: cardRequestProfile(fullProfile, t), title, content: body,
+                    cardType: t, plan: planned.plan, quality: "high" }, new AbortController().signal);
+                if (!imageReady(c)) throw new Error(`${t}: ${imageHoldReason(c)} 작업 ID: ${c.productionId || "미확인"}`);
+                // Save each accepted result before starting another paid card.
+                const uploaded = await post("/api/admin/blog-posts/images", {
+                    postId, image: { type: c.type, dataUrl: c.imageDataUrl, releaseToken: c.releaseToken, setId: c.setId }, index: i, total: 4, requiredTypes: BLOG_CARD_TYPES,
                 });
-                const d = await response.json().catch(() => ({}));
-                if (!response.ok) {
-                    if (d.skipped) continue;
-                    throw new Error(d.error || `카드 생성 실패 (${response.status})`);
-                }
-                if (d.card?.designReview && d.card.designReview.status !== "pass") {
-                    throw new Error(`${t} 완성본에 직접 검수가 필요합니다. 블로그 이미지 화면에서 확인해 주세요. ${d.card.designReview.summary}`);
-                }
-                if (d.card?.imageDataUrl) cards.push(d.card);
+                if (i === 3 && !uploaded.done) throw new Error("이미지 네 장의 검수 버전이 일치하지 않습니다. 구성안을 다시 확인해주세요.");
             }
-            if (cards.length === 0) throw new Error("카드를 만들지 못했습니다.");
-
-            for (let i = 0; i < cards.length; i++) {
-                const c = cards[i];
-                await post("/api/admin/blog-posts/images", {
-                    postId, image: { type: c.type, dataUrl: c.imageDataUrl }, index: i, total: cards.length,
-                });
-            }
-            return cards.length;
+            return BLOG_CARD_TYPES.length;
         },
         []
     );
@@ -300,7 +288,7 @@ export default function BlogFactoryPage() {
             });
 
             say(`  🖼 카드 생성 중…`);
-            const n = await makeCardsFor(s.id, p.id, w.title, w.body, w.dna?.imageCount || 4);
+            const n = await makeCardsFor(s.id, p.id, w.title, w.body);
             say(`  ✔ 완료 — 카드 ${n}장, 검수 대기`);
             return s.id as string;
         },
@@ -450,8 +438,8 @@ export default function BlogFactoryPage() {
         if (!selected) return;
         setBusy("cards");
         try {
-            const prof = profileOf(selected.profile_id);
-            const n = await makeCardsFor(selected.id, selected.profile_id, editTitle, editBody, prof ? 4 : 4);
+            if (selected.title !== editTitle || (selected.body || "") !== editBody) throw new Error("수정한 원고를 먼저 저장한 뒤 이미지를 생성해주세요.");
+            const n = await makeCardsFor(selected.id, selected.profile_id, editTitle, editBody);
             say(`카드 ${n}장 재생성 — ${editTitle.slice(0, 30)}`);
             await loadAll();
         } catch (e) {
@@ -474,23 +462,14 @@ export default function BlogFactoryPage() {
     };
 
     const copyNaver = async () => {
-        const html = toNaverHtml(editBody, editTitle);
-        const holder = document.createElement("div");
-        holder.setAttribute("style", "position:fixed;left:-9999px;top:0;");
-        holder.innerHTML = html;
-        document.body.appendChild(holder);
+        setCopied(false);
+        setError("");
         try {
-            const range = document.createRange();
-            range.selectNodeContents(holder);
-            const sel = window.getSelection();
-            sel?.removeAllRanges();
-            sel?.addRange(range);
-            document.execCommand("copy");
-            sel?.removeAllRanges();
+            await copyBlogHtml(toNaverHtml(editBody, editTitle));
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
-        } finally {
-            document.body.removeChild(holder);
+        } catch (e) {
+            setError(e instanceof Error ? e.message : "서식 복사에 실패했습니다.");
         }
     };
 

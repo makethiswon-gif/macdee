@@ -9,7 +9,7 @@ Module._resolveFilename = function (name, ...args) { return resolve.call(this, n
 Module._extensions[".ts"] = (module, filename) => module._compile(ts.transpileModule(fs.readFileSync(filename, "utf8"), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true }, fileName: filename,
 }).outputText, filename);
-let row = { card_images: [], status: "draft" }, uploads = [];
+let row = { card_images: [], status: "draft", profile_id: "fixture-profile", title: "Title", body: "Body" }, uploads = [];
 const client = {
     from: () => ({
         select: () => ({ eq: () => ({ single: async () => ({ data: row, error: row ? null : { message: "not found" } }) }) }),
@@ -30,12 +30,15 @@ const { POST } = require("../app/api/admin/blog-posts/images/route.ts");
 const { BLOG_CARD_TYPES: types } = require("../lib/blog-images/card-types.ts");
 const { sameDraft, hasCompleteCardSet } = require("../lib/blog-publish-workflow.ts");
 const { toNaverHtml } = require("../lib/blog-naver-html.ts");
+const { signImageRelease } = require("../lib/blog-images/production-store.ts");
+const { sourceHash } = require("../lib/blog-images/visual-planner.ts");
 const payload = "publish-fixture:local-test";
 const cookie = Buffer.from(payload + ":" + crypto.createHmac("sha256", process.env.ADMIN_TOKEN_SECRET).update(payload).digest("hex")).toString("base64url");
 const png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aK1sAAAAASUVORK5CYII=";
 const req = (body, auth = true) => new Request("http://localhost/api/admin/blog-posts/images", { method: "POST",
     headers: { "Content-Type": "application/json", ...(auth ? { cookie: "admin_token=" + cookie } : {}) }, body: JSON.stringify(body) });
-const image = (type, extra = {}) => ({ postId: "fixture-post", image: { type, dataUrl: png }, index: types.indexOf(type), total: 3, requiredTypes: types, ...extra });
+const approvedImage = (type, dataUrl = png, setId = "fixture-set") => ({ type, dataUrl, setId, releaseToken: signImageRelease({ type, setId, imageDataUrl: dataUrl, layoutChecks: { passed: true }, designReview: { status: "pass" } }, "fixture-profile", sourceHash("Title", "Body")) });
+const image = (type, extra = {}) => ({ postId: "fixture-post", image: approvedImage(type), index: types.indexOf(type), total: 3, requiredTypes: types, ...extra });
 
 (async () => {
     assert.equal((await POST(req(image("thumbnail"), false))).status, 401);
@@ -49,12 +52,16 @@ const image = (type, extra = {}) => ({ postId: "fixture-post", image: { type, da
     const last = await POST(req(image("contact"))); assert.equal((await last.json()).done, true);
     assert.equal(row.status, "ready"); assert.equal(row.card_images.length, 4);
     const before = row.card_images.find((i) => i.type === "contact").url;
-    await POST(req(image("contact", { image: { type: "contact", dataUrl: png + "AA==" } })));
+    assert.equal((await POST(req(image("contact", { image: { type: "contact", dataUrl: png, releaseToken: "tampered" } })))).status, 422);
     assert.equal(row.card_images.length, 4);
     // Distinct bytes get distinct URLs; retries of identical bytes remain idempotent.
     const different = "data:image/png;base64," + Buffer.from("different fixture pixels").toString("base64");
-    await POST(req(image("contact", { image: { type: "contact", dataUrl: different } })));
+    await POST(req(image("contact", { image: approvedImage("contact", different) })));
     assert.notEqual(row.card_images.find((i) => i.type === "contact").url, before);
+    const changedSet = await POST(req(image("contact", { image: approvedImage("contact", png, "new-set") })));
+    assert.equal((await changedSet.json()).done, false, "Different design sets cannot complete each other"); assert.equal(row.status, "draft");
+    row.body = "Body changed";
+    assert.equal((await POST(req(image("thumbnail")))).status, 422, "Changed manuscript invalidates old release");
     const count = uploads.length; row = null;
     assert.equal((await POST(req(image("thumbnail")))).status, 404); assert.equal(uploads.length, count);
     row = { card_images: [], status: "draft" };

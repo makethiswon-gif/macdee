@@ -9,6 +9,7 @@ import { cardPlacement } from "./visual-plan-types";
 import type { BriefRenderOptions } from "./brief-renderer";
 import { DEFAULT_DIRECTION, MAGAZINE_PALETTES, magazineFonts, type, typeHeight, fitTitle, rect, rule } from "./magazine-design";
 import { getMagazineIdentity, fnv, type LayoutFamily } from "./magazine-identity";
+import { renderDistinctCard } from "./distinct-layout-renderer";
 
 // ══ V10.3 — 글 단위 조판 변주 ══
 //
@@ -27,6 +28,7 @@ export async function renderMagazineCard(opts: BriefRenderOptions): Promise<Blog
     magazineFonts();
     const { card, profile } = opts, direction = opts.plan.direction || DEFAULT_DIRECTION;
     const identity = getMagazineIdentity(profile);
+    if (opts.plan.version === "visual-plan-v11" || ["atlas", "ledger", "dossier"].includes(identity.family) || ["contact"].includes(card.type)) return renderDistinctCard(opts);
     // 색·서체·골격은 변호사 정체성에서 직접 읽는다(V10.6) — 기획 응답이 흔들려도
     // 같은 변호사의 지면은 항상 같은 색·형식으로 나온다.
     const p = MAGAZINE_PALETTES[identity.palette], face = identity.typography;

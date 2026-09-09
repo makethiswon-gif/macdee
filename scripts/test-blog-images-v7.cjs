@@ -18,6 +18,15 @@ const { renderBriefCard, balanceHeadline } = require("../lib/blog-images/brief-r
 const { editorialPhotoPrompt, generateEditorialPhoto, normalizeEditorialArt } = require("../lib/blog-images/photo-generator.ts");
 const { reviewMagazineCard, DESIGN_REVIEW_MODEL } = require("../lib/blog-images/design-review.ts");
 const { DEFAULT_DIRECTION, MAGAZINE_PALETTES } = require("../lib/blog-images/magazine-design.ts");
+if (!live && !liveArt && !liveRest && !refreshFinal && !registeredId) {
+    const moduleLoad = Module._load;
+    Module._load = function (name, ...args) {
+        if (name === "@/lib/blog-images/strength-context") return { imageStrengthContext: async (profile) => ({ profile, selection: { profileId: profile.id, firmId: "", revision: 0, designFamily: "auto", claims: [] }, token: "fixture" }) };
+        if (name === "@/lib/blog-images/production-store") return { ...moduleLoad.call(this, name, ...args),
+            beginImageProduction: async (id, profileId, sourceHash) => ({ checkpoint: { id, profileId, sourceHash, state: "started" }, existing: false }), saveImageProduction: async () => {} };
+        return moduleLoad.call(this, name, ...args);
+    };
+}
 const { POST } = require("../app/api/admin/blog-images/generate-design/route.ts");
 const { POST: PLAN } = require("../app/api/admin/blog-images/plan/route.ts");
 const idx = process.argv.indexOf("--out"), out = idx >= 0 ? path.resolve(process.argv[idx + 1]) : path.join(root, "tmp", "blog-images-v7");
@@ -155,21 +164,21 @@ async function main() {
     let calls = 0;
     process.env.OPENAI_API_KEY ||= "fixture-key"; process.env.ANTHROPIC_API_KEY ||= "fixture-key";
     try {
-        global.fetch = async () => { calls++; throw new Error("Render-only must not call an AI"); };
+        global.fetch = async (url) => { assert.match(String(url), /anthropic/); calls++; throw new Error("Fixture review unavailable"); };
         let r = await POST(req({ profile, title, content: article, cardType: "info", plan, renderOnly: true, style: "contrast" }));
-        assert.equal(r.status, 200, JSON.stringify(await r.clone().json())); assert.equal(calls, 0);
+        assert.equal(r.status, 200, JSON.stringify(await r.clone().json())); assert.equal(calls, 1);
         r = await POST(req({ profile, title, content: article, cardType: "thumbnail", plan, renderOnly: true, reuseArt: { sourceHash: plan.sourceHash, dataUrl: "data:image/jpeg;base64," + normalArt.toString("base64") }, headingOverride: "제목만 바꿉니다" }));
-        assert.equal(r.status, 200, JSON.stringify(await r.clone().json())); assert.equal(calls, 0);
+        assert.equal(r.status, 200, JSON.stringify(await r.clone().json())); assert.equal(calls, 2);
         await save((await r.json()).card, "cover-reused");
         const skip = JSON.parse(JSON.stringify(plan)); skip.cards[2].skipReason = "도표로 정리할 근거가 없습니다."; delete skip.cards[2].infographic;
         r = await POST(req({ profile, title, content: article, cardType: "info", plan: skip })); assert.equal(r.status, 422);
-        global.fetch = async () => { calls++; return new Response("{}", { status: 429 }); };
+        calls = 0; global.fetch = async () => { calls++; return new Response("{}", { status: 429 }); };
         await assert.rejects(generateEditorialPhoto(art, "medium"), /사용 한도/); assert.equal(calls, 1, "No hidden retries");
         const articleLong = "문서 정리 설명. ".repeat(450) + "\n\n마지막 문단의 중요한 예외까지 포함합니다.";
         global.fetch = async (_url, init) => {
             const body = JSON.parse(init.body);
             assert.equal(body.model, "claude-opus-5");
-            assert.equal(body.output_config.effort, "low");
+            assert.equal(body.output_config.effort, "high");
             assert.equal(body.max_tokens, 10000);
             const sent = body.messages[0].content[0].text;
             assert.ok(sent.includes("마지막 문단의 중요한 예외까지 포함합니다."), "Planner sees the complete article");
@@ -184,8 +193,8 @@ async function main() {
         r = await POST(req({ profile, title, content: article, cardType: "thumbnail", plan }));
         assert.equal(r.status, 200);
         const held = (await r.json()).card;
-        assert.equal(held.designReview.status, "revise"); assert.match(held.warnings.join(" "), /검수에서 수정 권고/);
-        assert.ok(held.artDataUrl, "Held paid artwork remains available for manual inspection without regeneration");
+        assert.equal(held.designReview.status, "revise"); assert.match(held.warnings.join(" "), /확인 필요/);
+        assert.ok(held.productionId && held.artSourceHash, "Private paid artwork has a reusable production ID");
         assert.equal(images, 1); assert.equal(reviews, 1);
         let finalReviews = 0;
         const testCard = await renderBriefCard({ plan, card: plan.cards[2], profile, style: "contrast" });
@@ -221,7 +230,7 @@ async function main() {
             if (String(url).includes("openai.com")) {
                 generated++;
                 const input = JSON.parse(init.body);
-                assert.equal(input.quality, "medium");
+                assert.equal(input.quality, "high");
                 assert.equal(input.output_format, "jpeg");
                 return Response.json({ data: [{ b64_json: photo.toString("base64") }] });
             }
@@ -232,7 +241,7 @@ async function main() {
         assert.equal(r.status, 200);
         const preserved = (await r.json()).card;
         assert.equal(preserved.designReview.status, "unavailable");
-        assert.ok(preserved.artDataUrl && preserved.imageDataUrl);
+        assert.ok(preserved.productionId && preserved.artSourceHash && preserved.imageDataUrl);
         assert.match(preserved.warnings.join(" "), /보존/);
         assert.equal(generated, 1); assert.equal(timedReviews, 1);
         await save(preserved, "cover-review-timeout");

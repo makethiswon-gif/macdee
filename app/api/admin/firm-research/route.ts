@@ -3,7 +3,7 @@ import { verifyAdminToken } from "@/lib/admin-auth";
 import { isStrategyFirmId, isStrategySameOrigin } from "@/lib/portal-strategy";
 import { createServiceClient } from "@/lib/supabase/server";
 import {
-    applyResearchToProfiles, extractHomepageColor, FirmResearchError,
+    extractHomepageColor, FirmResearchError,
     researchFirmWithAI, researchSetupMissing, type FirmResearchReport,
 } from "@/lib/firm-research";
 
@@ -52,15 +52,6 @@ export async function POST(request: Request) {
         if (profile.naver_blog_url) hints.push(`네이버 블로그: ${profile.naver_blog_url}`);
         if (profile.naver_place_url) hints.push(`네이버 플레이스: ${profile.naver_place_url}`);
         if (profile.instagram_url) hints.push(`인스타그램: ${profile.instagram_url}`);
-        const { data: blogProfiles } = await db.from("blog_profiles").select("lawyer_name,office_name,website,address,specialty").abortSignal(AbortSignal.timeout(8_000));
-        const norm = (s: string) => s.replace(/법무법인|법률사무소|변호사|사무소|\s+/g, "").toLowerCase();
-        for (const row of blogProfiles || []) {
-            const office = norm((row.office_name as string) || "");
-            const target = norm(firm.name as string);
-            if (!office || !target || (!office.includes(target) && !target.includes(office))) continue;
-            const name = ((row.lawyer_name as string) || "").split("||")[0];
-            hints.push(`등록 변호사: ${name} (${row.office_name})${row.address ? ` · 주소 ${row.address}` : ""}${row.website ? ` · ${row.website}` : ""}${Array.isArray(row.specialty) && row.specialty.length ? ` · 분야 ${(row.specialty as string[]).join(", ")}` : ""}`);
-        }
 
         const { report, model } = await researchFirmWithAI(firm.name as string, hints, request.signal);
 
@@ -69,7 +60,8 @@ export async function POST(request: Request) {
         const measured = homepageUrl ? await extractHomepageColor(homepageUrl) : { hex: "", source: "" };
         const brandColor = measured.hex || report.homepage.brandColorHex || "";
 
-        const applied = await applyResearchToProfiles(firm.name as string, report, brandColor, db);
+        // Research is a review candidate, never authorization to overwrite a lawyer's practice scope.
+        const applied: { id: string; name: string }[] = [];
 
         let saved = true;
         let setupRequired = false;

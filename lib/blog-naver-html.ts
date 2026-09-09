@@ -1,70 +1,48 @@
 import { contactActions } from "./blog-images/contact-details";
 
-// ─── 원고 마크다운 → 네이버 스마트에디터용 HTML ───
-// 실제 붙여넣기 테스트로 확인한 사실만 반영한다.
-//   · <p>는 문단 간격이 죽는다 → 간격은 전부 <br>로 직접 만든다
-//   · <blockquote>는 네이버가 따옴표형 인용구로 바꿔버린다 → border-left를 직접 지정
-//   · <mark>는 배경이 사라진다 → background-color를 직접 지정
-//   · u / strong / ol / ul / hr / font-size / color 는 그대로 살아남는다
-
-// 형광펜 5색 — 전부 저채도 파스텔(V10.5 보수 톤). 소제목 단위로 돌아가며 쓴다.
-// 사람 블로거의 습관과 같다: 한 단락 안에서는 한 색, 단락이 바뀌면 색이 바뀐다.
-const HIGHLIGHTS = [
-    "#CFE8F5", // 하늘
-    "#FBF3C4", // 연노랑
-    "#FADCE0", // 연분홍
-    "#DCEDD5", // 연초록
-    "#E7DFF2", // 연보라
-];
-
-// 글마다 시작 색이 달라지도록 본문 해시로 시드를 만든다. 같은 글은 항상 같은 색.
-function fnv1a(input: string): number {
-    let h = 0x811c9dc5;
-    for (let i = 0; i < input.length; i++) {
-        h ^= input.charCodeAt(i);
-        h = Math.imul(h, 0x01000193) >>> 0;
-    }
-    return h >>> 0;
-}
-
-const headingStyle = (fontSize: number) =>
-    `border-left:4px solid #000000;padding-left:14px;font-weight:700;font-size:${fontSize}px;`;
+// Clipboard HTML has no shared stylesheet. Repeat typography on each block and
+// use one explicit empty line for spacing, even if an editor drops CSS margins.
+const TYPE = "font-family:'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif;letter-spacing:0;text-align:left;word-break:keep-all;overflow-wrap:anywhere;";
+const BODY = `${TYPE}margin:0;padding:0;font-size:17px;line-height:1.85;font-weight:400;color:#292d32;`;
+const HIGHLIGHT = "#fff1b8";
+const headingStyle = (level: number) => `${TYPE}margin:0;padding:0;font-weight:700;line-height:1.5;color:#18282b;`
+    + `font-size:${level === 1 ? 26 : level === 2 ? 22 : level === 3 ? 19 : 18}px;`
+    + (level === 2 ? "border-left:3px solid #28635f;padding-left:12px;" : "");
 
 function escapeHtml(s: string): string {
     return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-// 인라인 강조. 이스케이프 뒤에 적용하므로 태그 주입 걱정이 없다.
-function emphasis(s: string, highlight: string): string {
+function emphasis(s: string): string {
     return escapeHtml(s)
-        .replace(/==(.+?)==/g, `<span style="background-color:${highlight};">$1</span>`)
+        .replace(/==(.+?)==/g, `<span style="background-color:${HIGHLIGHT};color:#292d32;">$1</span>`)
         .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-        .replace(/__(.+?)__/g, "<u>$1</u>");
+        .replace(/__(.+?)__/g, '<u style="text-decoration-thickness:1px;text-underline-offset:3px;">$1</u>');
 }
 
-function inline(s: string, highlight: string): string {
+function inline(s: string): string {
     const links = /\[([^\]\n]+)\]\(tel:(\+?[\d .-]+)\)/g;
     let html = "", offset = 0;
     for (const match of s.matchAll(links)) {
         const contact = contactActions({ phone: match[2], website: "" })[0];
         if (!contact) continue;
-        html += emphasis(s.slice(offset, match.index), highlight);
-        html += `<a href="${contact.href}" style="color:#1663c7;text-decoration:underline;">${emphasis(match[1], highlight)}</a>`;
+        html += emphasis(s.slice(offset, match.index));
+        html += `<a href="${contact.href}" style="color:#1663c7;text-decoration:underline;text-underline-offset:3px;">${emphasis(match[1])}</a>`;
         offset = match.index + match[0].length;
     }
-    return html + emphasis(s.slice(offset), highlight);
+    return html + emphasis(s.slice(offset));
 }
 
 type Block =
-    | { kind: "heading"; text: string }
+    | { kind: "heading"; text: string; level: number }
     | { kind: "para"; lines: string[] }
-    | { kind: "list"; ordered: boolean; items: string[] }
+    | { kind: "list"; ordered: boolean; items: string[]; start: number }
     | { kind: "rule" };
 
 function parse(body: string): Block[] {
     const blocks: Block[] = [];
     let para: string[] = [];
-
+    let adjacentList = false;
     const flushPara = () => {
         if (para.length) {
             blocks.push({ kind: "para", lines: para });
@@ -72,45 +50,36 @@ function parse(body: string): Block[] {
         }
     };
 
-    for (const raw of body.replace(/\r\n/g, "\n").split("\n")) {
+    for (const raw of body.replace(/\r\n?/g, "\n").split("\n")) {
         const line = raw.trim();
-
         if (!line) {
-            flushPara();
+            flushPara(); adjacentList = false;
             continue;
         }
-
         if (/^---+$/.test(line)) {
-            flushPara();
+            flushPara(); adjacentList = false;
             blocks.push({ kind: "rule" });
             continue;
         }
-
-        const heading = line.match(/^#{2,3}\s+(.*)$/);
+        const heading = line.match(/^(#{1,6})\s+(.+)$/);
         if (heading) {
-            flushPara();
-            blocks.push({ kind: "heading", text: heading[1] });
+            flushPara(); adjacentList = false;
+            blocks.push({ kind: "heading", text: heading[2].replace(/\s+#+$/, ""), level: Math.max(2, heading[1].length) });
             continue;
         }
-
-        const ordered = line.match(/^\d+\.\s+(.*)$/);
-        const bullet = line.match(/^[-·]\s+(.*)$/);
+        const ordered = line.match(/^(\d{1,9})\.\s+(.*)$/);
+        const bullet = line.match(/^[-·*]\s+(.*)$/);
         if (ordered || bullet) {
             flushPara();
-            const isOrdered = Boolean(ordered);
-            const item = (ordered ? ordered[1] : bullet![1]);
+            const isOrdered = Boolean(ordered), item = ordered ? ordered[2] : bullet![1];
             const last = blocks[blocks.length - 1];
-            if (last && last.kind === "list" && last.ordered === isOrdered) {
-                last.items.push(item);
-            } else {
-                blocks.push({ kind: "list", ordered: isOrdered, items: [item] });
-            }
+            if (adjacentList && last?.kind === "list" && last.ordered === isOrdered) last.items.push(item);
+            else blocks.push({ kind: "list", ordered: isOrdered, items: [item], start: ordered ? Number(ordered[1]) : 1 });
+            adjacentList = true;
             continue;
         }
-
-        para.push(line);
+        para.push(line); adjacentList = false;
     }
-
     flushPara();
     return blocks;
 }
@@ -123,98 +92,83 @@ export interface NaverImage {
 }
 
 const attribute = (s: string) => escapeHtml(s).replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-const normalized = (s: string) => s.trim().replace(/^(?:#{1,6}|\d+\.|[-·])\s+/, "");
-const blockLines = (block: Block): string[] => block.kind === "para" ? block.lines
+const normalized = (s: string) => s.trim().replace(/^(?:#{1,6}|\d+\.|[-·*])\s+/, "").replace(/\s+/g, " ");
+const blockLines = (block: Block): string[] => block.kind === "para" ? [...block.lines, block.lines.join("\n")]
     : block.kind === "list" ? block.items : block.kind === "heading" ? [block.text] : [];
 
-/** Optional uploaded images leave existing text-only callers unchanged. */
+/** Formats presentation only: never rewrites legal claims or adds SEO keywords. */
 export function toNaverHtml(body: string, title?: string, images: NaverImage[] = []): string {
     const out: string[] = [];
     const blocks = parse(body);
+    // Do not print an AI-echoed title twice; all other manuscript text is retained.
+    if (title?.trim() && blocks[0]?.kind === "heading" && normalized(blocks[0].text) === normalized(title)) blocks.shift();
     const safeImages = images.filter((image) => {
-        try { return ["https:", "http:"].includes(new URL(image.url).protocol); } catch { return false; }
+        try {
+            const url = new URL(image.url);
+            return ["https:", "http:"].includes(url.protocol) && !url.username && !url.password;
+        } catch { return false; }
     });
-    const insertImage = (image: NaverImage) => {
-        out.push(`<br><img src="${attribute(image.url)}" alt="${attribute(image.altText || "")}" style="display:block;max-width:100%;height:auto;"><br>`);
+    type LayoutKind = Block["kind"] | "title" | "image" | "contact" | "footer";
+    let previous: LayoutKind | undefined;
+    const emit = (kind: LayoutKind, html: string) => {
+        if (previous) {
+            const space = previous === "heading" ? 12
+                : kind === "contact" && previous === "image" ? 12
+                : kind === "heading" ? 32
+                : kind === "image" || previous === "image" || previous === "title" ? 24
+                : kind === "footer" || previous === "rule" ? 12 : 18;
+            out.push(`<p style="${TYPE}margin:0;padding:0;font-size:${space}px;line-height:1;"><br></p>`);
+        }
+        out.push(html); previous = kind;
     };
+    const insertImage = (image: NaverImage) => {
+        emit("image", `<p style="margin:0;padding:0;line-height:0;"><img src="${attribute(image.url)}" alt="${attribute(image.altText || "")}" style="display:block;width:100%;max-width:100%;height:auto;border:0;"></p>`);
+    };
+    const contacts = safeImages.filter((image) => image.type === "contact");
+    const contactIndex = blocks.findIndex((block) => block.kind === "para" && block.lines.length === 1
+        && /^\[전화 상담 · 대표번호 [^\]]+\]\(tel:\+?[\d .-]+\)$/.test(block.lines[0]));
+    const footerIndex = blocks.findIndex((block, index) => block.kind === "rule"
+        && blocks[index + 1]?.kind === "para" && blockLines(blocks[index + 1])[0]?.startsWith("**기준일**"));
+    const contactAt = contactIndex >= 0 ? contactIndex : footerIndex >= 0 ? footerIndex : blocks.length;
+    const contentEnd = Math.max(1, contactAt);
     const anchors = new Map<number, NaverImage[]>();
     safeImages.filter((image) => !["thumbnail", "contact"].includes(image.type)).forEach((image) => {
         let index = image.afterText ? blocks.findIndex((block) => blockLines(block).some((line) => normalized(line) === normalized(image.afterText!))) : -1;
-        if (index < 0) index = Math.max(0, Math.floor(blocks.length * (image.type === "info" ? 0.75 : 0.4)));
+        if (index < 0) index = Math.min(contentEnd - 1, Math.floor(contentEnd * (image.type === "info" ? 0.75 : 0.4)));
         while (index < blocks.length - 1 && blocks[index].kind === "heading") index++;
         anchors.set(index, [...(anchors.get(index) || []), image]);
     });
 
-    // 블록 사이 간격은 <br>로 직접 만든다. 네이버가 블록 여백을 지워버리기 때문에
-    // 이걸 빼면 글 전체가 한 덩어리로 붙는다.
-    // 이미 붙어 있는 <br>를 세어 모자란 만큼만 채운다. 블록마다 호출해도 누적되지 않는다.
-    const gap = (n: number) => {
-        if (out.length === 0) return; // 맨 앞에는 빈 줄을 두지 않는다
-        let have = 0;
-        while (have < out.length && out[out.length - 1 - have] === "<br>") have++;
-        for (let i = have; i < n; i++) out.push("<br>");
-    };
-
-    // 형광펜은 소제목 단위로 색이 바뀐다. 시작 색은 글 해시로 정해 글마다 다르다.
-    const seed = fnv1a(body);
-    let section = 0;
-    const hl = () => HIGHLIGHTS[(seed + section) % HIGHLIGHTS.length];
-
-    // 소제목(괘선 인용구) 바로 아래는 빈 줄 없이 한 줄만 띈다 —
-    // 소제목이 다음 문단의 제목이라는 게 보이도록. 그 외 블록 사이는 빈 줄 하나(=<br> 2개).
-    let afterHeading = false;
-
-    // 소제목은 h2/h3 로 내보낸다 — 스마트에디터가 정식 '소제목' 컴포넌트로
-    // 매핑하면 DIA 구조 신호를 받고, 매핑하지 않아도 인라인 스타일이 남아
-    // 기존 괘선 모양 그대로 나온다. (styled <p>는 붙여넣기에서 표/인용구로
-    // 변형되는 문제가 있었다.)
-    if (title && title.trim()) {
-        out.push(`<h2 style="${headingStyle(20)}">${inline(title.trim(), hl())}</h2>`);
-        afterHeading = true;
-    }
-
+    if (title?.trim()) emit("title", `<h1 style="${headingStyle(1)}">${inline(title.trim())}</h1>`);
     safeImages.filter((image) => image.type === "thumbnail").forEach(insertImage);
-    if (safeImages.some((image) => image.type === "thumbnail")) afterHeading = false;
 
     for (const [index, block] of blocks.entries()) {
-        const tight = afterHeading;
-        afterHeading = false;
+        if (index === contactAt) contacts.forEach(insertImage);
         switch (block.kind) {
             case "heading":
-                section++;
-                gap(tight ? 1 : 2);
-                out.push(`<h3 style="${headingStyle(18)}">${inline(block.text, hl())}</h3>`);
-                afterHeading = true;
+                emit("heading", `<h${block.level} style="${headingStyle(block.level)}">${inline(block.text)}</h${block.level}>`);
                 break;
-
-            case "para":
-                gap(tight ? 1 : 2);
-                // 문단 안에서 줄만 바뀐 경우는 <br> 하나로 잇는다
-                out.push(block.lines.map((l) => inline(l, hl())).join("<br>"));
+            case "para": {
+                const footer = footerIndex >= 0 && index > footerIndex
+                    && block.lines.every((line) => /^\*\*(?:기준일|작성)\*\*/.test(line));
+                const kind = index === contactIndex ? "contact" : footer ? "footer" : "para";
+                emit(kind, `<p style="${BODY}${footer ? "font-size:14px;line-height:1.7;color:#62686d;" : ""}">${block.lines.map(inline).join("<br>")}</p>`);
                 break;
-
-            case "list":
-                gap(1);
-                out.push(
-                    `<${block.ordered ? "ol" : "ul"}>` +
-                        block.items.map((i) => `<li>${inline(i, hl())}</li>`).join("") +
-                        `</${block.ordered ? "ol" : "ul"}>`
-                );
+            }
+            case "list": {
+                const tag = block.ordered ? "ol" : "ul";
+                emit("list", `<${tag}${block.ordered ? ` start="${block.start}"` : ""} style="${BODY}padding-left:28px;list-style-type:${block.ordered ? "decimal" : "disc"};">`
+                    + block.items.map((item, i) => `<li style="${BODY}${i ? "padding-top:8px;" : ""}">${inline(item)}</li>`).join("") + `</${tag}>`);
                 break;
-
+            }
             case "rule":
-                gap(2);
-                out.push("<hr>");
+                emit("rule", '<hr style="margin:0;padding:0;border:0;border-top:1px solid #dce2e2;">');
                 break;
         }
-        if (anchors.has(index)) {
-            anchors.get(index)!.forEach(insertImage);
-            afterHeading = false;
-        }
+        anchors.get(index)?.forEach(insertImage);
     }
-
     if (!blocks.length) anchors.get(0)?.forEach(insertImage);
-    safeImages.filter((image) => image.type === "contact").forEach(insertImage);
+    if (contactAt === blocks.length) contacts.forEach(insertImage);
 
-    return out.join("\n");
+    return out.length ? `<div lang="ko" style="${BODY}background-color:#ffffff;max-width:740px;">${out.join("\n")}</div>` : "";
 }
