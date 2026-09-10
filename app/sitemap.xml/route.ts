@@ -10,7 +10,7 @@ export const revalidate = 3600;
 export async function GET() {
     try {
         const supabase = createServiceClient();
-        const [blogPosts, magazines, lawyers] = await Promise.all([
+        const [blogPosts, magazines] = await Promise.all([
             readAllFeedRows((from, to) => supabase.from("contents")
                 .select("id, slug, updated_at, created_at, lawyer_id, lawyers!inner(slug)")
                 .eq("status", "published").in("channel", ["google", "macdee"])
@@ -18,9 +18,6 @@ export async function GET() {
             readAllFeedRows((from, to) => supabase.from("magazines")
                 .select("slug, published_at")
                 .eq("status", "published").not("slug", "is", null)
-                .order("id").range(from, to)),
-            readAllFeedRows((from, to) => supabase.from("lawyers")
-                .select("slug, updated_at").not("slug", "is", null)
                 .order("id").range(from, to)),
         ]);
 
@@ -45,12 +42,6 @@ export async function GET() {
             ]) add(absUrl(page));
         } else {
             add(`${SITE_BASE}/makethisone`);
-        }
-
-        for (const lawyer of lawyers) {
-            if (isPublicLawyerSlug(lawyer.slug)) {
-                add(`${SITE_BASE}/blog/${encodeURIComponent(lawyer.slug)}`, lawyer.updated_at);
-            }
         }
 
         for (const post of blogPosts) {

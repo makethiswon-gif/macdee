@@ -9,7 +9,8 @@ const root = path.resolve(__dirname, '..');
 const origin = 'https://www.makethis1.com';
 const published = '2026-08-01T00:00:00.000Z';
 const tables = {
-    lawyers: [{ id: 1, slug: 'real-firm', updated_at: published }, { id: 2, slug: 'qa-hidden', updated_at: published }],
+    lawyers: [{ id: 1, slug: 'real-firm', updated_at: published }, { id: 2, slug: 'qa-hidden', updated_at: published },
+        { id: 3, slug: 'empty-firm', updated_at: published }],
     contents: Array.from({ length: 1205 }, (_, id) => ({
         id: String(id).padStart(5, '0'), slug: `post-${id}`, status: 'published', channel: 'macdee',
         title: '제목 & 비교 ]]> 끝', body: '<p>본문 ]]> & 확인</p>', lawyer_id: 1,
@@ -53,11 +54,16 @@ Module._extensions['.ts'] = (mod, file) => mod._compile(ts.transpileModule(fs.re
 
 (async () => {
     const { validDate, latestDate, cdata, readAllFeedRows } = require('../lib/seo-feeds.ts');
+    const { compactSeoDescription, isPublicLawyerSlug } = require('../lib/public-content.ts');
     assert.equal(validDate('invalid'), undefined);
     assert.equal(validDate(null), undefined);
     assert.equal(latestDate(['invalid', published, '2025-01-01']), published);
     assert.equal(load(`<x>${cdata('A ]]> B & C')}</x>`, { xmlMode: true })('x').text(), 'A ]]> B & C');
     await assert.rejects(() => readAllFeedRows(async () => ({ data: null, error: new Error('outage') })));
+    assert.equal(isPublicLawyerSlug('b69960f8'), false, 'opaque internal IDs are not public lawyer slugs');
+    assert.equal(isPublicLawyerSlug('real-firm'), true);
+    const description = compactSeoDescription('  전문\n소개 '.repeat(40));
+    assert.ok(description.length <= 160 && !description.includes('\n'));
 
     const sitemap = require('../app/sitemap.xml/route.ts');
     const response = await sitemap.GET();
@@ -68,7 +74,7 @@ Module._extensions['.ts'] = (mod, file) => mod._compile(ts.transpileModule(fs.re
     assert.equal(entries.size, 14 + 1 + 1204 + 96);
     assert.ok(requestedRanges.some(([table, from]) => table === 'contents' && from >= 1000));
     assert.ok(entries.has(`${origin}/blog/real-firm/post-1204`));
-    assert.ok(!xml.includes('qa-hidden') && !xml.includes('/renewal') && !xml.includes('/admin'));
+    assert.ok(!xml.includes('qa-hidden') && !xml.includes('empty-firm') && !xml.includes('/renewal') && !xml.includes('/admin'));
     assert.equal(entries.get(origin), '');
     assert.equal(entries.get(`${origin}/about`), '');
     assert.equal(entries.get(`${origin}/lawfirm-marketing`), '');
@@ -90,5 +96,5 @@ Module._extensions['.ts'] = (mod, file) => mod._compile(ts.transpileModule(fs.re
     failed = true;
     assert.equal((await sitemap.GET()).status, 503);
     assert.equal((await rss.GET()).status, 503);
-    console.log('PASS SEO feeds: 1,315 URLs beyond DB row cap; canonical URLs; real dates; no private/test URLs; CDATA roundtrip; query failure 503 (no network/DB writes).');
+    console.log('PASS SEO feeds: 1,315 URLs beyond DB row cap; canonical URLs; real dates; no empty/private/test URLs; compact metadata; CDATA roundtrip; query failure 503 (no network/DB writes).');
 })().catch(error => { console.error(error); process.exitCode = 1; });

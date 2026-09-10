@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
 import { cleanBody, parseAiContent } from "@/lib/ai-content";
-import { isPublicLawyerSlug } from "@/lib/public-content";
+import { compactSeoDescription, isPublicLawyerSlug } from "@/lib/public-content";
 import BlogPageClient from "./BlogPageClient";
 
 export const dynamic = "force-dynamic";
@@ -28,14 +28,22 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
     const supabase = createServiceClient();
     const { data: lawyer } = await supabase
         .from("lawyers")
-        .select("name, specialty, region, bio, profile_image_url")
+        .select("id, name, specialty, region, bio, profile_image_url")
         .eq("slug", slug)
         .single();
 
     if (!lawyer) return { title: "블로그를 찾을 수 없습니다" };
 
+    const { count: publishedPostCount } = await supabase
+        .from("contents")
+        .select("id", { count: "exact", head: true })
+        .eq("lawyer_id", lawyer.id)
+        .in("channel", ["google", "macdee"])
+        .eq("status", "published");
+
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
     const specialties = (lawyer.specialty || []).join(", ");
+    const description = compactSeoDescription(lawyer.bio || `${lawyer.name} 변호사의 법률 칼럼 블로그. ${specialties} 전문.`);
     const keywords = [
         ...((lawyer.specialty || []) as string[]),
         lawyer.region,
@@ -46,18 +54,18 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
 
     return {
         title: `${lawyer.name} 변호사 블로그 | ${specialties}`,
-        description: lawyer.bio || `${lawyer.name} 변호사의 법률 칼럼 블로그. ${specialties} 전문.`,
+        description,
         keywords,
         alternates: {
             canonical: `${baseUrl}/blog/${slug}`,
         },
         robots: {
-            index: page === 1,
+            index: page === 1 && publishedPostCount !== 0,
             follow: true,
         },
         openGraph: {
             title: `${lawyer.name} 변호사 블로그`,
-            description: lawyer.bio || `${specialties} 전문 변호사`,
+            description,
             type: "website",
             url: `${baseUrl}/blog/${slug}`,
             images: lawyer.profile_image_url ? [lawyer.profile_image_url] : ["/og-image.png"],
