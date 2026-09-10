@@ -84,7 +84,7 @@ const reports = [];
                     }
                     case "/api/admin/blog-posts/topics":
                         await sleep(options.topicDelay || 30);
-                        return reply(route, { topics: [{ topic: "추천 주제", field: "민사", angle: "검수 관점", titleIdea: "검수", reason: "검수" }] });
+                        return reply(route, { topics: [{ topic: "추천 주제", field: "민사", angle: "검수 관점", titleIdea: "검수", reason: "검수" }], notice: "일부 후보는 담당 분야 기준으로 보완했습니다." });
                     case "/api/admin/blog-images/plan":
                         state.plans.push(data); await sleep(40);
                         if (state.planFailure) return route.fulfill({ status: 502, contentType: "text/html", body: "<h1>Bad Gateway</h1>" });
@@ -225,6 +225,7 @@ const reports = [];
             const html = await s.page.evaluate(() => window.__copiedHtml);
             assert.match(html, /href="tel:0310000000"/); assert.doesNotMatch(html, /tel:020000000/);
             await s.page.getByRole("button", { name: "주제 추천받기", exact: true }).click(); await s.idle();
+            assert.equal(await s.page.getByRole("status").filter({ hasText: "담당 분야 기준으로 보완" }).count(), 1);
             await s.page.getByRole("button", { name: /민사 추천 주제/ }).click();
             await s.page.getByRole("button", { name: "원고 생성", exact: true }).click(); await s.done();
             assert.equal(s.state.posts[2].topic, "추천 주제"); assert.equal(s.state.posts[2].field, "민사");

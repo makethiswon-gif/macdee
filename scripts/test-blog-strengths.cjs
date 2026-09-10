@@ -3,7 +3,7 @@ const root = path.resolve(__dirname, ".."); process.chdir(root);
 const resolve = Module._resolveFilename;
 Module._resolveFilename = function (name, ...args) { return resolve.call(this, name.startsWith("@/") ? path.join(root, name.slice(2)) : name, ...args); };
 Module._extensions[".ts"] = (module, filename) => module._compile(ts.transpileModule(fs.readFileSync(filename, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true }, fileName: filename }).outputText, filename);
-const objects = new Map(); let publicBucket = false;
+const objects = new Map(); let publicBucket = false, storageListError = false;
 const profiles = [{ id: "A", lawyer_id: "lawyer-a", lawyer_name: "검수 변호사||변호사||미확인 경력", office_name: "검수 로펌", phone: "대표 번호 053-754-9797, 변호사 직통 010-0000-0000", fields: ["상속"], specialty: ["상속"], brand_lines: ["미확인 특장점"], profile_images: [], office_images: [] }];
 const db = { from(table) {
     const filters = {}; let single = false;
@@ -14,7 +14,7 @@ const db = { from(table) {
         } }; return query;
     }, storage: { getBucket: async () => ({ data: { public: publicBucket }, error: null }), from(bucket) {
         assert.equal(bucket, "owner-briefings"); return {
-            list: async (prefix) => ({ data: [...objects.keys()].filter((k) => k.startsWith(prefix + "/")).sort().reverse().slice(0, 1).map((k) => ({ name: k.split("/").at(-1) })), error: null }),
+            list: async (prefix) => ({ data: storageListError ? null : [...objects.keys()].filter((k) => k.startsWith(prefix + "/")).sort().reverse().slice(0, 1).map((k) => ({ name: k.split("/").at(-1) })), error: storageListError ? { message: "fixture storage unavailable" } : null }),
             download: async (key) => ({ data: objects.has(key) ? new Blob([objects.get(key)]) : null, error: objects.has(key) ? null : { statusCode: "404" } }),
             upload: async (key, content, options) => { assert.equal(options.upsert, false); if (objects.has(key)) return { error: { statusCode: "409" } }; objects.set(key, content); return { error: null }; },
         };
@@ -36,8 +36,8 @@ const { POST: TOPICS } = require("../app/api/admin/blog-posts/topics/route.ts");
 const { toNaverHtml } = require("../lib/blog-naver-html.ts");
 const { reviewBlogEditorial } = require("../lib/blog-editorial-review.ts");
 const req = (body, auth = true, origin = "http://localhost") => new Request("http://localhost/api/admin/test", { method: "POST", headers: { "Content-Type": "application/json", Origin: origin, ...(auth ? { "x-fixture": "yes" } : {}) }, body: JSON.stringify(body) });
-let aiPrompt = "", aiOutput = "";
-global.fetch = async (url, options) => { assert.equal(url, "https://api.anthropic.com/v1/messages"); aiPrompt = JSON.parse(options.body).system; return Response.json({ content: [{ type: "text", text: aiOutput }] }); };
+let aiPrompt = "", aiOutput = "", aiFailure = false;
+global.fetch = async (url, options) => { assert.equal(url, "https://api.anthropic.com/v1/messages"); aiPrompt = JSON.parse(options.body).system; return aiFailure ? new Response("fixture unavailable", { status: 503 }) : Response.json({ content: [{ type: "text", text: aiOutput }] }); };
 
 (async () => {
     const today = new Date().toISOString().slice(0, 10), later = new Date(Date.now() + 86400000 * 90).toISOString().slice(0, 10);
@@ -90,11 +90,25 @@ global.fetch = async (url, options) => { assert.equal(url, "https://api.anthropi
     assert.doesNotMatch(toNaverHtml(article.body), /sourceQuote|sourceRef|private\/source|CONFIDENTIAL|claim-a/);
     assert.equal((await SELECT(req({ profileId: "A", topic: "상속", ids: [claim.id], title: "상속", body: "문구 삭제" }))).status, 422);
     aiOutput = JSON.stringify({ topics: [{ topic: "음주운전", field: "형사" }] });
-    assert.equal((await TOPICS(req({ profileId: "A" }))).status, 422);
+    const outOfScope = await TOPICS(req({ profileId: "A", count: 6 }));
+    assert.equal(outOfScope.status, 200); const outOfScopeData = await outOfScope.json();
+    assert.equal(outOfScopeData.topics.length, 6); assert.ok(outOfScopeData.topics.every((topic) => topic.field === "상속"));
+    assert.ok(outOfScopeData.notice); assert.ok(outOfScopeData.topics.every((topic) => !topic.topic.includes("음주")));
     aiOutput = JSON.stringify({ topics: [{ topic: "재산 목록 확인", field: "상속" }] });
-    assert.equal((await TOPICS(req({ profileId: "A" }))).status, 200);
+    const partial = await TOPICS(req({ profileId: "A", count: 6 })); assert.equal(partial.status, 200);
+    const partialData = await partial.json(); assert.equal(partialData.topics.length, 6); assert.equal(partialData.topics[0].topic, "재산 목록 확인");
+    aiOutput = JSON.stringify({ topics: [{ topic: "유류분 재산 목록 확인", field: "상속·유류분" }] });
+    const looseField = await TOPICS(req({ profileId: "A", count: 6 })); assert.equal(looseField.status, 200);
+    assert.equal((await looseField.json()).topics[0].field, "상속");
+    aiFailure = true;
+    const noClaude = await TOPICS(req({ profileId: "A", count: 6 })); aiFailure = false;
+    assert.equal(noClaude.status, 200); const noClaudeData = await noClaude.json();
+    assert.equal(noClaudeData.topics.length, 6); assert.match(noClaudeData.notice, /AI 추천 응답/);
+    storageListError = true;
+    const noStrengthStore = await TOPICS(req({ profileId: "A", count: 6 })); storageListError = false;
+    assert.equal(noStrengthStore.status, 200); assert.equal((await noStrengthStore.json()).topics.length, 6);
     await store.saveStrengthLibrary({ ...library, claims: [{ ...claim, status: "blocked" }] });
     await assert.rejects(store.verifyStrengthSelection(token, "A", "상속", body), /철회/);
     assert.ok(objects.has("blog-strengths/A/v00000001.json")); assert.ok(objects.has("blog-strengths/A/v00000002.json"));
-    console.log("PASS: private immutable versions, conflicts, approval/expiry/source/condition gates, topic filtering, selection exclusion, HMAC/profile/body binding, revocation, registered identity/contact, writer+polish preservation, private-data exclusion, audit idempotence");
+    console.log("PASS: private immutable versions, conflicts, approval/expiry/source/condition gates, resilient topic filtering, selection exclusion, HMAC/profile/body binding, revocation, registered identity/contact, writer preservation, private-data exclusion, audit idempotence");
 })().catch((e) => { console.error(e); process.exitCode = 1; });

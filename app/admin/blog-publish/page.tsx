@@ -29,6 +29,7 @@ export default function BlogPublishPage() {
     const [profiles, setProfiles] = useState<BlogSetting[]>([]);
     const [profileId, setProfileId] = useState("");
     const [topics, setTopics] = useState<TopicCandidate[]>([]);
+    const [topicNotice, setTopicNotice] = useState("");
     const [picked, setPicked] = useState<TopicCandidate | null>(null);
     const [draftTopic, setDraftTopic] = useState<TopicCandidate | null>(null);
     const [directTopic, setDirectTopic] = useState("");
@@ -98,7 +99,7 @@ export default function BlogPublishPage() {
     const reset = () => {
         active.current?.abort(); active.current = null;
         if (copyTimer.current) clearTimeout(copyTimer.current);
-        clearImages(); setTopics([]); setPicked(null); setDraftTopic(null); setDirectTopic(""); setDetail("");
+        clearImages(); setTopics([]); setTopicNotice(""); setPicked(null); setDraftTopic(null); setDirectTopic(""); setDetail("");
         setTitle(""); setBody(""); setSavedId(null); setSavedDraft(null);
         setContactWarning("");
         setStrengthChoice(null); setUsedStrengths(null); setStrengthReview(null); setEditorialWarnings([]);
@@ -116,10 +117,10 @@ export default function BlogPublishPage() {
     const loadTopics = async () => {
         if (!profileId) return;
         const op = begin("topics"); if (!op) return;
-        setTopics([]); setPicked(null);
+        setTopics([]); setTopicNotice(""); setPicked(null);
         try {
-            const data = await publishJson<{ topics: TopicCandidate[] }>("/api/admin/blog-posts/topics", op.signal, { profileId, count: 6 });
-            if (current(op)) setTopics(data.topics || []);
+            const data = await publishJson<{ topics: TopicCandidate[]; notice?: string }>("/api/admin/blog-posts/topics", op.signal, { profileId, count: 6 });
+            if (current(op)) { setTopics(data.topics || []); setTopicNotice(data.notice || ""); }
         } catch (e) { if (current(op)) setError(message(e)); }
         finally { finish(op); }
     };
@@ -345,6 +346,7 @@ export default function BlogPublishPage() {
                         <p className="mt-1 text-xs text-[#9CA3B0]">{topic.angle}</p>
                     </button>)}
                 </div>
+                {topicNotice && <p role="status" className="mt-3 text-xs leading-5 text-amber-300">{topicNotice}</p>}
             </section>
             {profileId && strengthTopic && <BlogStrengthPicker key={strengthScope(profileId, strengthTopic)} profileId={profileId} topic={strengthTopic} disabled={busy} onChange={setStrengthChoice} />}
             {picked && <section className={cardClass}>
