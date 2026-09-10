@@ -22,27 +22,43 @@ export const MAGAZINE_PALETTES = {
 } as const;
 export const DEFAULT_DIRECTION: ArtDirection = { concept: "핵심을 크게 보는 지면", rationale: "이전 구성안과의 호환을 위한 기본 편집", alternatives: [],
     palette: "cobalt", typography: "serif", composition: "immersive", motif: "구체적 대상의 대비" };
-export type MagazineFace = "serif" | "sans" | "body";
+export type MagazineFace = "serif" | "sans" | "body" | "label";
 let ready = false;
 export function magazineFonts() {
     if (ready) return;
     for (const [file, family] of [
         ["noto-serif-kr-korean-700-normal.woff2", "MagazineSerif"],
         ["noto-sans-kr-korean-900-normal.woff2", "MagazineSans"],
+        ["noto-sans-kr-korean-700-normal.woff2", "MagazineLabel"],
         ["noto-sans-kr-korean-400-normal.woff2", "MagazineBody"],
     ]) if (!GlobalFonts.register(readFileSync(join(process.cwd(), "public", "fonts", file)), family)) throw new Error("매거진 한글 서체를 불러오지 못했습니다.");
     ready = true;
 }
 export function setType(c: SKRSContext2D, size: number, face: MagazineFace) {
-    c.font = `${size}px "${face === "serif" ? "MagazineSerif" : face === "sans" ? "MagazineSans" : "MagazineBody"}"`;
+    c.font = `${size}px "${face === "serif" ? "MagazineSerif" : face === "sans" ? "MagazineSans" : face === "label" ? "MagazineLabel" : "MagazineBody"}"`;
     c.textBaseline = "top";
 }
-function magazineLines(c: SKRSContext2D, s: string, w: number): string[] {
-    const initial = wrapText(c, s, w);
+export function magazineLines(c: SKRSContext2D, s: string, w: number): string[] {
+    const wrap = (width: number) => s.split("\n").flatMap((paragraph) => {
+        const lines: string[] = [];
+        let line = "";
+        for (const word of paragraph.trim().split(/\s+/).filter(Boolean)) {
+            const candidate = line ? `${line} ${word}` : word;
+            if (c.measureText(candidate).width <= width) { line = candidate; continue; }
+            if (line) lines.push(line);
+            // Only break an individual word when it cannot fit on an empty line.
+            const pieces = c.measureText(word).width > width ? wrapText(c, word, width) : [word];
+            lines.push(...pieces.slice(0, -1));
+            line = pieces.at(-1) || "";
+        }
+        if (line || !lines.length) lines.push(line);
+        return lines;
+    });
+    const initial = wrap(w);
     if (s.includes("\n") || initial.length < 2 || initial.length > 4 || s.length > 140) return initial;
     let best = initial, bestScore = Infinity;
     for (let ratio = 1; ratio >= 0.65; ratio -= 0.025) {
-        const lines = wrapText(c, s, w * ratio);
+        const lines = wrap(w * ratio);
         if (lines.length !== initial.length) continue;
         const widths = lines.map((line) => c.measureText(line).width);
         const mean = widths.reduce((a, b) => a + b, 0) / widths.length;

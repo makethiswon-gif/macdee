@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { verifyAdminToken } from "@/lib/admin-auth";
-import { BLOG_CARD_TYPES, type BlogCardType, type EditorialProfile } from "@/lib/blog-images/card-types";
+import { BLOG_CARD_TYPES, BLOG_LAYOUT_REVISION, type BlogCardType, type EditorialProfile } from "@/lib/blog-images/card-types";
 import { validateVisualPlan, PlanValidationError } from "@/lib/blog-images/visual-planner";
 import { BLOG_PHOTO_MODEL, generateEditorialPhoto, normalizeEditorialArt } from "@/lib/blog-images/photo-generator";
 import { readBrandAsset } from "@/lib/blog-images/editorial-renderer";
@@ -66,7 +66,13 @@ export async function POST(request: Request) {
             renderOnly: !!body.renderOnly, reused: body.reuseProductionId || (body.reuseArt ? digest(String(body.reuseArt.dataUrl)) : ""), attemptId: body.attemptId || "", feedback }));
         const { checkpoint } = await beginImageProduction(productionId, profile.id, plan.sourceHash);
         const response = (card: NonNullable<typeof checkpoint.card>) => NextResponse.json({ card: { ...card, artDataUrl: undefined, designReview: undefined, artReview: undefined } }, { headers: { "Cache-Control": "private, no-store" } });
-        if (checkpoint.card && imageReady(checkpoint.card)) return response(checkpoint.card);
+        const currentLayout = checkpoint.card?.layoutRevision === BLOG_LAYOUT_REVISION;
+        if (currentLayout && checkpoint.card && imageReady(checkpoint.card)) return response(checkpoint.card);
+        // Never change the paid request ID just to update typography or layout.
+        // An old completed result is recomposed from its saved art, without a model call.
+        if (checkpoint.card && !currentLayout && planned.art && !checkpoint.artDataUrl) {
+            throw new ImageProductionError("기존 이미지의 원본을 찾지 못해 무료 재편집을 중단했습니다. 새로 생성하려면 이미지 재생성을 선택해주세요.", 409);
+        }
         let art: Buffer | undefined, model: string | undefined;
         const useOffice = body.photoSource === "office";
         if (planned.art) {
@@ -108,7 +114,7 @@ export async function POST(request: Request) {
             rendered.setId = setId;
             return rendered;
         };
-        let card = checkpoint.card;
+        let card = currentLayout ? checkpoint.card : undefined;
         if (!card) {
             try { card = await render(); }
             catch { card = await render(true); card.warnings.push("초기 조판을 넓은 한 열 지면으로 수정했습니다."); }

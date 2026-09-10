@@ -3,6 +3,8 @@ export const BLOG_CARD_TYPES = ["thumbnail", "illustration", "info", "contact"] 
 export type BlogCardType = typeof BLOG_CARD_TYPES[number];
 export type BlogImageQuality = "medium" | "high";
 export type BlogPhotoSource = "ai" | "office";
+// Layout upgrades reuse the paid production checkpoint and original artwork.
+export const BLOG_LAYOUT_REVISION = 12;
 
 export interface BlogImageCard {
     type: BlogCardType;
@@ -15,6 +17,7 @@ export interface BlogImageCard {
     model?: string;
     warnings: string[];
     designVersion: "editorial-v6" | "editorial-v7" | "editorial-v8" | "editorial-v9" | "editorial-v10" | "editorial-v11";
+    layoutRevision?: number;
     /** Historical checkpoint metadata only; new images do not receive an AI review. */
     designReview?: { status: "pass" | "revise" | "unavailable"; model: string; score?: number; summary: string; issues: string[];
         repair?: "none" | "layout" | "art" | "content"; attempts?: number };
