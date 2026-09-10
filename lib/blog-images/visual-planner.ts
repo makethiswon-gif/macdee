@@ -6,6 +6,7 @@ import { articleParagraphs, type ArtDirection, type ArticleVisualPlan, type Plan
 import { identityDirective, lockDirection, type MagazineIdentity } from "./magazine-identity";
 import { paidJsonRequest, paidId } from "./paid-operation";
 import { VISUAL_PLAN_SCHEMA, normalizePlanWire } from "./plan-schema";
+import { chooseLayoutRecipe, isLayoutRecipe } from "./layout-recipes";
 
 export const PLANNING_MODEL = "claude-opus-5";
 export const PLAN_VERSION = "visual-plan-v11";
@@ -133,8 +134,10 @@ export function validateVisualPlan(value: unknown, title: string, content: strin
         return card;
     });
     const middle = cards.filter((c) => c.type === "illustration" || c.type === "info");
+    if (raw.layoutRecipe != null && !isLayoutRecipe(raw.layoutRecipe)) throw new PlanValidationError("저장된 지면 구성을 확인해주세요.");
     if (middle[0].infographic && middle[1].infographic && JSON.stringify(middle[0].infographic) === JSON.stringify(middle[1].infographic)) throw new PlanValidationError("본문 이미지 두 장의 정보가 동일합니다. 쟁점과 준비사항을 구분해주세요.");
     return { version: PLAN_VERSION, sourceHash: hash, question: string(raw.question, "독자의 질문", 160), thesis: string(raw.thesis, "원고의 핵심", 300), cards, paragraphs,
+        ...(isLayoutRecipe(raw.layoutRecipe) ? { layoutRecipe: raw.layoutRecipe } : {}),
         ...(direction ? { direction } : {}), ...(raw.planningRevision === 12 ? { planningRevision: 12 } : {}), ...(!checkHash ? { planningModel: PLANNING_MODEL }
             : typeof raw.planningModel === "string" && ["claude-opus-5", "claude-fable-5-1", "claude-sonnet-5"].includes(raw.planningModel) ? { planningModel: raw.planningModel } : {}) };
 }
@@ -176,6 +179,7 @@ export async function planArticle(title: string, content: string, identity?: Mag
     const plan = validateVisualPlan(normalizePlanWire(raw), title, content, false);
     plan.planningRevision = 12;
     plan.operationId = operationId;
+    plan.layoutRecipe = chooseLayoutRecipe(plan, recentVisuals);
     if (identity) {
         plan.direction = lockDirection(plan.direction, identity);
         for (const card of plan.cards) if (card.art?.direction) card.art.direction = lockDirection(card.art.direction, identity)!;

@@ -51,9 +51,7 @@ export async function POST(request: Request) {
         if (!body.plan) throw new PlanValidationError("먼저 이미지 구성안을 만들어 주세요. 기획과 이미지 생성은 별도 단계로 진행합니다.");
         const plan = validateVisualPlan(body.plan, body.title || "", body.content);
         plan.strengthSelection = context.selection;
-        // 시리즈 축(팔레트·서체)은 어떤 경로로 왔든 변호사 값으로 고정한다.
-        // 공유 플랜·저장 플랜·구버전 플랜 전부 — 같은 변호사는 언제나 같은 지면이어야
-        // 8개 블로그가 서로 다른 출처로 보인다.
+        // Preserve each lawyer's brand; the saved article recipe controls geometry.
         const identity = getMagazineIdentity(profile);
         plan.direction = lockDirection(plan.direction, identity);
         for (const pc of plan.cards) if (pc.art?.direction) pc.art.direction = lockDirection(pc.art.direction, identity)!;

@@ -117,14 +117,14 @@ export async function indexPreservedArt(checkpoint: ProductionCheckpoint, type: 
     if (error) throw new ImageProductionError("원본 복구 참조를 저장하지 못했습니다. 원본은 보존했으며 다시 복구할 수 있습니다.");
 }
 
-export interface VisualHistory { sourceHash: string; motif: string; concept: string; cards: { type: string; treatment?: string; diagram?: string; subject?: string }[] }
+export interface VisualHistory { sourceHash: string; layoutRecipe?: ArticleVisualPlan["layoutRecipe"]; motif: string; concept: string; cards: { type: string; treatment?: string; diagram?: string; subject?: string }[] }
 const historyFolder = (profileId: string) => {
     if (!/^[a-zA-Z0-9_-]{1,100}$/.test(profileId)) throw new ImageProductionError("변호사 ID를 확인해주세요.", 400);
     return `blog-visual-history/${profileId}`;
 };
 export async function recentVisualHistory(profileId: string): Promise<VisualHistory[]> {
     const storage = createServiceClient().storage.from(BUCKET), folder = historyFolder(profileId);
-    const { data: files, error } = await storage.list(folder, { limit: 6, sortBy: { column: "name", order: "desc" } });
+    const { data: files, error } = await storage.list(folder, { limit: 12, sortBy: { column: "name", order: "desc" } });
     if (error) throw new ImageProductionError("최근 이미지 구성 이력을 읽지 못했습니다.");
     const result: VisualHistory[] = [];
     for (const file of files || []) {
@@ -136,7 +136,7 @@ export async function recentVisualHistory(profileId: string): Promise<VisualHist
     return result;
 }
 export async function recordVisualPlan(profileId: string, plan: ArticleVisualPlan) {
-    const value: VisualHistory = { sourceHash: plan.sourceHash, motif: plan.direction?.motif || "", concept: plan.direction?.concept || "",
+    const value: VisualHistory = { sourceHash: plan.sourceHash, ...(plan.layoutRecipe ? { layoutRecipe: plan.layoutRecipe } : {}), motif: plan.direction?.motif || "", concept: plan.direction?.concept || "",
         cards: plan.cards.map((c) => ({ type: c.type, treatment: c.treatment, diagram: c.infographic?.kind, subject: c.art?.subject })) };
     const { error } = await createServiceClient().storage.from(BUCKET).upload(`${historyFolder(profileId)}/${Date.now()}-${plan.sourceHash.slice(0, 16)}.json`, JSON.stringify(value), { contentType: "application/json", upsert: false });
     if (error) throw new ImageProductionError("이미지 구성 이력을 저장하지 못했습니다.");

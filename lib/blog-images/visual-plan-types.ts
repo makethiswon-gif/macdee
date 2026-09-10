@@ -47,6 +47,7 @@ export interface ArticleVisualPlan {
     planningModel?: string;
     planningRevision?: number;
     operationId?: string;
+    layoutRecipe?: import("./layout-recipes").LayoutRecipe;
     sourceHash: string;
     question: string;
     thesis: string;

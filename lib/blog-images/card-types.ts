@@ -23,6 +23,7 @@ export interface BlogImageCard {
     warnings: string[];
     designVersion: "editorial-v6" | "editorial-v7" | "editorial-v8" | "editorial-v9" | "editorial-v10" | "editorial-v11";
     layoutRevision?: number;
+    layoutRecipe?: import("./layout-recipes").LayoutRecipe;
     /** Historical checkpoint metadata only; new images do not receive an AI review. */
     designReview?: { status: "pass" | "revise" | "unavailable"; model: string; score?: number; summary: string; issues: string[];
         repair?: "none" | "layout" | "art" | "content"; attempts?: number };

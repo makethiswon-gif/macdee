@@ -6,7 +6,7 @@ const base = process.env.BLOG_VERIFY_URL;
 const mode = process.argv[2] || "preflight";
 const dir = path.resolve("tmp/pipeline-repair"), out = path.join(dir, "live");
 if (!base || !/^https:\/\/(?:www\.makethis1\.com|macdee-[a-z0-9-]+\.vercel\.app)$/.test(base)) throw new Error("Explicit project deployment URL required");
-if (!["preflight", "plan", "cards", "recover", "attach"].includes(mode)) throw new Error("Unknown verification mode");
+if (!["preflight", "plan", "cards", "recover", "attach", "layout"].includes(mode)) throw new Error("Unknown verification mode");
 fs.mkdirSync(out, { recursive: true });
 (async () => {
     const post = JSON.parse(fs.readFileSync(path.join(dir, "posts.json"))).find((p) => p.id === "e623a30c-265d-41b8-892b-18780894908a");
@@ -81,6 +81,25 @@ fs.mkdirSync(out, { recursive: true });
     // Slim request includes a name for validation; server reloads the registered profile.
     const row = JSON.parse(fs.readFileSync(path.join(dir, "profiles.json"))).find((p) => p.id === post.profile_id);
     input.profile.lawyerName = row.lawyer_name.split("||")[0];
+    if (mode === "layout") {
+        const original = JSON.parse(fs.readFileSync(path.join(out, "thumbnail.json")));
+        const directory = path.join(dir, "layout-live"); fs.mkdirSync(directory, { recursive: true });
+        for (const layoutRecipe of ["headline", "photo-open", "column-pair", "caption-rail", "title-band", "split-footer"]) {
+            const request = { ...input, plan: { ...plan, layoutRecipe }, cardType: "thumbnail", quality: "high", transport: "asset", renderOnly: true, reuseProductionId: original.productionId };
+            const { card } = await call("/api/admin/blog-images/generate-design", request);
+            assert.equal(card.layoutRecipe, layoutRecipe, "No silent fallback to the old template");
+            assert.ok(card.layoutChecks.passed && card.releaseToken && card.imageUrl);
+            const response = await fetch(card.imageUrl); assert.equal(response.status, 200);
+            const bytes = Buffer.from(await response.arrayBuffer());
+            assert.equal(crypto.createHash("sha256").update(bytes).digest("hex"), card.imageHash);
+            assert.equal((await sharp(bytes).metadata()).width, 1200);
+            fs.writeFileSync(path.join(directory, layoutRecipe + ".png"), bytes);
+            const second = await call("/api/admin/blog-images/generate-design", request);
+            assert.equal(second.card.productionId, card.productionId); assert.equal(second.card.imageHash, card.imageHash);
+        }
+        console.log("Six live layouts and exact cached recovery verified. renderOnly required saved art; no model generation or publication.");
+        return;
+    }
     const cards = [];
     for (const planned of plan.cards) {
         if (planned.skipReason || (planned.art && planned.type !== "thumbnail")) { console.log("Skipped additional paid art:", planned.type); continue; }

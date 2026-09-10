@@ -29,6 +29,7 @@ Module._load = function (name, ...args) {
 const { title, article, profile, rawPlan, variants } = require("./blog-images-v7-fixtures.cjs");
 const { validateVisualPlan } = require("../lib/blog-images/visual-planner.ts");
 const { getMagazineIdentity } = require("../lib/blog-images/magazine-identity.ts");
+const { isLayoutRecipe } = require("../lib/blog-images/layout-recipes.ts");
 const { repairImageLayout } = require("../lib/blog-images/quality-controller.ts");
 const { imageReady } = require("../lib/blog-images/quality-policy.ts");
 const { digest, verifyImageRelease, recentVisualHistory, recordVisualPlan, cachedVisualPlan, saveVisualPlan } = require("../lib/blog-images/production-store.ts");
@@ -81,8 +82,13 @@ let planningResult, imageCalls = 0, planningCalls = 0, allowPlanning = true, fai
     const requestPlan = { profile, title, content: article };
     let plannedResponse = await PLAN(request(requestPlan)); assert.equal(plannedResponse.status, 200, JSON.stringify(await plannedResponse.clone().json()));
     const cachedCalls = planningCalls, firstPlan = (await plannedResponse.json()).plan;
+    assert.ok(isLayoutRecipe(firstPlan.layoutRecipe), "A new article receives one saved geometric recipe");
+    assert.equal((await recentVisualHistory(profile.id))[0].layoutRecipe, firstPlan.layoutRecipe);
+    await recordVisualPlan(profile.id, { ...firstPlan, sourceHash: digest("subsequent-article"), layoutRecipe: "photo-open" });
     plannedResponse = await PLAN(request(requestPlan)); assert.equal(plannedResponse.status, 200); assert.equal(planningCalls, cachedCalls);
-    assert.deepEqual((await plannedResponse.json()).plan.cards, firstPlan.cards, "Reopening uses the same plan for paid artifact recovery");
+    const reopened = (await plannedResponse.json()).plan;
+    assert.deepEqual(reopened.cards, firstPlan.cards, "Reopening uses the same plan for paid artifact recovery");
+    assert.equal(reopened.layoutRecipe, firstPlan.layoutRecipe, "Later article history does not redesign an existing article");
     assert.equal((await PLAN(request({ ...requestPlan, forceReplan: true }))).status, 400);
     plannedResponse = await PLAN(request({ ...requestPlan, forceReplan: true, attemptId: "approved-plan", confirmPaid: true })); assert.equal(plannedResponse.status, 200); assert.equal(planningCalls, cachedCalls + 1);
     const invalidRequest = { ...requestPlan, forceReplan: true, attemptId: "invalid-evidence", confirmPaid: true };
@@ -112,6 +118,10 @@ let planningResult, imageCalls = 0, planningCalls = 0, allowPlanning = true, fai
     response = await POST(request({ ...base, cardType: "thumbnail" })); assert.ok(imageReady((await response.json()).card)); assert.deepEqual([imageCalls, planningCalls], before);
     response = await POST(request({ ...base, cardType: "thumbnail", renderOnly: true, reuseProductionId: cover.productionId, style: "contrast" }));
     assert.equal(response.status, 200, JSON.stringify(await response.clone().json())); assert.equal(imageCalls, before[0]); assert.equal(planningCalls, before[1], "Layout edits must not call Claude");
+    response = await POST(request({ ...base, plan: { ...plan, layoutRecipe: "caption-rail" }, cardType: "thumbnail", renderOnly: true, reuseProductionId: cover.productionId }));
+    assert.equal(response.status, 200, JSON.stringify(await response.clone().json()));
+    assert.equal((await response.json()).card.layoutRecipe, "caption-rail");
+    assert.deepEqual([imageCalls, planningCalls], before, "A geometric layout edit reuses paid art without any model calls");
     response = await POST(request({ ...base, cardType: "thumbnail", headingOverride: "제목만 수정", style: "contrast" }));
     assert.equal(response.status, 200); assert.equal(imageCalls, before[0], "No reuse ID is required to preserve artwork during layout-only changes");
     const transferred = await POST(request({ ...base, cardType: "thumbnail", transport: "asset" }));

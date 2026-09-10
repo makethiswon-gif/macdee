@@ -1,6 +1,6 @@
 # Blog Production V12
 
-Verified 2026-09-10. Scope: blog-publish, blog-images, and their shared factory path.
+Verified 2026-09-11. Scope: blog-publish, blog-images, and their shared factory path.
 
 ## Production Route
 
@@ -15,7 +15,8 @@ Verified 2026-09-10. Scope: blog-publish, blog-images, and their shared factory 
    The default High control maps to `xhigh`. `BLOG_IMAGE_MODEL` can explicitly
    override the model, subject to account access and compatible quality settings.
 5. Server-side typography, diagrams, authentic portrait/logo and contact details
-   create 1200px-wide PNGs. Six publication families provide distinct geometry.
+   create 1200px-wide PNGs. Lawyer identity preserves the registered colour and font;
+   per-article recipes vary geometry independently from that identity.
    Informational cards do not need image-model calls. No Claude finished-image review.
 6. Private signed files bypass Vercel JSON size limits. The client checks SHA-256.
    Publication attachment sends a production ID and signed release, not base64.
@@ -39,6 +40,23 @@ Verified 2026-09-10. Scope: blog-publish, blog-images, and their shared factory 
 - Saved drafts can be reopened. A successful explicitly selected replan becomes the
   default recoverable plan without deleting previous plans.
 
+## Per-Article Layout Variety
+
+- New plans choose one of six cover structures: headline, photo-open, column-pair,
+  caption-rail, title-band and split-footer. The same photo is fitted without cropping.
+- The selected recipe also varies diagram presentation (aligned comparison, paired
+  panels, horizontal bands, checklist grid or large numbered index) and authentic
+  portrait placement (left, right, centred or letterhead). Facts and contact details
+  are not rewritten to fit a design.
+- Selection uses the last twelve stored planning entries per lawyer, avoids the
+  last two distinct articles and favours less-used layouts. Dense copy favours wider
+  structures. Simultaneous independent plans can still see the same history snapshot.
+- The recipe is stored on the plan and in private history. Same-source recovery and
+  cached plans retain their selection; page visits and retries never randomize it.
+  Older cached plans without a recipe keep their existing layout and production IDs.
+- Selection and rendering are deterministic code, with no additional model calls.
+  A layout-only edit can reuse source-matched paid artwork.
+
 ## Verification
 
 Offline regression commands (no model calls):
@@ -47,6 +65,7 @@ Offline regression commands (no model calls):
 npm run test:blog-images
 node scripts/test-blog-image-quality.cjs
 node scripts/test-blog-image-layout.cjs
+node scripts/test-blog-layout-variety.cjs
 node scripts/test-blog-publish-api.cjs
 node scripts/test-blog-phone-contact.cjs
 node scripts/test-blog-strengths.cjs
@@ -56,7 +75,9 @@ npx tsc --noEmit --incremental false
 
 Browser tests use a local server and mocked APIs:
 `scripts/test-blog-publish.cjs` and `scripts/test-blog-images-ui.cjs`.
-The layout suite checks 240 family/style/card combinations.
+The legacy layout suite checks 240 family/style/card combinations. The variety suite
+adds 246 render checks, exact infographic facts, same-palette geometric comparisons,
+30 sequential article selections and stable same-source recovery.
 
 Explicit live acceptance used one saved manuscript, one successful Claude plan,
 one Sunburst scene, two deterministic diagrams and an authentic contact card.

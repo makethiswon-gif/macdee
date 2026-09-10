@@ -98,7 +98,7 @@ export function getMagazineIdentity(profile: Pick<EditorialProfile, "id" | "lawy
 export function identityDirective(id: MagazineIdentity): string {
     return `
 이 사무소의 시리즈 규정(변경 불가): palette는 반드시 "${id.palette}", typography는 반드시 "${id.typography}". ` +
-        `지면 가족은 ${id.family}. composition은 split. 글자는 별도 조판한다. 시각물에는 텍스트 여백을 만들지 말고 대상과 관계를 선명하게 보여준다. 브랜드 색은 포인트로만 사용하고 모든 사진에 같은 색 필터를 씌우지 않는다. 콘셉트·모티프·장면은 원고에서 설계한다. 네 장에 같은 소품을 반복하지 않는다.`;
+        `브랜드 기준 계열은 ${id.family}이며 단일 배치로 고정하지 않는다. 글마다 조판 엔진이 최근 이력과 문구 길이에 맞춰 사진 우선·제목 우선·비대칭 칼럼·비교 지면을 달리 선택한다. composition은 split. 글자는 별도 조판한다. 시각물에는 텍스트 여백을 만들지 말고 대상과 관계를 선명하게 보여준다. 브랜드 색은 포인트로만 사용하고 모든 사진에 같은 색 필터를 씌우지 않는다. 콘셉트·모티프·장면은 원고에서 설계한다. 네 장에 같은 소품을 반복하지 않는다.`;
 }
 
 /** 팔레트·서체를 변호사 값으로 강제한다. 장면·구도는 기획 모델의 몫 그대로. */
