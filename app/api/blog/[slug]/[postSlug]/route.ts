@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { cleanBody, parseAiContent } from "@/lib/ai-content";
-import { isPublicLawyerSlug } from "@/lib/public-content";
+import { isPublicLawyerSlug, PUBLIC_BLOG_CHANNELS } from "@/lib/public-content";
 
 // GET /api/blog/[slug]/[postSlug] → 개별 포스트
 export async function GET(
@@ -35,6 +35,7 @@ export async function GET(
             .eq("lawyer_id", lawyer.id)
             .eq("slug", postSlug)
             .eq("status", "published")
+            .in("channel", [...PUBLIC_BLOG_CHANNELS])
             .single();
 
         if (bySlug) {
@@ -46,6 +47,7 @@ export async function GET(
                 .eq("lawyer_id", lawyer.id)
                 .eq("id", postSlug)
                 .eq("status", "published")
+                .in("channel", [...PUBLIC_BLOG_CHANNELS])
                 .single();
             post = byId;
         }

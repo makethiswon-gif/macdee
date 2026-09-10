@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
+import { SITE_SYNC_CHANNEL } from "@/lib/public-content";
 
 // 발행된 원고를 맥디 변호사 블로그(contents, /blog/[slug])에 반영한다.
 // 블로그 공장 4단계 자동화 — 수동 붙여넣기를 대체한다.
@@ -66,7 +67,7 @@ export async function POST(request: Request) {
 
         const row = {
             lawyer_id: profile.lawyer_id,
-            channel: "blog" as const,
+            channel: SITE_SYNC_CHANNEL,
             title: post.title,
             slug: `bp-${String(post.id).replace(/-/g, "").slice(0, 12)}`,
             body: toSiteMarkdown(post.body),

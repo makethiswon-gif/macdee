@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
 import { cleanBody, parseAiContent } from "@/lib/ai-content";
-import { compactSeoDescription, isPublicLawyerSlug } from "@/lib/public-content";
+import { compactSeoDescription, isPublicLawyerSlug, PUBLIC_BLOG_CHANNELS } from "@/lib/public-content";
 import BlogPageClient from "./BlogPageClient";
 
 export const dynamic = "force-dynamic";
@@ -38,7 +38,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
         .from("contents")
         .select("id", { count: "exact", head: true })
         .eq("lawyer_id", lawyer.id)
-        .in("channel", ["google", "macdee"])
+        .in("channel", [...PUBLIC_BLOG_CHANNELS])
         .eq("status", "published");
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
@@ -102,7 +102,7 @@ export default async function BlogPage({ params, searchParams }: Props) {
         .from("contents")
         .select("id, slug, title, body, meta_description, tags, channel, created_at, status", { count: "exact" })
         .eq("lawyer_id", lawyer.id)
-        .in("channel", ["google", "macdee"])
+        .in("channel", [...PUBLIC_BLOG_CHANNELS])
         .eq("status", "published")
         .order("created_at", { ascending: false })
         .range(start, end);
@@ -112,7 +112,7 @@ export default async function BlogPage({ params, searchParams }: Props) {
             .from("contents")
             .select("id, slug, title, created_at")
             .eq("lawyer_id", lawyer.id)
-            .in("channel", ["google", "macdee"])
+            .in("channel", [...PUBLIC_BLOG_CHANNELS])
             .eq("status", "published")
             .order("created_at", { ascending: false })
             .range(10, 69)

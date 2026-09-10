@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { cleanBody } from "@/lib/ai-content";
-import { isPublicLawyerSlug } from "@/lib/public-content";
+import { isPublicLawyerSlug, PUBLIC_BLOG_CHANNELS } from "@/lib/public-content";
 import { cdata, escapeXml, latestDate, validDate } from "@/lib/seo-feeds";
 import { SITE_BASE } from "@/data/renewal/site";
 
@@ -14,7 +14,7 @@ export async function GET() {
         const [postsResult, magazinesResult] = await Promise.all([
             supabase.from("contents")
                 .select("id, slug, title, body, created_at, updated_at, lawyers!inner(slug)")
-                .eq("status", "published").in("channel", ["google", "macdee"])
+                .eq("status", "published").in("channel", [...PUBLIC_BLOG_CHANNELS])
                 .order("created_at", { ascending: false }).limit(50),
             supabase.from("magazines")
                 .select("slug, title, excerpt, body, cover_image_url, author, published_at")

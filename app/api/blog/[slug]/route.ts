@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { cleanBody } from "@/lib/ai-content";
-import { isPublicLawyerSlug } from "@/lib/public-content";
+import { isPublicLawyerSlug, PUBLIC_BLOG_CHANNELS } from "@/lib/public-content";
 
 function toPlainExcerpt(body: string | null | undefined, fallback: string | null | undefined): string {
     const source = fallback || cleanBody(body || "");
@@ -45,7 +45,7 @@ export async function GET(
             .from("contents")
             .select("id, title, slug, body, meta_description, tags, schema_markup, channel, created_at")
             .eq("lawyer_id", lawyer.id)
-            .in("channel", ["google", "macdee"])
+            .in("channel", [...PUBLIC_BLOG_CHANNELS])
             .eq("status", "published")
             .order("created_at", { ascending: false });
 

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
-import { isPublicLawyerSlug } from "@/lib/public-content";
+import { isPublicLawyerSlug, PUBLIC_BLOG_CHANNELS } from "@/lib/public-content";
 import { escapeXml, latestDate, readAllFeedRows, validDate } from "@/lib/seo-feeds";
 import { DEMO_BASE, SITE_BASE, absUrl } from "@/data/renewal/site";
 
@@ -13,7 +13,7 @@ export async function GET() {
         const [blogPosts, magazines] = await Promise.all([
             readAllFeedRows((from, to) => supabase.from("contents")
                 .select("id, slug, updated_at, created_at, lawyer_id, lawyers!inner(slug)")
-                .eq("status", "published").in("channel", ["google", "macdee"])
+                .eq("status", "published").in("channel", [...PUBLIC_BLOG_CHANNELS])
                 .order("id").range(from, to)),
             readAllFeedRows((from, to) => supabase.from("magazines")
                 .select("slug, published_at")

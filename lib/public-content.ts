@@ -1,5 +1,7 @@
 const NON_PUBLIC_SLUG_PREFIXES = ["test", "demo", "sample", "dev", "qa"];
 const OPAQUE_INTERNAL_SLUG = /^[a-f0-9]{8,64}$/;
+export const SITE_SYNC_CHANNEL = "macdee" as const;
+export const PUBLIC_BLOG_CHANNELS = ["google", SITE_SYNC_CHANNEL] as const;
 
 export function isPublicLawyerSlug(slug: string | null | undefined): slug is string {
     if (!slug) return false;

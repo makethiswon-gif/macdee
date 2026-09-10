@@ -1,5 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/server";
-import { isPublicLawyerSlug } from "@/lib/public-content";
+import { isPublicLawyerSlug, PUBLIC_BLOG_CHANNELS } from "@/lib/public-content";
 import { COMPANY, FOUNDER, PLANS, SITE_BASE, absUrl } from "@/data/renewal/site";
 
 export const revalidate = 3600; // 1시간마다 재생성
@@ -75,7 +75,7 @@ export async function GET() {
             supabase
                 .from("contents")
                 .select("title, slug, id, lawyer_id, created_at")
-                .in("channel", ["google", "macdee"])
+                .in("channel", [...PUBLIC_BLOG_CHANNELS])
                 .eq("status", "published")
                 .order("created_at", { ascending: false })
                 .limit(300) as unknown as Promise<{ data: PostRow[] | null }>,

@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
 import { cleanBody, parseAiContent } from "@/lib/ai-content";
-import { compactSeoDescription, isPublicLawyerSlug } from "@/lib/public-content";
+import { compactSeoDescription, isPublicLawyerSlug, PUBLIC_BLOG_CHANNELS } from "@/lib/public-content";
 import PostPageClient from "./PostPageClient";
 
 export const dynamic = "force-dynamic";
@@ -97,8 +97,8 @@ export default async function PostPage({ params }: Props) {
     // UUID URL → slug URL: 301 redirect to canonical slug URL when slug exists
     const isUuid = UUID_RE.test(postSlug);
     const postQuery = isUuid
-        ? supabase.from("contents").select("*").eq("lawyer_id", lawyer.id).eq("id", postSlug).eq("status", "published")
-        : supabase.from("contents").select("*").eq("lawyer_id", lawyer.id).eq("slug", postSlug).eq("status", "published");
+        ? supabase.from("contents").select("*").eq("lawyer_id", lawyer.id).eq("id", postSlug).eq("status", "published").in("channel", [...PUBLIC_BLOG_CHANNELS])
+        : supabase.from("contents").select("*").eq("lawyer_id", lawyer.id).eq("slug", postSlug).eq("status", "published").in("channel", [...PUBLIC_BLOG_CHANNELS]);
     const { data: post } = await postQuery.maybeSingle();
 
     // slug에 한글이 포함되면 Location 헤더(ASCII 전용)에 그대로 넣을 수 없어 인코딩 필수
@@ -113,7 +113,7 @@ export default async function PostPage({ params }: Props) {
         .from("contents")
         .select("id, title, slug, created_at")
         .eq("lawyer_id", lawyer.id)
-        .in("channel", ["google", "macdee"])
+        .in("channel", [...PUBLIC_BLOG_CHANNELS])
         .eq("status", "published")
         .neq("id", post.id)
         .order("created_at", { ascending: false })

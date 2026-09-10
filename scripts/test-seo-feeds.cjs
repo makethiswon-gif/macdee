@@ -54,7 +54,7 @@ Module._extensions['.ts'] = (mod, file) => mod._compile(ts.transpileModule(fs.re
 
 (async () => {
     const { validDate, latestDate, cdata, readAllFeedRows } = require('../lib/seo-feeds.ts');
-    const { compactSeoDescription, isPublicLawyerSlug } = require('../lib/public-content.ts');
+    const { compactSeoDescription, isPublicLawyerSlug, PUBLIC_BLOG_CHANNELS, SITE_SYNC_CHANNEL } = require('../lib/public-content.ts');
     assert.equal(validDate('invalid'), undefined);
     assert.equal(validDate(null), undefined);
     assert.equal(latestDate(['invalid', published, '2025-01-01']), published);
@@ -62,6 +62,7 @@ Module._extensions['.ts'] = (mod, file) => mod._compile(ts.transpileModule(fs.re
     await assert.rejects(() => readAllFeedRows(async () => ({ data: null, error: new Error('outage') })));
     assert.equal(isPublicLawyerSlug('b69960f8'), false, 'opaque internal IDs are not public lawyer slugs');
     assert.equal(isPublicLawyerSlug('real-firm'), true);
+    assert.ok(PUBLIC_BLOG_CHANNELS.includes(SITE_SYNC_CHANNEL), 'site-synced posts must use a publicly rendered channel');
     const description = compactSeoDescription('  전문\n소개 '.repeat(40));
     assert.ok(description.length <= 160 && !description.includes('\n'));
 
