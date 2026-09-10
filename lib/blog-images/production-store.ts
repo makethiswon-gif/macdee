@@ -103,10 +103,19 @@ export async function cachedVisualPlan(id: string): Promise<ArticleVisualPlan | 
     const { data: bucket, error: bucketError } = await db.storage.getBucket(BUCKET);
     if (bucketError || !bucket || bucket.public) throw new ImageProductionError("이미지 구성안의 비공개 저장소를 확인해주세요.");
     if (!/^[a-f0-9]{64}$/.test(id)) throw new ImageProductionError("구성안 ID가 올바르지 않습니다.", 400);
-    const { data, error } = await db.storage.from(BUCKET).download(`blog-image-plans/${id}.json`);
-    if (error && (String(error.statusCode) === "404" || /not found|does not exist/i.test(error.message))) return null;
+    const storage = db.storage.from(BUCKET);
+    const file = `blog-image-plans/${id}.json`;
+    // Supabase Storage 2.98 reports a missing private object as an opaque
+    // StorageUnknownError with HTTP 400. HEAD/exists is the only reliable
+    // distinction between a normal first run and a real cache outage.
+    let exists: boolean;
+    try { ({ data: exists } = await storage.exists(file)); }
+    catch { throw new ImageProductionError("기존 구성안의 저장 상태를 확인하지 못했습니다. 중복 제작을 막기 위해 잠시 중단합니다."); }
+    if (!exists) return null;
+    const { data, error } = await storage.download(file);
     if (error || !data || data.size > 200_000) throw new ImageProductionError("기존 구성안을 확인하지 못했습니다. 중복 제작을 막기 위해 잠시 중단합니다.");
-    return JSON.parse(await data.text()) as ArticleVisualPlan;
+    try { return JSON.parse(await data.text()) as ArticleVisualPlan; }
+    catch { throw new ImageProductionError("저장된 이미지 구성안이 손상되어 자동 재제작을 중단했습니다."); }
 }
 export async function saveVisualPlan(id: string, plan: ArticleVisualPlan) {
     if (!/^[a-f0-9]{64}$/.test(id)) throw new ImageProductionError("구성안 ID가 올바르지 않습니다.", 400);

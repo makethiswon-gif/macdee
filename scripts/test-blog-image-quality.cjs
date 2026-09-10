@@ -13,7 +13,9 @@ const storage = {
         if (files.has(key) && !options?.upsert) return { error: { statusCode: "409" } };
         files.set(key, typeof value === "string" ? value : value.toString()); return { error: null };
     },
-    download: async (key) => files.has(key) ? { data: new Blob([files.get(key)]), error: null } : { data: null, error: { statusCode: "404" } },
+    // Supabase Storage 2.98 returns this opaque shape for a missing private object.
+    exists: async (key) => files.has(key) ? { data: true, error: null } : { data: false, error: { name: "StorageUnknownError", message: "{}", originalError: { status: 400 } } },
+    download: async (key) => files.has(key) ? { data: new Blob([files.get(key)]), error: null } : { data: null, error: { name: "StorageUnknownError", message: "{}", originalError: { status: 400 } } },
     list: async (prefix, opts) => ({ data: [...files.keys()].filter((k) => k.startsWith(prefix + "/")).sort().reverse().slice(0, opts.limit).map((k) => ({ name: k.split("/").pop() })), error: null }),
 };
 const db = { storage: { from: () => storage, getBucket: async () => ({ data: { public: !privateBucket }, error: null }) } };
