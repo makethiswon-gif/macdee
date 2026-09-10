@@ -27,7 +27,7 @@ export async function renderDistinctCard(opts: BriefRenderOptions): Promise<Blog
     const commands: ((c: SKRSContext2D) => void)[] = [];
     const warnings: string[] = [];
     const boxes: { x: number; y: number; w: number; h: number }[] = [];
-    const text = (s: string, x: number, y: number, w: number, size = 38, color: string = p.ink, f: MagazineFace = "body", centered = false, leading = 1.48) => {
+    const text = (s: string, x: number, y: number, w: number, size = 42, color: string = p.ink, f: MagazineFace = "body", centered = false, leading = 1.48) => {
         const h = typeHeight(measure, s, w, size, f, leading);
         if (s) boxes.push({ x, y, w, h });
         commands.push((c) => { c.textAlign = centered ? "center" : "left"; drawType(c, s, centered ? x + w / 2 : x, y, w, size, color, f, leading); c.textAlign = "left"; });
@@ -36,8 +36,8 @@ export async function renderDistinctCard(opts: BriefRenderOptions): Promise<Blog
     const line = (x: number, y: number, w: number) => commands.push((c) => rule(c, x, y, w, `${p.ink}55`));
     const block = (x: number, y: number, w: number, h: number, color: string) => commands.push((c) => rect(c, x, y, w, h, color));
     const picture = (art: Image, x: number, y: number, w: number, h: number, contain = false) => commands.push((c) => d.picture(c, art, x, y, w, h, contain ? "contain" : "cover"));
-    const title = (s: string, x: number, y: number, w: number, maxH: number, size = 74, centered = false, color = p.ink) => {
-        const fitted = fitTitle(measure, s, w, maxH, size, face);
+    const title = (s: string, x: number, y: number, w: number, maxH: number, size = 74, centered = false, color: string = p.ink) => {
+        const fitted = fitTitle(measure, s, w, opts.repairLayout ? 1200 : Math.max(maxH, 640), size, face);
         return text(fitted.text, x, y, w, fitted.size, color, face, centered, 1.28);
     };
     const decode = async (bytes: Buffer) => loadImage(await sharp(bytes, { limitInputPixels: 24_000_000 }).rotate().png().toBuffer());
@@ -53,7 +53,7 @@ export async function renderDistinctCard(opts: BriefRenderOptions): Promise<Blog
     if ((card.type === "thumbnail" || card.type === "illustration") && !card.infographic) {
         if (!opts.art) throw new Error("원고 시각물이 없습니다.");
         const art = await decode(opts.art);
-        const centered = family === "journal" && !opts.repairLayout;
+        const centered = family === "poster" && !opts.repairLayout;
         const imageFirst = family === "atlas" && !opts.repairLayout;
         const fullBleed = ["atlas", "poster", "dossier"].includes(family) && !opts.repairLayout;
         const artX = fullBleed ? 0 : P, artW = fullBleed ? W : INNER;
@@ -61,15 +61,20 @@ export async function renderDistinctCard(opts: BriefRenderOptions): Promise<Blog
         const artH = Math.round(artW * art.height / art.width);
         const plate = () => { picture(art, artX, y, artW, artH, true); y += artH + 40; };
         if (imageFirst) { y = 0; plate(); }
+        if (family === "journal" && !opts.repairLayout) { line(P, y, INNER); y += 28; }
         if (card.kicker) y += text(card.kicker, P, y, INNER, 28, p.muted, "label", centered) + 24;
         const titleX = family === "column" ? P + 48 : P;
         const titleW = W - titleX - P;
         const headStart = y;
-        y += title(headline, titleX, y, titleW, 440, family === "poster" ? 88 : 76, centered) + 32;
+        if (family === "dossier" && !opts.repairLayout) {
+            const h = typeHeight(measure, headline, INNER, 72, face, 1.28);
+            block(0, y - 16, W, h + 80, base.ink);
+            y += title(headline, P, y + 20, INNER, 640, 72, false, "#FFFFFF") + 96;
+        } else y += title(headline, titleX, y, titleW, 640, family === "poster" ? 88 : 76, centered) + 32;
         if (family === "column") block(P, headStart + 8, 3, y - headStart - 40, p.field);
         if (family === "ledger") { line(P, y, INNER); y += 32; }
         if (!imageFirst) plate();
-        if (card.deck) y += text(card.deck, P, y, INNER, 38, p.ink, "body", centered) + 16;
+        if (card.deck) y += text(card.deck, P, y, INNER, 42, p.ink, "body", centered) + 16;
         if (opts.artLabel) y += text(opts.artLabel, P, y + 10, INNER, 24, p.muted) + 30;
     } else if (card.infographic) {
         const info = card.infographic;
@@ -77,7 +82,7 @@ export async function renderDistinctCard(opts: BriefRenderOptions): Promise<Blog
         const headerX = P;
         if (card.kicker) y += text(card.kicker, headerX, y, W - headerX - P, 26, p.muted, "sans") + 24;
         y += title(heading, headerX, y, W - headerX - P, 380, family === "dossier" ? 68 : 76, family === "atlas") + 26;
-        if (card.deck) y += text(card.deck, headerX, y, W - headerX - P, 38) + 26;
+        if (card.deck) y += text(card.deck, headerX, y, W - headerX - P, 42) + 26;
         y += 26;
         if (info.kind === "compare") {
             const gap = 40, cellW = (INNER - gap) / 2, x1 = P, x2 = P + cellW + gap;
@@ -142,7 +147,7 @@ export async function renderDistinctCard(opts: BriefRenderOptions): Promise<Blog
             portrait = await decode(await sharp(trimmed).resize(480, 640, { fit: "cover", position: "north" }).png().toBuffer());
         }
         catch { throw new ContactProfileError("등록된 변호사 사진을 읽지 못했습니다."); }
-        const claims = (profile.career || []).slice(0, 2);
+        const claims = (profile.career || []).slice(0, 1);
         const identityText = (x: number, start: number, w: number, centered = false) => {
             let cy = start;
             cy += text(profile.jobTitle || "변호사", x, cy, w, 32, p.muted, "label", centered) + 16;
@@ -151,10 +156,10 @@ export async function renderDistinctCard(opts: BriefRenderOptions): Promise<Blog
             for (const claim of claims) cy += text(claim, x, cy, w, 36, p.ink, "body", centered) + 18;
             return cy;
         };
-        if (family === "atlas" || family === "journal") {
-            picture(portrait, 272, y, 480, 640, true); y += 680;
+        if (family === "poster") {
             y = identityText(P, y, INNER, true);
-        } else if (family === "ledger" || family === "column") {
+            picture(portrait, 302, y, 420, 560, true); y += 596;
+        } else if (["ledger", "column", "journal", "atlas"].includes(family)) {
             picture(portrait, P, y, 416, 555, true);
             y = Math.max(y + 555, identityText(524, y + 32, W - 524 - P));
         } else {
@@ -187,7 +192,8 @@ export async function renderDistinctCard(opts: BriefRenderOptions): Promise<Blog
     const brandW = logo ? INNER - 240 : INNER;
     const footerH = Math.max(88, typeHeight(measure, brand, brandW, 26, "body", 1.48) + 40);
     const height = Math.ceil(Math.max(760, y + footerH + 34));
-    if (height > 3400) throw new Error("한 장에 담을 내용이 많습니다. 문구를 줄여주세요. 잘린 이미지는 저장하지 않았습니다.");
+    if (height > 7500) throw new Error("지면의 안전한 처리 범위를 초과했습니다. 원문은 보존했고 자동으로 재생성하지 않습니다.");
+    if (height > 2500) warnings.push("내용이 긴 지면입니다. 모바일 가독성을 확인한 뒤 필요하면 항목을 편집해주세요.");
     const footerY = height - footerH - 24;
     line(P, footerY, INNER);
     if (logo) {
@@ -201,13 +207,16 @@ export async function renderDistinctCard(opts: BriefRenderOptions): Promise<Blog
         const a = boxes[i], b = boxes[j];
         if (Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x) > 1 && Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y) > 1) layoutIssues.push("문구 영역이 서로 겹칩니다.");
     }
-    const canvas = createCanvas(W, height), c = canvas.getContext("2d");
+    const outputWidth = modern ? 1200 : W, scale = outputWidth / W;
+    const outputHeight = Math.ceil(height * scale);
+    const canvas = createCanvas(outputWidth, outputHeight), c = canvas.getContext("2d");
+    c.scale(scale, scale);
     rect(c, 0, 0, W, height, dark ? base.ink : "#FFFFFF");
     for (const command of commands) command(c);
     let png = await sharp(canvas.toBuffer("image/png")).flatten({ background: "#FFFFFF" }).png({ compressionLevel: 9 }).toBuffer();
     if (!modern && png.length > 2_000_000) png = await sharp(png).png({ palette: true, colours: 256, dither: 0.6 }).toBuffer();
-    if (png.length > (modern ? 2_700_000 : 2_000_000)) throw new Error("이미지 용량이 너무 큽니다. 색상을 손실 압축하지 않고 중단했습니다.");
-    return { type: card.type, name: CARD_LABELS[card.type], imageDataUrl: `data:image/png;base64,${png.toString("base64")}`, width: W, height,
+    if (png.length > 16_000_000) throw new Error("이미지 파일의 안전한 처리 범위를 초과했습니다. 원본은 보존했습니다.");
+    return { type: card.type, name: CARD_LABELS[card.type], imageDataUrl: `data:image/png;base64,${png.toString("base64")}`, width: outputWidth, height: outputHeight,
         altText: card.type === "contact" ? `${brand} 상담 안내 · ${actions.map((a) => a.display).join(" / ")}` : [heading, card.deck].filter(Boolean).join(" · "),
         placement: cardPlacement(card, opts.plan.paragraphs), warnings, designVersion: modern ? "editorial-v11" : "editorial-v10", layoutRevision: BLOG_LAYOUT_REVISION, model: opts.model,
         layoutChecks: { passed: !layoutIssues.length, issues: [...new Set(layoutIssues)], textBlocks: boxes.length },

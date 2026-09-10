@@ -1,15 +1,20 @@
 /** Complete raster output: preview, download and publishing use the same pixels. */
 export const BLOG_CARD_TYPES = ["thumbnail", "illustration", "info", "contact"] as const;
 export type BlogCardType = typeof BLOG_CARD_TYPES[number];
-export type BlogImageQuality = "medium" | "high";
+export type BlogImageQuality = "medium" | "high" | "xhigh";
 export type BlogPhotoSource = "ai" | "office";
 // Layout upgrades reuse the paid production checkpoint and original artwork.
-export const BLOG_LAYOUT_REVISION = 12;
+export const BLOG_LAYOUT_REVISION = 13;
 
 export interface BlogImageCard {
     type: BlogCardType;
     name: string;
     imageDataUrl: string;
+    imageUrl?: string;
+    imageHash?: string;
+    candidate?: "primary" | "alternate";
+    caption?: string;
+    aiGenerated?: boolean;
     width: number;
     height: number;
     altText: string;
@@ -72,12 +77,13 @@ export interface EditorialCopy {
 }
 
 /** Avoid sending every uploaded photo on each card request (Vercel body limit). */
-export function cardRequestProfile(p: Partial<EditorialProfile>, type: string, photoSource: BlogPhotoSource = "ai") {
+export function cardRequestProfile(p: Partial<EditorialProfile>, type: string) {
     return { id: p.id, lawyerName: p.lawyerName, officeName: p.officeName, jobTitle: p.jobTitle,
-        phone: p.phone, website: p.website, brandColor: p.brandColor, logoImage: p.logoImage,
+        phone: p.phone, website: p.website, brandColor: p.brandColor, logoImage: "",
         dnaSalt: p.dnaSalt, designFamily: p.designFamily,
         // 자랑 경력은 상담 카드에만 얹는다 — 심층리서치가 채운 상위 2줄.
         career: type === "contact" ? (p.career || []).filter(Boolean).slice(0, 2) : [],
-        profileImages: type === "contact" ? p.profileImages?.slice(0, 1) : [],
-        officeImages: photoSource === "office" ? p.officeImages?.slice(0, 1) : [] };
+        // The server reloads registered assets by profile ID. Never shuttle large
+        // base64 portraits/logos through each Vercel request.
+        profileImages: [], officeImages: [] };
 }

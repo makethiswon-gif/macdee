@@ -32,6 +32,7 @@ export interface PlannedCard {
     afterParagraphId: string;
     evidence: SourceEvidence[];
     art?: VisualBrief;
+    alternateArt?: VisualBrief;
     infographic?: Infographic;
     points?: string[];
     skipReason?: string;
@@ -44,6 +45,8 @@ export interface ArticleVisualPlan {
     productionNotes?: string[];
     direction?: ArtDirection;
     planningModel?: string;
+    planningRevision?: number;
+    operationId?: string;
     sourceHash: string;
     question: string;
     thesis: string;

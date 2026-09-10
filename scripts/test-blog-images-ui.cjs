@@ -23,6 +23,7 @@ for (const [type, c] of Object.entries(responses)) Object.assign(c, { type, name
             assert.equal(url.origin, base);
             const send = (body, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
             if (url.pathname.endsWith("/auth")) return send({ authenticated: true });
+            if (url.pathname.endsWith("/preflight")) return send({ ok: true });
             if (url.pathname.endsWith("/blog-profiles")) return send(url.searchParams.has("id") ? { profile } : { profiles: [profile] });
             if (url.pathname === "/api/admin/blog-posts") {
                 assert.equal(url.searchParams.get("profile_id"), profile.id);

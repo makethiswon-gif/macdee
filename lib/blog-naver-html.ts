@@ -85,6 +85,7 @@ function parse(body: string): Block[] {
 }
 
 export interface NaverImage {
+    caption?: string;
     type: string;
     url: string;
     altText?: string;
@@ -122,7 +123,8 @@ export function toNaverHtml(body: string, title?: string, images: NaverImage[] =
         out.push(html); previous = kind;
     };
     const insertImage = (image: NaverImage) => {
-        emit("image", `<p style="margin:0;padding:0;line-height:0;"><img src="${attribute(image.url)}" alt="${attribute(image.altText || "")}" style="display:block;width:100%;max-width:100%;height:auto;border:0;"></p>`);
+        emit("image", `<p style="margin:0;padding:0;line-height:0;"><img src="${attribute(image.url)}" alt="${attribute(image.altText || "")}" style="display:block;width:100%;max-width:100%;height:auto;border:0;"></p>`
+            + (image.caption ? `<p style="${TYPE}margin:8px 0 0;padding:0;font-size:13px;line-height:1.6;color:#62676e;">${escapeHtml(image.caption)}</p>` : ""));
     };
     const contacts = safeImages.filter((image) => image.type === "contact");
     const contactIndex = blocks.findIndex((block) => block.kind === "para" && block.lines.length === 1

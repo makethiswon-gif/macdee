@@ -101,14 +101,14 @@ export type ParseResult =
 // 정상 데이터를 버릴 위험이 있었다. 렌더러가 항목 수에 따라 글자를 줄이므로
 // 조금 여유를 준다.
 const LIM = {
-    heading: 30,
-    label: 34,
-    note: 48,
-    when: 20,
-    range: 22,
-    aspect: 16,
-    cell: 26,
-    colLabel: 16,
+    heading: 70,
+    label: 70,
+    note: 140,
+    when: 50,
+    range: 60,
+    aspect: 50,
+    cell: 100,
+    colLabel: 50,
 } as const;
 
 const str = (v: unknown, max: number): string | null => {

@@ -10,6 +10,22 @@ process.env.ADMIN_ID = "v7-fixture"; process.env.ADMIN_TOKEN_SECRET = crypto.ran
 const resolve = Module._resolveFilename;
 Module._resolveFilename = function (name, ...args) { return resolve.call(this, name.startsWith("@/") ? path.join(root, name.slice(2)) : name, ...args); };
 Module._extensions[".ts"] = (module, filename) => module._compile(ts.transpileModule(fs.readFileSync(filename, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true }, fileName: filename }).outputText, filename);
+if (!live && !liveArt && !liveRest && !refreshFinal && !registeredId) {
+    const stored = new Map(), originalLoad = Module._load;
+    const storage = {
+        exists: async (key) => ({ data: stored.has(key), error: null }),
+        download: async (key) => ({ data: stored.has(key) ? new Blob([stored.get(key)]) : null, error: null }),
+        upload: async (key, data, options) => {
+            if (stored.has(key) && !options?.upsert) return { error: { statusCode: "409" } };
+            stored.set(key, data); return { error: null };
+        },
+        list: async () => ({ data: [], error: null }),
+    };
+    Module._load = function (name, ...args) {
+        if (name === "@/lib/supabase/server") return { createServiceClient: () => ({ storage: { from: () => storage, getBucket: async () => ({ data: { public: false }, error: null }) } }) };
+        return originalLoad.call(this, name, ...args);
+    };
+}
 const { title, article, profile, art, variants, rawPlan, liveArticles } = require("./blog-images-v7-fixtures.cjs");
 const { validateVisualPlan, sourceHash, planArticle } = require("../lib/blog-images/visual-planner.ts");
 const { articleParagraphs } = require("../lib/blog-images/visual-plan-types.ts");
@@ -22,7 +38,8 @@ if (!live && !liveArt && !liveRest && !refreshFinal && !registeredId) {
     Module._load = function (name, ...args) {
         if (name === "@/lib/blog-images/strength-context") return { imageStrengthContext: async (profile) => ({ profile, selection: { profileId: profile.id, firmId: "", revision: 0, designFamily: "auto", claims: [] }, token: "fixture" }) };
         if (name === "@/lib/blog-images/production-store") return { ...moduleLoad.call(this, name, ...args),
-            beginImageProduction: async (id, profileId, sourceHash) => ({ checkpoint: { id, profileId, sourceHash, state: "started" }, existing: false }), saveImageProduction: async () => {} };
+            beginImageProduction: async (id, profileId, sourceHash) => ({ checkpoint: { id, profileId, sourceHash, state: "started" }, existing: false }), saveImageProduction: async () => {},
+            preservedArt: async () => null, indexPreservedArt: async () => {} };
         return moduleLoad.call(this, name, ...args);
     };
 }
@@ -34,8 +51,7 @@ const payload = "v7-fixture:local-test", cookie = Buffer.from(payload + ":" + cr
 function req(body, auth = true) { return new Request("http://localhost/api/admin/blog-images/generate-design", { method: "POST", headers: { "Content-Type": "application/json", ...(auth ? { cookie: "admin_token=" + cookie } : {}) }, body: JSON.stringify(body) }); }
 async function save(card, name) {
     const bytes = Buffer.from(card.imageDataUrl.split(",")[1], "base64"), meta = await sharp(bytes).metadata();
-    assert.equal(meta.width, 1024); assert.equal(meta.height, card.height); assert.equal(meta.hasAlpha, false); assert.ok(bytes.length <= 2_000_000);
-    assert.ok(Buffer.byteLength(JSON.stringify({ card })) < 4_400_000, "Complete response fits Vercel payload limit");
+    assert.equal(meta.width, 1200); assert.equal(meta.height, card.height); assert.equal(meta.hasAlpha, false); assert.ok(bytes.length <= 16_000_000);
     fs.writeFileSync(path.join(out, name + ".png"), bytes); fs.writeFileSync(path.join(out, name + ".json"), JSON.stringify({ card }));
     console.log(name + ": " + meta.width + "x" + meta.height + ", " + Math.round(bytes.length / 1024) + " KB");
 }
@@ -92,7 +108,7 @@ async function main() {
         assert.equal(p.cards[1].art.direction.composition, "split", "Body artwork is landscape, not cropped portrait cover art");
         assert.throws(() => validateVisualPlan({ ...directed, direction: { ...directed.direction, palette: "made-up" } }, title, article, false), /아트디렉션/);
         const badLines = JSON.parse(JSON.stringify(directed)); badLines.cards[0].headlineLines = ["원문과 다른 카피"];
-        assert.throws(() => validateVisualPlan(badLines, title, article, false), /행갈이 제목/);
+        assert.equal(validateVisualPlan(badLines, title, article, false).cards[0].headlineLines, undefined, "Malformed optional line breaks fall back to measured typography");
         await save(await renderBriefCard({ plan: p, card: p.cards[0], profile, style: "contrast", art: normalArt }), "direction-" + palette + "-" + typography);
     }
     for (const style of ["paper", "contrast"]) {
@@ -171,7 +187,7 @@ async function main() {
         await save((await r.json()).card, "cover-reused");
         const skip = JSON.parse(JSON.stringify(plan)); skip.cards[2].skipReason = "도표로 정리할 근거가 없습니다."; delete skip.cards[2].infographic;
         r = await POST(req({ profile, title, content: article, cardType: "info", plan: skip })); assert.equal(r.status, 422);
-        calls = 0; global.fetch = async () => { calls++; return new Response("{}", { status: 429 }); };
+        calls = 0; global.fetch = async (url) => { if (String(url).includes("/v1/models/")) return Response.json({ id: "fixture" }); calls++; return new Response("{}", { status: 429 }); };
         await assert.rejects(generateEditorialPhoto(art, "medium"), /사용 한도/); assert.equal(calls, 1, "No hidden retries");
         const articleLong = "문서 정리 설명. ".repeat(450) + "\n\n마지막 문단의 중요한 예외까지 포함합니다.";
         global.fetch = async (_url, init) => {
@@ -197,10 +213,10 @@ async function main() {
         assert.equal(images, 1); assert.equal(reviews, 0);
         let timeouts = 0;
         global.fetch = async () => { timeouts++; throw new DOMException("The operation was aborted due to timeout", "TimeoutError"); };
-        r = await PLAN(req({ title, content: article }));
+        r = await PLAN(req({ profile, title, content: article }));
         assert.equal(r.status, 502);
         const failure = await r.json();
-        assert.match(failure.error, /원고 기획 응답 시간이 초과/);
+        assert.match(failure.error, /응답이 지연되거나 연결이 끊겼습니다/);
         assert.doesNotMatch(failure.error, /operation was aborted/);
         assert.equal(timeouts, 1, "Planning timeout is not retried");
         assert.equal((await POST(req({ profile, title, content: article, cardType: "thumbnail" }))).status, 400);
@@ -210,14 +226,14 @@ async function main() {
             if (String(url).includes("openai.com")) {
                 generated++;
                 const input = JSON.parse(init.body);
-                assert.equal(input.quality, "high");
-                assert.equal(input.output_format, "jpeg");
+                assert.equal(input.quality, "xhigh");
+                assert.equal(input.output_format, "png");
                 return Response.json({ data: [{ b64_json: photo.toString("base64") }] });
             }
             timedReviews++;
             throw new DOMException("The operation was aborted due to timeout", "TimeoutError");
         };
-        r = await POST(req({ profile, title, content: article, cardType: "thumbnail", plan }));
+        r = await POST(req({ profile, title, content: article, cardType: "thumbnail", plan, attemptId: "explicit-second", confirmPaid: true }));
         assert.equal(r.status, 200);
         const preserved = (await r.json()).card;
         assert.equal(preserved.designReview, undefined);

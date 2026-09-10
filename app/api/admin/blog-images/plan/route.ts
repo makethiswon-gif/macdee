@@ -5,9 +5,10 @@ import { getMagazineIdentity } from "@/lib/blog-images/magazine-identity";
 import { imageStrengthContext } from "@/lib/blog-images/strength-context";
 import { StrengthStoreError } from "@/lib/blog-strengths-store";
 import { cachedVisualPlan, saveVisualPlan, digest, recentVisualHistory, recordVisualPlan, ImageProductionError } from "@/lib/blog-images/production-store";
+import { paidAttempt, paidId, PaidOperationError } from "@/lib/blog-images/paid-operation";
 
 export const runtime = "nodejs";
-export const maxDuration = 180;
+export const maxDuration = 300;
 export async function POST(request: Request) {
     if (!verifyAdminToken(request)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     let body;
@@ -20,10 +21,17 @@ export async function POST(request: Request) {
     const p = body.profile && typeof body.profile === "object" ? body.profile as Record<string, unknown> : null;
     try {
         const context = p ? await imageStrengthContext(p, body.title || "", body.content, body.strengthToken) : null;
+        if (!context) throw new ImageProductionError("저장된 변호사를 먼저 선택해주세요.", 400);
         const identity = context ? getMagazineIdentity(context.profile) : undefined;
-        const cacheId = context ? digest(JSON.stringify({ version: PLAN_VERSION, source: sourceHash(body.title || "", body.content), profile: context.profile, selection: context.selection })) : null;
-        const cached = cacheId ? await cachedVisualPlan(cacheId) : null;
-        if (cached && !body.forceReplan) {
+        const attempt = paidAttempt(body.attemptId, body.confirmPaid);
+        if (body.forceReplan && !attempt) throw new ImageProductionError("새 기획은 유료입니다. 비용 안내를 확인한 뒤 다시 기획해주세요.", 400);
+        const legacyId = digest(JSON.stringify({ version: PLAN_VERSION, source: sourceHash(body.title || "", body.content), profile: context.profile, selection: context.selection }));
+        const planIdentity = { source: sourceHash(body.title || "", body.content), profileId: context.profile.id, identity,
+            claims: context.selection.claims, revision: context.selection.revision };
+        const cacheId = paidId("plan-v12-schema2", { ...planIdentity, attempt });
+        const defaultId = paidId("plan-v12-schema2", { ...planIdentity, attempt: "" });
+        const cached = await cachedVisualPlan(cacheId) || (!attempt ? await cachedVisualPlan(legacyId) : null);
+        if (cached) {
             const plan = validateVisualPlan(cached, body.title || "", body.content);
             plan.strengthToken = context!.token; plan.strengthSelection = context!.selection;
             return NextResponse.json({ plan }, { headers: { "Cache-Control": "private, no-store" } });
@@ -32,16 +40,17 @@ export async function POST(request: Request) {
         const notes: string[] = [];
         if (context) try { recent = await recentVisualHistory(context.profile.id); }
         catch { notes.push("최근 구성 이력을 읽지 못해 이번 기획은 원고 근거로만 설계했습니다."); }
-        const plan = await planArticle(body.title || "", body.content, identity, context?.selection, recent);
+        const plan = await planArticle(body.title || "", body.content, identity, context?.selection, recent, cacheId);
         if (context) { plan.strengthToken = context.token; plan.strengthSelection = context.selection; }
         if (context) try { await recordVisualPlan(context.profile.id, plan); }
         catch { notes.push("이번 기획의 구성 이력을 저장하지 못했습니다."); }
         plan.productionNotes = notes;
         if (cacheId) await saveVisualPlan(cacheId, plan);
+        if (attempt) await saveVisualPlan(defaultId, plan);
         return NextResponse.json({ plan }, { headers: { "Cache-Control": "private, no-store" } });
     }
     catch (e) {
         console.error("[VisualPlan] failed", e instanceof Error ? e.name : "UnknownError");
-        return NextResponse.json({ error: e instanceof Error ? e.message : "이미지 기획에 실패했습니다." }, { status: e instanceof StrengthStoreError || e instanceof ImageProductionError ? e.status : e instanceof PlanValidationError ? 422 : 502 });
+        return NextResponse.json({ error: e instanceof Error ? e.message : "이미지 기획에 실패했습니다.", ...(e instanceof PaidOperationError ? { operationId: e.operationId, code: e.code } : {}) }, { status: e instanceof StrengthStoreError || e instanceof ImageProductionError ? e.status : e instanceof PlanValidationError ? 422 : 502 });
     }
 }

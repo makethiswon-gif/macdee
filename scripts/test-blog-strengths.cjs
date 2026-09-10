@@ -14,6 +14,7 @@ const db = { from(table) {
         } }; return query;
     }, storage: { getBucket: async () => ({ data: { public: publicBucket }, error: null }), from(bucket) {
         assert.equal(bucket, "owner-briefings"); return {
+            exists: async (key) => ({ data: objects.has(key), error: null }),
             list: async (prefix) => ({ data: storageListError ? null : [...objects.keys()].filter((k) => k.startsWith(prefix + "/")).sort().reverse().slice(0, 1).map((k) => ({ name: k.split("/").at(-1) })), error: storageListError ? { message: "fixture storage unavailable" } : null }),
             download: async (key) => ({ data: objects.has(key) ? new Blob([objects.get(key)]) : null, error: objects.has(key) ? null : { statusCode: "404" } }),
             upload: async (key, content, options) => { assert.equal(options.upsert, false); if (objects.has(key)) return { error: { statusCode: "409" } }; objects.set(key, content); return { error: null }; },

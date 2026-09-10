@@ -10,13 +10,19 @@ Module._extensions[".ts"] = (module, filename) => module._compile(ts.transpileMo
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true }, fileName: filename,
 }).outputText, filename);
 let profile, databaseFails = false, selected, aiCalls = 0, aiPrompt;
+const paidFiles = new Map();
+const paidStorage = { getBucket: async () => ({ data: { public: false }, error: null }), from: () => ({
+    exists: async (key) => ({ data: paidFiles.has(key), error: null }),
+    download: async (key) => ({ data: new Blob([paidFiles.get(key)]), error: null }),
+    upload: async (key, data) => { if (paidFiles.has(key)) return { error: { statusCode: "409" } }; paidFiles.set(key, data); return { error: null }; },
+}) };
 const fixtureBody = "## 준비할 자료\n\n자료를 확인합니다.\n\n---\n**기준일** 2026년 9월 9일 작성\n**작성** 검수 변호사";
 const moduleLoad = Module._load;
 Module._load = function (name, ...args) {
     if (name === "@/lib/admin-auth") return { verifyAdminToken: (request) => request.headers.get("x-fixture-auth") === "yes" };
     if (name === "@/lib/blog-strengths-store") return { loadStrengthLibrary: async (id) => ({ profileId: id, firmId: "", lawyerId: "", revision: 0, designFamily: "auto", updatedAt: "", claims: [] }), signStrengthSelection: () => "fixture-token", StrengthStoreError: class StrengthStoreError extends Error { constructor(message, status = 503) { super(message); this.status = status; } } };
     if (name === "@/lib/ai/blog-polish") throw new Error("Automatic GPT polishing must not be loaded");
-    if (name === "@/lib/supabase/server") return { createAdminClient: async () => {
+    if (name === "@/lib/supabase/server") return { createServiceClient: () => ({ storage: paidStorage }), createAdminClient: async () => {
         if (databaseFails) throw new Error("Fixture database unavailable");
         return { from: (table) => {
             if (table === "blog_posts") return { select: () => ({ eq: () => ({ order: () => ({ limit: async () => ({ data: [], error: null }) }) }) }) };
@@ -95,6 +101,8 @@ const assertLink = (body, href, count = 1) => {
         assert.equal(data.contactWarning, null); assert.equal(data.charCount, data.body.replace(/\s/g, "").length);
         assert.ok(selected.split(", ").includes("phone")); assert.ok(aiPrompt.includes("전화 링크를 직접 만들거나"));
         assert.ok(!data.body.includes("070-0000-0000"));
+        const before = aiCalls;
+        assert.equal((await POST(request(id))).status, 200); assert.equal(aiCalls, before, "Recovering a manuscript never calls Claude twice");
     }
     for (const phone of [null, "", "invalid, 02-000-0000"]) {
         profile = { id: "A", phone };

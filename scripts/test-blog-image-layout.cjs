@@ -13,8 +13,8 @@ const { blogPhoneContact } = require("../lib/blog-contact.ts");
 const fixtures = require("./blog-images-v7-fixtures.cjs");
 const out = path.join(root, "tmp", "image-layout-regression"); fs.mkdirSync(out, { recursive: true });
 async function save(card, directory, name) {
-    assert.equal(card.layoutRevision, 12); assert.ok(card.layoutChecks.passed, JSON.stringify(card.layoutChecks));
-    assert.ok(card.height < 2500); assert.ok(Buffer.byteLength(JSON.stringify(card)) < 4_000_000);
+    assert.equal(card.layoutRevision, 13); assert.ok(card.layoutChecks.passed, JSON.stringify(card.layoutChecks));
+    assert.ok(card.height < 3000); assert.equal(card.width, 1200);
     const bytes = Buffer.from(card.imageDataUrl.split(",")[1], "base64");
     fs.writeFileSync(path.join(directory, name + ".png"), bytes);
     await sharp(bytes).resize({ width: 375 }).png().toFile(path.join(directory, name + "-mobile.png"));

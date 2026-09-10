@@ -9,20 +9,27 @@ Module._resolveFilename = function (name, ...args) { return resolve.call(this, n
 Module._extensions[".ts"] = (module, filename) => module._compile(ts.transpileModule(fs.readFileSync(filename, "utf8"), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true }, fileName: filename,
 }).outputText, filename);
-let row = { card_images: [], status: "draft", profile_id: "fixture-profile", title: "Title", body: "Body" }, uploads = [];
+let row = { card_images: [], status: "draft", profile_id: "fixture-profile", title: "Title", body: "Body", updated_at: "2026-09-10T00:00:00Z" }, uploads = [], conflict = false;
+const checkpoints = new Map();
 const client = {
     from: () => ({
         select: () => ({ eq: () => ({ single: async () => ({ data: row, error: row ? null : { message: "not found" } }) }) }),
-        update: (patch) => ({ eq: async () => { Object.assign(row, patch); return { error: null }; } }),
+        update: (patch) => {
+            const query = { eq: () => query, select: async () => {
+                if (conflict) return { data: [], error: null };
+                Object.assign(row, patch); return { data: [{ id: "fixture-post" }], error: null };
+            } }; return query;
+        },
     }),
     storage: { from: () => ({
+        download: async (filename) => ({ data: checkpoints.has(filename) ? new Blob([JSON.stringify(checkpoints.get(filename))]) : null, error: null }),
         upload: async (filename, bytes) => { uploads.push({ filename, bytes }); return { error: null }; },
         getPublicUrl: (filename) => ({ data: { publicUrl: "https://storage.example/" + filename } }),
     }) },
 };
 const moduleLoad = Module._load;
 Module._load = function (name, ...args) {
-    if (name === "@/lib/supabase/server") return { createAdminClient: async () => client };
+    if (name === "@/lib/supabase/server") return { createAdminClient: async () => client, createServiceClient: () => client };
     return moduleLoad.call(this, name, ...args);
 };
 global.fetch = async () => { throw new Error("Network forbidden in local API fixtures"); };
@@ -52,6 +59,18 @@ const image = (type, extra = {}) => ({ postId: "fixture-post", image: approvedIm
     assert.equal(row.card_images.length, 3);
     const last = await POST(req(image("contact"))); assert.equal((await last.json()).done, true);
     assert.equal(row.status, "ready"); assert.equal(row.card_images.length, 4);
+    const productionId = "a".repeat(64), approved = approvedImage("thumbnail");
+    checkpoints.set(`blog-image-production/${productionId}.json`, { id: productionId, profileId: "fixture-profile", sourceHash: sourceHash("Title", "Body"),
+        card: { ...approved, imageDataUrl: png } });
+    const byId = { ...approved, productionId }; delete byId.dataUrl;
+    assert.equal((await POST(req(image("thumbnail", { image: byId })))).status, 200, "Server-owned PNG is attached by ID without base64 request");
+    assert.equal((await POST(req(image("thumbnail", { image: { ...byId, releaseToken: "wrong" } })))).status, 422);
+    conflict = true;
+    const beforeConflict = JSON.stringify(row);
+    assert.equal((await POST(req(image("thumbnail", { image: byId })))).status, 409);
+    assert.equal(JSON.stringify(row), beforeConflict, "A newer draft/card set cannot be overwritten");
+    conflict = false;
+    assert.equal((await POST(req(image("thumbnail", { image: byId })))).status, 200, "Upload retry reuses saved PNG without generation");
     const before = row.card_images.find((i) => i.type === "contact").url;
     assert.equal((await POST(req(image("contact", { image: { type: "contact", dataUrl: png, releaseToken: "tampered" } })))).status, 422);
     assert.equal(row.card_images.length, 4);

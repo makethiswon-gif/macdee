@@ -1,0 +1,9 @@
+tmp/
+.env*
+.git/
+.vercel/
+.next/
+node_modules/
+.firm-research/
+coverage/
+*.tsbuildinfo

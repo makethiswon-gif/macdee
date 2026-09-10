@@ -63,6 +63,7 @@ const reports = [];
                 const data = req.postData() ? JSON.parse(req.postData()) : {};
                 switch (url.pathname) {
                     case "/api/admin/auth": return reply(route, { authenticated: true });
+                    case "/api/admin/blog-images/preflight": return reply(route, { ok: true });
                     case "/api/admin/blog-settings": return reply(route, { profiles });
                     case "/api/admin/blog-strengths/select": return reply(route, { selection: { profileId: data.profileId, firmId: "", revision: 0, designFamily: "auto", claims: [], reason: "검수용 일반 정보 원고" }, eligible: [], token: "fixture-only", review: { issues: [], applied: [] } });
                     case "/api/admin/blog-profiles": return reply(route, { profile: profiles.find((p) => p.id === url.searchParams.get("id")) });
@@ -74,6 +75,7 @@ const reports = [];
                             contactWarning: options.missingPhone ? "대표번호를 확인하지 못해 전화 링크를 넣지 않았습니다. 변호사 프로필의 대표 전화번호 1(메인)을 확인해주세요." : null });
                     }
                     case "/api/admin/blog-posts": {
+                        if (req.method() === "GET") return reply(route, { posts: state.posts.filter((p) => p.profileId === url.searchParams.get("profile_id")) });
                         if (req.method() === "PATCH") {
                             state.patches.push(data);
                             const post = state.posts.find((p) => p.id === data.id);
@@ -95,7 +97,7 @@ const reports = [];
                         if (state.failType === data.cardType) return reply(route, { error: "검수용 생성 실패" }, 502);
                         return reply(route, { card: { type: data.cardType, name: data.cardType, imageDataUrl: png, width: 1024, height: 1145,
                             altText: "검수 이미지 " + data.title, placement: "관련 문단 다음", warnings: [], designVersion: "editorial-v11", sourceParagraphId: "p2",
-                            setId: "qa-set", releaseToken: state.heldType === data.cardType ? undefined : "qa-fixture",
+                            productionId: data.cardType + "-fixture", candidate: "primary", setId: "qa-set", releaseToken: state.heldType === data.cardType ? undefined : "qa-fixture",
                             layoutChecks: { passed: state.heldType !== data.cardType, issues: state.heldType === data.cardType ? ["글자 겹침"] : [], textBlocks: 5 } } });
                     case "/api/admin/blog-posts/images": {
                         state.uploads.push(data);
@@ -110,6 +112,7 @@ const reports = [];
                 }
             });
             const page = await context.newPage(); page.on("pageerror", (e) => state.errors.push(e.message));
+            page.on("dialog", (dialog) => dialog.accept());
             await page.goto(base + "/admin/blog-publish", { waitUntil: "networkidle", timeout: 60000 });
             await page.locator("#publish-profile").selectOption("qa-A");
             const start = async (topic) => { await page.locator("#publish-topic").fill(topic); await page.getByRole("button", { name: "바로 원고 생성", exact: true }).click(); };

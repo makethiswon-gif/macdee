@@ -4,7 +4,7 @@ import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
 import { createHash } from "node:crypto";
 import { BLOG_CARD_TYPES } from "@/lib/blog-images/card-types";
 import { hasCompleteCardSet } from "@/lib/blog-publish-workflow";
-import { verifyImageRelease, digest } from "@/lib/blog-images/production-store";
+import { verifyImageRelease, digest, loadImageProduction } from "@/lib/blog-images/production-store";
 import { sourceHash } from "@/lib/blog-images/visual-planner";
 
 // 브라우저에서 만든 카드 PNG를 받아 Storage에 올리고 원고에 붙인다.
@@ -15,6 +15,7 @@ const BUCKET = "blog-cards";
 interface IncomingImage {
     type: string;
     dataUrl: string;
+    productionId?: string;
     releaseToken?: string;
     setId?: string;
 }
@@ -57,12 +58,21 @@ export async function POST(request: Request) {
             || !BLOG_CARD_TYPES.every((type) => requiredTypes.includes(type)))) {
             return NextResponse.json({ error: "필수 이미지 4종이 필요합니다." }, { status: 400 });
         }
+        // New editors transfer only IDs. Read already-paid, signed bytes on the server.
+        // Large PNGs and portraits never travel back through a Vercel request body.
+        for (const img of images) if (img.productionId) {
+            const saved = await loadImageProduction(img.productionId);
+            if (!saved.card || saved.card.type !== img.type || saved.card.setId !== img.setId || saved.card.releaseToken !== img.releaseToken) {
+                return NextResponse.json({ error: "보존된 이미지와 저장 요청이 일치하지 않습니다." }, { status: 422 });
+            }
+            img.dataUrl = saved.card.imageDataUrl;
+        }
         if (images.some((img) => !/^[a-z][a-z0-9_-]*$/i.test(img.type) || !String(img.dataUrl).startsWith("data:image/png;base64,"))) {
             return NextResponse.json({ error: "유효한 PNG 이미지가 필요합니다." }, { status: 400 });
         }
 
         const supabase = await createAdminClient();
-        const { data: row, error: readError } = await supabase.from("blog_posts").select("card_images,profile_id,title,body").eq("id", postId).single();
+        const { data: row, error: readError } = await supabase.from("blog_posts").select("card_images,profile_id,title,body,updated_at").eq("id", postId).single();
         if (readError || !row) return NextResponse.json({ error: "저장된 원고를 찾지 못했습니다." }, { status: 404 });
         const hashOfSource = sourceHash(row.title || "", row.body || "");
         const saved: { type: string; url: string; releaseToken?: string; pngHash?: string; setId?: string }[] = [];
@@ -111,7 +121,7 @@ export async function POST(request: Request) {
         })), requiredTypes)
             : !single || (typeof total === "number" ? merged.length >= total : true);
 
-        const { error: upErr } = await supabase
+        let update = supabase
             .from("blog_posts")
             .update({
                 card_images: merged,
@@ -119,8 +129,11 @@ export async function POST(request: Request) {
                 updated_at: new Date().toISOString(),
             })
             .eq("id", postId);
-
+        // A second tab or manuscript edit must not overwrite a newer card set.
+        if (row.updated_at) update = update.eq("updated_at", row.updated_at);
+        const { data: changed, error: upErr } = await update.select("id");
         if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 });
+        if (!changed?.length) return NextResponse.json({ error: "다른 창에서 원고나 이미지가 변경됐습니다. 생성 결과는 보존했습니다. 이미지 저장만 다시 시도해주세요." }, { status: 409 });
 
         return NextResponse.json({ images: merged, done });
     } catch (err: unknown) {

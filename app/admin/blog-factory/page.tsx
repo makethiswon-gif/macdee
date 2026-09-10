@@ -246,7 +246,8 @@ export default function BlogFactoryPage() {
             const fullProfile = pData.profile;
             if (!fullProfile) throw new Error("변호사 상세 정보를 불러오지 못했습니다.");
 
-            const planned = await post("/api/admin/blog-images/plan", { title, content: body, profile: fullProfile });
+            await post("/api/admin/blog-images/preflight", { profileId });
+            const planned = await post("/api/admin/blog-images/plan", { title, content: body, profile: { id: profileId } });
             if (!planned.plan) throw new Error("이미지 기획에 실패했습니다.");
             for (const [i, t] of BLOG_CARD_TYPES.entries()) {
                 const c = await generateQualityCard({ profile: cardRequestProfile(fullProfile, t), title, content: body,
@@ -254,7 +255,7 @@ export default function BlogFactoryPage() {
                 if (!imageReady(c)) throw new Error(`${t}: ${imageHoldReason(c)} 작업 ID: ${c.productionId || "미확인"}`);
                 // Save each accepted result before starting another paid card.
                 const uploaded = await post("/api/admin/blog-posts/images", {
-                    postId, image: { type: c.type, dataUrl: c.imageDataUrl, releaseToken: c.releaseToken, setId: c.setId }, index: i, total: 4, requiredTypes: BLOG_CARD_TYPES,
+                    postId, image: { type: c.type, productionId: c.productionId, releaseToken: c.releaseToken, setId: c.setId }, index: i, total: 4, requiredTypes: BLOG_CARD_TYPES,
                 });
                 if (i === 3 && !uploaded.done) throw new Error("이미지 네 장의 제작 버전이 일치하지 않습니다. 구성안을 다시 확인해주세요.");
             }
@@ -266,6 +267,7 @@ export default function BlogFactoryPage() {
     // 원고 1건 생성 — 배치·개별 실행이 공유하는 단위 작업
     const generateOne = useCallback(
         async (p: Profile, t: Topic, detail?: string) => {
+            await post("/api/admin/blog-images/preflight", { profileId: p.id, checkModel: true });
             say(`  ✍ 원고: ${t.topic.slice(0, 34)}…`);
             const content = detail?.trim()
                 ? detail.trim()

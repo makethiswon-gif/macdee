@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["@napi-rs/canvas"],
   outputFileTracingIncludes: {
     "/api/admin/blog-images/generate-design": ["./public/fonts/noto-*-kr-korean-*-normal.woff2"],
+    "/api/admin/blog-images/preflight": ["./public/fonts/noto-*-kr-korean-*-normal.woff2"],
   },
   async headers() {
     return [

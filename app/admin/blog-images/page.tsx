@@ -11,7 +11,9 @@ import { BLOG_CARD_TYPES, CARD_LABELS, cardRequestProfile, type BlogCardType, ty
 import { cardPlacement, type ArticleVisualPlan, type EditorialStyle } from "@/lib/blog-images/visual-plan-types";
 import { contactReadiness } from "@/lib/blog-images/contact-details";
 import { imageReady, imageSetReady, imageHoldReason } from "@/lib/blog-images/quality-policy";
-import { generateQualityCard } from "@/lib/blog-images/generate-client";
+import { generateQualityCard, forEachImage } from "@/lib/blog-images/generate-client";
+import { publishJson } from "@/lib/blog-publish-workflow";
+import BlogCoverChoices from "@/components/admin/BlogCoverChoices";
 
 interface PostItem { id: string; title: string; body: string | null }
 type Job = { state: "waiting" | "running" | "done" | "error" | "skipped"; message?: string };
@@ -44,6 +46,7 @@ export default function BlogImagesPage() {
     const [plan, setPlan] = useState<ArticleVisualPlan | null>(null);
     const [showPlan, setShowPlan] = useState(false);
     const [cards, setCards] = useState<BlogImageCard[]>([]);
+    const [coverOptions, setCoverOptions] = useState<BlogImageCard[]>([]);
     const [jobs, setJobs] = useState<Partial<Record<BlogCardType, Job>>>({});
     const [headingEdits, setHeadingEdits] = useState<Partial<Record<BlogCardType, string>>>({});
     const [busy, setBusy] = useState(false);
@@ -57,6 +60,8 @@ export default function BlogImagesPage() {
     const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
     const generation = useRef<GenerationInput | null>(null);
     const postRequest = useRef(0), busyRef = useRef(false);
+    const attempts = useRef<Partial<Record<BlogCardType, string>>>({});
+    const planAttempt = useRef("");
 
     const fetchProfiles = useCallback(async () => {
         setLoading(true);
@@ -74,7 +79,7 @@ export default function BlogImagesPage() {
         const close = (event: KeyboardEvent) => { if (event.key === "Escape") setPreview(null); };
         window.addEventListener("keydown", close); return () => window.removeEventListener("keydown", close);
     }, [preview]);
-    const invalidatePlan = () => { setPlan(null); setShowPlan(false); setError(""); };
+    const invalidatePlan = () => { setPlan(null); setShowPlan(false); setError(""); planAttempt.current = ""; attempts.current = {}; };
     const changeLawyer = async (id: string) => {
         invalidatePlan();
         setSelectedId(id); setSelectedPostId(""); setPosts([]); setPostError("");
@@ -94,33 +99,41 @@ export default function BlogImagesPage() {
         const res = await fetch("/api/admin/blog-images/plan", { method: "POST", credentials: "include",
             headers: { "Content-Type": "application/json" },
             // 프로필을 함께 보내야 변호사별 시리즈 지면(팔레트·서체)이 기획 단계부터 반영된다
-            body: JSON.stringify({ title, content, profile: profiles.find((pf) => pf.id === selectedId), forceReplan }) });
+            body: JSON.stringify({ title, content, profile: { id: selectedId }, forceReplan,
+                attemptId: planAttempt.current || undefined, confirmPaid: !!planAttempt.current }) });
         const data = await readResponse(res);
         if (!res.ok || !data.plan) throw new Error(data.error || "이미지 기획에 실패했습니다.");
         setPlan(data.plan); return data.plan as ArticleVisualPlan;
     };
-    const previewPlan = async () => {
+    const previewPlan = async (newPaidPlan = false) => {
         if (busyRef.current) return;
+        if ((plan || newPaidPlan) && !window.confirm("기존 구성안은 보존됩니다. 새 구성안을 기획하면 Claude 비용이 발생합니다. 계속할까요?")) return;
+        if (plan || newPaidPlan) planAttempt.current = crypto.randomUUID();
         busyRef.current = true; setBusy(true); setError("");
-        try { await requestPlan(!!plan); setShowPlan(true); }
+        try { await requestPlan(!!plan || newPaidPlan); setShowPlan(true); }
         catch (e) { setError(e instanceof Error ? e.message : "기획 실패"); }
         finally { busyRef.current = false; setBusy(false); setPhase(""); }
     };
-    const runCard = async (type: BlogCardType, frozen: GenerationInput, renderOnly = false, layout = frozen.style, freshBatch = false, regenerate = false) => {
+    const runCard = async (type: BlogCardType, frozen: GenerationInput, renderOnly = false, layout = frozen.style, freshBatch = false) => {
         setJobs((prev) => ({ ...prev, [type]: { state: "running" } }));
         const existing = freshBatch ? undefined : cards.find((c) => c.type === type);
         try {
             const retain = (value: BlogImageCard) => setCards((prev) => [...prev.filter((c) => c.type !== type), value].sort((a, b) => BLOG_CARD_TYPES.indexOf(a.type) - BLOG_CARD_TYPES.indexOf(b.type)));
-            const card = await generateQualityCard({ ...frozen, profile: cardRequestProfile(frozen.profile, type, frozen.photoSource), cardType: type,
+            const card = await generateQualityCard({ ...frozen, profile: cardRequestProfile(frozen.profile, type), cardType: type,
                     style: layout || undefined, renderOnly, headingOverride: !freshBatch && (renderOnly || existing) ? headingEdits[type] : undefined,
-                    attemptId: regenerate ? crypto.randomUUID() : undefined,
+                    attemptId: attempts.current[type], candidate: existing?.candidate, confirmPaid: !!attempts.current[type] || existing?.candidate === "alternate",
                     reuseProductionId: renderOnly && existing?.artSourceHash ? existing.productionId : undefined }, new AbortController().signal, retain);
             retain(card);
+            if (type === "thumbnail") setCoverOptions((prev) => [...prev.filter((c) => c.candidate !== card.candidate), card]);
             setJobs((prev) => ({ ...prev, [type]: imageReady(card) ? { state: "done" } : { state: "error", message: imageHoldReason(card) } }));
         } catch (e) { setJobs((prev) => ({ ...prev, [type]: { state: "error", message: e instanceof Error ? e.message : "이미지 제작 실패" } })); }
     };
     const generate = async (only?: BlogCardType, renderOnly = false, layout?: EditorialStyle, regenerate = false) => {
         if (busyRef.current) return;
+        if (regenerate) {
+            if (!only || !window.confirm("새 시각물은 별도 유료 생성입니다. 기존 응답이 불확실하면 이전 요청도 과금됐을 수 있습니다. 계속할까요?")) return;
+            attempts.current[only] = crypto.randomUUID();
+        }
         busyRef.current = true; setBusy(true); setError("");
         try {
             if (only) {
@@ -134,9 +147,10 @@ export default function BlogImagesPage() {
                     frozen = { ...frozen, profile: data.profile };
                 }
                 setPhase(renderOnly ? "기존 시각물로 편집 중" : "선택한 이미지 제작 중");
-                await runCard(only, frozen, renderOnly, layout || cards.find((c) => c.type === only)?.layout || frozen.style, false, regenerate);
+                await runCard(only, frozen, renderOnly, layout || cards.find((c) => c.type === only)?.layout || frozen.style, false);
                 return;
             }
+            await publishJson("/api/admin/blog-images/preflight", new AbortController().signal, { profileId: selectedId });
             const planned = plan || await requestPlan();
             setPhase("등록된 사진과 로고를 확인하고 있습니다.");
             const res = await fetch("/api/admin/blog-profiles?id=" + encodeURIComponent(selectedId), { credentials: "include" });
@@ -145,12 +159,21 @@ export default function BlogImagesPage() {
             const frozen = { profile: data.profile, title, content, photoSource, quality, style, plan: planned };
             generation.current = frozen;
             const types = BLOG_CARD_TYPES;
-            setCards([]); setHeadingEdits({}); setJobs(Object.fromEntries(types.map((t) => [t, { state: "waiting" }])));
+            setCards([]); setCoverOptions([]); setHeadingEdits({}); setJobs(Object.fromEntries(types.map((t) => [t, { state: "waiting" }])));
             setPhase("이미지 제작·레이아웃 검사 중");
-            let cursor = 0;
-            const worker = async () => { while (cursor < types.length) await runCard(types[cursor++], frozen, false, frozen.style, true); };
-            await Promise.all([worker(), worker()]);
+            await forEachImage(types, (type) => runCard(type, frozen, false, frozen.style, true));
         } catch (e) { setError(e instanceof Error ? e.message : "생성에 실패했습니다."); }
+        finally { busyRef.current = false; setBusy(false); setPhase(""); }
+    };
+    const makeAlternateCover = async () => {
+        const frozen = generation.current;
+        if (!frozen || busyRef.current || !window.confirm("표지 대안 1장을 새로 생성합니다. 이미지 모델 비용이 발생합니다. 계속할까요?")) return;
+        busyRef.current = true; setBusy(true); setError(""); setPhase("표지 대안 제작 중");
+        try {
+            const card = await generateQualityCard({ ...frozen, style: frozen.style || undefined, profile: cardRequestProfile(frozen.profile, "thumbnail"),
+                cardType: "thumbnail", candidate: "alternate", confirmPaid: true }, new AbortController().signal);
+            if (imageReady(card)) setCoverOptions((prev) => [...prev.filter((c) => c.candidate !== "alternate"), card]);
+        } catch (e) { setError(e instanceof Error ? e.message : "표지 대안을 확인하지 못했습니다."); }
         finally { busyRef.current = false; setBusy(false); setPhase(""); }
     };
     const fileStem = (generation.current?.title || title || "블로그").replace(/[^가-힣a-zA-Z0-9 _-]/g, "").slice(0, 40);
@@ -184,7 +207,9 @@ export default function BlogImagesPage() {
                 <h1 className="text-2xl font-bold">블로그 이미지</h1></div>
             <button disabled={busy} onClick={() => { setEditingProfileId(selectedId || null); setProfileModal(true); }} className="flex items-center gap-2 rounded-lg border border-slate-700 px-4 py-3 text-sm disabled:opacity-40"><Settings size={16} /> 사진·로고 관리</button>
         </header>
-        {error && <div role="alert" className="mb-5 rounded-lg border border-red-800 bg-red-950/40 p-4 text-sm text-red-200">{error}</div>}
+        {error && <div role="alert" className="mb-5 rounded-lg border border-red-800 bg-red-950/40 p-4 text-sm text-red-200">{error}
+            {!plan && selectedId && content && <button disabled={busy} onClick={() => void previewPlan(true)} className="mt-3 block text-sm underline disabled:opacity-40">새 구성안 기획 (유료)</button>}
+        </div>}
         <div className="grid items-start gap-7 xl:grid-cols-[350px_minmax(0,1fr)]">
             <fieldset disabled={busy || loading} className="min-w-0 space-y-5 rounded-xl border border-slate-800 bg-slate-900 p-5">
                 <legend className="sr-only">원고 및 이미지 설정</legend>
@@ -224,6 +249,9 @@ export default function BlogImagesPage() {
                 <p className="mb-4 text-xs leading-6 text-slate-400">발행 전 원문 조건·법률 표현·이미지·연락처를 직접 확인하세요.</p>
                 <div aria-live="polite" className="mb-4 text-sm leading-6 text-emerald-200">{phase || (cards.length ? cards.filter(imageReady).length + "/4장 제작 완료" : "")}</div>
                 {stale && <p role="status" className="mb-4 rounded-lg bg-amber-950/40 p-3 text-sm leading-6 text-amber-200">아래는 이전 원고·프로필·구성안으로 만든 이미지입니다. 새 입력으로 생성하기 전까지 보존합니다.</p>}
+                <BlogCoverChoices options={coverOptions} selected={cards.find((c) => c.type === "thumbnail")?.productionId} busy={busy || stale}
+                    canCreate={!!frozen?.plan.cards.find((c) => c.type === "thumbnail")?.alternateArt} onCreate={() => void makeAlternateCover()}
+                    onSelect={(card) => setCards((prev) => [card, ...prev.filter((c) => c.type !== "thumbnail")])} />
                 {!!cards.length && <div className="mb-5 flex flex-wrap gap-2"><button aria-pressed={view === "cards"} onClick={() => setView("cards")} className={"flex items-center gap-2 rounded-lg px-3 py-2 text-sm " + (view === "cards" ? "bg-slate-700" : "bg-slate-900")}><Layers size={16} /> 이미지 보기</button><button aria-pressed={view === "article"} onClick={() => setView("article")} className={"flex items-center gap-2 rounded-lg px-3 py-2 text-sm " + (view === "article" ? "bg-slate-700" : "bg-slate-900")}><BookOpen size={16} /> 본문에 넣어 보기</button></div>}
                 {!ordered.length && <div className="flex min-h-[360px] flex-col items-center justify-center rounded-xl border border-dashed border-slate-700 p-8 text-center"><ImageIcon size={40} className="mb-5 text-slate-600" /><p className="text-lg">무슨 그림인지보다, 무엇을 설명하는지.</p><p className="mt-3 max-w-md text-sm leading-7 text-slate-400">표지는 질문을, 설명 이미지는 관계와 차이를,<br />마무리는 다음에 확인할 내용을 보여줍니다.</p></div>}
                 {view === "article" && frozen && cards.length > 0 ? <article aria-label="본문 삽입 미리보기" className="mx-auto max-w-[680px] rounded-xl bg-white p-5 text-slate-800 md:p-8"><p className="mb-4 text-xs text-slate-500">본문 배치 검수용 · 네이버 실제 화면과는 다를 수 있습니다</p><h2 className="mb-6 text-2xl font-bold">{frozen.title}</h2>{cards.filter((c) => c.type === "thumbnail").map(figure)}{frozen.plan.paragraphs.map((p) => <div key={p.id}><p className="my-5 whitespace-pre-wrap break-words text-base leading-8">{p.text}</p>{cards.filter((c) => c.sourceParagraphId === p.id && c.type !== "thumbnail" && c.type !== "contact").map(figure)}</div>)}{cards.filter((c) => c.type === "contact").map(figure)}</article>

@@ -3,9 +3,10 @@ import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getWritingDNA, dnaDirective } from "@/lib/blog-writing-dna";
 import { appendBlogPhoneContact, blogPhoneContact } from "@/lib/blog-contact";
-import { reviewStrengths, selectStrengths, strengthDirective, validProfileId, type StrengthSelection } from "@/lib/blog-strengths";
+import { reviewStrengths, selectStrengths, strengthDirective, validProfileId, type StrengthSelection, type StrengthLibrary } from "@/lib/blog-strengths";
 import { loadStrengthLibrary, signStrengthSelection, StrengthStoreError } from "@/lib/blog-strengths-store";
 import { reviewBlogEditorial } from "@/lib/blog-editorial-review";
+import { paidAttempt, paidId, paidJsonRequest, PaidOperationError } from "@/lib/blog-images/paid-operation";
 
 // Opus 5 + adaptive thinking으로 한 편을 길게 뽑으므로 넉넉히
 export const maxDuration = 300;
@@ -21,11 +22,14 @@ export async function POST(request: Request) {
     if (!verifyAdmin(request)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     try {
-        const { content, field, profileId, topic, strengthIds, strengthRevision } = await request.json();
-        if (!content || !content.trim()) {
+        const { content, field, profileId, topic, strengthIds, strengthRevision, attemptId, confirmPaid } = await request.json();
+        if (typeof content !== "string" || !content.trim() || content.length > 40000) {
             return NextResponse.json({ error: "내용을 입력해주세요." }, { status: 400 });
         }
 
+        if ((field != null && (typeof field !== "string" || field.length > 200)) || (topic != null && (typeof topic !== "string" || topic.length > 1000))) {
+            return NextResponse.json({ error: "분야와 주제의 형식 또는 길이를 확인해주세요." }, { status: 400 });
+        }
         const apiKey = process.env.ANTHROPIC_API_KEY;
         if (!apiKey) {
             return NextResponse.json({ error: "ANTHROPIC_API_KEY가 설정되지 않았습니다." }, { status: 500 });
@@ -36,12 +40,14 @@ export async function POST(request: Request) {
         let dnaBlock = "";
         let trustBlock = "";
         let strengthSelection: StrengthSelection | null = null;
+        let strengthLibrary: StrengthLibrary | null = null;
         let recentBodies: string[] = [];
         if (profileId) {
             if (!validProfileId(profileId) || (strengthIds !== undefined && (!Array.isArray(strengthIds) || !strengthIds.every(validProfileId)))) {
                 return NextResponse.json({ error: "변호사와 강점 선택을 확인해주세요." }, { status: 400 });
             }
             const library = await loadStrengthLibrary(profileId);
+            strengthLibrary = library;
             if (strengthRevision !== undefined && strengthRevision !== library.revision) throw new StrengthStoreError("강점 버전이 변경됐습니다. 다시 확인해주세요.", 409);
             const db = await createAdminClient();
             const { data: recent, error } = await db.from("blog_posts").select("body").eq("profile_id", profileId).order("created_at", { ascending: false }).limit(20);
@@ -209,8 +215,11 @@ ${strengthSelection ? strengthDirective(strengthSelection) : "[경력 자료 없
             ? `[분야/사건 유형] ${field.trim()}\n\n[작성할 내용]\n${content.trim()}`
             : content.trim();
 
-        const res = await fetch("https://api.anthropic.com/v1/messages", {
+        const attempt = paidAttempt(attemptId, confirmPaid);
+        const operationId = paidId("blog-manuscript-v12", { content: content.trim(), field, profileId, topic, strengthIds, strengthRevision, attempt });
+        const { data, context: savedContext } = await paidJsonRequest(operationId, "블로그 원고", "claude-opus-5", () => fetch("https://api.anthropic.com/v1/messages", {
             method: "POST",
+            signal: AbortSignal.timeout(240_000),
             headers: {
                 "Content-Type": "application/json",
                 "x-api-key": apiKey,
@@ -223,18 +232,16 @@ ${strengthSelection ? strengthDirective(strengthSelection) : "[경력 자료 없
                 system: systemPrompt,
                 messages: [{ role: "user", content: userMessage }],
             }),
-        });
-
-        if (!res.ok) {
-            const err = await res.text();
-            console.error("[Claude Blog Write] Claude error:", err);
-            if (err.includes("credit balance is too low")) {
-                return NextResponse.json({ error: "Anthropic API 크레딧이 소진되었습니다." }, { status: 402 });
-            }
-            return NextResponse.json({ error: `AI 생성 실패: ${err}` }, { status: 500 });
+        }), { strengthSelection });
+        const savedSelection = (savedContext as { strengthSelection?: StrengthSelection } | undefined)?.strengthSelection;
+        if (savedSelection && strengthLibrary) {
+            let approved: StrengthSelection;
+            try { approved = selectStrengths(strengthLibrary, `${field || ""} ${topic || content}`, [], savedSelection.claims.map((c) => c.id)); }
+            catch { throw new StrengthStoreError("보존된 원고의 강점 승인 상태가 변경됐습니다. 공개 문구를 확인해주세요. 새 유료 생성은 하지 않았습니다.", 409); }
+            if (JSON.stringify(approved.claims) !== JSON.stringify(savedSelection.claims)) throw new StrengthStoreError("보존된 원고 작성 이후 강점 자료가 변경됐습니다. 공개 문구를 확인해주세요. 새 유료 생성은 하지 않았습니다.", 409);
+            strengthSelection = approved;
         }
-
-        const data = await res.json();
+        if (data.stop_reason === "max_tokens") throw new PaidOperationError("원고 응답이 중간에 끊겼습니다. 응답은 보존했으며 자동으로 다시 생성하지 않습니다.", operationId, "incomplete_response", 422);
         // adaptive thinking을 켜면 content 배열에 thinking 블록이 먼저 올 수 있으므로 text 블록을 찾는다
         const blocks: Array<{ type: string; text?: string }> = data.content || [];
         const rawContent = blocks.find((b) => b.type === "text")?.text || "";
@@ -242,6 +249,7 @@ ${strengthSelection ? strengthDirective(strengthSelection) : "[경력 자료 없
         const parsed = parseDelimiterFormat(rawContent);
         const title = parsed.title;
         const rawDraftBody = parsed.body;
+        if (!title.trim() || !rawDraftBody.trim()) throw new PaidOperationError("완성된 원고를 받지 못했습니다. 응답은 보존했으며 자동 재생성하지 않습니다.", operationId, "incomplete_response", 422);
 
         // Keep Claude's final wording and append only the registered contact details.
         const body = appendBlogPhoneContact(rawDraftBody, phoneContact);
@@ -266,8 +274,9 @@ ${strengthSelection ? strengthDirective(strengthSelection) : "[경력 자료 없
                 : null,
         });
     } catch (err) {
+        if (err instanceof PaidOperationError) return NextResponse.json({ error: err.message, operationId: err.operationId, code: err.code }, { status: err.status });
         if (err instanceof StrengthStoreError) return NextResponse.json({ error: err.message }, { status: err.status });
-        console.error("[Claude Blog Write] Error:", err);
+        console.error("[Claude Blog Write] Error:", err instanceof Error ? err.name : "UnknownError");
         return NextResponse.json({ error: "서버 오류" }, { status: 500 });
     }
 }

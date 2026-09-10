@@ -2,10 +2,11 @@ import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { createServiceClient } from "@/lib/supabase/server";
 import type { ArticleVisualPlan } from "./visual-plan-types";
 import type { BlogImageCard } from "./card-types";
+import type { VisualBrief } from "./visual-plan-types";
 
 const BUCKET = "owner-briefings";
 export class ImageProductionError extends Error {
-    constructor(message: string, public status = 503) { super(message); }
+    constructor(message: string, public status = 503) { super(message); this.name = "ImageProductionError"; }
 }
 export const digest = (value: string | Buffer) => createHash("sha256").update(value).digest("hex");
 function key() {
@@ -39,6 +40,7 @@ export interface ProductionCheckpoint {
     artDataUrl?: string;
     card?: BlogImageCard;
     updatedAt: string;
+    pipelineVersion?: number;
 }
 const path = (id: string) => {
     if (!/^[a-f0-9]{64}$/.test(id)) throw new ImageProductionError("제작 작업 ID를 확인해주세요.", 400);
@@ -48,22 +50,23 @@ const path = (id: string) => {
 /** Acquire before a paid call. A lost response cannot silently start a second paid job. */
 export async function loadImageProduction(id: string): Promise<ProductionCheckpoint> {
     const { data, error } = await createServiceClient().storage.from(BUCKET).download(path(id));
-    if (error || !data || data.size > 8_000_000) throw new ImageProductionError("보존된 이미지 작업을 읽지 못했습니다.");
+    if (error || !data || data.size > 30_000_000) throw new ImageProductionError("보존된 이미지 작업을 읽지 못했습니다.");
     const saved = JSON.parse(await data.text()) as ProductionCheckpoint;
     if (saved.id !== id) throw new ImageProductionError("제작 작업이 일치하지 않습니다.");
     return saved;
 }
-export async function beginImageProduction(id: string, profileId: string, sourceHash: string): Promise<{ checkpoint: ProductionCheckpoint; existing: boolean }> {
+export async function beginImageProduction(id: string, profileId: string, sourceHash: string, resume?: { unpaid: boolean }): Promise<{ checkpoint: ProductionCheckpoint; existing: boolean }> {
     key();
     const db = createServiceClient();
     const { data: bucket, error: bucketError } = await db.storage.getBucket(BUCKET);
     if (bucketError || !bucket || bucket.public) throw new ImageProductionError("이미지 원본용 비공개 저장소를 확인해주세요.");
-    const checkpoint: ProductionCheckpoint = { id, profileId, sourceHash, state: "started", updatedAt: new Date().toISOString() };
+    const checkpoint: ProductionCheckpoint = { id, profileId, sourceHash, state: "started", updatedAt: new Date().toISOString(), ...(resume ? { pipelineVersion: 12 } : {}) };
     const { error } = await db.storage.from(BUCKET).upload(path(id), JSON.stringify(checkpoint), { contentType: "application/json", upsert: false, cacheControl: "0" });
     if (!error) return { checkpoint, existing: false };
     if (String(error.statusCode) !== "409" && error.message !== "The resource already exists") throw new ImageProductionError("제작 작업을 저장하지 못했습니다. 유료 이미지 요청은 시작하지 않았습니다.");
     const saved = await loadImageProduction(id);
-    if (saved.state === "started") throw new ImageProductionError("이미지 요청이 진행 중이거나 이전 응답이 불확실합니다. 중복 과금을 막기 위해 자동 재요청을 중단했습니다. 잠시 후 다시 확인해주세요.", 409);
+    if (saved.profileId !== profileId || saved.sourceHash !== sourceHash) throw new ImageProductionError("제작 작업의 소유자 또는 원고가 다릅니다.", 409);
+    if (saved.state === "started" && !(resume && (resume.unpaid || saved.pipelineVersion === 12))) throw new ImageProductionError("이전 이미지 요청의 응답이 불확실합니다. 새 유료 생성은 차단했습니다. 보존된 작업을 먼저 확인해주세요.", 409);
     return { checkpoint: saved, existing: true };
 }
 export async function saveImageProduction(checkpoint: ProductionCheckpoint) {
@@ -71,6 +74,47 @@ export async function saveImageProduction(checkpoint: ProductionCheckpoint) {
         contentType: "application/json", upsert: true, cacheControl: "0",
     });
     if (error) throw new ImageProductionError("생성 결과의 보존에 실패했습니다. 추가 유료 요청은 중단했습니다.");
+}
+
+/** Large finished files bypass Vercel JSON response/request limits. */
+export async function imageTransport(card: BlogImageCard): Promise<BlogImageCard> {
+    if (!card.productionId || !/^[a-f0-9]{64}$/.test(card.productionId)) throw new ImageProductionError("이미지 작업 ID가 없습니다.");
+    const bytes = Buffer.from(card.imageDataUrl.split(",")[1], "base64");
+    const file = `blog-image-output/${card.productionId}/${digest(bytes)}.png`;
+    const storage = createServiceClient().storage.from(BUCKET);
+    const { error } = await storage.upload(file, bytes, { contentType: "image/png", upsert: true });
+    if (error) throw new ImageProductionError("완성 이미지를 전달할 준비가 되지 않았습니다. 재생성 없이 다시 복구해주세요.");
+    const { data, error: signError } = await storage.createSignedUrl(file, 3600);
+    if (signError || !data?.signedUrl) throw new ImageProductionError("이미지 다운로드 주소를 확인하지 못했습니다. 다시 복구해주세요.");
+    return { ...card, imageDataUrl: "", imageUrl: data.signedUrl, imageHash: digest(bytes), artDataUrl: undefined, designReview: undefined, artReview: undefined };
+}
+
+function artReferencePath(profileId: string, sourceHash: string, type: string, art: VisualBrief) {
+    const scene = { medium: art.medium, subject: art.subject, scene: art.scene, message: art.message, avoid: art.avoid };
+    // Layout, phone, palette and typeface changes do not invalidate an existing scene.
+    return `blog-art-index/${digest(JSON.stringify({ profileId, sourceHash, type, scene }))}.json`;
+}
+export async function preservedArt(profileId: string, sourceHash: string, type: string, art: VisualBrief): Promise<ProductionCheckpoint | null> {
+    const storage = createServiceClient().storage.from(BUCKET);
+    const file = artReferencePath(profileId, sourceHash, type, art);
+    const check = await storage.exists(file);
+    if (!check.data) {
+        const e = check.error as unknown as { statusCode?: string; originalError?: { status?: number } } | null;
+        if (check.error && ![400, 404].includes(Number(e?.statusCode || e?.originalError?.status))) throw new ImageProductionError("기존 원본의 저장 상태를 확인하지 못했습니다. 새 유료 생성은 중단했습니다.");
+        return null;
+    }
+    const { data, error } = await storage.download(file);
+    if (error || !data) throw new ImageProductionError("기존 시각물 참조를 읽지 못했습니다. 재생성하지 않고 중단했습니다.");
+    const index = JSON.parse(await data.text());
+    const saved = await loadImageProduction(index.productionId);
+    if (saved.profileId !== profileId || saved.sourceHash !== sourceHash || !saved.artDataUrl) throw new ImageProductionError("보존된 시각물의 소유자 또는 원고가 일치하지 않습니다.");
+    return saved;
+}
+export async function indexPreservedArt(checkpoint: ProductionCheckpoint, type: string, art: VisualBrief) {
+    if (!checkpoint.artDataUrl) return;
+    const { error } = await createServiceClient().storage.from(BUCKET).upload(artReferencePath(checkpoint.profileId, checkpoint.sourceHash, type, art),
+        JSON.stringify({ productionId: checkpoint.id }), { contentType: "application/json", upsert: true, cacheControl: "0" });
+    if (error) throw new ImageProductionError("원본 복구 참조를 저장하지 못했습니다. 원본은 보존했으며 다시 복구할 수 있습니다.");
 }
 
 export interface VisualHistory { sourceHash: string; motif: string; concept: string; cards: { type: string; treatment?: string; diagram?: string; subject?: string }[] }
@@ -109,7 +153,13 @@ export async function cachedVisualPlan(id: string): Promise<ArticleVisualPlan | 
     // StorageUnknownError with HTTP 400. HEAD/exists is the only reliable
     // distinction between a normal first run and a real cache outage.
     let exists: boolean;
-    try { ({ data: exists } = await storage.exists(file)); }
+    try {
+        const check = await storage.exists(file);
+        exists = check.data;
+        const error = check.error as unknown as { status?: number; statusCode?: string; originalError?: { status?: number } } | null;
+        const status = Number(error?.statusCode || error?.status || error?.originalError?.status);
+        if (check.error && ![400, 404].includes(status)) throw check.error;
+    }
     catch { throw new ImageProductionError("기존 구성안의 저장 상태를 확인하지 못했습니다. 중복 제작을 막기 위해 잠시 중단합니다."); }
     if (!exists) return null;
     const { data, error } = await storage.download(file);

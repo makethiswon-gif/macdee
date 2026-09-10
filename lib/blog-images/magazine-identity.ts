@@ -75,7 +75,15 @@ export function getMagazineIdentity(profile: Pick<EditorialProfile, "id" | "lawy
         : /이혼|가사|가정|학교|성폭력/.test(practice) ? "journal"
         : /상속|유언/.test(practice) ? "column"
         : /회생|파산|채무/.test(practice) ? "poster" : "dossier";
-    const family = profile.designFamily && profile.designFamily !== "auto" && FAMILIES.includes(profile.designFamily) ? profile.designFamily : suggested;
+    // Deliberate starting directions for the managed publications, not ID-random
+    // colours. An administrator's explicit family remains authoritative.
+    const publication: Record<string, LayoutFamily> = {
+        mmlhi2x25zu2h: "ledger", mmswe2dmpr95z: "column", mmlmhtx361r67: "column",
+        mmlk8qh6gqq9l: "journal", mmlg8fcm9bdgl: "dossier", mqaaoypk621p6: "poster",
+        mmkfnvun052ja: "atlas", mmkfuvwrvg64o: "atlas", mrvn35u3cxprq: "dossier",
+        mpatjgph1tnl5: "column", mse8rx0bkl9f0: "ledger",
+    };
+    const family = profile.designFamily && profile.designFamily !== "auto" && FAMILIES.includes(profile.designFamily) ? profile.designFamily : publication[profile.id] || suggested;
     const recipes: Record<LayoutFamily, { typography: "serif" | "sans"; palette: PaletteKey }> = {
         journal: { typography: "serif", palette: "forest" }, poster: { typography: "sans", palette: "vermilion" },
         column: { typography: "serif", palette: "burgundy" }, atlas: { typography: "sans", palette: "teal" },

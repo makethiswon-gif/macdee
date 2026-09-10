@@ -7,16 +7,17 @@ Module._resolveFilename = function (name, ...args) { return resolve.call(this, n
 Module._extensions[".ts"] = (module, filename) => module._compile(ts.transpileModule(fs.readFileSync(filename, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true }, fileName: filename }).outputText, filename);
 process.env.ADMIN_ID = "quality-test"; process.env.ADMIN_TOKEN_SECRET = crypto.randomBytes(32).toString("hex");
 process.env.OPENAI_API_KEY = "fixture"; process.env.ANTHROPIC_API_KEY = "fixture";
-const files = new Map(); let privateBucket = true;
+const files = new Map(); let privateBucket = true, storageDown = false;
 const storage = {
     upload: async (key, value, options) => {
         if (files.has(key) && !options?.upsert) return { error: { statusCode: "409" } };
-        files.set(key, typeof value === "string" ? value : value.toString()); return { error: null };
+        files.set(key, typeof value === "string" ? value : Buffer.from(value)); return { error: null };
     },
     // Supabase Storage 2.98 returns this opaque shape for a missing private object.
-    exists: async (key) => files.has(key) ? { data: true, error: null } : { data: false, error: { name: "StorageUnknownError", message: "{}", originalError: { status: 400 } } },
+    exists: async (key) => storageDown ? { data: false, error: { statusCode: "503" } } : files.has(key) ? { data: true, error: null } : { data: false, error: { name: "StorageUnknownError", message: "{}", originalError: { status: 400 } } },
     download: async (key) => files.has(key) ? { data: new Blob([files.get(key)]), error: null } : { data: null, error: { name: "StorageUnknownError", message: "{}", originalError: { status: 400 } } },
     list: async (prefix, opts) => ({ data: [...files.keys()].filter((k) => k.startsWith(prefix + "/")).sort().reverse().slice(0, opts.limit).map((k) => ({ name: k.split("/").pop() })), error: null }),
+    createSignedUrl: async (key) => ({ data: { signedUrl: "https://fixtures.invalid/" + key }, error: null }),
 };
 const db = { storage: { from: () => storage, getBucket: async () => ({ data: { public: !privateBucket }, error: null }) } };
 const load = Module._load;
@@ -34,12 +35,17 @@ const { digest, verifyImageRelease, recentVisualHistory, recordVisualPlan, cache
 const { POST } = require("../app/api/admin/blog-images/generate-design/route.ts");
 const { POST: PLAN } = require("../app/api/admin/blog-images/plan/route.ts");
 const { generateQualityCard } = require("../lib/blog-images/generate-client.ts");
+const { paidJsonRequest, paidId } = require("../lib/blog-images/paid-operation.ts");
+const { normalizePlanWire, VISUAL_PLAN_SCHEMA } = require("../lib/blog-images/plan-schema.ts");
+global.FileReader = class { readAsDataURL(blob) { blob.arrayBuffer().then((bytes) => { this.result = "data:image/png;base64," + Buffer.from(bytes).toString("base64"); this.onload(); }); } };
 const payload = "quality-test:local", cookie = Buffer.from(payload + ":" + crypto.createHmac("sha256", process.env.ADMIN_TOKEN_SECRET).update(payload).digest("hex")).toString("base64url");
 const request = (body) => new Request("http://localhost/api/admin/blog-images/generate-design", { method: "POST", headers: { "Content-Type": "application/json", cookie: "admin_token=" + cookie }, body: JSON.stringify(body) });
 let planningResult, imageCalls = 0, planningCalls = 0, allowPlanning = true, failImage = false, lastImage;
 (async () => {
     const photo = await sharp({ create: { width: 1536, height: 1024, channels: 3, background: "#386a64" } }).jpeg().toBuffer();
     global.fetch = async (url, options) => {
+        if (String(url).includes("api.openai.com/v1/models/")) return Response.json({ id: "fixture-model" });
+        if (String(url).startsWith("https://fixtures.invalid/")) return new Response(files.get(new URL(url).pathname.slice(1)), { headers: { "Content-Type": "image/png" } });
         if (String(url).startsWith("/api/")) return POST(request(JSON.parse(options.body)));
         if (String(url).includes("images/generations")) {
             imageCalls++; lastImage = JSON.parse(options.body); if (failImage) throw new Error("ambiguous response");
@@ -55,6 +61,12 @@ let planningResult, imageCalls = 0, planningCalls = 0, allowPlanning = true, fai
     const raw = rawPlan(variants[0]);
     delete raw.cards[1].art; raw.cards[1].infographic = variants[2];
     const plan = validateVisualPlan(raw, title, article, false);
+    assert.ok(!JSON.stringify(VISUAL_PLAN_SCHEMA).includes("anyOf"), "Provider grammar must not contain combinatorial nullable unions");
+    const wire = rawPlan(variants[0]);
+    wire.cards[0].infographic = { kind: "none", items: [] }; wire.cards[0].alternateArt = { medium: "none" };
+    wire.cards[2].art = { medium: "none" };
+    wire.cards[2].infographic = { kind: "flow", heading: variants[0].heading, items: variants[0].steps.map((i) => ({ ...i, when: "", range: "", aspect: "", a: "", b: "" })) };
+    assert.deepEqual(validateVisualPlan(normalizePlanWire(wire), title, article, false).cards[2].infographic, variants[0]);
     assert.equal(plan.version, "visual-plan-v11"); assert.ok(plan.cards[1].infographic); assert.ok(!plan.cards[1].art);
     assert.throws(() => validateVisualPlan({ ...plan, cards: plan.cards.map((c) => c.type === "illustration" ? { ...c, art: rawPlan().cards[1].art } : c) }, title, article), /하나만/);
     const id1 = getMagazineIdentity({ ...profile, id: "a", specialty: ["의료", "기업"] });
@@ -71,14 +83,27 @@ let planningResult, imageCalls = 0, planningCalls = 0, allowPlanning = true, fai
     const cachedCalls = planningCalls, firstPlan = (await plannedResponse.json()).plan;
     plannedResponse = await PLAN(request(requestPlan)); assert.equal(plannedResponse.status, 200); assert.equal(planningCalls, cachedCalls);
     assert.deepEqual((await plannedResponse.json()).plan.cards, firstPlan.cards, "Reopening uses the same plan for paid artifact recovery");
-    plannedResponse = await PLAN(request({ ...requestPlan, forceReplan: true })); assert.equal(plannedResponse.status, 200); assert.equal(planningCalls, cachedCalls + 1);
+    assert.equal((await PLAN(request({ ...requestPlan, forceReplan: true }))).status, 400);
+    plannedResponse = await PLAN(request({ ...requestPlan, forceReplan: true, attemptId: "approved-plan", confirmPaid: true })); assert.equal(plannedResponse.status, 200); assert.equal(planningCalls, cachedCalls + 1);
+    const invalidRequest = { ...requestPlan, forceReplan: true, attemptId: "invalid-evidence", confirmPaid: true };
+    planningResult = structuredClone(planningResult); planningResult.cards[0].evidence[0].quote = "원문에 없는 법률적 주장을 만들면 안 됩니다.";
+    const invalidStart = planningCalls;
+    assert.equal((await PLAN(request(invalidRequest))).status, 422);
+    assert.equal((await PLAN(request(invalidRequest))).status, 422);
+    assert.equal(planningCalls - invalidStart, 1, "Validation failure reuses raw Claude response, never bills again");
+    // Non-semantic formatting and wrong paragraph IDs are corrected without inventing evidence.
+    const repairable = rawPlan(); repairable.cards[0].evidence[0].paragraphId = "p999";
+    assert.doesNotThrow(() => validateVisualPlan(repairable, title, article, false));
+    const relined = rawPlan(); relined.cards[2].headlineLines = ["Old heading"];
+    const roundTrip = validateVisualPlan(relined, title, article, false);
+    assert.deepEqual(validateVisualPlan(roundTrip, title, article).cards, roundTrip.cards, "Validation is idempotent");
     allowPlanning = false;
     const base = { profile, title, content: article, plan };
     let response = await POST(request({ ...base, cardType: "thumbnail" }));
     assert.equal(response.status, 200, JSON.stringify(await response.clone().json()));
     const cover = (await response.json()).card;
     assert.ok(imageReady(cover)); assert.equal(cover.designReview, undefined);
-    assert.equal(lastImage.quality, "high"); assert.equal(cover.artDataUrl, undefined, "Original art stays private, not duplicated in response");
+    assert.equal(lastImage.quality, "xhigh"); assert.equal(lastImage.model, "gpt-image-2.5-sunburst-2026-09-08"); assert.equal(cover.artDataUrl, undefined, "Original art stays private, not duplicated in response");
     assert.ok(Buffer.byteLength(JSON.stringify(cover)) < 4_000_000);
     const expected = { profileId: profile.id, sourceHash: plan.sourceHash, type: cover.type, pngHash: digest(Buffer.from(cover.imageDataUrl.split(",")[1], "base64")), setId: cover.setId };
     assert.ok(verifyImageRelease(cover.releaseToken, expected));
@@ -87,11 +112,23 @@ let planningResult, imageCalls = 0, planningCalls = 0, allowPlanning = true, fai
     response = await POST(request({ ...base, cardType: "thumbnail" })); assert.ok(imageReady((await response.json()).card)); assert.deepEqual([imageCalls, planningCalls], before);
     response = await POST(request({ ...base, cardType: "thumbnail", renderOnly: true, reuseProductionId: cover.productionId, style: "contrast" }));
     assert.equal(response.status, 200, JSON.stringify(await response.clone().json())); assert.equal(imageCalls, before[0]); assert.equal(planningCalls, before[1], "Layout edits must not call Claude");
+    response = await POST(request({ ...base, cardType: "thumbnail", headingOverride: "제목만 수정", style: "contrast" }));
+    assert.equal(response.status, 200); assert.equal(imageCalls, before[0], "No reuse ID is required to preserve artwork during layout-only changes");
+    const transferred = await POST(request({ ...base, cardType: "thumbnail", transport: "asset" }));
+    const compact = await transferred.json();
+    assert.ok(compact.card.imageUrl); assert.equal(compact.card.imageDataUrl, ""); assert.ok(JSON.stringify(compact).length < 12000);
+    const downloaded = await generateQualityCard({ ...base, cardType: "thumbnail" }, new AbortController().signal);
+    assert.equal(downloaded.imageDataUrl, cover.imageDataUrl); assert.equal(imageCalls, before[0]);
     response = await POST(request({ ...base, cardType: "illustration" })); assert.equal(response.status, 200); assert.ok(imageReady((await response.json()).card)); assert.equal(imageCalls, before[0], "Diagram middle card does not call image generation");
     delete process.env.ANTHROPIC_API_KEY;
-    response = await POST(request({ ...base, cardType: "info", attemptId: "no-review" }));
+    response = await POST(request({ ...base, cardType: "info", attemptId: "no-review", confirmPaid: true }));
     const info = (await response.json()).card; assert.equal(info.designReview, undefined); assert.ok(imageReady(info)); assert.ok(info.releaseToken);
     response = await POST(request({ ...base, cardType: "contact" })); assert.equal(response.status, 200, JSON.stringify(await response.clone().json())); assert.ok(imageReady((await response.json()).card));
+    const pureKey = `blog-image-production/${info.productionId}.json`;
+    const pure = JSON.parse(files.get(pureKey)); pure.state = "started"; delete pure.card; delete pure.pipelineVersion;
+    files.set(pureKey, JSON.stringify(pure));
+    response = await POST(request({ ...base, cardType: "info", attemptId: "no-review", confirmPaid: true }));
+    assert.equal(response.status, 200, "Legacy pure-render failure must be resumable"); assert.equal(imageCalls, before[0]);
     const savedPath = `blog-image-production/${cover.productionId}.json`;
     const legacy = JSON.parse(files.get(savedPath)); legacy.state = "rendered"; delete legacy.card.releaseToken;
     legacy.card.designReview = { status: "unavailable", summary: "Old AI review pending", issues: [], model: "fixture" };
@@ -104,7 +141,7 @@ let planningResult, imageCalls = 0, planningCalls = 0, allowPlanning = true, fai
     files.set(savedPath, JSON.stringify(oldLayout));
     response = await POST(request({ ...base, cardType: "thumbnail" }));
     const upgraded = (await response.json()).card;
-    assert.ok(imageReady(upgraded)); assert.equal(upgraded.layoutRevision, 12);
+    assert.ok(imageReady(upgraded)); assert.equal(upgraded.layoutRevision, 13);
     assert.notEqual(upgraded.imageDataUrl, oldLayout.card.imageDataUrl);
     assert.equal(upgraded.productionId, cover.productionId, "Layout revisions keep the original paid operation ID");
     assert.equal(imageCalls, before[0], "Old paid artwork is recomposed without new image charges");
@@ -122,14 +159,39 @@ let planningResult, imageCalls = 0, planningCalls = 0, allowPlanning = true, fai
     assert.ok(!imageReady(invalid)); assert.equal(invalid.releaseToken, undefined);
     await repairImageLayout({ ...cover }, async () => { throw new Error("Valid layout must not be repaired"); }, async () => {});
     const artBefore = imageCalls, retained = [];
-    const final = await generateQualityCard({ ...base, cardType: "thumbnail", attemptId: "bounded-art" }, new AbortController().signal, (v) => retained.push(v));
+    const finalResponse = await POST(request({ ...base, cardType: "thumbnail", attemptId: "bounded-art", confirmPaid: true }));
+    const final = (await finalResponse.json()).card; retained.push(final);
     assert.equal(imageCalls - artBefore, 1); assert.equal(retained.length, 1); assert.ok(imageReady(final), "No AI review or automatic paid art corrections");
     assert.equal(planningCalls, before[1], "Only the separate plan endpoint calls Claude");
+    const choices = structuredClone(plan);
+    choices.cards[0].alternateArt = { ...choices.cards[0].art, scene: "A genuinely different alternate scene" };
+    const primary = await POST(request({ ...base, plan: choices, cardType: "thumbnail" }));
+    const primaryCard = (await primary.json()).card, choiceCalls = imageCalls;
+    assert.equal((await POST(request({ ...base, plan: choices, cardType: "thumbnail", candidate: "alternate" }))).status, 400);
+    const alternateInput = { ...base, plan: choices, cardType: "thumbnail", candidate: "alternate", confirmPaid: true };
+    const alternate = (await (await POST(request(alternateInput))).json()).card;
+    assert.equal(alternate.setId, primaryCard.setId, "Cover alternatives belong to the same four-card set");
+    assert.equal(imageCalls, choiceCalls + 1);
+    await POST(request(alternateInput));
+    await POST(request({ ...alternateInput, renderOnly: true, reuseProductionId: alternate.productionId, headingOverride: "대안 제목 편집" }));
+    assert.equal(imageCalls, choiceCalls + 1, "Retrying or typesetting a chosen alternate is free");
     failImage = true;
-    const uncertain = { ...base, cardType: "thumbnail", attemptId: "uncertain" };
+    const uncertain = { ...base, cardType: "thumbnail", attemptId: "uncertain", confirmPaid: true };
     assert.equal((await POST(request(uncertain))).status, 502); const paid = imageCalls;
     assert.equal((await POST(request(uncertain))).status, 409); assert.equal(imageCalls, paid, "Ambiguous generation must not run again automatically");
     failImage = false; privateBucket = false;
-    assert.equal((await POST(request({ ...base, cardType: "thumbnail", attemptId: "public-bucket" }))).status, 503); assert.equal(imageCalls, paid);
+    assert.equal((await POST(request({ ...base, cardType: "thumbnail", attemptId: "public-bucket", confirmPaid: true }))).status, 503); assert.equal(imageCalls, paid);
+    privateBucket = true; storageDown = true;
+    await assert.rejects(() => paidJsonRequest(paidId("outage", {}), "fixture", "fixture", async () => { throw new Error("Must never dispatch during storage outage"); }), /저장소/);
+    storageDown = false;
+    let resolveProvider, concurrentCalls = 0;
+    const id = paidId("concurrency", {});
+    const dispatch = async () => { concurrentCalls++; return await new Promise((resolve) => { resolveProvider = resolve; }); };
+    const running = paidJsonRequest(id, "fixture", "fixture", dispatch);
+    while (!resolveProvider) await new Promise((resolve) => setTimeout(resolve, 1));
+    await assert.rejects(() => paidJsonRequest(id, "fixture", "fixture", dispatch), /처리 중/);
+    resolveProvider(Response.json({ usage: { output_tokens: 123 }, ok: true })); await running;
+    assert.equal((await paidJsonRequest(id, "fixture", "fixture", dispatch)).data.ok, true);
+    assert.equal(concurrentCalls, 1, "Concurrent/recovered operations bill once");
     console.log("PASS: Claude planning retained, zero AI review calls, no automatic art retry, High default, actual PNG/layout checks, private cache/reuse, signed release/tampering, legacy held-result recovery, one free layout repair, timeout deduplication, private bucket guard.");
 })().catch((e) => { console.error(e); process.exitCode = 1; });
