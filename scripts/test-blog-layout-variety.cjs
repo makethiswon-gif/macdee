@@ -77,6 +77,12 @@ const compact = (value) => value.replace(/\s/g, "");
             const result = await renderBriefCard({ plan, card, profile, art: photo });
             assert.ok(result.layoutChecks.passed, layoutRecipe + ": long-copy layout"); count++;
         }
+        for (const length of [5, 6]) for (const layoutRecipe of LAYOUT_RECIPES) {
+            const plan = { ...base, layoutRecipe };
+            const infographic = { ...fixture.variants[2], items: Array.from({ length }, (_, i) => ({ label: `${i + 1}번째 확인할 준비 자료`, note: "날짜와 대화의 앞뒤 내용을 함께 확인합니다. 원본의 전체 내용을 따로 보관합니다." })) };
+            const result = await renderBriefCard({ plan, card: { ...base.cards[2], infographic }, profile, style: "paper" });
+            assert.ok(result.layoutChecks.passed, `${layoutRecipe}: ${length}-item checklist`); count++;
+        }
     } finally { proto.fillText = original; }
     console.log(`PASS: ${count} renders, six distinct cover geometries, four portrait arrangements, exact infographic facts, 30-article rotation and stable recovery. Zero model calls.`);
 })().catch((e) => { console.error(e); process.exitCode = 1; });

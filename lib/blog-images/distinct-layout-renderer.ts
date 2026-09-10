@@ -185,7 +185,7 @@ export async function renderDistinctCard(opts: BriefRenderOptions): Promise<Blog
                 : info.kind === "timeline" ? info.events.map((r) => ({ ...r, key: r.when }))
                 : info.kind === "checklist" ? info.items.map((r, i) => ({ ...r, key: String(i + 1) }))
                 : info.tiers.map((r) => ({ label: r.label, note: "", key: r.range }));
-            const grid = recipe ? (information === "grid" || information === "paired") && rows.length <= 4 && info.kind === "checklist"
+            const grid = recipe ? (information === "grid" || information === "paired") && rows.length <= 6 && info.kind === "checklist"
                 : (family === "atlas" || family === "poster") && info.kind === "checklist" && !opts.repairLayout && card.treatment !== "guide";
             if (grid) {
                 const colW = (INNER - 48) / 2;
@@ -260,10 +260,18 @@ export async function renderDistinctCard(opts: BriefRenderOptions): Promise<Blog
         } else {
             y += text(profile.officeName || "상담 안내", P, y, INNER, 32, p.muted, "label") + 24;
             y += title(`${profile.lawyerName} ${profile.jobTitle || "변호사"}`, P, y, INNER, 380, 74) + 40;
-            picture(portrait, P, y, 416, 555, true);
-            let cy = y + 16;
-            for (const claim of claims) cy += text(claim, 524, cy, W - 524 - P, 36) + 28;
-            y = Math.max(y + 555, cy + 32);
+            if (recipe && !claims.length && !card.deck) {
+                picture(portrait, 304, y, 416, 555, true); y += 555;
+            } else {
+                picture(portrait, P, y, 416, 555, true);
+                let cy = y + 16;
+                if (recipe) {
+                    cy += text(heading, 524, cy, W - 524 - P, 42, p.ink, "label") + 24;
+                    if (card.deck) cy += text(card.deck, 524, cy, W - 524 - P, 38) + 28;
+                }
+                for (const claim of claims) cy += text(claim, 524, cy, W - 524 - P, 36) + 28;
+                y = Math.max(y + 555, cy + 32);
+            }
         }
         y += 38;
         const contactY = y, backgroundIndex = commands.length;

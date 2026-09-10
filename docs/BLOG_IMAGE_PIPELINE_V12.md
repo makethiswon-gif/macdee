@@ -76,7 +76,7 @@ npx tsc --noEmit --incremental false
 Browser tests use a local server and mocked APIs:
 `scripts/test-blog-publish.cjs` and `scripts/test-blog-images-ui.cjs`.
 The legacy layout suite checks 240 family/style/card combinations. The variety suite
-adds 246 render checks, exact infographic facts, same-palette geometric comparisons,
+adds 258 render checks, exact infographic facts, same-palette geometric comparisons,
 30 sequential article selections and stable same-source recovery.
 
 Explicit live acceptance used one saved manuscript, one successful Claude plan,
