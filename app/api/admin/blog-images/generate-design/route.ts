@@ -126,7 +126,8 @@ export async function POST(request: Request) {
             rendered.setId = setId;
             rendered.candidate = alternate ? "alternate" : "primary";
             rendered.aiGenerated = !!planned.art && !useOffice;
-            rendered.caption = rendered.aiGenerated ? "본문 이해를 돕기 위한 AI 생성 이미지입니다. 실제 사건 자료가 아닙니다." : "";
+            // AI 생성 고지는 네이버 에디터의 이미지별 'AI 활용' 설정으로 한다. 본문 캡션은 만들지 않는다.
+            rendered.caption = "";
             return rendered;
         };
         let card = currentLayout ? checkpoint.card : undefined;

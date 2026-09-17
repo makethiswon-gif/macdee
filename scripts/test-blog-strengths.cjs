@@ -87,7 +87,7 @@ global.fetch = async (url, options) => { assert.equal(url, "https://api.anthropi
     assert.equal(written.status, 200); const article = await written.json();
     assert.match(article.body, /tel:0537549797/); assert.equal(article.strengthReview.issues.length, 0);
     assert.doesNotMatch(aiPrompt, /CONFIDENTIAL|미확인 경력|미확인 특장점|내부 검수만/);
-    assert.match(aiPrompt, /가상의 예시/); assert.ok(aiPrompt.includes(claim.articleText));
+    assert.match(aiPrompt, /예시는 가정입니다/); assert.match(aiPrompt, /실화처럼 쓰지 않습니다/); assert.ok(aiPrompt.includes(claim.articleText));
     assert.doesNotMatch(toNaverHtml(article.body), /sourceQuote|sourceRef|private\/source|CONFIDENTIAL|claim-a/);
     assert.equal((await SELECT(req({ profileId: "A", topic: "상속", ids: [claim.id], title: "상속", body: "문구 삭제" }))).status, 422);
     aiOutput = JSON.stringify({ topics: [{ topic: "음주운전", field: "형사" }] });

@@ -19,7 +19,10 @@ export interface WritingDNA {
     emphasis: EmphasisDensity;      // 강조 밀도 — 변호사 고정
     structures: WritingTrait[];     // 배정된 본문 구조 2~3개 — 이 안에서 글마다 선택
     structure: WritingTrait;        // 이번 글에 선택된 구조
-    targetLength: number;           // 이번 글 목표 분량 (공백 포함)
+    targetLength: number;           // 이번 글 목표 분량 (공백 포함) — 매거진→네이버 변환 등 기존 호출부가 쓴다
+    targetNoSpace: number;          // 이번 글 목표 분량 (공백 제외) — 발행 화면의 글자수와 같은 단위
+    honesty: WritingTrait;          // 정직 신호의 방식 — 변호사 고정
+    closing: WritingTrait;          // 마무리 방식 — 글마다 선택
     imageCount: number;             // 이번 글 카드 장수 (3~4)
 }
 
@@ -83,6 +86,26 @@ const STRUCTURES: WritingTrait[] = [
     { name: "질문 응답형", spec: "의뢰인이 실제로 묻는 질문을 하나씩 세우고 답하는 방식으로 전개한다. 다만 형식적인 FAQ 나열이 되면 안 된다." },
 ];
 
+// 정직 신호 — 예고 문구("솔직히 말씀드리면")로 시작하면 8개 블로그에 같은 지문이 남는다(실측 70%).
+// 그래서 '무엇을 밝히는가'를 변호사마다 갈라 두고, 예고 없이 내용으로만 말하게 한다.
+const HONESTIES: WritingTrait[] = [
+    { name: "실익 먼저", spec: "절차를 밟아도 얻는 것이 적은 경우를 구체적 조건과 함께 밝힌다." },
+    { name: "한계 먼저", spec: "이 글이 설명한 방법이 통하지 않는 조건을 하나 짚어 밝힌다." },
+    { name: "기다림의 선택", spec: "지금 움직이지 않고 지켜보는 편이 나은 상황을 조건과 함께 밝힌다." },
+    { name: "혼자 되는 범위", spec: "변호사 없이 당사자가 직접 처리해도 되는 범위를 구체적으로 선 그어 준다." },
+];
+
+// 마무리 — 서류·준비물 목록으로 닫지 않는다(대표 지시 2026-09-17).
+// 서류가 많아 보이면 독자는 전화를 미룬다. 실측 45편 중 38편이 '상담 전 준비물'로 끝났다.
+// 예시 문장은 넣지 않는다. 예시는 그대로 복제되어 지문이 된다.
+const CLOSINGS: WritingTrait[] = [
+    { name: "오늘의 한 가지", spec: "독자가 지금 앉은 자리에서 할 수 있는 행동 하나로 닫는다. 서류를 떼거나 모으는 일이 아니라 확인·보존·중단처럼 가볍고 즉시 가능한 일이어야 한다. 왜 그 하나인지 이유를 붙인다." },
+    { name: "갈림길 점검", spec: "이 글에서 결론을 가른 조건 두세 가지를 독자가 자기 사안에 대입해 보게 하는 문장으로 닫는다. 목록이 아니라 이어지는 문장으로 쓴다." },
+    { name: "가장 가까운 기한", spec: "본문에 나온 기한 가운데 독자에게 가장 먼저 닥치는 것 하나만 다시 짚고, 그 날짜를 세는 기준일이 무엇인지 알려 주며 닫는다." },
+    { name: "첫 통화의 모습", spec: "상담은 자료 없이 시작된다는 점을 전한다. 첫 통화에서 변호사가 묻는 두세 가지를 알려 주고, 기억나는 대로 말하면 되며 필요한 자료는 그 뒤에 정해진다는 것으로 닫는다." },
+    { name: "도입 회수", spec: "첫 문단의 장면이나 질문으로 돌아가, 글을 다 읽은 지금 그 장면이 어떻게 달리 보이는지 말하며 닫는다. 새 정보를 덧붙이지 않는다." },
+];
+
 const EMPHASIS: EmphasisDensity[] = [
     { name: "절제", highlight: [1, 2], underline: [3, 4], bold: 6 },
     { name: "표준", highlight: [2, 3], underline: [5, 7], bold: 10 },
@@ -95,6 +118,11 @@ const EMPHASIS: EmphasisDensity[] = [
 // V10.7 — 실측 3편(2795·2388·2023 공백제외)이 연속 하한 미달이라 +150 보정.
 // 모델은 목표 대비 짧게 쓰는 경향이 있어 목표를 올려 실착지를 3천자대에 맞춘다.
 const LENGTH_CENTERS = [3050, 3150, 3250, 3350];
+
+// 공백 제외 기준 목표 — 발행 화면이 공백 제외로 표시하므로 이 단위로 맞춘다.
+// 실측(2026-09-17, 45편): 공백 포함 평균 2,663 = 공백 제외 2,035. 전 편이 2,500 미만이었다.
+// 글자수 지시만으로는 모델이 따라오지 못한다. 실제 분량은 dnaDirective의 '구조 예산'이 만든다.
+const NO_SPACE_CENTERS = [2800, 2880, 2960, 3040];
 
 /**
  * 변호사의 글쓰기 DNA를 뽑는다.
@@ -130,27 +158,40 @@ export function getWritingDNA(profileId: string, salt = "", postSeed = ""): Writ
     const drift = (fnv1a(key + "|" + postSeed, 0x7feb352d) % 301) - 150;
     const targetLength = Math.max(2850, Math.min(3550, lengthCenter + drift));
 
+    const noSpaceCenter = NO_SPACE_CENTERS[fnv1a(key, 0xc2b2ae35) % NO_SPACE_CENTERS.length];
+    const targetNoSpace = Math.max(2700, Math.min(3150, noSpaceCenter + Math.round(drift * 0.6)));
+
+    const honesty = HONESTIES[fnv1a(key, 0x5bd1e995) % HONESTIES.length];
+    const closing = CLOSINGS[fnv1a(key + "|" + postSeed, 0x1b873593) % CLOSINGS.length];
+
     // 카드 종류가 썸네일·상황·정보·요약 넷뿐이라 3~4장 사이에서만 흔든다.
     const imageCount = 3 + (fnv1a(key + "|" + postSeed, 0x9e3779b9) % 2); // 3~4
 
-    return { voice, temperature, heading, emphasis, structures, structure, targetLength, imageCount };
+    return { voice, temperature, heading, emphasis, structures, structure, targetLength, targetNoSpace, honesty, closing, imageCount };
 }
 
 /** 원고 생성 프롬프트에 끼워 넣을 지시문. */
 export function dnaDirective(dna: WritingDNA): string {
-    const { voice, temperature, heading, emphasis, structure, targetLength } = dna;
+    const { voice, temperature, heading, emphasis, structure, targetNoSpace, honesty, closing } = dna;
     return `[이 변호사의 글쓰기 DNA — 아래를 이 글의 기본값으로 삼으세요]
 - 문체 "${voice.name}": ${voice.spec}
 - 온도 "${temperature.name}": ${temperature.spec}
-
-[사람의 리듬 — 회수를 지키세요. 밀도가 완벽하면 오히려 기계 티가 납니다]
-- 숨 고르기: 소제목 구간마다 1개, 정보가 없는 짧은 문장을 둡니다. 예: "여기까지는 교과서 이야기입니다.", "많이들 놀라시는 대목입니다." (예시 그대로 쓰지 말 것)
-- 독자 호명: 도입 외에 본문 중간 1회 + 마무리 1회, 읽는 사람의 지금 상태를 짚습니다. 예: "지금 통장 내역부터 확인하고 계신다면 방향은 맞습니다."
-- 정직 신호: 글 전체에서 정확히 1회, 변호사에게 불리해 보이는 솔직한 말을 합니다. 예: "이 경우라면 소송보다 내용증명 한 장이 낫습니다.", "이 방법이 안 통하는 사례도 있습니다."
-- 병렬을 완벽하게 만들지 마세요. 목록 항목의 길이와 문형이 조금씩 달라야 사람 글입니다.
-
-- 소제목 형식 "${heading.name}": ${heading.spec} 모든 소제목을 이 형식으로 통일하세요.
+- 소제목 형식 "${heading.name}": ${heading.spec} 모든 소제목을 이 형식으로 통일하세요. 위 예시 문구는 형식 견본일 뿐이므로 그대로 쓰지 마세요.
 - 본문 구조 "${structure.name}": ${structure.spec}
 - 강조 밀도 "${emphasis.name}": ==형광펜== ${emphasis.highlight[0]}~${emphasis.highlight[1]}곳, __밑줄__ ${emphasis.underline[0]}~${emphasis.underline[1]}곳, **굵게** ${emphasis.bold}곳 이내.
-- 분량: 공백 포함 ${targetLength - 200}~${targetLength + 200}자.`;
+
+[사람의 리듬 — 장치의 '역할'만 지정합니다. 문장은 이 글의 내용에서 새로 지으세요]
+- 숨 고르기: 글 전체에서 2~3곳. 정보를 더하지 않는 짧은 문장으로, 방금 설명한 내용을 한 발 물러서 평가하거나 독자가 느꼈을 반응을 짚습니다. 모든 소제목마다 넣지 말고, 매번 다른 문형으로 씁니다.
+- 독자 호명: 본문 중간에 1회. 이 주제의 독자가 지금 실제로 하고 있을 행동이나 마음 상태를 구체적으로 짚습니다. 칭찬하거나 안심시키는 상투구로 끝내지 말고 다음 설명으로 이어 주세요.
+- 정직 신호 "${honesty.name}": 글 전체에서 정확히 1회. ${honesty.spec} 예고하는 말 없이 내용만 말합니다.
+- 목록 항목의 길이와 문형은 조금씩 달라야 합니다. 완벽한 병렬은 기계 티가 납니다.
+
+[마무리 방식 "${closing.name}"]
+${closing.spec}
+마지막 문단은 2~4문장, 목록 없이 씁니다. 서류·증거·준비물 목록, '상담 전 준비'류 소제목으로 끝내지 않습니다.
+
+[분량 설계 — 글자 수가 아니라 구조로 맞춥니다]
+- 목표: 공백 제외 ${targetNoSpace - 150}~${targetNoSpace + 150}자.
+- 소제목(##) 6~7개. 소제목마다 문단 4~5개. 문단은 3~4문장. 숨 고르기용 한 문장 문단은 예외입니다.
+- 전체 문장 수 70개 안팎. 이 구조를 실질 정보로 채우면 목표 분량이 됩니다. 아는 말을 늘려 채우지 마세요.`;
 }

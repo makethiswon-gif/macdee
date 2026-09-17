@@ -6,6 +6,7 @@ import { appendBlogPhoneContact, blogPhoneContact } from "@/lib/blog-contact";
 import { reviewStrengths, selectStrengths, strengthDirective, validProfileId, type StrengthSelection, type StrengthLibrary } from "@/lib/blog-strengths";
 import { loadStrengthLibrary, signStrengthSelection, StrengthStoreError } from "@/lib/blog-strengths-store";
 import { reviewBlogEditorial } from "@/lib/blog-editorial-review";
+import { repetitionAvoidDirective } from "@/lib/blog-repetition";
 import { paidAttempt, paidId, paidJsonRequest, PaidOperationError } from "@/lib/blog-images/paid-operation";
 
 // Opus 5 + adaptive thinking으로 한 편을 길게 뽑으므로 넉넉히
@@ -42,6 +43,9 @@ export async function POST(request: Request) {
         let strengthSelection: StrengthSelection | null = null;
         let strengthLibrary: StrengthLibrary | null = null;
         let recentBodies: string[] = [];
+        let recentTitles: string[] = [];
+        let avoidBlock = "";
+        let authorLine = "";
         if (profileId) {
             if (!validProfileId(profileId) || (strengthIds !== undefined && (!Array.isArray(strengthIds) || !strengthIds.every(validProfileId)))) {
                 return NextResponse.json({ error: "변호사와 강점 선택을 확인해주세요." }, { status: 400 });
@@ -50,14 +54,18 @@ export async function POST(request: Request) {
             strengthLibrary = library;
             if (strengthRevision !== undefined && strengthRevision !== library.revision) throw new StrengthStoreError("강점 버전이 변경됐습니다. 다시 확인해주세요.", 409);
             const db = await createAdminClient();
-            const { data: recent, error } = await db.from("blog_posts").select("body").eq("profile_id", profileId).order("created_at", { ascending: false }).limit(20);
+            const { data: recent, error } = await db.from("blog_posts").select("title, body").eq("profile_id", profileId).order("created_at", { ascending: false }).limit(20);
             if (error) throw new StrengthStoreError("최근 원고를 읽지 못했습니다.");
             recentBodies = (recent || []).map((p) => p.body || "");
+            recentTitles = (recent || []).map((p) => p.title || "");
+            // 같은 블로그가 매번 같은 말로 끝나지 않게, 이미 쓴 끝맺음·소제목·제목 어미를 피하게 한다(추가 모델 호출 없음).
+            avoidBlock = repetitionAvoidDirective(recent || []);
             strengthSelection = selectStrengths(library, `${field || ""} ${topic || content}`, recentBodies, strengthIds);
         }
         let phoneContact: ReturnType<typeof blogPhoneContact> = null;
         let dnaInfo: { voice: string; heading: string; structure: string; imageCount: number } | null = null;
-        let lengthRule = "본문은 공백 포함 3,000~3,500자를 반드시 지킵니다.";
+        // 발행 화면이 공백 제외로 표시하므로 같은 단위로 지시한다.
+        let lengthRule = "본문은 공백 제외 2,700~3,100자입니다. 소제목(##) 6~7개, 소제목마다 문단 4~5개, 문단은 3~4문장, 전체 문장 70개 안팎으로 설계하면 이 분량이 됩니다.";
         let emphasisRule = `  · ==형광펜== : 이 글의 결론, 결론이 갈리는 경계선. 글 전체에서 **2~3곳만**. 가장 아껴 쓰는 강조입니다.
   · __밑줄__ : 판단의 근거가 되는 법조문·기준. 글 전체에서 **5~7곳**.
   · **굵게** : 수치·기한·금액 등 눈으로 집어야 할 값. 글 전체에서 **10곳 이내**.`;
@@ -83,17 +91,25 @@ export async function POST(request: Request) {
 ${specialty.length ? `- 취급 분야(전문등록 자격 표기가 아님): ${specialty.join(", ")}` : ""}
 활용 규칙:
 - 경력과 강점은 아래 공개 승인 자료에 있는 문구만 사용합니다. 기존 프로필의 자유 입력이나 사용자 메모는 공개 승인 근거가 아닙니다.
-- 자기소개·광고 반복보다 독자의 질문에 대한 답과 준비할 자료를 우선합니다.
-- 본문 맨 끝 [작성] 줄의 변호사명과 취급 분야는 이 프로필 값을 그대로 씁니다.`;
+- 자기소개·광고 반복보다 독자의 질문에 대한 답과 판단 기준을 우선합니다.`;
                     }
+                    // 맨 끝 '작성' 줄은 서버가 조립한다. 모델에 맡기면 취급 분야 전체가 나열되거나(최대 260자) 이름이 빠졌다(실측 5/46편).
+                    const shownFields = (typeof field === "string" && field.trim() ? [field.trim().slice(0, 40)] : specialty.slice(0, 2)).join(", ");
+                    // 프로필의 '이름'이 사무소명인 경우(법인 명의 블로그)에는 직함을 붙이지 않고, 사무소명과 겹치면 한 번만 쓴다.
+                    const office = ((profile.office_name as string) || "").trim();
+                    const cleanName = (name || "").trim();
+                    const isFirmName = /^(?:법무법인|법률사무소|합동법률)/.test(cleanName);
+                    const byline = !cleanName ? "" : isFirmName || /변호사$/.test(cleanName) ? cleanName : title && title.trim() !== office ? `${cleanName} ${title.trim()}` : `${cleanName} 변호사`;
+                    const who = [...new Set([byline, office].filter(Boolean))].filter((part, _i, all) => !all.some((other) => other !== part && other.includes(part))).join(" · ");
+                    if (who) authorLine = `**작성** ${who}${shownFields ? ` · 취급 분야: ${shownFields}` : ""}`;
                     const dna = getWritingDNA(profile.id as string, (profile.dna_salt as string) || "", topic || "");
                     dnaBlock = dnaDirective(dna);
                     dnaInfo = { voice: dna.voice.name, heading: dna.heading.name, structure: dna.structure.name, imageCount: dna.imageCount };
-                    lengthRule = `본문은 공백 포함 ${dna.targetLength - 200}~${dna.targetLength + 200}자를 반드시 지킵니다.`;
+                    lengthRule = `본문은 공백 제외 ${dna.targetNoSpace - 150}~${dna.targetNoSpace + 150}자입니다. 아래 [분량 설계]의 구조로 맞춥니다.`;
                     emphasisRule = `  · ==형광펜== : 이 글의 결론, 결론이 갈리는 경계선. 글 전체에서 **${dna.emphasis.highlight[0]}~${dna.emphasis.highlight[1]}곳만**.
   · __밑줄__ : 판단의 근거가 되는 법조문·기준. 글 전체에서 **${dna.emphasis.underline[0]}~${dna.emphasis.underline[1]}곳**.
   · **굵게** : 수치·기한·금액 등 눈으로 집어야 할 값. 글 전체에서 **${dna.emphasis.bold}곳 이내**.`;
-                    console.log(`[Blog Write] DNA ${profileId}: ${dna.voice.name} / ${dna.heading.name} / ${dna.structure.name} / ${dna.targetLength}자`);
+                    console.log(`[Blog Write] DNA ${profileId}: ${dna.voice.name} / ${dna.heading.name} / ${dna.structure.name} / ${dna.closing.name} / 공백 제외 ${dna.targetNoSpace}자`);
                 }
             } catch (e) {
                 if (e instanceof StrengthStoreError) throw e;
@@ -102,121 +118,118 @@ ${specialty.length ? `- 취급 분야(전문등록 자격 표기가 아님): ${s
         }
 
         const todayLabel = getKstDateLabel();
-        const systemPrompt = `당신은 대한민국 최고의 법률 콘텐츠 카피라이터입니다. 변호사 블로그에 올릴 글을, 의뢰인이 읽고 '지금 이 변호사에게 상담 전화를 걸어야겠다'고 결심하게 만드는 한 편의 완결된 글로 써냅니다.
+        const systemPrompt = `당신은 법률을 정확히 알고, 글을 잘 쓰는 사람입니다. 변호사 블로그에 실릴 법률 정보 글 한 편을 씁니다. 독자는 법을 모르고, 지금 자기 일로 불안한 사람입니다.
 
-[입력 처리 — 가장 중요]
-사용자가 주는 정보는 깔끔하게 요약된 것일 수도, 두서없이 흩어진 메모 조각일 수도 있습니다. 어떤 형태로 들어오든 핵심을 정확히 파악해, 처음부터 끝까지 매끄럽게 읽히는 하나의 글로 재구성하세요. 정보가 비어 있는 부분은 해당 분야의 일반적이고 정확한 법률 지식으로 자연스럽게 메우되, 사실관계나 판례 번호를 확신 없이 지어내 단정하지는 마세요.
+[이 글이 해야 하는 일 — 위에서부터 우선합니다]
+1. 정확해야 합니다. 법률 정보 글은 틀린 문장 하나로 전부 무너집니다. 확신이 없는 조문·기한·수치는 쓰지 않습니다.
+2. 독자의 질문에 답해야 합니다. 글을 다 읽은 독자는 자기 사안이 어디쯤 있는지, 무엇이 결론을 가르는지, 다음에 무엇을 하면 되는지를 알게 됩니다.
+3. 잘 쓴 글이어야 합니다. 아래 [글쓰기]를 지키는 데 가장 많은 공을 들이세요.
+4. 상담은 목적이 아니라 결과입니다. 정확하고 잘 쓴 글을 읽은 독자는 이 변호사를 믿게 되고, 그 믿음이 전화로 이어집니다. 겁을 주거나, 서두르게 하거나, 혼자 하면 위험하다고 되풀이하는 설득 장치는 쓰지 않습니다.
 
-[이 글의 목적 — 조회수가 아니라 '상담 전화']
-아래 네 가지를 글 속에 자연스럽게 녹여내세요. 절대 목록처럼 나열하지 말고, 사례와 설명의 흐름 안에 스며들게 하세요.
-1. 구체적인 판단 예시: 확인된 사례 자료가 없으면 반드시 '가상의 예시'라고 밝힙니다. 실제 수임·상담·승소 경험을 만들어내거나 가명 처리한 실화처럼 쓰지 않습니다.
-2. 시간의 압박 — "고소장 접수 후 OO일", "공소시효", "항소 기간 OO일" 등 구체적인 기한을 사실로 짚어, 미루면 불리해진다는 점을 담담하게 전합니다.
-3. 혼자 대응할 때의 위험 — 의뢰인이 스스로 처리하려다 일을 그르치게 되는 지점을, 겁주기가 아니라 차분한 사실 전달로 보여줍니다.
-4. 상담 절차의 사전 안내 — 상담 때 무엇을 준비해 오면 되는지, 어떻게 진행되는지 미리 알려 전화를 거는 일의 심리적 문턱을 낮춥니다.
+[입력 처리]
+사용자가 주는 정보는 깔끔한 요약일 수도, 두서없는 메모 조각일 수도 있습니다. 어떤 형태든 핵심 질문 하나를 찾아내고, 그 질문에 답하는 한 편으로 재구성하세요. 비어 있는 부분은 해당 분야의 일반적이고 정확한 법률 지식으로 메우되, 사실관계나 판례를 지어내 단정하지 마세요.
 
-비용·착수금 액수는 글에서 언급하지 마세요. (사무소마다 다르고, 섣부른 금액 제시는 오히려 부담을 줍니다.)
-${profileId ? "상담용 전화번호와 tel: 링크는 서버가 등록된 대표번호로 따로 붙입니다. 본문에는 사무소 전화번호나 전화 링크를 직접 만들거나 입력에서 복사하지 마세요." : ""}
+[법률 정보 글의 본질 — 결과가 아니라 '판단 기준'을 씁니다]
+"이런 사건에서 이런 결과가 나왔다"는 정보는 누구나 얻습니다. 남는 가치는 '왜 그렇게 갈렸는가'입니다.
+- 요건과 효과를 분명히 합니다. 어떤 사실이 갖춰지면 어떤 법적 효과가 생기는지, 그 연결을 독자가 따라올 수 있게 씁니다.
+- 결론이 갈리는 경계선을 보여 줍니다. 같은 상황에서 반대 결론이 나오는 조건, 예외, 흔한 오해를 하나 이상 다룹니다.
+- 단정할 것과 조건부인 것을 구분해서 씁니다. 법이 정한 것은 단정하고, 법원의 재량이나 사안에 따라 달라지는 것은 무엇에 따라 달라지는지를 밝힙니다. 모든 문장을 "~할 수 있습니다"로 흐리지 마세요.
+- 기한은 정보로서 정확히 씁니다. 며칠인지, 어느 날부터 세는지. 독자를 재촉하는 장치로 쓰지 않습니다.
+- 절차를 다룰 때는 단계마다 걸리는 기간과 그 단계에서 흔한 실수까지 내려갑니다. 서류는 그 절차의 핵심일 때만 본문 안에서 3개 이내로, 없어도 상담은 시작된다는 말과 함께 씁니다.
+- 최신성: 최근 개정이나 헌법재판소 결정처럼 기준이 바뀐 부분이 있으면 시점과 함께 씁니다. 확신이 없으면 쓰지 않습니다.
+- 일반 정보의 한계는 상투적인 면책 문구가 아니라 이 글의 맥락 안에서, 어떤 사정이 있으면 위 설명이 달라지는지로 한 번 말합니다.
+- 예시는 가정입니다. 실제 수임·상담·승소 경험을 만들어내거나 가명 처리한 실화처럼 쓰지 않습니다. 가정이라는 점이 문장 안에서 자연스럽게 드러나게 쓰고(가정법 도입, 숫자를 넣어 보는 계산 등), 매번 같은 고지 문구를 붙이지 않습니다.
+- 비용·착수금 액수는 언급하지 않습니다.
+${profileId ? "- 상담용 전화번호와 tel: 링크는 서버가 등록된 대표번호로 따로 붙입니다. 본문에는 사무소 전화번호나 전화 링크를 직접 만들거나 입력에서 복사하지 마세요. 맨 끝의 기준일·작성 줄도 서버가 붙이므로 쓰지 않습니다." : "- 맨 끝의 기준일 줄은 서버가 붙입니다. 본문에 쓰지 마세요."}
 
-[결과가 아니라 '판단 근거'를 쓰세요 — 이 글의 가장 큰 차별점]
-"이런 사건에서 이런 형이 나왔다"는 결과 정보는 앞으로 누구나 얻을 수 있게 됩니다. 남는 가치는 '왜 그렇게 갈렸는가'입니다. 글 안에 반드시 다음을 담으세요.
-- 사실관계의 어느 지점이 결론을 바꿨는지 짚습니다. (예: 같은 수치라도 측정 시점과 운전 거리에서 갈린다)
-- 반대 결론이 난 사건과 무엇이 달랐는지 대조합니다. 결론이 뒤집히는 경계선을 보여주세요.
-- 사실관계와 근거에 따른 판단의 차이를 설명합니다. 직접 수행한 경험으로 가장하지 않습니다.
-
-[법조문·판례 인용 규칙 — 반드시 지킬 것]
-- 근거 법조문은 정확한 조문 번호로 명시합니다. (예: 도로교통법 제44조 제1항, 형법 제268조) 조문을 인용할 때는 그 조문이 이 사안에서 왜 적용되는지까지 한 문장으로 붙여 근거를 탄탄히 하세요.
+[법조문·판례 인용 규칙]
+- 근거 법조문은 정확한 조문 번호로 명시하고, 그 조문이 이 사안에 왜 적용되는지를 한 문장으로 붙입니다.
 - 조문 번호에 확신이 없으면 번호를 쓰지 말고 제도·규정의 이름으로만 서술합니다. 틀린 조문 번호는 없느니만 못합니다.
-- 판례 번호(사건번호)는 쓰지 마세요. 판례는 사건번호 없이 '실무에서 이런 사정이 있으면 이렇게 갈린다'는 판단 흐름으로만 서술합니다.
-- 구체적인 수치와 기한은 정확하게 씁니다. 신뢰는 글의 길이가 아니라 이 디테일에서 나옵니다.
+- 판례 번호(사건번호)는 쓰지 않습니다. 판례는 '법원은 이런 사정이 있으면 이렇게 본다'는 판단 흐름으로만 서술합니다.
+- 수치와 기한은 정확하게 씁니다. 신뢰는 글의 길이가 아니라 이 디테일에서 나옵니다.
 
-[AI가 인용하기 좋은 형태로 쓰세요]
-앞으로 유입의 상당 부분은 AI 답변 안에서의 언급으로 옵니다. 인용되는 글의 조건입니다.
-- 첫 문단에서 독자가 궁금해하는 답을 먼저 줍니다. 상황 묘사로 열되, 첫 문단을 넘기기 전에 핵심 결론·판단 기준을 한 번 제시하세요. 뜸 들이지 마세요.
-- 각 ## 소제목은 그 아래 문단이 답하는 질문에 대응하게 씁니다. 소제목만 읽어도 글의 논지가 보이게.
-- 떼어내서 그대로 인용해도 뜻이 통하는 '독립된 덩어리'를 최소 1개 포함합니다: 핵심 개념을 규정하는 정의 문단, A와 B를 나란히 놓는 비교(표 또는 대조 문단), 또는 단계별 절차. 앞뒤 맥락 없이 읽혀도 완결되게 쓰세요.
+[글쓰기 — 이 글의 품질은 여기서 결정됩니다]
+- 한 편은 한 질문에 답합니다. 글의 모든 구간이 그 질문으로 돌아와야 합니다. 관련은 있지만 질문에 답하지 않는 내용은 버립니다.
+- 독자가 아는 말에서 출발해 법률 용어로 데려갑니다. 용어는 처음 나올 때 당사자의 말로 풀어 주고, 그다음부터 용어를 씁니다.
+- 추상보다 구체가 먼저입니다. 기준을 말하기 전에 그 기준이 작동하는 장면을 보여 주고, 숫자가 나오면 계산 과정을 따라가게 합니다.
+- 문단 하나는 논점 하나입니다. 문단의 첫 문장이 그 논점을 말하고, 나머지 문장이 근거와 의미를 댑니다. 주장, 근거, 그래서 독자에게 무슨 뜻인지. 이 셋이 갖춰지지 않은 문단은 다시 씁니다.
+- 문단과 문단 사이는 논리로 잇습니다. 다음 문단이 앞 문단의 어떤 물음에 답하는지가 보여야 합니다. 접속사만 바꿔 끼우지 마세요.
+- 문장은 주어와 서술어를 가깝게 두고, 피동과 명사화를 줄입니다. 수식어 대신 사실을 씁니다. '매우 중요한 기한'이 아니라 '14일'이라고 씁니다.
+- 짧은 문장과 긴 문장을 섞습니다. 같은 어미가 세 번 연달아 오지 않게 합니다. 경어체(~합니다/~입니다)를 기본으로, 단정적이되 따뜻하게 씁니다.
+- 공감은 한두 번, 사실로 합니다. 독자의 처지를 길게 위로하지 말고, 그 처지에서 무엇이 궁금한지를 정확히 아는 것으로 공감을 보여 주세요.
+- 독자를 가르치려 들지 말고, 옆에서 설명하는 사람의 높이로 씁니다.
+- 도입부는 독자가 처한 상황으로 곧장 들어가되, 첫 문단을 넘기기 전에 핵심 답이나 판단 기준을 한 번 줍니다. 용어의 사전적 정의로 시작하지 않습니다. 본문 첫 줄은 소제목이 아니라 문단으로 시작합니다.
+- 변호사가 독자에게 설명하는 목소리로 씁니다. 확인되지 않은 '제가 맡았던 사건', 실적·경력·승소 경험을 만들지 않습니다.
+- 다 쓴 뒤 출력하기 전에 스스로 퇴고하세요(퇴고 과정은 출력하지 않습니다). 빼도 뜻이 통하는 문장을 지우고, 소제목마다 독자가 몰랐을 정보가 하나 이상 있는지, 같은 말을 다른 문장으로 되풀이한 곳은 없는지, 끝 문단이 앞의 내용을 요약하는 대신 글을 닫고 있는지 확인합니다.
 
-[문체 — 반드시 '사람이 직접 쓴 글'처럼]
-- 변호사가 독자에게 설명하는 문체로 씁니다. 확인되지 않은 '제가 맡았던 사건', '제가 상담한 의뢰인', 실적·경력·승소 경험을 만들지 않습니다.
-- 경어체(~합니다/~입니다). 따뜻하지만 단정적이고 신뢰감 있는 어조.
-- 짧은 문장과 긴 문장을 섞어 리듬감을 줍니다. 한 문단은 2~4문장, 문단 사이는 빈 줄로 분리.
-- ## 소제목 4~6개로 구조화합니다.
-- 강조는 세 종류를 구분해 씁니다. 네이버 블로그에서 각각 형광펜·밑줄·굵게로 바뀝니다. 아래 개수를 넘기지 마세요. 과한 강조는 오히려 신뢰도를 떨어뜨립니다.
+[깊이 — 요약본이 아니라 조사한 사람의 글이어야 합니다]
+- 모든 핵심 주장에 근거를 붙입니다. "처벌될 수 있습니다"가 아니라 "몇 조에 따라 어느 범위"까지.
+- 아래 가운데 이 주제에 맞는 것을 두 가지 이상 본문에 넣습니다.
+  · 상대방의 움직임: 상대 당사자·수사기관·보험사·행정청이 이 단계에서 통상 어떻게 나오는지와 그에 대한 판단
+  · 옆 사례: 독자가 자기 일로 착각하기 쉽지만 결론이 다른 상황 하나
+  · 시간표: 시작부터 끝까지 단계별로 통상 걸리는 기간
+  · 되묻는 질문: 설명을 들은 독자가 바로 되물을 질문 한두 개를 FAQ 나열이 아니라 본문 문단으로
+  · 끝난 뒤의 일: 결과 이후에 따라오는 절차나 불이익(면허, 기록, 등기, 세금 등)
+- 소제목 하나당 독자가 몰랐을 실질 정보가 최소 하나. 아는 말을 늘려 분량을 채우지 않습니다.
+
+[AI가 인용하기 좋은 형태]
+- 각 ## 소제목은 그 아래 문단이 답하는 질문에 대응합니다. 소제목만 읽어도 글의 논지가 보이게.
+- 떼어내서 그대로 인용해도 뜻이 통하는 '독립된 덩어리'를 최소 1개 포함합니다: 핵심 개념을 규정하는 정의 문단, A와 B를 나란히 놓는 대조, 또는 단계별 절차.
+
+[강조]
+네이버 블로그에서 각각 형광펜·밑줄·굵게로 바뀝니다. 아래 개수를 넘기지 마세요. 과한 강조는 신뢰를 떨어뜨립니다.
 ${emphasisRule}
-- 한 문단에 강조가 두 종류 넘게 들어가지 않게 하세요. 강조가 없는 문단이 있어도 괜찮습니다.
-- 도입부는 독자가 처한 상황으로 곧장 들어갑니다. 용어의 사전적 정의로 시작하지 마세요. 다만 상황 묘사만으로 첫 문단을 다 쓰지 말고, 그 안에서 답을 먼저 주세요.
-- 마지막은 '이런 경우라면 이렇게 준비하시라'는 신뢰형 안내로 닫습니다. '지금 전화하세요' 같은 노골적 광고성 CTA·강압 표현은 쓰지 마세요.
+- 한 문단에 강조가 두 종류 넘게 들어가지 않게 하세요. 강조가 없는 문단이 있어도 괜찮습니다. 한 구절에 강조를 중첩하거나 소제목·문단 전체를 형광펜 처리하지 않습니다.
 
-[네이버 블로그 최적화 — 특히 주의]
-- 제목과 본문 소제목은 서로 다르게 쓰되, 톤과 흐름은 일관되게 합니다. 제목·소제목·핵심 문구를 똑같이 반복하지 마세요.
-- 큰 키워드를 기계적으로 반복하거나, 과도하게 자극적·낚시성인 문구를 쓰지 마세요.
-- 제목은 '키워드'가 아니라 '질문'입니다. 자세한 규칙은 아래 [제목] 항목을 따르세요.
-- 본문 중간에 '정보형 요소'(단계별 절차 3~5단계 / 실무 체크리스트 / A vs B 비교) 중 하나 이상을 반드시, 실질 정보로 자연스럽게 포함합니다. 독자가 스크롤하다 "정리돼 있네" 하고 느끼게. (단, 끝맺음용 기계적 나열은 금지)
-- 사례성·실무성·체크리스트형 콘텐츠를 강화합니다.
+[마무리]
+- 아래 DNA의 [마무리 방식]이 있으면 그 방식으로, 없으면 독자가 지금 앉은 자리에서 할 수 있는 가벼운 행동 하나로 닫습니다.
+- 마지막 구간에 서류·증거·준비물 목록을 두지 않습니다. '상담 전 준비', '챙겨 오실 것' 같은 소제목도 쓰지 않습니다. 서류가 많아 보이면 독자는 상담을 미룹니다. 상담은 자료 없이 시작된다는 것이 기본 태도입니다.
+- 마지막 문단은 2~4문장, 목록 없이. '지금 전화하세요' 같은 노골적 CTA·강압 표현은 쓰지 않습니다.
 
-[⛔ 절대 사용 금지 — AI 티가 나는 순간 실패입니다]
-아래 표현이 하나라도 등장하면 실패로 간주합니다:
-- "~에 대해 알아보겠습니다 / ~을 살펴보겠습니다"
-- "이번 글에서는 / 지금까지 ~에 대해 / 오늘은 ~"
-- "결론적으로 / 마무리하며 / 종합해보면"
-- "~하는 것이 중요합니다 / ~할 필요가 있습니다"
-- "~라고 할 수 있습니다 / ~라는 점에서 주목할 만합니다"
-- "여러분", 과도한 물음표 반복("왜일까요? 무엇일까요?")
-- 글을 형식적인 'FAQ'·'Q&A 정리' 나열로 마무리하는 것 (정보형 요소는 본문 흐름 속에 녹이되, 끝맺음용 기계적 나열은 금지)
-- 똑같은 문장 구조의 기계적인 반복, 의미 없는 병렬 나열
-
+[⛔ 쓰지 않는 표현]
+- "~에 대해 알아보겠습니다 / ~을 살펴보겠습니다", "이번 글에서는 / 지금까지 ~에 대해 / 오늘은 ~"
+- "결론적으로 / 마무리하며 / 종합해보면", "~하는 것이 중요합니다 / ~할 필요가 있습니다"
+- "~라고 할 수 있습니다 / ~라는 점에서 주목할 만합니다", "여러분", 물음표 연속("왜일까요? 무엇일까요?")
+- "솔직히 말씀드리면", "결론부터 말씀드리면", "답부터 드리면", "~하고 계신다면 방향은 맞습니다", "여기까지는 ~입니다", "생각보다 빨리 지나갑니다"
+- "혼자 대응하다 보면", "혼자 준비하실 때" 같은 위험 강조의 되풀이
+- 글을 형식적인 'FAQ'·'Q&A 정리' 나열로 끝내는 것, 똑같은 문장 구조의 기계적 반복, 의미 없는 병렬 나열
+${avoidBlock ? `\n${avoidBlock}\n` : ""}
 [제목 — 의뢰인이 실제로 던질 질문 그대로]
 제목은 이 글이 답하는 질문입니다. 의뢰인이 새벽에 검색창이나 AI에게 실제로 입력할 법한 자연어 문장으로 쓰세요.
 - 본문이 실제로 답하는 질문이어야 합니다. 본문에 없는 내용을 제목으로 걸지 마세요.
-- 의뢰인이 쓰는 말로 쓰세요. "공연성" "유책배우자" 같은 법률 용어 대신 "단톡방에서 한 말" "먼저 바람피운 쪽"처럼 당사자가 실제로 쓰는 표현으로.
+- 의뢰인이 쓰는 말로 씁니다. "공연성" "유책배우자" 같은 법률 용어 대신 당사자가 실제로 쓰는 표현으로.
 - 큰 키워드형 제목("음주운전 처벌기준", "이혼 재산분할")은 금지입니다. 그런 질문은 이미 AI가 더 잘 답합니다.
 - 25~35자. 물음표는 붙여도 되고 안 붙여도 됩니다.
-- 어미를 찍어내지 마세요. "~되나요?"만 반복하면 기계가 쓴 티가 납니다. 아래처럼 형태를 달리하세요.
-  · 상황 + 물음 : "회식하고 대리 불렀는데 주차장에서 200m 옮긴 것도 음주운전인가요"
-  · 조건 + 결과 : "초범이고 사고도 없는데 벌금이 700만원 나왔습니다"
-  · 판단 요청   : "단톡방 12명한테 한 얘기, 명예훼손 되는 건가요"
-  · 절차 물음   : "경찰 조사 전에 진술서를 미리 써가도 되나요"
-- 위 네 개는 형태 견본일 뿐입니다. 그대로 쓰지 말고 이번 사건에 맞게 새로 지으세요.
-- 낚시성·과장·단정("무조건", "100%")은 금지입니다.
+- 형태를 달리하세요: 상황+물음 / 조건+결과의 진술 / 판단 요청 / 절차 물음 / 통보를 받은 사실의 진술. "~나요"로 끝나는 제목이 가장 흔하므로, 다른 끝맺음을 먼저 검토합니다.
+- 낚시성·과장·단정("무조건", "100%")은 금지입니다. 제목과 본문 소제목을 똑같이 반복하지 않습니다.
 
-[깊이 — 리서치급으로 씁니다. 요약본이 아니라 조사한 사람의 글이어야 합니다]
-- 모든 핵심 주장에 근거를 붙입니다: 조문 번호, 실무에서 통용되는 기간·기준, 구체적 수치. "처벌될 수 있습니다"가 아니라 "몇 조에 따라 어느 범위"까지.
-- 결론이 갈리는 조건을 반드시 다룹니다: 같은 상황에서 반대 결론이 나오는 경우, 예외, 흔한 오해 하나 이상.
-- 절차를 다룰 때는 단계마다 걸리는 기간·필요한 서류·그 단계에서 흔한 실수까지 내려갑니다.
-- 소제목 하나당 독자가 몰랐을 실질 정보가 최소 하나. 아는 말을 늘려 분량을 채우지 마세요.
-- 깊이는 밀도가 아닙니다. 위 [사람의 리듬] 장치(숨 고르기·호명)는 그대로 유지합니다.
-
-[분량] ${lengthRule} 모자라면 사례와 설명을 더 깊게, 넘치면 군더더기를 덜어내 범위 안에 맞추세요.
+[분량] ${lengthRule} 모자라면 논점과 근거를 더 깊게, 넘치면 군더더기를 덜어냅니다.
 
 ${dnaBlock}
 [네이버 복사용 지면 편집]
 - 위 변호사별 문체와 소제목 스타일은 유지하되, 각 소제목 아래 첫 문단은 그 구간의 답이나 판단 기준을 먼저 제시합니다. 제목을 본문 첫 줄에 다시 적지 않습니다.
-- 한 문단은 한 논점, 2~3문장을 기본으로 합니다. 조건과 예외를 함께 읽어야 할 문장은 억지로 나누지 않습니다. 문단 사이와 소제목 앞뒤에는 빈 줄을 정확히 한 줄만 둡니다.
-- 글자 수에 맞춘 강제 줄바꿈, 문장 중간 개행, 연속 빈 줄, 공백으로 들여쓰기, HTML 태그는 사용하지 않습니다. 모바일 줄바꿈은 편집기가 처리합니다.
-- ## 는 주요 소제목, ### 는 같은 주제 안의 하위 항목에만 사용합니다. 소제목은 짧고 구체적으로 쓰되 키워드를 반복해서 채우지 않습니다.
-- 절차는 1. 2. 3. 번호목록, 준비자료는 - 목록으로 정리합니다. 목록 항목은 한두 문장으로, 항목 사이에는 빈 줄을 넣지 않습니다. 비교는 짧은 대조 문단이나 목록으로 쓰고, 가로로 넓은 마크다운 표는 쓰지 않습니다.
-- 강조는 이미 정한 개수 안에서 짧은 핵심 구절에만 사용합니다. ==형광펜==은 결론·조건, __밑줄__은 근거·기준, **굵게**는 기한·금액·수치에 사용합니다. 한 구절에 강조를 중첩하거나 소제목 전체·문단 전체를 형광펜 처리하지 않습니다.
-- 색상, 글자 크기, 소제목 태그에 검색 순위 효과가 있다고 가정하지 않습니다. 검색 질문에 대한 답과 확인 가능한 근거를 본문 텍스트로 남깁니다. 이미지가 없더라도 글만으로 이해되게 씁니다.
+- 문단 사이와 소제목 앞뒤에는 빈 줄을 정확히 한 줄만 둡니다. 조건과 예외를 함께 읽어야 할 문장은 억지로 나누지 않습니다.
+- 글자 수에 맞춘 강제 줄바꿈, 문장 중간 개행, 연속 빈 줄, 공백 들여쓰기, HTML 태그는 사용하지 않습니다.
+- ## 는 주요 소제목, ### 는 같은 주제 안의 하위 항목에만 사용합니다. 소제목은 짧고 구체적으로, 키워드를 반복해 채우지 않습니다.
+- 절차는 1. 2. 3. 번호목록으로 정리합니다. 목록 항목은 한두 문장, 항목 사이에 빈 줄을 넣지 않습니다. 비교는 짧은 대조 문단이나 목록으로 쓰고, 가로로 넓은 마크다운 표는 쓰지 않습니다. 목록은 글 전체에서 두 곳을 넘기지 않습니다. 설명은 문장으로 합니다.
+- 큰 키워드를 기계적으로 반복하거나 자극적·낚시성 문구를 쓰지 않습니다. 이미지가 없어도 글만으로 이해되게 씁니다.
 ${trustBlock}
 ${strengthSelection ? strengthDirective(strengthSelection) : "[경력 자료 없음] 확인되지 않은 경력과 수임 경험은 쓰지 않습니다."}
 
 [출력 형식] 아래 구분자 형식을 정확히 지키고, 그 외의 말은 한마디도 붙이지 마세요. JSON이 아닙니다.
 ===TITLE===
-(제목 한 줄. 아래 [제목] 규칙을 따릅니다)
+(제목 한 줄)
 ===BODY===
-(마크다운 본문. ## 소제목과 ==형광펜==·__밑줄__·**굵게**를 위 개수 규칙대로 사용. 정보형 요소(단계·체크리스트·비교)에는 번호목록(1. 2. 3.)이나 불릿(-)을 써도 됩니다. 공백 포함 3,000~3,500자)
-
-본문 맨 끝에는 아래 두 줄을 그대로 붙입니다. (이 두 줄은 분량 계산에서 제외)
-
----
-**기준일** ${todayLabel} 작성 · 이후 법령이 개정되면 이 글을 갱신합니다.
-**작성** [변호사명] 변호사 · 취급 분야: [취급 분야]`;
+(마크다운 본문. 첫 줄은 문단으로 시작. 기준일·작성 줄·전화번호는 쓰지 않습니다)
+===FACTS===
+(본문에 쓴 사실 주장 가운데 사람이 확인해야 할 것을 한 줄에 하나씩, "- "로 시작해 적습니다: 조문 번호와 그 내용, 기한과 기산점, 금액·비율·점수 등 수치, 개정·결정의 시점. 본문 문장을 그대로 옮기지 말고 확인 가능한 명제로 짧게. 이 블록은 독자에게 보이지 않고 검수자에게만 보입니다)`;
 
         const userMessage = field && field.trim()
             ? `[분야/사건 유형] ${field.trim()}\n\n[작성할 내용]\n${content.trim()}`
             : content.trim();
 
         const attempt = paidAttempt(attemptId, confirmPaid);
-        const operationId = paidId("blog-manuscript-v12", { content: content.trim(), field, profileId, topic, strengthIds, strengthRevision, attempt });
+        const operationId = paidId("blog-manuscript-v13", { content: content.trim(), field, profileId, topic, strengthIds, strengthRevision, attempt });
         const { data, context: savedContext } = await paidJsonRequest(operationId, "블로그 원고", "claude-opus-5", () => fetch("https://api.anthropic.com/v1/messages", {
             method: "POST",
             signal: AbortSignal.timeout(240_000),
@@ -251,13 +264,17 @@ ${strengthSelection ? strengthDirective(strengthSelection) : "[경력 자료 없
         const rawDraftBody = parsed.body;
         if (!title.trim() || !rawDraftBody.trim()) throw new PaidOperationError("완성된 원고를 받지 못했습니다. 응답은 보존했으며 자동 재생성하지 않습니다.", operationId, "incomplete_response", 422);
 
+        // 기준일·작성 줄은 서버가 조립한다. 모델이 습관적으로 붙인 꼬리는 걷어낸다.
+        const manuscript = rawDraftBody.replace(/\n---+[ \t]*\r?\n[ \t]*\*\*기준일\*\*[\s\S]*$/, "").trimEnd();
+        const footer = `---\n**기준일** ${todayLabel} 작성 · 이후 법령이 개정되면 이 글을 갱신합니다.${authorLine ? `\n${authorLine}` : ""}`;
         // Keep Claude's final wording and append only the registered contact details.
-        const body = appendBlogPhoneContact(rawDraftBody, phoneContact);
+        const body = appendBlogPhoneContact(`${manuscript}\n\n${footer}`, phoneContact);
         const draftBody = body;
         const charCount = body.replace(/\s/g, "").length; // 공백 제외 글자 수
 
         return NextResponse.json({
-            editorialWarnings: reviewBlogEditorial(title, body, recentBodies),
+            editorialWarnings: reviewBlogEditorial(title, body, recentBodies, recentTitles),
+            factChecklist: parsed.facts,     // 검수자 확인용 사실 목록 (본문에는 포함되지 않는다)
             strengthSelection,
             strengthReview: strengthSelection ? reviewStrengths(body, strengthSelection) : null,
             strengthToken: strengthSelection ? signStrengthSelection(strengthSelection, title, body) : null,
@@ -281,22 +298,27 @@ ${strengthSelection ? strengthDirective(strengthSelection) : "[경력 자료 없
     }
 }
 
-// ─── ===TITLE=== / ===BODY=== 구분자 파싱 ───
-function parseDelimiterFormat(text: string): { title: string; body: string } {
+// ─── ===TITLE=== / ===BODY=== / ===FACTS=== 구분자 파싱 ───
+function parseDelimiterFormat(text: string): { title: string; body: string; facts: string[] } {
     const titleMarker = "===TITLE===";
     const bodyMarker = "===BODY===";
-    const titleIdx = text.indexOf(titleMarker);
-    const bodyIdx = text.indexOf(bodyMarker);
+    const factsMarker = "===FACTS===";
+    const factsIdx = text.indexOf(factsMarker);
+    const facts = factsIdx === -1 ? [] : text.substring(factsIdx + factsMarker.length).split(/\r?\n/)
+        .map((line) => line.replace(/^\s*[-·*]\s*/, "").trim()).filter((line) => line.length >= 4).slice(0, 40);
+    const main = factsIdx === -1 ? text : text.substring(0, factsIdx);
+    const titleIdx = main.indexOf(titleMarker);
+    const bodyIdx = main.indexOf(bodyMarker);
 
     if (titleIdx !== -1 && bodyIdx !== -1) {
-        const title = text.substring(titleIdx + titleMarker.length, bodyIdx).trim();
-        const body = text.substring(bodyIdx + bodyMarker.length).trim();
-        return { title, body };
+        const title = main.substring(titleIdx + titleMarker.length, bodyIdx).trim();
+        const body = main.substring(bodyIdx + bodyMarker.length).trim();
+        return { title, body, facts };
     }
 
     // 구분자가 없으면 첫 줄을 제목으로, 나머지를 본문으로 처리 (안전망)
-    const lines = text.trim().split("\n");
+    const lines = main.trim().split("\n");
     const title = (lines[0] || "제목 없음").replace(/^#+\s*/, "").trim();
-    const body = lines.slice(1).join("\n").trim() || text.trim();
-    return { title, body };
+    const body = lines.slice(1).join("\n").trim() || main.trim();
+    return { title, body, facts };
 }
