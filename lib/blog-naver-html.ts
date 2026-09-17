@@ -85,6 +85,7 @@ function parse(body: string): Block[] {
 }
 
 export interface NaverImage {
+    /** @deprecated 네이버 복사본에는 출력하지 않는다. 기존 호출부 호환용. */
     caption?: string;
     type: string;
     url: string;
@@ -124,8 +125,9 @@ export function toNaverHtml(body: string, title?: string, images: NaverImage[] =
         out.push(html); previous = kind;
     };
     const insertImage = (image: NaverImage) => {
-        emit("image", `<p style="margin:0;padding:0;line-height:0;"><img src="${attribute(image.url)}" alt="${attribute(image.altText || "")}" style="display:block;width:100%;max-width:100%;height:auto;border:0;"></p>`
-            + (image.caption ? `<p style="${TYPE}margin:8px 0 0;padding:0;font-size:13px;line-height:1.6;color:#62676e;">${escapeHtml(image.caption)}</p>` : ""));
+        // 이미지 아래에 AI 생성 고지 문구를 붙이지 않는다(대표 지시 2026-09-17).
+        // 네이버 에디터는 이미지마다 'AI 활용' 설정 버튼을 제공하므로 고지는 그쪽에서 한다.
+        emit("image", `<p style="margin:0;padding:0;line-height:0;"><img src="${attribute(image.url)}" alt="${attribute(image.altText || "")}" style="display:block;width:100%;max-width:100%;height:auto;border:0;"></p>`);
         if (image.type === "contact") {
             const action = image.contactActions?.find(a => /^tel:\+?\d{7,15}$/.test(a.href));
             if (action) emit("contact", `<p style="${BODY}"><a href="${attribute(action.href)}" style="font-weight:700;color:#1663c7;text-decoration:underline;">전화 상담 · 대표번호 ${escapeHtml(action.display)}</a></p>`);

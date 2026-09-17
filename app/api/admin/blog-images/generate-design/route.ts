@@ -166,7 +166,8 @@ export async function POST(request: Request) {
             rendered.candidate = alternate ? "alternate" : "primary";
             if (plan.setFormat === STUDIO_FORMAT) rendered.studioPhotos = plan.studioPhotos;
             rendered.aiGenerated = !!editorialPhoto || (plan.setFormat === STUDIO_FORMAT && type !== "thumbnail") || (!!planned.art && !useOffice);
-            rendered.caption = editorialPhoto || (plan.setFormat === STUDIO_FORMAT && type !== "thumbnail") ? "AI로 제작한 연출 사진입니다. 실제 사무실 또는 상담 장면이 아닙니다." : rendered.aiGenerated ? "본문 이해를 돕기 위한 AI 생성 이미지입니다. 실제 사건 자료가 아닙니다." : "";
+            // AI 생성·연출 고지는 네이버 에디터의 이미지별 'AI 활용' 설정으로 한다(대표 지시 2026-09-17). 본문 캡션은 만들지 않는다.
+            rendered.caption = "";
             return rendered;
         };
         let card = currentLayout ? checkpoint.card : undefined;

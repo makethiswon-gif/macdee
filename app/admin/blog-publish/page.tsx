@@ -45,6 +45,7 @@ export default function BlogPublishPage() {
     const [usedStrengths, setUsedStrengths] = useState<StrengthSelection | null>(null);
     const [strengthReview, setStrengthReview] = useState<StrengthReview | null>(null);
     const [editorialWarnings, setEditorialWarnings] = useState<string[]>([]);
+    const [factChecklist, setFactChecklist] = useState<string[]>([]);
     const [savedId, setSavedId] = useState<string | null>(null);
     const [legacySource, setLegacySource] = useState(false);
     const [savedDraft, setSavedDraft] = useState<PublishDraft | null>(null);
@@ -255,7 +256,7 @@ export default function BlogPublishPage() {
             }
             const content = detail.trim() || (topic.angle ? `${topic.topic}\n\n[다룰 관점]\n${topic.angle}` : topic.topic);
             const choice = strengthChoice?.scope === strengthScope(profileId, `${topic.field} ${topic.topic}`.trim()) ? strengthChoice : null;
-            const data = await publishJson<{ title: string; body: string; contactWarning?: string | null; strengthSelection?: StrengthSelection; strengthReview?: StrengthReview; editorialWarnings?: string[] }>("/api/admin/claude-blog-write", op.signal,
+            const data = await publishJson<{ title: string; body: string; contactWarning?: string | null; strengthSelection?: StrengthSelection; strengthReview?: StrengthReview; editorialWarnings?: string[]; factChecklist?: string[] }>("/api/admin/claude-blog-write", op.signal,
                 { content, field: topic.field, profileId, topic: topic.topic, strengthIds: choice?.ids, strengthRevision: choice?.revision,
                     attemptId: writingAttempt.current || undefined, confirmPaid: !!writingAttempt.current });
             if (!data.title?.trim() || !data.body?.trim()) throw new Error("생성된 원고가 비어 있습니다.");
@@ -267,6 +268,7 @@ export default function BlogPublishPage() {
             setContactWarning(data.contactWarning || "");
             setUsedStrengths(data.strengthSelection || null); setStrengthReview(data.strengthReview || null);
             setEditorialWarnings(data.editorialWarnings || []);
+            setFactChecklist(data.factChecklist || []);
             const id = await persist(snapshot, null, op);
             if (current(op)) {
                 if (imagePreparationError) setError(`원고는 저장했습니다. 이미지 생성만 보류했습니다: ${imagePreparationError}`);
@@ -311,7 +313,7 @@ export default function BlogPublishPage() {
 
     const formattedHtml = () => toNaverHtml(body, title, cardUrls.map((image) => {
         const card = cards.find((card) => card.type === image.type);
-        return { ...image, altText: card?.altText || CARD_LABELS[image.type], caption: card?.caption, contactActions: card?.contactActions };
+        return { ...image, altText: card?.altText || CARD_LABELS[image.type], contactActions: card?.contactActions };
     }));
     const chooseCover = async (card: BlogImageCard) => {
         const frozen = batch.current;
@@ -457,6 +459,7 @@ export default function BlogPublishPage() {
                     <div className="flex flex-wrap gap-2 text-xs text-[#9CA3B0]">
                         <span className="text-sm text-white">4 · 원고</span><span>공백 제외 {body.replace(/\s/g, "").length.toLocaleString()}자</span>
                         {savedId && dirty && <span className="text-amber-300">수정사항 미저장</span>}
+                        {copied && cards.some((card) => card.aiGenerated) && <span className="text-sky-300">붙여넣은 뒤 AI 생성 이미지는 네이버 에디터의 이미지 &lsquo;AI 활용&rsquo; 설정을 켜주세요. 본문에는 고지 문구를 넣지 않습니다.</span>}
                     </div>
                     <div className="flex flex-wrap gap-2">
                         <button onClick={copyStyled} disabled={busy || !valid} className={secondary}><Copy size={14} />{copied ? "복사됨" : "네이버용 복사"}</button>
@@ -491,6 +494,7 @@ export default function BlogPublishPage() {
                 </div>
                 {contactWarning && <p role="status" className="mt-3 text-sm text-amber-300">{contactWarning}</p>}
                 {editorialWarnings.map((warning) => <p key={warning} role="status" className="mt-2 text-xs text-amber-300">검수: {warning}</p>)}
+                {factChecklist.length > 0 && <details className="mt-3 text-xs text-[#9CA3B0]"><summary className="cursor-pointer text-sky-300">발행 전 사실 확인 {factChecklist.length}건 — 조문·기한·수치 (본문에는 들어가지 않습니다)</summary><ul className="mt-2 space-y-1.5">{factChecklist.map((fact, index) => <li key={index}><label className="flex items-start gap-2 leading-5"><input id={`fact-check-${index}`} type="checkbox" className="mt-1" /><span>{fact}</span></label></li>)}</ul></details>}
                 {usedStrengths && <div className="mt-3 border-t border-[#1F2937] py-3 text-xs text-[#BAC2CF]">
                     <p>공개 강점 버전 {usedStrengths.revision} · {usedStrengths.claims.length}개</p>
                     {usedStrengths.claims.map((c) => <p key={c.id} className="mt-2">{c.articleText}{!currentSet?.setFormat && <span className="mt-1 block text-[#9CA3B0]">이미지: {c.imageText} · 상담 이미지{c.id === usedStrengths.claims[0]?.id ? "·표지" : ""}</span>}</p>)}
