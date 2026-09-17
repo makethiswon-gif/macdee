@@ -35,6 +35,7 @@ export async function POST(request: Request) {
         }
         return NextResponse.json({ selection, eligible: eligibleStrengths(library), designFamily: library.designFamily, token, review }, { headers });
     } catch (e) {
+        console.warn("[BlogStrengthSelect] blocked:", e instanceof Error ? `${e.name}: ${e.message.slice(0, 160)}` : "unknown");
         return NextResponse.json({ error: e instanceof Error ? e.message : "강점 검수 실패" }, { status: e instanceof StrengthStoreError ? e.status : 400, headers });
     }
 }

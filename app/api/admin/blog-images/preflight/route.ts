@@ -35,6 +35,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ ok: true, model: BLOG_PHOTO_MODEL, setFormat: EDITORIAL_SET_FORMAT, count: 3,
             dimensions, proof: proof.claims, basicProfile: proof.mode === "basic" }, { headers: { "Cache-Control": "private, no-store" } });
     } catch (e) {
+        console.warn("[BlogImagePreflight] blocked:", e instanceof Error ? `${e.name}: ${e.message.slice(0, 160)}` : "unknown");
         return NextResponse.json({ error: e instanceof Error ? e.message : "제작 준비를 확인하지 못했습니다.",
             ...(e instanceof StudioPhotoRequiredError ? { code: e.code } : {}) }, { status: 422 });
     }
