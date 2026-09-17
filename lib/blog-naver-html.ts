@@ -1,4 +1,4 @@
-import { contactActions } from "./blog-images/contact-details";
+import { contactActions, type ContactAction } from "./blog-images/contact-details";
 
 // Clipboard HTML has no shared stylesheet. Repeat typography on each block and
 // use one explicit empty line for spacing, even if an editor drops CSS margins.
@@ -90,6 +90,7 @@ export interface NaverImage {
     url: string;
     altText?: string;
     afterText?: string;
+    contactActions?: ContactAction[];
 }
 
 const attribute = (s: string) => escapeHtml(s).replace(/"/g, "&quot;").replace(/'/g, "&#39;");
@@ -125,6 +126,10 @@ export function toNaverHtml(body: string, title?: string, images: NaverImage[] =
     const insertImage = (image: NaverImage) => {
         emit("image", `<p style="margin:0;padding:0;line-height:0;"><img src="${attribute(image.url)}" alt="${attribute(image.altText || "")}" style="display:block;width:100%;max-width:100%;height:auto;border:0;"></p>`
             + (image.caption ? `<p style="${TYPE}margin:8px 0 0;padding:0;font-size:13px;line-height:1.6;color:#62676e;">${escapeHtml(image.caption)}</p>` : ""));
+        if (image.type === "contact") {
+            const action = image.contactActions?.find(a => /^tel:\+?\d{7,15}$/.test(a.href));
+            if (action) emit("contact", `<p style="${BODY}"><a href="${attribute(action.href)}" style="font-weight:700;color:#1663c7;text-decoration:underline;">전화 상담 · 대표번호 ${escapeHtml(action.display)}</a></p>`);
+        }
     };
     const contacts = safeImages.filter((image) => image.type === "contact");
     const contactIndex = blocks.findIndex((block) => block.kind === "para" && block.lines.length === 1
@@ -151,6 +156,7 @@ export function toNaverHtml(body: string, title?: string, images: NaverImage[] =
                 emit("heading", `<h${block.level} style="${headingStyle(block.level)}">${inline(block.text)}</h${block.level}>`);
                 break;
             case "para": {
+                if (index === contactIndex && contacts.some(image => image.contactActions?.some(a => block.lines[0].endsWith(`(${a.href})`)))) break;
                 const footer = footerIndex >= 0 && index > footerIndex
                     && block.lines.every((line) => /^\*\*(?:기준일|작성)\*\*/.test(line));
                 const kind = index === contactIndex ? "contact" : footer ? "footer" : "para";

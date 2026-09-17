@@ -5,7 +5,7 @@ import { eligibleStrengths, normalizedClaim, reviewStrengths, selectStrengths } 
 import type { EditorialProfile } from "./card-types";
 
 /** Rehydrate registered identity; request bodies cannot supply new public credentials. */
-export async function imageStrengthContext(input: Partial<EditorialProfile>, title: string, body: string, token?: unknown) {
+export async function imageStrengthContext(input: Partial<EditorialProfile>, title: string, body: string, token?: unknown, photoFallbacks = false) {
     if (!input.id) throw new StrengthStoreError("저장된 변호사 프로필을 선택해주세요.", 400);
     const db = createServiceClient();
     const { data: row, error } = await db.from("blog_profiles").select("*").eq("id", input.id).single();
@@ -24,11 +24,15 @@ export async function imageStrengthContext(input: Partial<EditorialProfile>, tit
     const [lawyerName, jobTitle] = String(row.lawyer_name || "").split("||");
     const portrait = Array.isArray(row.profile_images) ? row.profile_images : [];
     const office = Array.isArray(row.office_images) ? row.office_images : [];
-    const registeredChoice = (choices: string[], asked: string[] | undefined) => asked?.[0] && choices.includes(asked[0]) ? [asked[0]] : choices.slice(0, 1);
+    const registeredChoice = (choices: unknown[], asked: string[] | undefined) => {
+        const valid = [...new Set(choices.filter((s): s is string => typeof s === "string" && !!s.trim()))];
+        const preferred = asked?.[0] && valid.includes(asked[0]) ? asked[0] : valid[0];
+        return preferred ? [preferred, ...(photoFallbacks ? valid.filter(s => s !== preferred).slice(0, 9) : [])] : [];
+    };
     const profile: EditorialProfile = { id: row.id, lawyerName, jobTitle: jobTitle || "변호사", officeName: row.office_name || "",
         phone: phoneContact?.display || "", website: row.website || "", brandColor: row.brand_color || "", dnaSalt: row.dna_salt || "",
         profileImages: registeredChoice(portrait, input.profileImages), officeImages: registeredChoice(office, input.officeImages), logoImage: row.logo_image || "",
         career: selection.claims.map((c) => c.imageText), designFamily: library.designFamily,
         specialty: Array.isArray(row.specialty) ? row.specialty.filter((s: unknown): s is string => typeof s === "string") : [] };
-    return { profile, selection, token: signStrengthSelection(selection, title, body) };
+    return { profile, selection, library, token: signStrengthSelection(selection, title, body) };
 }

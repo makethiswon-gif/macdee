@@ -24,7 +24,7 @@ export async function privateObjectExists(file: string): Promise<boolean> {
  * Provider responses are stored before JSON parsing, validation or rendering.
  * A lost response never unlocks itself based on age; only an explicit new attempt can bill again.
  */
-export async function paidJsonRequest(id: string, stage: string, model: string, dispatch: () => Promise<Response>, context?: unknown) {
+export async function paidJsonRequest(id: string, stage: string, model: string, dispatch: () => Promise<Response>, context?: unknown, options: { recoverOnly?: boolean } = {}) {
     if (!/^[a-f0-9]{64}$/.test(id)) throw new ImageProductionError("AI 작업 ID를 확인해주세요.", 400);
     const storage = createServiceClient().storage.from(BUCKET);
     const prefix = `blog-paid-operations/${id}`;
@@ -37,6 +37,7 @@ export async function paidJsonRequest(id: string, stage: string, model: string, 
     let result: StoredResponse, reused = true;
     if (await privateObjectExists(resultPath)) result = await read();
     else {
+        if (options.recoverOnly) throw new PaidOperationError("저장된 기획 응답이 아직 확인되지 않습니다. 새 유료 요청은 시작하지 않았습니다. 처리 중인 작업은 잠시 후 다시 복구해주세요.", id, "response_not_found", 409);
         const { data: bucket, error: bucketError } = await createServiceClient().storage.getBucket(BUCKET);
         if (bucketError || !bucket || bucket.public) throw new ImageProductionError("AI 응답을 보존할 비공개 저장소를 확인해주세요.");
         const { error } = await storage.upload(`${prefix}/claim.json`, JSON.stringify({ id, stage, model, startedAt: new Date().toISOString() }), { contentType: "application/json", upsert: false });

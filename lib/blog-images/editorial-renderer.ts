@@ -95,7 +95,8 @@ function picture(ctx: SKRSContext2D, img: Image, x: number, y: number, w: number
 const MAX_ASSET_BYTES = 6 * 1024 * 1024;
 
 /** Only stored, public brand assets may be fetched. Never fetch arbitrary client URLs. */
-export async function readBrandAsset(source: string): Promise<Buffer> {
+export async function readBrandAsset(source: string, signal?: AbortSignal): Promise<Buffer> {
+    signal?.throwIfAborted();
     let bytes: Buffer;
     if (/^data:image\/(png|jpeg|jpg|webp);base64,/i.test(source)) {
         const b64 = source.slice(source.indexOf(",") + 1);
@@ -108,7 +109,8 @@ export async function readBrandAsset(source: string): Promise<Buffer> {
         if (!allowed || url.protocol !== "https:" || url.username || url.password) {
             throw new Error("프로필 관리에서 사진을 다시 업로드해 주세요. 공개 저장소 이미지와 업로드 파일만 사용할 수 있습니다.");
         }
-        const res = await fetch(url, { signal: AbortSignal.timeout(10_000), redirect: "error", cache: "no-store" });
+        const timeout = AbortSignal.timeout(10_000);
+        const res = await fetch(url, { signal: signal ? AbortSignal.any([signal, timeout]) : timeout, redirect: "error", cache: "no-store" });
         if (!res.ok || !res.body) throw new Error("등록된 이미지 파일을 불러오지 못했습니다.");
         const reader = res.body.getReader();
         const chunks: Uint8Array[] = [];

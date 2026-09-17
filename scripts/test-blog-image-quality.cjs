@@ -23,7 +23,8 @@ const db = { storage: { from: () => storage, getBucket: async () => ({ data: { p
 const load = Module._load;
 Module._load = function (name, ...args) {
     if (name === "@/lib/supabase/server") return { createServiceClient: () => db };
-    if (name === "@/lib/blog-images/strength-context") return { imageStrengthContext: async (p) => ({ profile: p, token: "fixture", selection: { profileId: p.id, claims: [] } }) };
+    if (name === "@/lib/blog-images/strength-context") return { imageStrengthContext: async (p) => ({ profile: p.lawyerName ? p : { ...profile, id: p.id }, token: "fixture", selection: { profileId: p.id, claims: [] },
+        library: { profileId: p.id, firmId: "fixture-firm", lawyerId: p.id, revision: 1, claims: [] } }) };
     return load.call(this, name, ...args);
 };
 const { title, article, profile, rawPlan, variants } = require("./blog-images-v7-fixtures.cjs");
@@ -35,15 +36,24 @@ const { imageReady } = require("../lib/blog-images/quality-policy.ts");
 const { digest, verifyImageRelease, recentVisualHistory, recordVisualPlan, cachedVisualPlan, saveVisualPlan } = require("../lib/blog-images/production-store.ts");
 const { POST } = require("../app/api/admin/blog-images/generate-design/route.ts");
 const { POST: PLAN } = require("../app/api/admin/blog-images/plan/route.ts");
+const { POST: PREFLIGHT } = require("../app/api/admin/blog-images/preflight/route.ts");
 const { generateQualityCard } = require("../lib/blog-images/generate-client.ts");
 const { paidJsonRequest, paidId } = require("../lib/blog-images/paid-operation.ts");
-const { normalizePlanWire, VISUAL_PLAN_SCHEMA } = require("../lib/blog-images/plan-schema.ts");
+const { normalizePlanWire, VISUAL_PLAN_SCHEMA, PLAN_NOTES_LIMITS } = require("../lib/blog-images/plan-schema.ts");
 global.FileReader = class { readAsDataURL(blob) { blob.arrayBuffer().then((bytes) => { this.result = "data:image/png;base64," + Buffer.from(bytes).toString("base64"); this.onload(); }); } };
 const payload = "quality-test:local", cookie = Buffer.from(payload + ":" + crypto.createHmac("sha256", process.env.ADMIN_TOKEN_SECRET).update(payload).digest("hex")).toString("base64url");
 const request = (body) => new Request("http://localhost/api/admin/blog-images/generate-design", { method: "POST", headers: { "Content-Type": "application/json", cookie: "admin_token=" + cookie }, body: JSON.stringify(body) });
-let planningResult, imageCalls = 0, planningCalls = 0, allowPlanning = true, failImage = false, lastImage;
+let planningResult, imageCalls = 0, planningCalls = 0, allowPlanning = true, failImage = false, lastImage, lastPlanning;
 (async () => {
     const photo = await sharp({ create: { width: 1536, height: 1024, channels: 3, background: "#386a64" } }).jpeg().toBuffer();
+    profile.profileImages = [`data:image/jpeg;base64,${photo.toString("base64")}`];
+    const seedStudio = (profileId) => {
+        const assets = ["c".repeat(64), "d".repeat(64)].map(id => ({ id, version: 1, status: "approved", renderedPath: `lawyer-studio/${profileId}/renders/${id}.jpg`, model: "fixture-studio-model" }));
+        for (const asset of assets) files.set(asset.renderedPath, photo);
+        const library = { profileId, revision: 1, blogEnabled: true, references: [], assets };
+        files.set(`lawyer-studio/${profileId}/library/v00000001.json`, JSON.stringify(library));
+        return library;
+    };
     global.fetch = async (url, options) => {
         if (String(url).includes("api.openai.com/v1/models/")) return Response.json({ id: "fixture-model" });
         if (String(url).startsWith("https://fixtures.invalid/")) return new Response(files.get(new URL(url).pathname.slice(1)), { headers: { "Content-Type": "image/png" } });
@@ -54,14 +64,58 @@ let planningResult, imageCalls = 0, planningCalls = 0, allowPlanning = true, fai
         }
         if (String(url).includes("anthropic.com")) {
             planningCalls++;
+            lastPlanning = JSON.parse(options.body);
             assert.ok(allowPlanning, "No Claude calls are allowed during image rendering or editing");
             return Response.json({ content: [{ type: "text", text: JSON.stringify(planningResult) }] });
         }
         throw new Error("Unexpected network: " + url);
     };
+    for (const basicProfile of [undefined, true, false]) {
+        const missing = await PREFLIGHT(request({ profileId: profile.id, basicProfile }));
+        assert.equal(missing.status, 422); assert.equal((await missing.json()).code, "studio_approval_required");
+        assert.equal((await PLAN(request({ profile, title, content: article, basicProfile }))).status, 422);
+    }
+    assert.equal(planningCalls, 0); assert.equal(imageCalls, 0, "Missing studio approval blocks all paid image planning");
+    const approvedLibrary = seedStudio(profile.id);
+    const studioLibraryPath = `lawyer-studio/${profile.id}/library/v00000001.json`;
+    files.set(studioLibraryPath, JSON.stringify({ ...approvedLibrary, blogEnabled: false }));
+    for (const basicProfile of [true, false]) {
+        const blocked = await PREFLIGHT(request({ profileId: profile.id, basicProfile }));
+        const reason = await blocked.json();
+        assert.equal(blocked.status, 422); assert.equal(reason.code, "studio_blog_disabled");
+        assert.match(reason.error, /승인된 사진은 2장/); assert.match(reason.error, /사진을 다시 생성하거나 재승인할 필요는 없습니다/);
+        const planBlocked = await PLAN(request({ profile, title, content: article, basicProfile }));
+        assert.equal(planBlocked.status, 422); assert.match((await planBlocked.json()).error, /블로그 연결이 꺼져/);
+    }
+    assert.equal(planningCalls, 0); assert.equal(imageCalls, 0, "Disabled linking cannot bill a new plan or photograph");
+    assert.equal(JSON.parse(files.get(studioLibraryPath)).blogEnabled, false, "Readiness never silently enables blog usage");
+    assert.deepEqual(JSON.parse(files.get(studioLibraryPath)).assets, approvedLibrary.assets, "Approval remains intact while linking is disabled");
+    files.set(studioLibraryPath, JSON.stringify(approvedLibrary));
+    for (const basicProfile of [undefined, true, false]) {
+        const r = await PREFLIGHT(request({ profileId: profile.id, basicProfile }));
+        assert.equal(r.status, 200, JSON.stringify(await r.clone().json()));
+        const prepared = await r.json(); assert.equal(prepared.basicProfile, true); assert.deepEqual(prepared.proof, []);
+        assert.deepEqual(prepared.dimensions, [{ type: "info", width: 2000, height: 2000 }, { type: "contact", width: 2000, height: 2000 }]);
+    }
+    const registered = profile.profileImages;
+    profile.profileImages = [];
+    assert.equal((await PREFLIGHT(request({ profileId: profile.id }))).status, 200, "Approved studio photos need no registered photo fallback");
+    profile.profileImages = registered;
+    assert.equal(imageCalls, 0); assert.equal(planningCalls, 0, "Readiness never dispatches paid work");
     const raw = rawPlan(variants[0]);
     delete raw.cards[1].art; raw.cards[1].infographic = variants[2];
     const plan = validateVisualPlan(raw, title, article, false);
+    const detailedThesis = "권리 행사 여부는 계약 내용과 증거를 함께 확인해야 하며, 구체적인 사정에 따라 예외가 적용될 수 있습니다. ".repeat(12).trim();
+    assert.ok(detailedThesis.length > 300 && detailedThesis.length < PLAN_NOTES_LIMITS.thesis);
+    assert.equal(validateVisualPlan({ ...raw, thesis: detailedThesis }, title, article, false).thesis, detailedThesis, "Internal notes retain complete conditions beyond the old 300-character cutoff");
+    for (const thesis of [null, [], { summary: "invalid" }, "", "x".repeat(PLAN_NOTES_LIMITS.thesis + 1)]) {
+        assert.throws(() => validateVisualPlan({ ...raw, thesis }, title, article, false), /원고의 핵심/);
+    }
+    const oversizedCard = structuredClone(raw); oversizedCard.cards[0].heading = "x".repeat(71);
+    assert.throws(() => validateVisualPlan(oversizedCard, title, article, false), /이미지 제목/, "Printed text limits remain strict");
+    assert.match(VISUAL_PLAN_SCHEMA.properties.thesis.description, /4000/);
+    assert.match(VISUAL_PLAN_SCHEMA.properties.cards.items.properties.art.properties.scene.description, /1400/);
+    assert.ok(!JSON.stringify(VISUAL_PLAN_SCHEMA).includes('"maxLength"'), "Use descriptions for unsupported provider length constraints");
     assert.ok(!JSON.stringify(VISUAL_PLAN_SCHEMA).includes("anyOf"), "Provider grammar must not contain combinatorial nullable unions");
     const wire = rawPlan(variants[0]);
     wire.cards[0].infographic = { kind: "none", items: [] }; wire.cards[0].alternateArt = { medium: "none" };
@@ -78,10 +132,24 @@ let planningResult, imageCalls = 0, planningCalls = 0, allowPlanning = true, fai
     const planId = digest("fixture-plan"); assert.equal(await cachedVisualPlan(planId), null);
     await saveVisualPlan(planId, plan); const recovered = await cachedVisualPlan(planId);
     assert.deepEqual(recovered.paragraphs, []); assert.equal(validateVisualPlan(recovered, title, article).sourceHash, plan.sourceHash);
-    planningResult = { ...raw, direction: { concept: "원본과 정리본", rationale: "서로 다른 자료의 역할", alternatives: [{ concept: "대화 흐름", reasonNotChosen: "비교가 우선" }, { concept: "날짜별 기록", reasonNotChosen: "본문 도표로 설명" }], palette: "teal", typography: "sans", composition: "split", motif: "두 자료의 차이" } };
-    const requestPlan = { profile, title, content: article };
+    planningResult = { ...raw, thesis: detailedThesis, direction: { concept: "원본과 정리본", rationale: "서로 다른 자료의 역할", alternatives: [{ concept: "대화 흐름", reasonNotChosen: "비교가 우선" }, { concept: "날짜별 기록", reasonNotChosen: "본문 도표로 설명" }], palette: "teal", typography: "sans", composition: "split", motif: "두 자료의 차이" } };
+    const requestPlan = { profile, title, content: article, basicProfile: true };
+    const beforeRecoveryFiles = files.size;
+    const noResponse = await PLAN(request({ ...requestPlan, recoverOnly: true }));
+    assert.equal(noResponse.status, 409); assert.equal((await noResponse.json()).code, "response_not_found");
+    assert.equal(planningCalls, 0); assert.equal(files.size, beforeRecoveryFiles, "Missing recovery never reserves or dispatches a paid request");
     let plannedResponse = await PLAN(request(requestPlan)); assert.equal(plannedResponse.status, 200, JSON.stringify(await plannedResponse.clone().json()));
-    const cachedCalls = planningCalls, firstPlan = (await plannedResponse.json()).plan;
+    const cachedCalls = planningCalls;
+    let firstPlan = (await plannedResponse.json()).plan;
+    assert.equal(firstPlan.thesis, detailedThesis);
+    const recoveryKey = paidId("editorial-three-v1", { source: firstPlan.sourceHash, profileId: profile.id, attempt: "" });
+    files.delete(`blog-image-plans/${recoveryKey}.json`);
+    const recoveredRaw = await PLAN(request({ ...requestPlan, recoverOnly: true }));
+    assert.equal(recoveredRaw.status, 200, JSON.stringify(await recoveredRaw.clone().json()));
+    firstPlan = (await recoveredRaw.json()).plan;
+    assert.equal(firstPlan.thesis, detailedThesis);
+    assert.equal(planningCalls, cachedCalls, "Raw paid response recovery neither truncates nor requests another Claude call");
+    assert.equal((await PLAN(request({ ...requestPlan, recoverOnly: true, forceReplan: true, attemptId: "conflicting", confirmPaid: true }))).status, 400);
     assert.ok(isLayoutRecipe(firstPlan.layoutRecipe), "A new article receives one saved geometric recipe");
     assert.equal((await recentVisualHistory(profile.id))[0].layoutRecipe, firstPlan.layoutRecipe);
     await recordVisualPlan(profile.id, { ...firstPlan, sourceHash: digest("subsequent-article"), layoutRecipe: "photo-open" });
@@ -203,5 +271,161 @@ let planningResult, imageCalls = 0, planningCalls = 0, allowPlanning = true, fai
     resolveProvider(Response.json({ usage: { output_tokens: 123 }, ok: true })); await running;
     assert.equal((await paidJsonRequest(id, "fixture", "fixture", dispatch)).data.ok, true);
     assert.equal(concurrentCalls, 1, "Concurrent/recovered operations bill once");
-    console.log("PASS: Claude planning retained, zero AI review calls, no automatic art retry, High default, actual PNG/layout checks, private cache/reuse, signed release/tampering, legacy held-result recovery, one free layout repair, timeout deduplication, private bucket guard.");
+    const { EDITORIAL_SET_FORMAT, PROFILE_CARD_TYPES } = require("../lib/blog-images/card-types.ts");
+    const { imageSetReady } = require("../lib/blog-images/quality-policy.ts");
+    const managed = { ...profile, id: "mqaaoypk621p6", lawyerName: "김정웅", officeName: "법무법인 양영&정훈" };
+    const studioLibrary = seedStudio(managed.id), studioPhotos = studioLibrary.assets;
+    process.env.ANTHROPIC_API_KEY = "fixture";
+    allowPlanning = true;
+    planningResult = { ...rawPlan(), direction: { concept: "기록 확인", rationale: "원문을 표현", alternatives: [], palette: "teal", typography: "sans", composition: "split", motif: "자료" } };
+    delete process.env.BLOG_PROFILE_EDITIONS_ENABLED;
+    const unchangedResponse = await PLAN(request({ profile: managed, title: title + " 기존 발행 유지", content: article, basicProfile: true }));
+    assert.equal(unchangedResponse.status, 200, JSON.stringify(await unchangedResponse.clone().json()));
+    const unchangedPlan = (await unchangedResponse.json()).plan;
+    assert.equal(unchangedPlan.setFormat, EDITORIAL_SET_FORMAT, "New work always uses the approved editorial default, regardless of the old feature flag");
+    assert.equal(unchangedPlan.cards.length, 3);
+    process.env.BLOG_PROFILE_EDITIONS_ENABLED = "true";
+    planningResult.cards = [planningResult.cards[0]];
+    planningResult.cards[0].heading = "카톡 증거\n상간소송";
+    planningResult.cards[0].deck = "";
+    const threeRequest = { profile: managed, title, content: article, basicProfile: true };
+    const threeResponse = await PLAN(request(threeRequest));
+    assert.equal(threeResponse.status, 200, JSON.stringify(await threeResponse.clone().json()));
+    const three = (await threeResponse.json()).plan;
+    assert.equal(three.setFormat, EDITORIAL_SET_FORMAT); assert.equal(three.cards.length, 3); assert.equal(three.layoutRecipe, "title-band", "Kim keeps his assigned campaign edition, even with recent matching covers");
+    assert.equal(three.cards[0].deck, "", "Keyword posters accept intentionally empty subtitles");
+    assert.match(JSON.stringify(lastPlanning.system), /8~24자/);
+    assert.match(JSON.stringify(lastPlanning.system), /deck은 빈 문자열/);
+    const threeCalls = planningCalls;
+    assert.equal((await PLAN(request(threeRequest))).status, 200); assert.equal(planningCalls, threeCalls);
+    allowPlanning = false;
+    const rendered = [];
+    const generatedBefore = imageCalls;
+    for (const cardType of PROFILE_CARD_TYPES) {
+        const response = await POST(request({ ...threeRequest, plan: three, cardType }));
+        assert.equal(response.status, 200, JSON.stringify(await response.clone().json())); rendered.push((await response.json()).card);
+    }
+    assert.equal(imageCalls, generatedBefore + 1, "Only the cover invokes the image model");
+    assert.equal(lastImage.size, "1024x1024", "Poster art is generated square instead of cropping a narrow portrait");
+    assert.match(lastImage.prompt, /poster|POSTER/);
+    assert.match(lastImage.prompt, /negative space/);
+    assert.doesNotMatch(lastImage.prompt, /No text space is needed|Confident close framing|Avoid empty expanses/);
+    assert.equal(rendered[0].layoutRecipe, three.layoutRecipe, "The real API preserves photo-open instead of replacing it with headline");
+    assert.ok(rendered[0].photoChecks.areaRatio >= 0.5);
+    assert.equal(rendered[2].photoChecks.source, "studio", "Contact uses an owned studio photo when available, never the cover background");
+    assert.equal(rendered[2].aiGenerated, true);
+    assert.equal(rendered[1].photoChecks.source, "studio");
+    assert.equal(imageReady({ ...rendered[1], studioPhotos: undefined }), false, "A cached registered info card cannot pass client readiness");
+    assert.equal(imageReady({ ...rendered[1], photoChecks: { source: "portrait" } }), false);
+    assert.equal(imageSetReady(rendered), true);
+    for (const card of rendered) {
+        assert.equal(card.width, 2000); assert.equal(card.height, 2000);
+        const png = await sharp(Buffer.from(card.imageDataUrl.split(",")[1], "base64")).metadata();
+        assert.equal(png.width, 2000); assert.equal(png.height, 2000);
+    }
+    const squareCoverPath = `blog-image-production/${rendered[0].productionId}.json`;
+    const oldPortrait = JSON.parse(files.get(squareCoverPath));
+    oldPortrait.card.layoutRevision = 13; oldPortrait.card.width = 1200; oldPortrait.card.height = 1500;
+    oldPortrait.card.imageDataUrl = "data:image/png;base64,old-portrait";
+    files.set(squareCoverPath, JSON.stringify(oldPortrait));
+    const squareResponse = await POST(request({ ...threeRequest, plan: three, cardType: "thumbnail" }));
+    assert.equal(squareResponse.status, 200);
+    const squareCover = (await squareResponse.json()).card;
+    assert.equal(squareCover.productionId, rendered[0].productionId);
+    assert.equal(squareCover.layoutRevision, require("../lib/blog-images/card-types.ts").EDITORIAL_LAYOUT_REVISION); assert.equal(squareCover.width, 2000); assert.equal(squareCover.height, 2000);
+    assert.notEqual(squareCover.imageDataUrl, oldPortrait.card.imageDataUrl);
+    assert.equal(imageCalls, generatedBefore + 1, "Square re-layout keeps paid artwork and makes no new model call");
+    assert.equal((await POST(request({ ...threeRequest, plan: three, cardType: "illustration" }))).status, 400);
+    const changedArticle = article + "\n\n새 원고의 별도 문단입니다.";
+    const nextPlan = validateVisualPlan({ ...three, cards: three.cards.map((c) => c.type === "info" ? { ...c, heading: "승소 보장", points: ["조작한 경력"] } : c) }, title, changedArticle, false);
+    assert.equal((await POST(request({ ...threeRequest, content: changedArticle, plan: nextPlan, cardType: "info" }))).status, 409, "An old proof cannot be borrowed by another article");
+    nextPlan.proofSelection = { ...nextPlan.proofSelection, sourceHash: nextPlan.sourceHash };
+    nextPlan.proofToken = require("../lib/blog-images/proof-selection.ts").signImageProof(nextPlan.proofSelection);
+    const nextInfoResponse = await POST(request({ ...threeRequest, content: changedArticle, plan: nextPlan, cardType: "info" }));
+    assert.equal(nextInfoResponse.status, 200, JSON.stringify(await nextInfoResponse.clone().json()));
+    const nextInfo = (await nextInfoResponse.json()).card;
+    assert.equal(nextInfo.imageDataUrl, rendered[1].imageDataUrl, "Different manuscript reuses identical credential pixels");
+    assert.notEqual(nextInfo.releaseToken, rendered[1].releaseToken, "Each source has an independent release");
+    assert.ok(!nextInfo.altText.includes("조작한"));
+    assert.equal(imageCalls, generatedBefore + 1); assert.equal(planningCalls, threeCalls);
+    const { STUDIO_FORMAT } = require("../lib/lawyer-studio/types.ts");
+    const beforeStudioReuse = imageCalls;
+    const threeStudio = await POST(request({ ...threeRequest, plan: three, cardType: "info" }));
+    assert.equal(threeStudio.status, 200, JSON.stringify(await threeStudio.clone().json()));
+    const threeStudioCard = (await threeStudio.json()).card;
+    assert.equal(threeStudioCard.photoChecks.source, "studio");
+    assert.equal(threeStudioCard.aiGenerated, true); assert.equal(threeStudioCard.studioPhotos.length, 1);
+    const repeatStudio = await POST(request({ ...threeRequest, plan: three, cardType: "info" }));
+    assert.equal((await repeatStudio.json()).card.productionId, threeStudioCard.productionId, "Approved photo selection is stable");
+    const chosen = studioPhotos.find(a => a.id === threeStudioCard.studioPhotos[0].assetId);
+    const contactPair = await POST(request({ ...threeRequest, plan: three, cardType: "contact" }));
+    const contactPairCard = (await contactPair.json()).card;
+    assert.equal(contactPairCard.photoChecks.source, "studio");
+    assert.notEqual(contactPairCard.studioPhotos[0].assetId, chosen.id, "Contact and info use different owned approved photos when available");
+    files.set(`lawyer-studio/${managed.id}/library/v00000001.json`, JSON.stringify({ ...studioLibrary, assets: [chosen] }));
+    const singleStudio = await POST(request({ ...threeRequest, plan: three, cardType: "info" }));
+    assert.equal((await singleStudio.json()).card.photoChecks.source, "studio", "One approved photo is enough for the three-card format");
+    const contactWithStudio = await POST(request({ ...threeRequest, plan: three, cardType: "contact" }));
+    assert.equal((await contactWithStudio.json()).card.photoChecks.source, "studio", "A single approved portrait remains usable without extra generation");
+    files.set(`lawyer-studio/${managed.id}/library/v00000001.json`, JSON.stringify({ ...studioLibrary, assets: [{...chosen,status:'draft'}] }));
+    const unapprovedStudio = await POST(request({ ...threeRequest, plan: three, cardType: "info" }));
+    assert.equal(unapprovedStudio.status, 422, "A revoked approval cannot fall back or leak through the render cache");
+    assert.match((await unapprovedStudio.json()).error, /승인된 스튜디오 사진/);
+    const beforeBlockedCalls = [planningCalls, imageCalls];
+    assert.equal((await PLAN(request(threeRequest))).status, 422, "Even cached plans must recheck studio readiness");
+    assert.equal((await POST(request({ ...threeRequest, plan: three, cardType: "thumbnail" }))).status, 422, "Cover cannot start while its second image is missing");
+    assert.deepEqual([planningCalls, imageCalls], beforeBlockedCalls);
+    const revokedContact = await POST(request({ ...threeRequest, plan: three, cardType: "contact" }));
+    assert.notEqual((await revokedContact.json()).card.photoChecks.source, "studio", "Contact also rechecks approval before returning a cached image");
+    files.set(`lawyer-studio/${managed.id}/library/v00000001.json`, JSON.stringify({ ...studioLibrary, blogEnabled: false }));
+    const disabledStudio = await POST(request({ ...threeRequest, plan: three, cardType: "info" }));
+    assert.equal(disabledStudio.status, 422, "Disabled linking cannot reuse a cached studio image or registered fallback");
+    files.set(`lawyer-studio/${managed.id}/library/v00000001.json`, JSON.stringify(studioLibrary));
+    assert.equal(imageCalls, beforeStudioReuse, "Approved studio reuse is not paid generation");
+    delete process.env.BLOG_PROFILE_EDITIONS_ENABLED;
+    allowPlanning = true;
+    const studioRequest = { ...threeRequest, title: title + " 스튜디오" };
+    const studioResponse = await PLAN(request(studioRequest));
+    assert.equal(studioResponse.status, 200, JSON.stringify(await studioResponse.clone().json()));
+    const studioDefault = (await studioResponse.json()).plan;
+    assert.equal(studioDefault.setFormat, EDITORIAL_SET_FORMAT); assert.equal(studioDefault.cards.length, 3, "Studio approval cannot silently switch new articles back to four images");
+    const studioPlan = validateVisualPlan({ ...rawPlan(), setFormat: STUDIO_FORMAT, publicationEdition: "jeongung-202609-v1",
+        studioPhotos: require("../lib/lawyer-studio/blog.ts").selectStudioPhotos(studioLibrary, studioDefault.sourceHash) }, studioRequest.title, article, false);
+    const oldStudioId = paidId("plan-v12-schema2", { source: studioPlan.sourceHash, profileId: managed.id, identity: getMagazineIdentity(managed), claims: [], revision: undefined, attempt: "" });
+    await saveVisualPlan(oldStudioId, studioPlan);
+    const studioCalls = [planningCalls, imageCalls]; allowPlanning = false;
+    const studioCards = [];
+    for (const cardType of ["thumbnail", "illustration", "info", "contact"]) {
+        const r = await POST(request({ ...studioRequest, plan: studioPlan, cardType }));
+        assert.equal(r.status, 200, JSON.stringify(await r.clone().json())); studioCards.push((await r.json()).card);
+    }
+    assert.equal(imageSetReady(studioCards), true); assert.ok(imageCalls <= studioCalls[1] + 1); assert.equal(planningCalls, studioCalls[0]);
+    assert.equal(studioCards[1].model, "fixture-studio-model"); assert.equal(studioCards[3].aiGenerated, true);
+    const changedLibrary = structuredClone(studioLibrary); changedLibrary.revision = 2; changedLibrary.assets[0].version = 2;
+    files.set(`lawyer-studio/${managed.id}/library/v00000002.json`, JSON.stringify(changedLibrary));
+    assert.equal((await POST(request({ ...studioRequest, plan: studioPlan, cardType: "info" }))).status, 409, "Cached cards cannot bypass changed approval versions");
+    const rebound = await PLAN(request({ ...studioRequest, recoverLegacy: true })); assert.equal(rebound.status, 200, JSON.stringify(await rebound.clone().json()));
+    assert.ok((await rebound.json()).plan.studioPhotos.some((p) => p.version === 2));
+    assert.equal(planningCalls, studioCalls[0], "Photo-only replacement does not replan the paid cover");
+    const migrationProfile = { ...managed, id: "migration-fixture" };
+    seedStudio(migrationProfile.id);
+    const legacyPlan = validateVisualPlan(rawPlan(), title, article, false);
+    const legacyKey = paidId("plan-v12-schema2", { source: legacyPlan.sourceHash, profileId: migrationProfile.id,
+        identity: getMagazineIdentity(migrationProfile), claims: [], revision: undefined, attempt: "" });
+    await saveVisualPlan(legacyKey, legacyPlan);
+    const legacyCover = await POST(request({ profile: migrationProfile, title, content: article, plan: legacyPlan, cardType: "thumbnail" }));
+    assert.equal(legacyCover.status, 200);
+    const migrationCalls = [planningCalls, imageCalls];
+    const converted = await PLAN(request({ profile: migrationProfile, title, content: article, basicProfile: true }));
+    assert.equal(converted.status, 200, JSON.stringify(await converted.clone().json()));
+    const convertedPlan = (await converted.json()).plan;
+    assert.equal(convertedPlan.setFormat, EDITORIAL_SET_FORMAT); assert.equal((await cachedVisualPlan(legacyKey)).cards.length, 4);
+    assert.equal((await POST(request({ profile: migrationProfile, title, content: article, plan: convertedPlan, cardType: "thumbnail" }))).status, 200);
+    assert.deepEqual([planningCalls, imageCalls], migrationCalls, "Four-to-three conversion reuses both saved planning and paid cover art without model calls");
+    const photos = require('../lib/blog-images/photo-generator.ts');
+    const beforeChangedPrompt = imageCalls;
+    await assert.rejects(photos.generateEditorialPhoto(three.cards[0].art, 'high', {profileId:managed.id,attempt:'unknown-old-request',recoverOnly:true,frame:'portrait'}), /추가 과금/);
+    assert.equal(imageCalls,beforeChangedPrompt,'A changed prompt/frame cannot restart an unresolved paid job');
+    assert.match(photos.editorialPhotoPrompt(three.cards[0].art,'portrait'), /FINAL FRAMING OVERRIDE: portrait 4:5/);
+    console.log("PASS: legacy/three/studio-four-card pipelines, one cover-model call, free approved portraits/contact, revocation and free photo rebinding, source-bound releases and paid guards.");
 })().catch((e) => { console.error(e); process.exitCode = 1; });

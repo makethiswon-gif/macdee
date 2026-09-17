@@ -36,7 +36,8 @@ const { DEFAULT_DIRECTION, MAGAZINE_PALETTES } = require("../lib/blog-images/mag
 if (!live && !liveArt && !liveRest && !refreshFinal && !registeredId) {
     const moduleLoad = Module._load;
     Module._load = function (name, ...args) {
-        if (name === "@/lib/blog-images/strength-context") return { imageStrengthContext: async (profile) => ({ profile, selection: { profileId: profile.id, firmId: "", revision: 0, designFamily: "auto", claims: [] }, token: "fixture" }) };
+        if (name === "@/lib/blog-images/strength-context") return { imageStrengthContext: async (profile) => ({ profile, selection: { profileId: profile.id, firmId: "", revision: 0, designFamily: "auto", claims: [] }, token: "fixture",
+            library: { profileId: profile.id, firmId: "", lawyerId: profile.id, revision: 0, claims: [] } }) };
         if (name === "@/lib/blog-images/production-store") return { ...moduleLoad.call(this, name, ...args),
             beginImageProduction: async (id, profileId, sourceHash) => ({ checkpoint: { id, profileId, sourceHash, state: "started" }, existing: false }), saveImageProduction: async () => {},
             preservedArt: async () => null, indexPreservedArt: async () => {} };
@@ -213,7 +214,7 @@ async function main() {
         assert.equal(images, 1); assert.equal(reviews, 0);
         let timeouts = 0;
         global.fetch = async () => { timeouts++; throw new DOMException("The operation was aborted due to timeout", "TimeoutError"); };
-        r = await PLAN(req({ profile, title, content: article }));
+        r = await PLAN(req({ profile: { ...profile, profileImages: ["data:image/png;base64," + photo.toString("base64")] }, title, content: article }));
         assert.equal(r.status, 502);
         const failure = await r.json();
         assert.match(failure.error, /응답이 지연되거나 연결이 끊겼습니다/);

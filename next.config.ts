@@ -1,8 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["@napi-rs/canvas"],
+  serverExternalPackages: ["@napi-rs/canvas", "@techstark/opencv-js"],
   outputFileTracingIncludes: {
+    "/api/admin/lawyer-studio": ["./lib/lawyer-studio/models/*.xml", "./lib/lawyer-studio/style-references/*.jpg"],
+    "/api/admin/lawyer-studio/batch": ["./lib/lawyer-studio/models/*.xml", "./lib/lawyer-studio/style-references/*.jpg"],
+    "/api/admin/lawyer-studio/reference-preview": ["./lib/lawyer-studio/models/*.xml", "./lib/lawyer-studio/style-references/*.jpg"],
+    "/api/admin/lawyer-studio/generate": ["./lib/lawyer-studio/models/*.xml"],
+    "/api/admin/blog-images/plan": ["./public/fonts/noto-*-kr-korean-*-normal.woff2"],
     "/api/admin/blog-images/generate-design": ["./public/fonts/noto-*-kr-korean-*-normal.woff2"],
     "/api/admin/blog-images/preflight": ["./public/fonts/noto-*-kr-korean-*-normal.woff2"],
   },

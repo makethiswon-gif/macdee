@@ -5,12 +5,14 @@ import { generateQualityCard, forEachImage } from "@/lib/blog-images/generate-cl
 import { useEffect, useRef, useState } from "react";
 import { Check, Copy, Download, Eye, Loader2, Lightbulb, PenLine, Save, ImageIcon, RefreshCw, X } from "lucide-react";
 import { toNaverHtml } from "@/lib/blog-naver-html";
-import { BLOG_CARD_TYPES, CARD_LABELS, cardRequestProfile, type BlogCardType, type BlogImageCard, type EditorialProfile } from "@/lib/blog-images/card-types";
+import { BLOG_CARD_TYPES, EDITORIAL_SET_FORMAT, cardTypesFor, cardLabel, CARD_LABELS, cardRequestProfile, type BlogCardType, type BlogImageCard, type EditorialProfile } from "@/lib/blog-images/card-types";
 import type { ArticleVisualPlan } from "@/lib/blog-images/visual-plan-types";
 import { copyBlogHtml, publishJson, sameDraft, type PublishBatch, type PublishDraft } from "@/lib/blog-publish-workflow";
 import BlogStrengthPicker, { strengthScope, type StrengthChoice } from "@/components/admin/BlogStrengthPicker";
 import type { StrengthSelection, StrengthReview } from "@/lib/blog-strengths";
 import BlogCoverChoices from "@/components/admin/BlogCoverChoices";
+import BlogImageProof from "@/components/admin/BlogImageProof";
+import { studioLibraryUrl, studioRecoveryAction } from "@/lib/lawyer-studio/types";
 
 interface BlogSetting {
     id: string; lawyerName: string; officeName: string;
@@ -39,10 +41,12 @@ export default function BlogPublishPage() {
     const [body, setBody] = useState("");
     const [contactWarning, setContactWarning] = useState("");
     const [strengthChoice, setStrengthChoice] = useState<StrengthChoice | null>(null);
+    const [basicProfile, setBasicProfile] = useState(true);
     const [usedStrengths, setUsedStrengths] = useState<StrengthSelection | null>(null);
     const [strengthReview, setStrengthReview] = useState<StrengthReview | null>(null);
     const [editorialWarnings, setEditorialWarnings] = useState<string[]>([]);
     const [savedId, setSavedId] = useState<string | null>(null);
+    const [legacySource, setLegacySource] = useState(false);
     const [savedDraft, setSavedDraft] = useState<PublishDraft | null>(null);
     const [cards, setCards] = useState<BlogImageCard[]>([]);
     const [coverOptions, setCoverOptions] = useState<BlogImageCard[]>([]);
@@ -64,7 +68,7 @@ export default function BlogPublishPage() {
     const imageAttempts = useRef<Partial<Record<BlogCardType, string>>>({});
     const writingAttempt = useRef<string>("");
     const planningAttempt = useRef<string>("");
-    const [savedPosts, setSavedPosts] = useState<{ id: string; title: string; body: string; field: string | null; topic: string | null }[]>([]);
+    const [savedPosts, setSavedPosts] = useState<{ id: string; title: string; body: string; field: string | null; topic: string | null; card_images?: { type: string }[] }[]>([]);
 
     const profile = profiles.find((p) => p.id === profileId);
     const draft: PublishDraft = { profileId, title: title.trim(), body, field: draftTopic?.field || null, topic: draftTopic?.topic || null,
@@ -73,7 +77,9 @@ export default function BlogPublishPage() {
     const dirty = !sameDraft(savedDraft, draft);
     const busy = step !== "idle" || exporting;
     const valid = !!profileId && !!title.trim() && !!body.trim();
-    const complete = cardUrls.length === BLOG_CARD_TYPES.length && imageSetReady(cards);
+    const currentSet = batch.current?.plan || cards[0] || { setFormat: EDITORIAL_SET_FORMAT };
+    const requiredTypes = cardTypesFor(currentSet);
+    const complete = cardUrls.length === requiredTypes.length && imageSetReady(cards);
 
     useEffect(() => {
         mounted.current = true;
@@ -116,8 +122,10 @@ export default function BlogPublishPage() {
         if (copyTimer.current) clearTimeout(copyTimer.current);
         clearImages(); setTopics([]); setTopicNotice(""); setPicked(null); setDraftTopic(null); setDirectTopic(""); setDetail("");
         setTitle(""); setBody(""); setSavedId(null); setSavedDraft(null);
+        setLegacySource(false);
         setContactWarning("");
         setStrengthChoice(null); setUsedStrengths(null); setStrengthReview(null); setEditorialWarnings([]);
+        setBasicProfile(true);
         setError(""); setCopied(false); setProgress(""); setStep("idle"); setImagesStale(false);
         setArticleView("edit");
     };
@@ -144,6 +152,7 @@ export default function BlogPublishPage() {
     // Hand off immutable drafts and IDs explicitly, never through pending React state.
     const persist = async (snapshot: PublishDraft, id: string | null, op: AbortController) => {
         setStep("saving"); setProgress("원고 저장 중…");
+        if (legacySource) id = null;
         if (id) {
             await publishJson("/api/admin/blog-posts", op.signal, { id, title: snapshot.title, body: snapshot.body,
                 field: snapshot.field, topic: snapshot.topic, status: "draft", card_images: [] }, "PATCH");
@@ -152,7 +161,7 @@ export default function BlogPublishPage() {
             if (!data.id) throw new Error("저장된 원고 ID가 없습니다.");
             id = data.id;
         }
-        if (current(op)) { setSavedId(id); setSavedDraft(snapshot); }
+        if (current(op)) { setSavedId(id); setSavedDraft(snapshot); setLegacySource(false); }
         return id;
     };
 
@@ -184,7 +193,7 @@ export default function BlogPublishPage() {
             } catch (e) { if (current(op)) failures[type] = message(e); }
         }, op.signal);
         if (new Set(Object.values(frozen.cards).map((card) => card?.setId).filter(Boolean)).size > 1) {
-            if (current(op)) { batch.current = null; setError("제작 중 변호사 정보나 구성안이 변경됐습니다. 원본은 보존했으며, 현재 설정으로 4장을 다시 구성해주세요."); }
+            if (current(op)) { batch.current = null; setError("제작 중 변호사 정보나 구성안이 변경됐습니다. 원본은 보존했으며, 현재 설정으로 세트를 다시 구성해주세요."); }
             return;
         }
         // Serialize database merges so one upload cannot overwrite another card.
@@ -196,8 +205,8 @@ export default function BlogPublishPage() {
             setProgress(`${CARD_LABELS[type]} 저장 중…`);
             try {
                 const data = await publishJson<{ images: { type: BlogCardType; url: string }[] }>("/api/admin/blog-posts/images", op.signal,
-                    { postId: frozen.postId, image: { type, productionId: card.productionId, releaseToken: card.releaseToken, setId: card.setId }, index: BLOG_CARD_TYPES.indexOf(type),
-                        total: BLOG_CARD_TYPES.length, requiredTypes: BLOG_CARD_TYPES });
+                    { postId: frozen.postId, image: { type, productionId: card.productionId, releaseToken: card.releaseToken, setId: card.setId }, index: cardTypesFor(frozen.plan).indexOf(type),
+                        total: cardTypesFor(frozen.plan).length, requiredTypes: cardTypesFor(frozen.plan), setFormat: frozen.plan.setFormat });
                 const url = data.images?.find((image) => image.type === type)?.url;
                 if (!url) throw new Error("저장된 이미지 주소가 없습니다.");
                 if (current(op)) { frozen.urls[type] = url; syncBatch(frozen, op); }
@@ -206,9 +215,9 @@ export default function BlogPublishPage() {
         if (current(op)) setIssues((prev) => ({ ...prev, ...failures }));
     };
 
-    const makeCards = async (snapshot: PublishDraft, postId: string, op: AbortController) => {
+    const makeCards = async (snapshot: PublishDraft, postId: string, op: AbortController, recoverPlanOnly = false) => {
         setStep("cards"); setProgress("변호사 정보 확인 중…");
-        await publishJson("/api/admin/blog-images/preflight", op.signal, { profileId: snapshot.profileId });
+        await publishJson("/api/admin/blog-images/preflight", op.signal, { profileId: snapshot.profileId, basicProfile, topic: `${snapshot.title}\n${snapshot.body}` });
         const data = await publishJson<{ profile: EditorialProfile }>(`/api/admin/blog-profiles?id=${encodeURIComponent(snapshot.profileId)}`, op.signal);
         if (!data.profile || data.profile.id !== snapshot.profileId) throw new Error("변호사 상세 정보가 일치하지 않습니다.");
         const checked = await publishJson<{ selection: StrengthSelection; token: string; review: StrengthReview }>("/api/admin/blog-strengths/select", op.signal,
@@ -217,13 +226,13 @@ export default function BlogPublishPage() {
         if (current(op)) { setUsedStrengths(checked.selection); setStrengthReview(checked.review); }
         setProgress("원고 전체를 읽고 이미지 구성 기획 중…");
         const planned = await publishJson<{ plan: ArticleVisualPlan }>("/api/admin/blog-images/plan", op.signal,
-            { title: snapshot.title, content: snapshot.body, profile: { id: data.profile.id }, strengthToken: checked.token,
-                attemptId: planningAttempt.current || undefined, confirmPaid: !!planningAttempt.current, forceReplan: !!planningAttempt.current });
+            { title: snapshot.title, content: snapshot.body, profile: { id: data.profile.id }, strengthToken: checked.token, basicProfile,
+                attemptId: planningAttempt.current || undefined, confirmPaid: !!planningAttempt.current, forceReplan: !recoverPlanOnly && !!planningAttempt.current, recoverOnly: recoverPlanOnly });
         if (!planned.plan) throw new Error("이미지 구성안을 받지 못했습니다.");
         if (!current(op)) return;
         const frozen: PublishBatch = { postId, draft: snapshot, profile: data.profile, plan: planned.plan, cards: {}, urls: {} };
         batch.current = frozen; setImagesStale(false);
-        await runCards(frozen, BLOG_CARD_TYPES, op);
+        await runCards(frozen, cardTypesFor(frozen.plan), op);
     };
 
     const write = async (topic = picked) => {
@@ -237,7 +246,13 @@ export default function BlogPublishPage() {
         try {
             if (valid && dirty) await persist(draft, savedId, op);
             setStep("writing");
-            await publishJson("/api/admin/blog-images/preflight", op.signal, { profileId, checkModel: true });
+            let imagePreparationError = "";
+            try {
+                await publishJson("/api/admin/blog-images/preflight", op.signal, { profileId, checkModel: true, basicProfile, topic: `${topic.field} ${topic.topic}` });
+            } catch (e) {
+                if (!current(op)) return;
+                imagePreparationError = message(e);
+            }
             const content = detail.trim() || (topic.angle ? `${topic.topic}\n\n[다룰 관점]\n${topic.angle}` : topic.topic);
             const choice = strengthChoice?.scope === strengthScope(profileId, `${topic.field} ${topic.topic}`.trim()) ? strengthChoice : null;
             const data = await publishJson<{ title: string; body: string; contactWarning?: string | null; strengthSelection?: StrengthSelection; strengthReview?: StrengthReview; editorialWarnings?: string[] }>("/api/admin/claude-blog-write", op.signal,
@@ -253,7 +268,11 @@ export default function BlogPublishPage() {
             setUsedStrengths(data.strengthSelection || null); setStrengthReview(data.strengthReview || null);
             setEditorialWarnings(data.editorialWarnings || []);
             const id = await persist(snapshot, null, op);
-            if (current(op)) await makeCards(snapshot, id, op);
+            if (current(op)) {
+                if (imagePreparationError) setError(`원고는 저장했습니다. 이미지 생성만 보류했습니다: ${imagePreparationError}`);
+                else try { await makeCards(snapshot, id, op); }
+                catch (e) { if (current(op)) setError(`원고는 저장했습니다. 이미지 단계만 다시 시도해주세요: ${message(e)}`); }
+            }
         } catch (e) { if (current(op)) setError(message(e)); }
         finally { finish(op); }
     };
@@ -268,8 +287,9 @@ export default function BlogPublishPage() {
         catch (e) { if (current(op)) setError(message(e)); }
         finally { finish(op); }
     };
-    const saveAndMakeCards = async (only?: BlogCardType, regenerate = false) => {
+    const saveAndMakeCards = async (only?: BlogCardType, regenerate = false, recoverPlanOnly = false) => {
         if (!valid) return;
+        if (legacySource && !window.confirm("기존 4장 원고와 이미지는 그대로 보존하고, 새 원고 사본에 표지·신뢰·연락 3장을 구성합니다. 전환할까요?")) return;
         if (regenerate) {
             if (!only || !window.confirm("새 시각물은 별도 유료 생성입니다. 기존 응답이 불확실하면 이전 요청도 과금됐을 수 있습니다. 새로 생성할까요?")) return;
             imageAttempts.current[only] = crypto.randomUUID();
@@ -278,12 +298,12 @@ export default function BlogPublishPage() {
         try {
             const frozen = batch.current;
             if (frozen && sameDraft(frozen.draft, draft) && frozen.postId === savedId) {
-                const missing = BLOG_CARD_TYPES.filter((type) => !frozen.urls[type] && (!only || type === only));
+                const missing = cardTypesFor(frozen.plan).filter((type) => !frozen.urls[type] && (!only || type === only));
                 await runCards(frozen, missing, op, regenerate);
             } else {
                 clearImages();
-                const id = dirty || !savedId ? await persist(draft, savedId, op) : savedId;
-                if (current(op)) await makeCards(draft, id, op);
+                const id = dirty || !savedId || legacySource ? await persist(draft, savedId, op) : savedId;
+                if (current(op)) await makeCards(draft, id, op, recoverPlanOnly);
             }
         } catch (e) { if (current(op)) setError(message(e)); }
         finally { finish(op); }
@@ -291,7 +311,7 @@ export default function BlogPublishPage() {
 
     const formattedHtml = () => toNaverHtml(body, title, cardUrls.map((image) => {
         const card = cards.find((card) => card.type === image.type);
-        return { ...image, altText: card?.altText || CARD_LABELS[image.type], caption: card?.caption };
+        return { ...image, altText: card?.altText || CARD_LABELS[image.type], caption: card?.caption, contactActions: card?.contactActions };
     }));
     const chooseCover = async (card: BlogImageCard) => {
         const frozen = batch.current;
@@ -333,7 +353,7 @@ export default function BlogPublishPage() {
             await validateExport();
             const { default: JSZip } = await import("jszip");
             const zip = new JSZip();
-            cards.forEach((card) => zip.file(`${BLOG_CARD_TYPES.indexOf(card.type) + 1}_${card.type}.png`, card.imageDataUrl.split(",")[1], { base64: true }));
+            cards.forEach((card, i) => zip.file(`${i + 1}_${card.type}.png`, card.imageDataUrl.split(",")[1], { base64: true }));
             zip.file("원고.txt", `${title}\n\n${body}`);
             zip.file("삽입안내.txt", cards.map((card) => `${CARD_LABELS[card.type]}\n${card.placement}\n${card.altText}\n${card.warnings.join("\n")}`).join("\n\n"));
             const url = URL.createObjectURL(await zip.generateAsync({ type: "blob" }));
@@ -344,7 +364,10 @@ export default function BlogPublishPage() {
     };
 
     const validateExport = async () => {
-        if (cards.length && (!imageSetReady(cards) || cardUrls.length !== 4)) throw new Error("제작 또는 저장 대기 이미지가 있습니다. 미완료 카드의 작업을 마친 뒤 복사·저장해주세요.");
+        if (cards.length && (!imageSetReady(cards) || cardUrls.length !== requiredTypes.length)) throw new Error("제작 또는 저장 대기 이미지가 있습니다. 미완료 카드의 작업을 마친 뒤 복사·저장해주세요.");
+        const plan = batch.current?.plan;
+        if (plan?.setFormat === EDITORIAL_SET_FORMAT) await publishJson("/api/admin/blog-images/preflight", new AbortController().signal,
+            { profileId, proofSelection: plan.proofSelection, proofToken: plan.proofToken, title, content: body });
         if (!usedStrengths) return;
         const checked = await publishJson<{ review: StrengthReview }>("/api/admin/blog-strengths/select", new AbortController().signal,
             { profileId, topic: `${draft.field || ""} ${draft.topic || ""}`, ids: draft.strengthIds, revision: draft.strengthRevision, title: draft.title, body });
@@ -356,15 +379,19 @@ export default function BlogPublishPage() {
     const btn = "inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[13px] font-medium disabled:opacity-40 disabled:cursor-not-allowed";
     const secondary = `${btn} bg-[#1A2035] text-[#D1D5DE] hover:bg-[#222a44]`;
     const primary = `${btn} bg-[#3563AE] text-white hover:bg-[#2d559a]`;
+    const studioRecovery = studioRecoveryAction(error);
 
     return (
         <div className="w-full min-w-0 max-w-[980px] p-4 sm:p-6">
             <h1 className="mb-2 text-[19px] font-semibold text-white">블로그 발행</h1>
             {error && <div role="alert" className="my-4 break-words rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">{error}
-                {valid && !batch.current && <button disabled={busy} className="mt-3 block underline disabled:opacity-40" onClick={() => {
+                {studioRecovery && <a href={studioLibraryUrl(profileId)} target="_blank" rel="noopener noreferrer" className="mt-3 block underline">{studioRecovery}</a>}
+                {valid && !batch.current && <div className="mt-3 flex flex-wrap gap-3">
+                    <button disabled={busy} className="underline disabled:opacity-40" title="저장된 기획 응답만 복구합니다. 아직 제작하지 않은 이미지에는 생성 비용이 발생할 수 있습니다." onClick={() => void saveAndMakeCards(undefined, false, true)}>저장된 구성안으로 이어 만들기</button>
+                    <button disabled={busy || !!studioRecovery} className="underline disabled:opacity-40" onClick={() => {
                     if (!window.confirm("저장된 원고는 다시 쓰지 않습니다. 이미지 구성안만 새로 기획하며 Claude 비용이 발생합니다. 계속할까요?")) return;
                     planningAttempt.current = crypto.randomUUID(); void saveAndMakeCards();
-                }}>새 이미지 구성안 기획 (유료)</button>}
+                }}>새 이미지 구성안 기획 (유료)</button></div>}
             </div>}
             <section className={cardClass}>
                 <label htmlFor="publish-profile" className="mb-2 block text-xs text-[#9CA3B0]">1 · 변호사</label>
@@ -373,11 +400,16 @@ export default function BlogPublishPage() {
                     <option value="">선택하세요</option>
                     {profiles.map((p) => <option key={p.id} value={p.id}>{p.lawyerName} · {p.officeName}</option>)}
                 </select>
+                <label className="mt-3 flex items-center gap-2 text-xs text-[#D1D5DE]"><input type="checkbox" checked={!basicProfile} disabled={busy} onChange={(e) => {
+                    setBasicProfile(!e.target.checked); clearImages(); setImagesStale(true); setCopied(false);
+                }} />두 번째 이미지에 승인 경력 표시</label>
+                <a href="/admin/blog-strengths" className="mt-2 inline-block text-xs text-sky-300 underline">공개 경력 확인·승인</a>
                 {!!savedPosts.length && <label className="mt-4 block text-xs text-[#9CA3B0]">저장 원고에서 이어서 작업
                     <select aria-label="저장 원고에서 이어서 작업" value={savedId || ""} disabled={busy} className={`${inputClass} mt-2`} onChange={(e) => {
                         const post = savedPosts.find((p) => p.id === e.target.value);
                         if (!post || (dirty && (title || body) && !window.confirm("저장하지 않은 변경사항이 있습니다. 저장 원고를 불러올까요?"))) return;
                         reset(); setTitle(post.title); setBody(post.body || ""); setSavedId(post.id);
+                        setLegacySource((post.card_images?.length || 0) > 3);
                         setDraftTopic({ topic: post.topic || "", field: post.field || "", angle: "", titleIdea: "", reason: "" });
                         setSavedDraft({ profileId, title: post.title, body: post.body || "", field: post.field || null, topic: post.topic || null });
                     }}><option value="">저장 원고 선택</option>{savedPosts.map((post) => <option key={post.id} value={post.id}>{post.title}</option>)}</select>
@@ -433,7 +465,7 @@ export default function BlogPublishPage() {
                         </button>
                         <button onClick={() => void saveAndMakeCards()} disabled={busy || !valid || complete} className={primary}>
                             {step === "cards" ? <Loader2 size={14} className="animate-spin" /> : <ImageIcon size={14} />}
-                            {complete ? "카드 4장 완료" : cardUrls.length || cards.length ? "미완료 카드 재시도" : "저장하고 카드 4장 만들기"}
+                            {complete ? `카드 ${requiredTypes.length}장 완료` : cardUrls.length || cards.length ? "미완료 카드 재시도" : `저장하고 카드 ${requiredTypes.length}장 만들기`}
                         </button>
                     </div>
                 </div>
@@ -461,24 +493,25 @@ export default function BlogPublishPage() {
                 {editorialWarnings.map((warning) => <p key={warning} role="status" className="mt-2 text-xs text-amber-300">검수: {warning}</p>)}
                 {usedStrengths && <div className="mt-3 border-t border-[#1F2937] py-3 text-xs text-[#BAC2CF]">
                     <p>공개 강점 버전 {usedStrengths.revision} · {usedStrengths.claims.length}개</p>
-                    {usedStrengths.claims.map((c) => <p key={c.id} className="mt-2">{c.articleText}<span className="mt-1 block text-[#9CA3B0]">이미지: {c.imageText} · 상담 이미지{c.id === usedStrengths.claims[0]?.id ? "·표지" : ""}</span></p>)}
+                    {usedStrengths.claims.map((c) => <p key={c.id} className="mt-2">{c.articleText}{!currentSet?.setFormat && <span className="mt-1 block text-[#9CA3B0]">이미지: {c.imageText} · 상담 이미지{c.id === usedStrengths.claims[0]?.id ? "·표지" : ""}</span>}</p>)}
                     {strengthReview?.applied.map((item) => <p key={`${item.id}-${item.paragraph}`} className="mt-2">본문 {item.paragraph}번째 문단 반영</p>)}
                     {strengthReview?.issues.map((issue) => <p key={issue} className="mt-2 text-amber-300">{issue}</p>)}
                 </div>}
                 {imagesStale && <p role="status" className="mt-3 text-sm text-amber-300">원고 변경으로 이미지 갱신이 필요합니다.</p>}
+                <BlogImageProof proof={batch.current?.plan.proofSelection} />
                 <BlogCoverChoices options={coverOptions} selected={cards.find((c) => c.type === "thumbnail")?.productionId} busy={busy}
                     canCreate={!!batch.current?.plan.cards.find((c) => c.type === "thumbnail")?.alternateArt} onCreate={() => void makeAlternateCover()} onSelect={(card) => void chooseCover(card)} />
                 {(cards.length > 0 || Object.keys(issues).length > 0) && <div className="mt-5">
                     <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                        <p role="status" className="text-sm text-[#D1D5DE]">이미지 {cardUrls.length}/4장 저장 · {complete ? "발행 대기" : "미완료"}</p>
+                        <p role="status" className="text-sm text-[#D1D5DE]">이미지 {cardUrls.length}/{requiredTypes.length}장 저장 · {complete ? "발행 대기" : "미완료"}</p>
                         <button onClick={downloadAll} disabled={busy || !cards.length} className={secondary}><Download size={14} />이미지 ZIP 다운로드</button>
                     </div>
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                        {BLOG_CARD_TYPES.map((type) => {
+                    <div className={`grid grid-cols-1 gap-3 sm:grid-cols-2 ${requiredTypes.length === 3 ? "lg:grid-cols-3" : "lg:grid-cols-4"}`}>
+                        {requiredTypes.map((type) => {
                             const card = cards.find((card) => card.type === type);
                             const url = cardUrls.find((image) => image.type === type)?.url;
                             return <article key={type} className="min-w-0 rounded-lg border border-[#1F2937] p-3">
-                                <h2 className="mb-2 text-xs text-[#D1D5DE]">{CARD_LABELS[type]}</h2>
+                                <h2 className="mb-2 text-xs text-[#D1D5DE]">{cardLabel(type, currentSet)}</h2>
                                 <div className="flex aspect-[4/5] items-center justify-center overflow-hidden bg-[#0B0F1A]">
                                     {card ? <button onClick={() => setPreview(card)} aria-label={`${CARD_LABELS[type]} 미리보기`} className="flex h-full w-full items-center justify-center">
                                         {/* eslint-disable-next-line @next/next/no-img-element */}

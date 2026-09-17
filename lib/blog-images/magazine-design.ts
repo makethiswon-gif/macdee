@@ -22,12 +22,13 @@ export const MAGAZINE_PALETTES = {
 } as const;
 export const DEFAULT_DIRECTION: ArtDirection = { concept: "핵심을 크게 보는 지면", rationale: "이전 구성안과의 호환을 위한 기본 편집", alternatives: [],
     palette: "cobalt", typography: "serif", composition: "immersive", motif: "구체적 대상의 대비" };
-export type MagazineFace = "serif" | "sans" | "body" | "label";
+export type MagazineFace = "serif" | "display" | "sans" | "body" | "label";
 let ready = false;
 export function magazineFonts() {
     if (ready) return;
     for (const [file, family] of [
         ["noto-serif-kr-korean-700-normal.woff2", "MagazineSerif"],
+        ["noto-serif-kr-korean-400-normal.woff2", "MagazineDisplay"],
         ["noto-sans-kr-korean-900-normal.woff2", "MagazineSans"],
         ["noto-sans-kr-korean-700-normal.woff2", "MagazineLabel"],
         ["noto-sans-kr-korean-400-normal.woff2", "MagazineBody"],
@@ -35,10 +36,10 @@ export function magazineFonts() {
     ready = true;
 }
 export function setType(c: SKRSContext2D, size: number, face: MagazineFace) {
-    c.font = `${size}px "${face === "serif" ? "MagazineSerif" : face === "sans" ? "MagazineSans" : face === "label" ? "MagazineLabel" : "MagazineBody"}"`;
+    c.font = `${size}px "${face === "display" ? "MagazineDisplay" : face === "serif" ? "MagazineSerif" : face === "sans" ? "MagazineSans" : face === "label" ? "MagazineLabel" : "MagazineBody"}"`;
     c.textBaseline = "top";
 }
-export function magazineLines(c: SKRSContext2D, s: string, w: number): string[] {
+export function magazineLines(c: SKRSContext2D, s: string, w: number, balance = true): string[] {
     const wrap = (width: number) => s.split("\n").flatMap((paragraph) => {
         const lines: string[] = [];
         let line = "";
@@ -55,7 +56,7 @@ export function magazineLines(c: SKRSContext2D, s: string, w: number): string[] 
         return lines;
     });
     const initial = wrap(w);
-    if (s.includes("\n") || initial.length < 2 || initial.length > 4 || s.length > 140) return initial;
+    if (!balance || s.includes("\n") || initial.length < 2 || initial.length > 4 || s.length > 140) return initial;
     let best = initial, bestScore = Infinity;
     for (let ratio = 1; ratio >= 0.65; ratio -= 0.025) {
         const lines = wrap(w * ratio);

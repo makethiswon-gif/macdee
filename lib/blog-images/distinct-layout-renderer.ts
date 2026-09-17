@@ -10,6 +10,7 @@ import { ContactProfileError } from "./contact-renderer";
 import { cardPlacement } from "./visual-plan-types";
 import type { BriefRenderOptions } from "./brief-renderer";
 import { informationLayout, portraitLayout } from "./layout-recipes";
+import { profileEdition } from "./profile-editions";
 
 const W = 1024, P = 64, INNER = W - 2 * P;
 
@@ -21,7 +22,8 @@ export async function renderDistinctCard(opts: BriefRenderOptions): Promise<Blog
     const recipe = modern && !opts.repairLayout ? opts.plan.layoutRecipe : undefined;
     const family = modern ? identity.family : identity.family === "atlas" || identity.family === "poster" ? "atlas"
         : identity.family === "ledger" || identity.family === "journal" ? "ledger" : "dossier";
-    const base = MAGAZINE_PALETTES[identity.palette];
+    const edition = opts.plan.setFormat ? profileEdition(profile) : undefined;
+    const base = edition ? { ...MAGAZINE_PALETTES[identity.palette], paper: "#FFFFFF", ink: "#191D22", muted: "#565F66", field: edition.accent } : MAGAZINE_PALETTES[identity.palette];
     const dark = (opts.style || identity.style) === "contrast";
     const p = dark ? { ...base, ink: base.paper, paper: base.ink, muted: "#CCD1D1", field: base.accent } : base;
     const face: MagazineFace = identity.typography;

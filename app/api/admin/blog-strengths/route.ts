@@ -22,8 +22,15 @@ export async function GET(request: Request) {
         const params = new URL(request.url).searchParams;
         const candidateFirmId = params.has("firmId") ? params.get("firmId") || "" : library.firmId;
         if (candidateFirmId && !firms?.some((firm) => firm.id === candidateFirmId)) throw new StrengthStoreError("로펌 ID를 확인해주세요.", 400);
+        const warnings: string[] = [];
+        let research: Awaited<ReturnType<typeof researchCandidates>> | null = null;
+        // Optional research candidates must not hide the separately stored approved library.
+        if (candidateFirmId) {
+            try { research = await researchCandidates(candidateFirmId, db); }
+            catch { warnings.push("로펌 리서치 후보를 불러오지 못했습니다. 저장된 공개 강점은 정상적으로 사용할 수 있습니다."); }
+        }
         return NextResponse.json({ library, firms, fields: profile.fields?.length ? profile.fields : profile.specialty || [],
-            legacy: legacyCandidates(profile), research: candidateFirmId ? await researchCandidates(candidateFirmId, db) : null,
+            legacy: legacyCandidates(profile), research, warnings,
             briefings: await briefingCandidates(db) }, { headers });
     } catch (e) { return fail(e); }
 }

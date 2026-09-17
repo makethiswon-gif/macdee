@@ -8,7 +8,7 @@ import { publishJson } from "@/lib/blog-publish-workflow";
 
 type Candidate = { fact: string; sourceRef: string };
 interface Data { library: StrengthLibrary; firms: { id: string; name: string }[]; fields: string[]; legacy: Candidate[];
-    research: { candidates: Candidate[]; sources: string[] } | null; briefings: { name: string; candidates: Candidate[] }[] }
+    research: { candidates: Candidate[]; sources: string[] } | null; warnings?: string[]; briefings: { name: string; candidates: Candidate[] }[] }
 const inputClass = "w-full min-w-0 rounded-md border border-[#374151] bg-[#101522] px-3 py-2 text-sm text-white";
 const button = "inline-flex items-center gap-2 rounded-md border border-[#374151] px-3 py-2 text-sm text-white disabled:opacity-40";
 const labels = { pending: "확인 필요", approved: "공개 승인", blocked: "사용 금지" };
@@ -70,6 +70,7 @@ export default function BlogStrengthsPage() {
         {error && <p role="alert" className="my-4 break-words text-sm text-red-300">{error}</p>}
         {status && <p role="status" className="my-4 text-sm text-emerald-300">{status}</p>}
         {library && data && <>
+            {data.warnings?.map((warning) => <p key={warning} role="status" className="my-4 break-words text-sm text-amber-300">{warning}</p>)}
             <fieldset disabled={busy} className="my-6 grid gap-4 border-y border-[#374151] py-5 sm:grid-cols-2">
                 <label className="text-sm">소속 로펌<select aria-label="소속 로펌" className={`${inputClass} mt-2`} value={library.firmId} onChange={(e) => {
                     update({ firmId: e.target.value, claims: library.claims.map((c) => ({ ...c, status: c.status === "approved" ? "pending" : c.status })) });

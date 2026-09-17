@@ -14,6 +14,15 @@ export interface ArtDirection {
 }
 export interface SourceParagraph { id: string; text: string }
 export interface SourceEvidence { paragraphId: string; quote: string }
+export interface ProofSelection {
+    profileId: string;
+    firmId: string;
+    lawyerId: string;
+    revision: number;
+    sourceHash: string;
+    mode: "approved" | "basic";
+    claims: { id: string; scope: "lawyer" | "firm"; text: string }[];
+}
 export interface VisualBrief {
     medium: ArtMedium;
     subject: string;
@@ -27,6 +36,7 @@ export interface PlannedCard {
     heading: string;
     headlineLines?: string[];
     kicker?: string;
+    emphasis?: string;
     deck: string;
     purpose: string;
     afterParagraphId: string;
@@ -48,6 +58,11 @@ export interface ArticleVisualPlan {
     planningRevision?: number;
     operationId?: string;
     layoutRecipe?: import("./layout-recipes").LayoutRecipe;
+    setFormat?: "profile-three-v1" | "editorial-three-v1" | "studio-four-v1";
+    proofSelection?: ProofSelection;
+    proofToken?: string;
+    studioPhotos?: import("../lawyer-studio/types").StudioSelection[];
+    publicationEdition?: string;
     sourceHash: string;
     question: string;
     thesis: string;

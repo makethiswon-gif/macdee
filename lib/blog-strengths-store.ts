@@ -60,7 +60,7 @@ export async function saveStrengthLibrary(value: unknown, db: Db = createService
 }
 
 export async function researchCandidates(firmId: string, db: Db = createServiceClient()) {
-    const { data, error } = await db.from("portal_firm_research").select("report,generated_at").eq("firm_id", firmId).maybeSingle();
+    const { data, error } = await db.from("portal_firm_research").select("report,generated_at").eq("firm_id", firmId).abortSignal(AbortSignal.timeout(8_000)).maybeSingle();
     if (error) throw new StrengthStoreError("저장된 로펌 리서치를 읽지 못했습니다.");
     const report = data?.report as { strengths?: string[]; sources?: string[] } | undefined;
     return { generatedAt: data?.generated_at || "", sources: (report?.sources || []).filter((s) => typeof s === "string"),

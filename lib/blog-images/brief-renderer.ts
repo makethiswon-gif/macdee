@@ -31,5 +31,6 @@ export interface BriefRenderOptions {
     model?: string;
     headingOverride?: string;
     repairLayout?: boolean;
+    editorialPhoto?: { bytes: Buffer; kind: "studio"; selections: import("../lawyer-studio/types").StudioSelection[] };
 }
 export function renderBriefCard(opts: BriefRenderOptions): Promise<BlogImageCard> { return renderMagazineCard(opts); }

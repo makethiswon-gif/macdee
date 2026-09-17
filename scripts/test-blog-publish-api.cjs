@@ -22,14 +22,17 @@ const client = {
         },
     }),
     storage: { from: () => ({
+        list: async (folder) => ({ data: [...checkpoints.keys()].filter(k=>k.startsWith(folder+'/')).map(k=>({name:k.slice(folder.length+1)})).sort((a,b)=>b.name.localeCompare(a.name)).slice(0,1), error:null }),
         download: async (filename) => ({ data: checkpoints.has(filename) ? new Blob([JSON.stringify(checkpoints.get(filename))]) : null, error: null }),
         upload: async (filename, bytes) => { uploads.push({ filename, bytes }); return { error: null }; },
         getPublicUrl: (filename) => ({ data: { publicUrl: "https://storage.example/" + filename } }),
     }) },
 };
 const moduleLoad = Module._load;
+const proofLibrary = { profileId: "fixture-profile", firmId: "firm", lawyerId: "fixture-profile", revision: 1, claims: [] };
 Module._load = function (name, ...args) {
     if (name === "@/lib/supabase/server") return { createAdminClient: async () => client, createServiceClient: () => client };
+    if (name === "@/lib/blog-strengths-store") return { ...moduleLoad.call(this, name, ...args), loadStrengthLibrary: async () => proofLibrary };
     return moduleLoad.call(this, name, ...args);
 };
 global.fetch = async () => { throw new Error("Network forbidden in local API fixtures"); };
@@ -107,5 +110,65 @@ const image = (type, extra = {}) => ({ postId: "fixture-post", image: approvedIm
     assert.equal(load(toNaverHtml(body, "Title"))("img").length, 0);
     assert.equal(load(toNaverHtml(body, "Title", [{ type: "thumbnail", url: "javascript:alert(1)" }]))("img").length, 0);
     assert.equal(load(toNaverHtml("", "Title", images))("img").length, 4);
-    console.log("PASS: authenticated upload route, required four types, partial status, missing post, URL versioning, legacy compatibility, immutable draft identity, HTML image placement/escaping, unchanged text-only export");
+    const { PROFILE_CARD_TYPES, PROFILE_SET_FORMAT } = require("../lib/blog-images/card-types.ts");
+    row = { card_images: [{ type: "illustration", url: "old", setId: "legacy" }], status: "draft", profile_id: "fixture-profile", title: "Title", body: "Body" };
+    assert.equal((await POST(req(image("thumbnail", { requiredTypes: PROFILE_CARD_TYPES })))).status, 422, "Cannot truncate an old four-card signed set");
+    for (let i = 0; i < PROFILE_CARD_TYPES.length; i++) {
+        const type = PROFILE_CARD_TYPES[i], setId = "three-set";
+        const releaseToken = signImageRelease({ type, setId, setFormat: PROFILE_SET_FORMAT, imageDataUrl: png, layoutChecks: { passed: true } }, "fixture-profile", sourceHash("Title", "Body"));
+        const response = await POST(req({ postId: "fixture-post", image: { type, setId, dataUrl: png, releaseToken }, index: i, total: 3, requiredTypes: PROFILE_CARD_TYPES }));
+        assert.equal(response.status, 200); assert.equal((await response.json()).done, i === 2);
+    }
+    assert.equal(row.card_images.length, 3); assert.equal(row.status, "ready");
+    const threeHtml = load(toNaverHtml(body, "Title", images.filter((i) => PROFILE_CARD_TYPES.includes(i.type))));
+    assert.equal(threeHtml("img").length, 3);
+    const { EDITORIAL_SET_FORMAT } = require("../lib/blog-images/card-types.ts");
+    const { selectImageProof, signImageProof } = require("../lib/blog-images/proof-selection.ts");
+    const proof = selectImageProof(proofLibrary, "", sourceHash("Title", "Body"), true);
+    const studioId = "c".repeat(64), libraryFile = 'lawyer-studio/fixture-profile/library/v00000001.json';
+    const studioLibrary = {profileId:'fixture-profile',revision:1,references:[],blogEnabled:true,assets:[{id:studioId,version:2,status:'approved',renderedPath:`lawyer-studio/fixture-profile/renders/${studioId}.jpg`}]};
+    checkpoints.set(libraryFile, studioLibrary);
+    row.card_images = []; let lastEditorial, studioPayload;
+    for (const [i, type] of PROFILE_CARD_TYPES.entries()) {
+        const productionId = crypto.createHash("sha256").update(`editorial-${type}`).digest("hex");
+        const card = { type, setId: "editorial-set", setFormat: EDITORIAL_SET_FORMAT, imageDataUrl: png, layoutChecks: { passed: true }, proofSelection: proof, proofToken: signImageProof(proof) };
+        if(type==='info') { card.studioPhotos=[{assetId:studioId,version:2}]; card.photoChecks={source:'studio'}; }
+        card.releaseToken = signImageRelease(card, proof.profileId, proof.sourceHash);
+        checkpoints.set(`blog-image-production/${productionId}.json`, { id: productionId, profileId: proof.profileId, sourceHash: proof.sourceHash, card });
+        const payload = { postId: "fixture-post", setFormat: EDITORIAL_SET_FORMAT, requiredTypes: PROFILE_CARD_TYPES, index: i, total: 3,
+            image: { type, productionId, setId: card.setId, releaseToken: card.releaseToken } };
+        assert.equal((await POST(req({ ...payload, setFormat: undefined }))).status, 422);
+        const result = await POST(req(payload)); assert.equal(result.status, 200, JSON.stringify(await result.clone().json()));
+        assert.equal((await result.json()).done, i === 2); lastEditorial = payload;
+        if(type==='info')studioPayload=payload;
+    }
+    const beforeStudioRevocation=uploads.length;
+    studioLibrary.assets[0].status='draft';
+    assert.equal((await POST(req(studioPayload))).status,409,'Single-photo upload rechecks current approval');
+    assert.equal(uploads.length,beforeStudioRevocation);
+    assert.equal((await POST(req(lastEditorial))).status,409,'Contact upload cannot complete a set using a previously uploaded revoked portrait');
+    assert.equal(uploads.length,beforeStudioRevocation,'Retained info approval is checked before any new PNG upload');
+    studioLibrary.assets[0].status='approved';studioLibrary.assets[0].version=3;
+    assert.equal((await POST(req(studioPayload))).status,409,'Single-photo upload rechecks finishing version');
+    studioLibrary.assets[0].version=2;studioLibrary.blogEnabled=false;
+    assert.equal((await POST(req(studioPayload))).status,409,'Disconnected library blocks cached studio uploads');
+    studioLibrary.blogEnabled=true;
+    const studioCheckpoint = checkpoints.get(`blog-image-production/${studioPayload.image.productionId}.json`);
+    const studioCard = structuredClone(studioCheckpoint.card);
+    delete studioCheckpoint.card.studioPhotos; studioCheckpoint.card.photoChecks = { source: 'portrait' };
+    const beforeRegistered = uploads.length, previousRow = JSON.stringify(row);
+    const registeredInfo = await POST(req(studioPayload));
+    assert.equal(registeredInfo.status,422,'Even a previously signed registered info image must not upload');
+    assert.match((await registeredInfo.json()).error,/승인된 스튜디오 사진/);
+    assert.equal(uploads.length,beforeRegistered); assert.equal(JSON.stringify(row),previousRow);
+    studioCheckpoint.card = studioCard;
+    delete row.card_images.find(i=>i.type==='info').productionId;
+    const oldMerge = await POST(req(lastEditorial));
+    assert.equal(oldMerge.status,200); assert.equal((await oldMerge.json()).done,false,'Old provenance-free second image cannot complete a new set');
+    assert.equal(row.card_images.some(i=>i.type==='info'),false);
+    assert.equal((await POST(req(studioPayload))).status,200); assert.equal(row.status,'ready');
+    const uploadsBefore = uploads.length; proofLibrary.revision++;
+    assert.equal((await POST(req(lastEditorial))).status, 409, "Cached PNG cannot bypass revoked proof revision");
+    assert.equal(uploads.length, uploadsBefore, "Revocation must be checked before storage upload");
+    console.log("PASS: authenticated upload, signed three/four-card manifests, partial status, source/version isolation, legacy compatibility and Naver HTML placement");
 })().catch((e) => { console.error(e); process.exitCode = 1; });

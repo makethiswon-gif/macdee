@@ -18,6 +18,7 @@ import {
     ChevronRight,
     Shield,
     ImageIcon,
+    Camera,
     Sparkles,
     BarChart3,
     Search,
@@ -31,6 +32,7 @@ const ADMIN_NAV = [
     { href: "/admin/lawyers", label: "변호사 관리", icon: Users },
     { href: "/admin/contents", label: "콘텐츠 관리", icon: FileText },
     { href: "/admin/blog-images", label: "블로그 이미지", icon: ImageIcon },
+    { href: "/admin/lawyer-studio", label: "변호사 스튜디오 사진 생성기", icon: Camera },
     { href: "/admin/migrate", label: "블로그→매거진", icon: ArrowRightLeft },
     { href: "/admin/subscriptions", label: "구독/매출", icon: CreditCard },
     { href: "/admin/billing", label: "정기결제 관리", icon: CreditCard },
@@ -53,7 +55,7 @@ export default function AdminLayout({
     children: React.ReactNode;
 }) {
     const pathname = usePathname();
-    const isImageStudio = pathname === "/admin/blog-images";
+    const isImageStudio = pathname === "/admin/blog-images" || pathname === "/admin/lawyer-studio";
     const compactMobileNav = isImageStudio || pathname === "/admin/client-strategy" || pathname === "/admin/blog-publish" || pathname === "/admin/blog-strengths";
     const router = useRouter();
     const [authenticated, setAuthenticated] = useState<boolean | null>(null);
@@ -124,7 +126,7 @@ export default function AdminLayout({
                                     : "text-[#9CA3B0] hover:bg-[#1A2035] hover:text-white"
                                     }`}
                             >
-                                <item.icon size={16} />
+                                <item.icon size={16} className="shrink-0" />
                                 {item.label}
                                 {isActive && (
                                     <ChevronRight size={14} className="ml-auto opacity-50" />

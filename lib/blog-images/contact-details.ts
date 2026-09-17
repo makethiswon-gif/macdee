@@ -3,8 +3,9 @@ import type { EditorialProfile } from "./card-types";
 export interface ContactAction { label: string; display: string; href: string }
 export function contactActions(profile: Pick<EditorialProfile, "phone" | "website">): ContactAction[] {
     const actions: ContactAction[] = [];
-    const phone = profile.phone.trim();
-    // Do not guess which of several numbers to call or retain untrusted URI parameters.
+    // ProfileManager stores the representative number first, then comma-separated optional numbers.
+    // Match the manuscript footer; never concatenate several numbers or retain URI parameters.
+    const phone = profile.phone.split(",")[0].trim().replace(/^(?:대표\s*(?:전화\s*)?번호|대표\s*전화|대표|변호사\s*직통|직통|상담\s*(?:전화|번호)|전화|TEL)\s*[:：]?\s*/i, "");
     if (/^\+?[\d\s().-]+$/.test(phone)) {
         const digits = phone.replace(/[^\d+]/g, "");
         if (/^\+?\d{7,15}$/.test(digits)) actions.push({ label: "전화 상담 문의", display: phone, href: `tel:${digits}` });

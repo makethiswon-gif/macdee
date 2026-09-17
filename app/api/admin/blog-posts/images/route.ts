@@ -2,10 +2,15 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
 import { createHash } from "node:crypto";
-import { BLOG_CARD_TYPES } from "@/lib/blog-images/card-types";
+import { BLOG_CARD_TYPES, PROFILE_CARD_TYPES, PROFILE_SET_FORMAT, EDITORIAL_SET_FORMAT } from "@/lib/blog-images/card-types";
+import { verifyImageProof } from "@/lib/blog-images/proof-selection";
+import { loadStrengthLibrary, StrengthStoreError } from "@/lib/blog-strengths-store";
 import { hasCompleteCardSet } from "@/lib/blog-publish-workflow";
 import { verifyImageRelease, digest, loadImageProduction } from "@/lib/blog-images/production-store";
 import { sourceHash } from "@/lib/blog-images/visual-planner";
+import { resolveStudioPhotos, resolveEditorialStudioPhoto } from "@/lib/lawyer-studio/blog";
+import { STUDIO_FORMAT, StudioError, StudioPhotoRequiredError } from "@/lib/lawyer-studio/types";
+import { editorialStudioPhotoMissing } from "@/lib/blog-images/quality-policy";
 
 // 브라우저에서 만든 카드 PNG를 받아 Storage에 올리고 원고에 붙인다.
 // 이미지가 서버에 남아야 발행기가 집어갈 수 있다.
@@ -43,6 +48,7 @@ export async function POST(request: Request) {
             index?: number;
             total?: number;
             requiredTypes?: string[];
+            setFormat?: string;
         };
         const { postId, image, index, total, requiredTypes } = payload;
 
@@ -54,9 +60,14 @@ export async function POST(request: Request) {
         if (!Array.isArray(images) || images.length === 0) {
             return NextResponse.json({ error: "이미지가 없습니다." }, { status: 400 });
         }
-        if (requiredTypes !== undefined && (!Array.isArray(requiredTypes) || requiredTypes.length !== BLOG_CARD_TYPES.length
+        const profileSet = Array.isArray(requiredTypes) && requiredTypes.length === PROFILE_CARD_TYPES.length
+            && PROFILE_CARD_TYPES.every((type) => requiredTypes.includes(type));
+        const editorialSet = payload.setFormat === EDITORIAL_SET_FORMAT;
+        if (editorialSet && (!profileSet || images.some(img => !img.productionId))) return NextResponse.json({ error: "신뢰 이미지 세트는 보존된 3장 제작 작업으로 저장해주세요." }, { status: 422 });
+        const format = profileSet ? { setFormat: editorialSet ? EDITORIAL_SET_FORMAT : PROFILE_SET_FORMAT } : {};
+        if (requiredTypes !== undefined && !profileSet && (!Array.isArray(requiredTypes) || requiredTypes.length !== BLOG_CARD_TYPES.length
             || !BLOG_CARD_TYPES.every((type) => requiredTypes.includes(type)))) {
-            return NextResponse.json({ error: "필수 이미지 4종이 필요합니다." }, { status: 400 });
+            return NextResponse.json({ error: "현재 구성안의 필수 이미지 종류를 확인해주세요." }, { status: 400 });
         }
         // New editors transfer only IDs. Read already-paid, signed bytes on the server.
         // Large PNGs and portraits never travel back through a Vercel request body.
@@ -64,6 +75,13 @@ export async function POST(request: Request) {
             const saved = await loadImageProduction(img.productionId);
             if (!saved.card || saved.card.type !== img.type || saved.card.setId !== img.setId || saved.card.releaseToken !== img.releaseToken) {
                 return NextResponse.json({ error: "보존된 이미지와 저장 요청이 일치하지 않습니다." }, { status: 422 });
+            }
+            if (editorialStudioPhotoMissing(saved.card)) throw new StudioPhotoRequiredError();
+            if (saved.card.setFormat === STUDIO_FORMAT || saved.card.studioPhotos?.length === 2) await resolveStudioPhotos(saved.profileId, saved.card.studioPhotos);
+            else if (saved.card.studioPhotos?.length) await resolveEditorialStudioPhoto(saved.profileId, saved.card.studioPhotos);
+            if (saved.card.setFormat === EDITORIAL_SET_FORMAT) {
+                if (!editorialSet) return NextResponse.json({ error: "새 3장 구성의 형식이 누락됐습니다." }, { status: 422 });
+                verifyImageProof(saved.card.proofToken, saved.card.proofSelection, await loadStrengthLibrary(saved.profileId), saved.sourceHash);
             }
             img.dataUrl = saved.card.imageDataUrl;
         }
@@ -75,12 +93,22 @@ export async function POST(request: Request) {
         const { data: row, error: readError } = await supabase.from("blog_posts").select("card_images,profile_id,title,body,updated_at").eq("id", postId).single();
         if (readError || !row) return NextResponse.json({ error: "저장된 원고를 찾지 못했습니다." }, { status: 404 });
         const hashOfSource = sourceHash(row.title || "", row.body || "");
-        const saved: { type: string; url: string; releaseToken?: string; pngHash?: string; setId?: string }[] = [];
+        const saved: { type: string; url: string; releaseToken?: string; pngHash?: string; setId?: string; productionId?: string }[] = [];
         const setId = images[0].setId;
         // Validate the whole incoming set before uploading any bytes.
         if (requiredTypes && images.some((img) => !verifyImageRelease(img.releaseToken, { profileId: row.profile_id, sourceHash: hashOfSource,
-            type: img.type, pngHash: digest(Buffer.from(img.dataUrl.split(",")[1], "base64")), setId: setId || "" }) || img.setId !== setId)) {
+            type: img.type, pngHash: digest(Buffer.from(img.dataUrl.split(",")[1], "base64")), setId: setId || "", ...format }) || img.setId !== setId)) {
             return NextResponse.json({ error: "저장 가능한 이미지가 아니거나 원고·변호사가 변경되었습니다. 현재 구성으로 다시 처리해주세요." }, { status: 422 });
+        }
+
+        const kept = single ? ((row.card_images as typeof saved | null) || []).filter(x => (!requiredTypes || (requiredTypes.includes(x.type) && x.setId === setId)) && !images.some(img => img.type === x.type)) : [];
+        // Recheck retained studio provenance too, before any storage upload.
+        for (const img of kept.filter(x => editorialSet && x.type === "info" && x.productionId)) {
+            const prior = await loadImageProduction(img.productionId!);
+            if (!prior.card || prior.card.type !== "info" || prior.profileId !== row.profile_id || prior.sourceHash !== hashOfSource
+                || prior.card.releaseToken !== img.releaseToken || prior.card.setFormat !== EDITORIAL_SET_FORMAT
+                || editorialStudioPhotoMissing(prior.card)) throw new StudioPhotoRequiredError();
+            await resolveEditorialStudioPhoto(row.profile_id, prior.card.studioPhotos);
         }
 
         for (let i = 0; i < images.length; i++) {
@@ -104,20 +132,19 @@ export async function POST(request: Request) {
             }
 
             const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-            saved.push({ type: img.type, url: data.publicUrl, ...(requiredTypes ? { releaseToken: img.releaseToken, pngHash: digest(bytes), setId } : {}) });
+            saved.push({ type: img.type, url: data.publicUrl, ...(requiredTypes ? { releaseToken: img.releaseToken, pngHash: digest(bytes), setId, productionId: img.productionId } : {}) });
         }
 
         // 한 장씩 받을 때는 기존 목록과 병합한다. 덮어쓰면 앞 장이 사라진다.
         let merged = saved;
         if (single) {
-            const prev = (row?.card_images as typeof saved | null) || [];
-            // 같은 type 은 새 것으로 교체(재생성 대비)
-            merged = [...prev.filter((x) => !saved.some((n) => n.type === x.type)), ...saved];
+            // Old three-card uploads did not retain provenance. Rebind the second photo before completing a new upload.
+            merged = [...kept.filter(x => !editorialSet || x.type !== "info" || x.productionId), ...saved];
         }
 
         // 다 모였을 때만 발행 대기로 올린다
         const done = requiredTypes ? hasCompleteCardSet(merged.filter((img) => verifyImageRelease(img.releaseToken, {
-            profileId: row.profile_id, sourceHash: hashOfSource, type: img.type, pngHash: img.pngHash || "", setId: setId || "",
+            profileId: row.profile_id, sourceHash: hashOfSource, type: img.type, pngHash: img.pngHash || "", setId: setId || "", ...format,
         })), requiredTypes)
             : !single || (typeof total === "number" ? merged.length >= total : true);
 
@@ -137,6 +164,6 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ images: merged, done });
     } catch (err: unknown) {
-        return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });
+        return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: err instanceof StrengthStoreError || err instanceof StudioError ? err.status : 500 });
     }
 }

@@ -34,7 +34,7 @@ import {
 import { toNaverHtml } from "@/lib/blog-naver-html";
 import { copyBlogHtml } from "@/lib/blog-publish-workflow";
 import { BLOG_FACTORY_SQL } from "@/lib/blog-factory-sql";
-import { BLOG_CARD_TYPES, cardRequestProfile } from "@/lib/blog-images/card-types";
+import { cardTypesFor, cardRequestProfile } from "@/lib/blog-images/card-types";
 import { generateQualityCard } from "@/lib/blog-images/generate-client";
 import { imageReady, imageHoldReason } from "@/lib/blog-images/quality-policy";
 
@@ -246,20 +246,21 @@ export default function BlogFactoryPage() {
             const fullProfile = pData.profile;
             if (!fullProfile) throw new Error("변호사 상세 정보를 불러오지 못했습니다.");
 
-            await post("/api/admin/blog-images/preflight", { profileId });
+            await post("/api/admin/blog-images/preflight", { profileId, topic: `${title}\n${body}` });
             const planned = await post("/api/admin/blog-images/plan", { title, content: body, profile: { id: profileId } });
             if (!planned.plan) throw new Error("이미지 기획에 실패했습니다.");
-            for (const [i, t] of BLOG_CARD_TYPES.entries()) {
+            const types = cardTypesFor(planned.plan);
+            for (const [i, t] of types.entries()) {
                 const c = await generateQualityCard({ profile: cardRequestProfile(fullProfile, t), title, content: body,
                     cardType: t, plan: planned.plan, quality: "high" }, new AbortController().signal);
                 if (!imageReady(c)) throw new Error(`${t}: ${imageHoldReason(c)} 작업 ID: ${c.productionId || "미확인"}`);
                 // Save each accepted result before starting another paid card.
                 const uploaded = await post("/api/admin/blog-posts/images", {
-                    postId, image: { type: c.type, productionId: c.productionId, releaseToken: c.releaseToken, setId: c.setId }, index: i, total: 4, requiredTypes: BLOG_CARD_TYPES,
+                    postId, image: { type: c.type, productionId: c.productionId, releaseToken: c.releaseToken, setId: c.setId }, index: i, total: types.length, requiredTypes: types, setFormat: planned.plan.setFormat,
                 });
-                if (i === 3 && !uploaded.done) throw new Error("이미지 네 장의 제작 버전이 일치하지 않습니다. 구성안을 다시 확인해주세요.");
+                if (i === types.length - 1 && !uploaded.done) throw new Error("이미지 세트의 제작 버전이 일치하지 않습니다. 구성안을 다시 확인해주세요.");
             }
-            return BLOG_CARD_TYPES.length;
+            return types.length;
         },
         []
     );
@@ -267,7 +268,9 @@ export default function BlogFactoryPage() {
     // 원고 1건 생성 — 배치·개별 실행이 공유하는 단위 작업
     const generateOne = useCallback(
         async (p: Profile, t: Topic, detail?: string) => {
-            await post("/api/admin/blog-images/preflight", { profileId: p.id, checkModel: true });
+            let imagePreparationError = "";
+            try { await post("/api/admin/blog-images/preflight", { profileId: p.id, checkModel: true, topic: `${t.field} ${t.topic}` }); }
+            catch (e) { imagePreparationError = e instanceof Error ? e.message : "이미지 준비를 확인하지 못했습니다."; }
             say(`  ✍ 원고: ${t.topic.slice(0, 34)}…`);
             const content = detail?.trim()
                 ? detail.trim()
@@ -289,9 +292,12 @@ export default function BlogFactoryPage() {
                 topic: t.topic,
             });
 
-            say(`  🖼 카드 생성 중…`);
-            const n = await makeCardsFor(s.id, p.id, w.title, w.body);
-            say(`  ✔ 완료 — 카드 ${n}장, 검수 대기`);
+            if (imagePreparationError) say(`  원고 저장 완료 · 이미지 보류: ${imagePreparationError}`);
+            else try {
+                say(`  🖼 카드 생성 중…`);
+                const n = await makeCardsFor(s.id, p.id, w.title, w.body);
+                say(`  ✔ 완료 — 카드 ${n}장, 검수 대기`);
+            } catch (e) { say(`  원고 저장 완료 · 이미지 단계만 재시도: ${e instanceof Error ? e.message : e}`); }
             return s.id as string;
         },
         [say, makeCardsFor]
@@ -440,6 +446,7 @@ export default function BlogFactoryPage() {
         if (!selected) return;
         setBusy("cards");
         try {
+            if ((selected.card_images?.length || 0) > 3) throw new Error("기존 4장 자료는 보존합니다. 블로그 발행에서 저장 원고를 불러와 새 3장 사본으로 전환해주세요.");
             if (selected.title !== editTitle || (selected.body || "") !== editBody) throw new Error("수정한 원고를 먼저 저장한 뒤 이미지를 생성해주세요.");
             const n = await makeCardsFor(selected.id, selected.profile_id, editTitle, editBody);
             say(`카드 ${n}장 재생성 — ${editTitle.slice(0, 30)}`);
