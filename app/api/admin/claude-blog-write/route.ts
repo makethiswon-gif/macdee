@@ -3,7 +3,7 @@ import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getWritingDNA, dnaDirective } from "@/lib/blog-writing-dna";
 import { appendBlogPhoneContact, blogPhoneContact } from "@/lib/blog-contact";
-import { reviewStrengths, selectStrengths, strengthDirective, validProfileId, type StrengthSelection, type StrengthLibrary } from "@/lib/blog-strengths";
+import { reconcileStrengths, reviewStrengths, selectStrengths, strengthDirective, validProfileId, type StrengthSelection, type StrengthLibrary } from "@/lib/blog-strengths";
 import { loadStrengthLibrary, signStrengthSelection, StrengthStoreError } from "@/lib/blog-strengths-store";
 import { reviewBlogEditorial } from "@/lib/blog-editorial-review";
 import { repetitionAvoidDirective } from "@/lib/blog-repetition";
@@ -271,9 +271,13 @@ ${strengthSelection ? strengthDirective(strengthSelection) : "[경력 자료 없
         const body = appendBlogPhoneContact(`${manuscript}\n\n${footer}`, phoneContact);
         const draftBody = body;
         const charCount = body.replace(/\s/g, "").length; // 공백 제외 글자 수
+        // 고른 강점을 모델이 전부 넣지 않았을 수 있다. 실제로 들어간 것만 남겨야 이후 이미지 단계가 막히지 않는다.
+        let droppedStrengths: string[] = [];
+        if (strengthSelection) { const reconciled = reconcileStrengths(body, strengthSelection); strengthSelection = reconciled.selection; droppedStrengths = reconciled.dropped; }
 
         return NextResponse.json({
-            editorialWarnings: reviewBlogEditorial(title, body, recentBodies, recentTitles),
+            editorialWarnings: [...reviewBlogEditorial(title, body, recentBodies, recentTitles),
+                ...(droppedStrengths.length ? [`선택한 승인 강점 ${droppedStrengths.length}개는 원고에 들어가지 않아 이번 글에서 제외했습니다. 이미지 제작에는 영향이 없습니다.`] : [])],
             factChecklist: parsed.facts,     // 검수자 확인용 사실 목록 (본문에는 포함되지 않는다)
             strengthSelection,
             strengthReview: strengthSelection ? reviewStrengths(body, strengthSelection) : null,

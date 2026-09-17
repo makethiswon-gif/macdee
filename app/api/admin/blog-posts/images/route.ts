@@ -6,7 +6,7 @@ import { BLOG_CARD_TYPES, PROFILE_CARD_TYPES, PROFILE_SET_FORMAT, EDITORIAL_SET_
 import { verifyImageProof } from "@/lib/blog-images/proof-selection";
 import { loadStrengthLibrary, StrengthStoreError } from "@/lib/blog-strengths-store";
 import { hasCompleteCardSet } from "@/lib/blog-publish-workflow";
-import { verifyImageRelease, digest, loadImageProduction } from "@/lib/blog-images/production-store";
+import { verifyImageRelease, digest, loadImageProduction, retryStorage } from "@/lib/blog-images/production-store";
 import { sourceHash } from "@/lib/blog-images/visual-planner";
 import { resolveStudioPhotos, resolveEditorialStudioPhoto } from "@/lib/lawyer-studio/blog";
 import { STUDIO_FORMAT, StudioError, StudioPhotoRequiredError } from "@/lib/lawyer-studio/types";
@@ -122,13 +122,15 @@ export async function POST(request: Request) {
             const hash = createHash("sha256").update(bytes).digest("hex").slice(0, 16);
             const path = `${postId}/${String(seq + 1).padStart(2, "0")}-${img.type}-${hash}.png`;
 
-            const { error } = await supabase.storage
+            // 2026-09-17 운영 로그: 저장소가 빈 메시지의 일시 오류를 돌려줘 두 번째 카드만 빠진 원고가 생겼다.
+            // 같은 경로·같은 바이트의 upsert 라 재시도가 안전하다. 이미 만든 이미지를 다시 생성하지 않는다.
+            const { error } = await retryStorage(() => supabase.storage
                 .from(BUCKET)
-                .upload(path, bytes, { contentType: "image/png", upsert: true });
+                .upload(path, bytes, { contentType: "image/png", upsert: true }));
 
             if (error) {
-                console.error("[BlogCards] 업로드 실패:", path, error.message);
-                return NextResponse.json({ error: `이미지 업로드 실패: ${error.message}` }, { status: 500 });
+                console.error("[BlogCards] 업로드 실패(3회 시도):", path, error.message || "(빈 메시지)", bytes.length);
+                return NextResponse.json({ error: `이미지 저장소가 일시적으로 응답하지 않았습니다. 생성된 이미지는 보존돼 있으니 '미완료 카드 재시도'만 눌러주세요.${error.message ? ` (${error.message})` : ""}` }, { status: 503 });
             }
 
             const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);

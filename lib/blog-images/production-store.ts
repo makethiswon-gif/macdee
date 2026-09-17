@@ -49,8 +49,18 @@ const path = (id: string) => {
 };
 
 /** Acquire before a paid call. A lost response cannot silently start a second paid job. */
+/** Supabase Storage 의 일시 오류(빈 메시지의 5xx·네트워크 끊김)를 짧게 재시도한다. 유료 모델 호출에는 쓰지 않는다. */
+export async function retryStorage<T extends { error: unknown }>(run: () => Promise<T>, tries = 3): Promise<T> {
+    let result = await run();
+    for (let i = 1; i < tries && result.error; i++) {
+        await new Promise((r) => setTimeout(r, 400 * 2 ** (i - 1)));
+        result = await run();
+    }
+    return result;
+}
+
 export async function loadImageProduction(id: string): Promise<ProductionCheckpoint> {
-    const { data, error } = await createServiceClient().storage.from(BUCKET).download(path(id));
+    const { data, error } = await retryStorage(() => createServiceClient().storage.from(BUCKET).download(path(id)));
     if (error || !data || data.size > 30_000_000) throw new ImageProductionError("보존된 이미지 작업을 읽지 못했습니다.");
     const saved = JSON.parse(await data.text()) as ProductionCheckpoint;
     if (saved.id !== id) throw new ImageProductionError("제작 작업이 일치하지 않습니다.");
@@ -71,9 +81,10 @@ export async function beginImageProduction(id: string, profileId: string, source
     return { checkpoint: saved, existing: true };
 }
 export async function saveImageProduction(checkpoint: ProductionCheckpoint) {
-    const { error } = await createServiceClient().storage.from(BUCKET).upload(path(checkpoint.id), JSON.stringify({ ...checkpoint, updatedAt: new Date().toISOString() }), {
+    const payload = JSON.stringify({ ...checkpoint, updatedAt: new Date().toISOString() });
+    const { error } = await retryStorage(() => createServiceClient().storage.from(BUCKET).upload(path(checkpoint.id), payload, {
         contentType: "application/json", upsert: true, cacheControl: "0",
-    });
+    }));
     if (error) throw new ImageProductionError("생성 결과의 보존에 실패했습니다. 추가 유료 요청은 중단했습니다.");
 }
 

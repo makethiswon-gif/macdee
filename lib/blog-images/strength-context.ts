@@ -1,7 +1,7 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { blogPhoneContact } from "@/lib/blog-contact";
 import { loadStrengthLibrary, signStrengthSelection, verifyStrengthSelection, StrengthStoreError } from "@/lib/blog-strengths-store";
-import { eligibleStrengths, normalizedClaim, reviewStrengths, selectStrengths } from "@/lib/blog-strengths";
+import { eligibleStrengths, normalizedClaim, reconcileStrengths, reviewStrengths, selectStrengths } from "@/lib/blog-strengths";
 import type { EditorialProfile } from "./card-types";
 
 /** Rehydrate registered identity; request bodies cannot supply new public credentials. */
@@ -20,7 +20,8 @@ export async function imageStrengthContext(input: Partial<EditorialProfile>, tit
         const matched = eligibleStrengths(library).filter((c) => normalizedClaim(body).includes(normalizedClaim(c.articleText))).slice(0, 2);
         selection = selectStrengths(library, `${title} ${body} ${matched.flatMap((c) => c.fields).join(" ")}`, [], matched.map((c) => c.id));
     }
-    if (reviewStrengths(body, selection).issues.length) throw new StrengthStoreError("선택한 강점의 원고 문구를 확인해주세요. 누락·중복 상태에서는 이미지를 생성하지 않습니다.", 422);
+    selection = reconcileStrengths(body, selection).selection;
+    if (reviewStrengths(body, selection).issues.length) throw new StrengthStoreError("같은 승인 문구가 원고에 두 번 이상 들어가 있습니다. 한 번만 남긴 뒤 이미지를 다시 만들어주세요.", 422);
     const [lawyerName, jobTitle] = String(row.lawyer_name || "").split("||");
     const portrait = Array.isArray(row.profile_images) ? row.profile_images : [];
     const office = Array.isArray(row.office_images) ? row.office_images : [];

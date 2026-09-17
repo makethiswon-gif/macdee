@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { verifyAdminToken } from "@/lib/admin-auth";
 import { isStrategySameOrigin } from "@/lib/portal-strategy";
 import { createServiceClient } from "@/lib/supabase/server";
-import { eligibleStrengths, reviewStrengths, selectStrengths, validProfileId } from "@/lib/blog-strengths";
+import { eligibleStrengths, reconcileStrengths, reviewStrengths, selectStrengths, validProfileId } from "@/lib/blog-strengths";
 import { loadStrengthLibrary, recordStrengthUse, signStrengthSelection, strengthBodyHash, StrengthStoreError } from "@/lib/blog-strengths-store";
 
 const headers = { "Cache-Control": "private, no-store" };
@@ -17,13 +17,15 @@ export async function POST(request: Request) {
         if (input.revision !== undefined && input.revision !== library.revision) throw new StrengthStoreError("승인 버전이 바뀌었습니다. 새로 확인해주세요.", 409);
         const { data: recent, error } = await db.from("blog_posts").select("body").eq("profile_id", input.profileId).order("created_at", { ascending: false }).limit(20);
         if (error) throw new StrengthStoreError("최근 원고를 확인하지 못했습니다.");
-        const selection = selectStrengths(library, input.topic, (recent || []).map((p) => p.body || ""), input.ids);
+        let selection = selectStrengths(library, input.topic, (recent || []).map((p) => p.body || ""), input.ids);
         let token: string | undefined;
         let review;
         if (input.body !== undefined) {
             if (typeof input.body !== "string" || input.body.length > 40_000 || typeof input.title !== "string" || input.title.length > 180) throw new StrengthStoreError("원고를 확인해주세요.", 400);
+            // 원고에 들어가지 않은 강점은 오류가 아니라 제외 대상이다. 반복 사용만 계속 막는다.
+            selection = reconcileStrengths(input.body, selection).selection;
             review = reviewStrengths(input.body, selection);
-            if (review.issues.length) throw new StrengthStoreError("선택한 승인 문구가 원고에 없거나 반복됩니다. 원고 또는 강점 선택을 수정해주세요.", 422);
+            if (review.issues.length) throw new StrengthStoreError("같은 승인 문구가 원고에 두 번 이상 들어가 있습니다. 한 번만 남기고 다시 시도해주세요.", 422);
             token = signStrengthSelection(selection, input.title, input.body);
             if (input.postId) {
                 const { data: post, error: postError } = await db.from("blog_posts").select("profile_id,title,body").eq("id", input.postId).single();

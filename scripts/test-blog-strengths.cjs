@@ -89,7 +89,15 @@ global.fetch = async (url, options) => { assert.equal(url, "https://api.anthropi
     assert.doesNotMatch(aiPrompt, /CONFIDENTIAL|미확인 경력|미확인 특장점|내부 검수만/);
     assert.match(aiPrompt, /예시는 가정입니다/); assert.match(aiPrompt, /실화처럼 쓰지 않습니다/); assert.ok(aiPrompt.includes(claim.articleText));
     assert.doesNotMatch(toNaverHtml(article.body), /sourceQuote|sourceRef|private\/source|CONFIDENTIAL|claim-a/);
-    assert.equal((await SELECT(req({ profileId: "A", topic: "상속", ids: [claim.id], title: "상속", body: "문구 삭제" }))).status, 422);
+    // 2026-09-17: 원고에 들어가지 않은 강점은 오류가 아니라 제외 대상이다(모델이 2개 중 1개만 넣어 이미지 전체가 422로 막히던 문제).
+    const omitted = await SELECT(req({ profileId: "A", topic: "상속", ids: [claim.id], title: "상속", body: "문구 삭제" }));
+    assert.equal(omitted.status, 200); const omittedData = await omitted.json();
+    assert.equal(omittedData.selection.claims.length, 0, "A strength absent from the manuscript must not reach images");
+    assert.equal(omittedData.review.issues.length, 0);
+    // 같은 승인 문구의 반복은 계속 차단한다.
+    assert.equal((await SELECT(req({ profileId: "A", topic: "상속", ids: [claim.id], title: "상속", body: `${claim.articleText}
+
+${claim.articleText}` }))).status, 422);
     aiOutput = JSON.stringify({ topics: [{ topic: "음주운전", field: "형사" }] });
     const outOfScope = await TOPICS(req({ profileId: "A", count: 6 }));
     assert.equal(outOfScope.status, 200); const outOfScopeData = await outOfScope.json();
