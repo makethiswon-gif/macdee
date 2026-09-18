@@ -57,6 +57,9 @@ export function cleanLegacyBody(body: string): string {
     for (let i = 0; i < 4 && lead.test(html); i++) html = html.replace(lead, "$1");
     // 본문 중간·끝에 끼어 있는 옛 "macdee." 배너(직접 확인한 4장). 도표·표 같은 내용 이미지는 남긴다.
     html = html.replace(/<img\b[^>]*\/(?:03abbcb71b945|07949070288df|bcb109a6af778|582ce17d69683)\.png"[^>]*>/gi, "");
+    // 옛 편집기가 소제목을 <h5> 로 넣었다. 글 제목(h1) 바로 아래에서 h5 가 나오면 제목 단계가 건너뛰어
+    // 스크린리더의 문서 개요가 깨진다(Lighthouse heading-order). 본문 소제목은 h2 로 맞춘다.
+    html = html.replace(/<(\/?)h[1456]\b/gi, "<$1h2");
     // 빈 문단이 두세 개씩 겹쳐 문단 사이가 과하게 벌어진다 → 하나로
     html = html.replace(/(?:<p[^>]*>\s*(?:<br[^>]*>|&nbsp;|\s)*<\/p>\s*){2,}/gi, "<p><br></p>");
     // 꼬리에 남은 빈 문단·구분선
