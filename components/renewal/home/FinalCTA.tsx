@@ -90,7 +90,7 @@ export default function FinalCTA() {
                             </a>
                             <a
                                 href={path("/#plans")}
-                                className="mt-pi text-[13.5px] font-medium underline-offset-4 hover:underline"
+                                className="mt-pi inline-block py-2.5 -my-2.5 text-[13.5px] font-medium underline-offset-4 hover:underline"
                                 style={{ color: "var(--mt-gray)", ["--a" as string]: 0.65 }}
                             >
                                 비용 다시 보기

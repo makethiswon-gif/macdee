@@ -300,7 +300,7 @@ export default function Page() {
                                 className="px-6 py-7 text-center rounded-[2px]"
                                 style={{ border: "1px solid var(--mt-accent)", background: "var(--mt-surface)" }}
                             >
-                                <p className="mt-en text-[9.5px] font-medium mb-2" style={{ color: "var(--mt-accent)" }}>
+                                <p className="mt-en text-[10.5px] font-medium mb-2" style={{ color: "var(--mt-accent)" }}>
                                     Source
                                 </p>
                                 <p className="text-[15px] font-semibold" style={{ color: "var(--mt-ink)" }}>
@@ -490,7 +490,7 @@ export default function Page() {
                             <div className="flex flex-wrap items-center gap-3">
                                 <Eyebrow>Client Portal</Eyebrow>
                                 <span
-                                    className="mt-en text-[9px] font-medium px-2 pt-[4px] pb-[3px] rounded-[2px]"
+                                    className="mt-en text-[10.5px] font-medium px-2 pt-[4px] pb-[3px] rounded-[2px]"
                                     style={{ border: "1px solid var(--mt-line-strong)", color: "var(--mt-gray)" }}
                                 >
                                     자료 공유 · 확장 계획

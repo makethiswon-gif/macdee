@@ -39,7 +39,7 @@ export default function SiteFooter() {
                                 <li key={c.href}>
                                     <Link
                                         href={path(c.href)}
-                                        className="text-[13.5px] transition-opacity hover:opacity-60"
+                                        className="inline-block py-2 -my-2 text-[13.5px] transition-opacity hover:opacity-60"
                                     >
                                         {c.label}
                                     </Link>
@@ -64,7 +64,7 @@ export default function SiteFooter() {
                                 <li key={l.href}>
                                     <Link
                                         href={path(l.href)}
-                                        className="text-[13.5px] transition-opacity hover:opacity-60"
+                                        className="inline-block py-2 -my-2 text-[13.5px] transition-opacity hover:opacity-60"
                                     >
                                         {l.label}
                                     </Link>
@@ -79,7 +79,7 @@ export default function SiteFooter() {
                         </p>
                         <a
                             href={`tel:${COMPANY.phone.replace(/-/g, "")}`}
-                            className="mt-num text-[17px] font-medium tracking-tight transition-opacity hover:opacity-60"
+                            className="mt-num inline-block py-2.5 -my-2.5 text-[17px] font-medium tracking-tight transition-opacity hover:opacity-60"
                         >
                             {COMPANY.phone}
                         </a>
@@ -96,14 +96,14 @@ export default function SiteFooter() {
                     </p>
 
                     <div className="flex items-center gap-6">
-                        <Link href="/terms" className="text-[12px] transition-opacity hover:opacity-60" style={{ color: "var(--mt-gray)" }}>
+                        <Link href="/terms" className="inline-block py-3 -my-3 text-[12px] transition-opacity hover:opacity-60" style={{ color: "var(--mt-gray)" }}>
                             이용약관
                         </Link>
-                        <Link href="/refund" className="text-[12px] transition-opacity hover:opacity-60" style={{ color: "var(--mt-gray)" }}>
+                        <Link href="/refund" className="inline-block py-3 -my-3 text-[12px] transition-opacity hover:opacity-60" style={{ color: "var(--mt-gray)" }}>
                             환불정책
                         </Link>
                         {/* 기존 구독자 로그인 경로 존치(R9). 마케팅 동선에서는 빼되 끊지는 않는다. */}
-                        <Link href="/login" className="text-[12px] transition-opacity hover:opacity-60" style={{ color: "var(--mt-gray)" }}>
+                        <Link href="/login" className="inline-block py-3 -my-3 text-[12px] transition-opacity hover:opacity-60" style={{ color: "var(--mt-gray)" }}>
                             고객 로그인
                         </Link>
                     </div>

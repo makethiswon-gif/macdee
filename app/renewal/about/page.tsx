@@ -175,7 +175,7 @@ className="mt-k-proof pt-12 flex flex-wrap gap-x-16 gap-y-10"
                                     </div>
                                     <figcaption className="mt-4">
                                         <p
-                                            className="mt-en text-[9.5px] font-medium"
+                                            className="mt-en text-[10.5px] font-medium"
                                             style={{ color: "var(--mt-gray-light)" }}
                                         >
                                             {m.role}

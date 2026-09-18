@@ -44,14 +44,14 @@ export default function InsightsIndex({ items, categories, active, total, page, 
             {/* ── 필터 ── */}
             {categories.length > 1 && (
                 <nav
-                    className="flex flex-wrap items-center gap-x-6 gap-y-3 py-5"
+                    className="flex flex-wrap items-center gap-x-6 gap-y-5 py-5"
                     style={{ borderTop: "1px solid var(--mt-ink)", borderBottom: "1px solid var(--mt-line)" }}
                     aria-label="매거진 카테고리"
                 >
                     <Link
                         href={insightIndexHref()}
                         aria-current={active === null ? "page" : undefined}
-                        className="mt-en mt-label transition-opacity hover:opacity-60"
+                        className="mt-en mt-label inline-block py-2.5 -my-2.5 transition-opacity hover:opacity-60"
                         style={{ color: active === null ? "var(--mt-ink)" : "var(--mt-gray-light)" }}
                     >
                         전체
@@ -64,7 +64,7 @@ export default function InsightsIndex({ items, categories, active, total, page, 
                             key={cat}
                             href={insightIndexHref(1, cat)}
                             aria-current={active === cat ? "page" : undefined}
-                            className="mt-label transition-opacity hover:opacity-60"
+                            className="mt-label inline-block py-2.5 -my-2.5 transition-opacity hover:opacity-60"
                             style={{
                                 color: active === cat ? "var(--mt-ink)" : "var(--mt-gray-light)",
                                 fontWeight: 500,

@@ -45,7 +45,7 @@ export default function PlansSection() {
                                     </div>
                                     {plan.badge && (
                                         <span
-                                            className="mt-en shrink-0 px-2 pt-[4px] pb-[3px] text-[9.5px] font-medium rounded-[2px]"
+                                            className="mt-en shrink-0 px-2 pt-[4px] pb-[3px] text-[10.5px] font-medium rounded-[2px]"
                                             style={{ border: "1px solid var(--mt-accent)", color: "var(--mt-accent)" }}
                                         >
                                             {plan.badge}
@@ -72,7 +72,7 @@ export default function PlansSection() {
 
                                 {/* 포함 내역 */}
                                 <div className="mt-6 flex-1">
-                                    <p className="mt-en mt-label text-[9px]" style={{ color: "var(--mt-gray)" }}>
+                                    <p className="mt-en mt-label text-[10.5px]" style={{ color: "var(--mt-gray)" }}>
                                         {plan.includesLabel}
                                     </p>
                                     <ul className="mt-3">

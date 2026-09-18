@@ -17,7 +17,7 @@ function StatusPill({ status }: { status: string }) {
     const active = status === "운영 중";
     return (
         <span
-            className="mt-en inline-block px-2 pt-[4px] pb-[3px] text-[9.5px] font-medium rounded-[2px] whitespace-nowrap"
+            className="mt-en inline-block px-2 pt-[4px] pb-[3px] text-[10.5px] font-medium rounded-[2px] whitespace-nowrap"
             style={{
                 border: `1px solid ${active ? "var(--mt-accent)" : "var(--mt-line)"}`,
                 color: active ? "var(--mt-accent)" : "var(--mt-gray)",
@@ -80,7 +80,7 @@ export default function InvariantClause() {
                                             {["채널", "상태", "비고"].map((h) => (
                                                 <th
                                                     key={h}
-                                                    className="mt-en text-left text-[9.5px] font-medium pb-3 pr-6"
+                                                    className="mt-en text-left text-[10.5px] font-medium pb-3 pr-6"
                                                     style={{ color: "var(--mt-gray)", borderBottom: "1px solid var(--mt-line)" }}
                                                 >
                                                     {h}

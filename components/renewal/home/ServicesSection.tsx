@@ -17,7 +17,7 @@ import { SERVICES, path } from "@/data/renewal/site";
 function Badge({ children }: { children: string }) {
     return (
         <span
-            className="mt-en inline-block align-middle ml-1.5 px-1.5 pt-[3px] pb-[2px] text-[9px] font-medium rounded-[2px]"
+            className="mt-en inline-block align-middle ml-1.5 px-1.5 pt-[3px] pb-[2px] text-[10.5px] font-medium rounded-[2px]"
             style={{ border: "1px solid var(--mt-line-strong)", color: "var(--mt-gray)" }}
         >
             {children}
@@ -87,7 +87,7 @@ export default function ServicesSection() {
                                                     <span className="mt-underline">{svc.ko}</span>
                                                 </span>
                                                 <span
-                                                    className="mt-en text-[9px] font-medium"
+                                                    className="mt-en text-[10.5px] font-medium"
                                                     style={{ color: "var(--mt-gray-light)", letterSpacing: "0.12em" }}
                                                 >
                                                     {svc.en}

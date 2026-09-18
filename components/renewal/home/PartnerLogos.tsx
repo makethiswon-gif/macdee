@@ -43,7 +43,7 @@ function IndexGroup({
                             className="flex items-baseline gap-3 py-[9px] text-[14px]"
                             style={{ borderBottom: "1px solid var(--mt-line)" }}
                         >
-                            <span className="mt-en mt-num text-[9.5px]" style={{ color: "var(--mt-gray-light)" }}>
+                            <span className="mt-en mt-num text-[10.5px]" style={{ color: "var(--mt-gray-light)" }}>
                                 {String(startIndex + i).padStart(2, "0")}
                             </span>
                             <span

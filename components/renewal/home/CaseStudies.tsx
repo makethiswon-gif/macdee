@@ -139,7 +139,7 @@ export default function CaseStudies({
                                                             boxShadow: "0 0 0 3px rgba(53,99,174,0.14)",
                                                         }}
                                                     />
-                                                    <p className="mt-en text-[9.5px] font-medium" style={{ color: "var(--mt-accent)" }}>
+                                                    <p className="mt-en text-[10.5px] font-medium" style={{ color: "var(--mt-accent)" }}>
                                                         {g.en}
                                                     </p>
                                                     <h4 className="mt-2 text-[15.5px] font-semibold" style={{ color: "var(--mt-ink)" }}>

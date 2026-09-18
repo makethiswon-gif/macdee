@@ -743,6 +743,9 @@ html.mt-js .mt-root .mt-pline {
 /* 링크 밑줄 1회 긋기 — 진행형(다시 깜빡이지 않는다) */
 .mt-root .mt-plink {
     position: relative;
+    /* 글자 높이(약 21px)만으로는 손가락으로 누르기 어렵다. 자리는 그대로 두고 눌리는 영역만 위아래로 넓힌다. */
+    padding-block: 10px;
+    margin-block: -10px;
 }
 .mt-root .mt-plink .mt-plink-bar {
     position: absolute;

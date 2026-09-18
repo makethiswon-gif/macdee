@@ -98,7 +98,7 @@ export default function WhyMakethis1() {
                                     />
                                 </div>
                                 <figcaption className="mt-photo-cap mt-4" style={{ ["--md" as string]: `${(i % 3) * 120}ms` }}>
-                                    <p className="mt-en text-[9.5px] font-medium" style={{ color: "var(--mt-gray-light)" }}>
+                                    <p className="mt-en text-[10.5px] font-medium" style={{ color: "var(--mt-gray-light)" }}>
                                         {m.role}
                                     </p>
                                     <p className="mt-2 text-[15px] font-semibold" style={{ color: "var(--mt-ink)" }}>

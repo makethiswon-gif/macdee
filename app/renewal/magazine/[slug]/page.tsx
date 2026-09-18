@@ -212,7 +212,7 @@ export default async function InsightArticlePage({
                         {/* ── 헤드 ── */}
                         <Link
                             href={path("/magazine")}
-                            className="inline-flex items-center gap-1.5 text-[13px] font-medium transition-opacity hover:opacity-60"
+                            className="inline-flex items-center gap-1.5 py-2.5 -my-2.5 text-[13px] font-medium transition-opacity hover:opacity-60"
                             style={{ color: "var(--mt-gray)" }}
                         >
                             ← Insights

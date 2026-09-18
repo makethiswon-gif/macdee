@@ -42,7 +42,9 @@ function verifyFacts() {
   const serviceFields = list => list.map(({ no, en, href, items }) => ({ no, en, href, badges: items.map(i => i.badge || null) }));
   assert.deepEqual(serviceFields(now.SERVICES), serviceFields(old.SERVICES), 'All service items and conditional badges retained');
   const oldServices = readData('data/renewal/services.ts', true), newServices = readData('data/renewal/services.ts');
-  const protectedFaqs = data => data.SERVICES.map(s => s.faq.filter(f => !(s.slug === 'lawfirm-blog' && f.q === '월 몇 건을 쓰나요?')));
+  // 2026-09-18: the privacy FAQ question was reworded to the asker's voice (answer/conditions unchanged).
+  const PRIVACY_Q = ['의뢰인 개인정보가 저희 쪽에 넘어오나요?', '의뢰인 개인정보가 메이크디스원으로 넘어가나요?'];
+  const protectedFaqs = data => data.SERVICES.map(s => s.faq.filter(f => !(s.slug === 'lawfirm-blog' && f.q === '월 몇 건을 쓰나요?')).map(f => PRIVACY_Q.includes(f.q) ? { ...f, q: PRIVACY_Q[1] } : f));
   assert.deepEqual(protectedFaqs(newServices), protectedFaqs(oldServices), 'Other FAQ conditions preserved');
   assert.ok(newServices.SERVICES.find(s => s.slug === 'lawfirm-blog').faq.find(f => f.q === '월 몇 건을 쓰나요?').a.includes('블로그 월 20회'));
   const protectedFiles = ['data/renewal/cases.ts', 'app/renewal/flags.ts', 'app/layout.tsx', 'app/renewal/magazine/[slug]/page.tsx'];

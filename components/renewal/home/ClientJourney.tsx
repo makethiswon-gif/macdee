@@ -39,7 +39,7 @@ function SearchScene() {
             style={{ background: "var(--mt-surface)", border: "1px solid var(--mt-line)" }}
         >
             <p className="mt-pi flex items-baseline gap-2" style={pi(0.1)}>
-                <span className="mt-en text-[9px] font-medium" style={{ color: "var(--mt-gray)" }}>
+                <span className="mt-en text-[10.5px] font-medium" style={{ color: "var(--mt-gray)" }}>
                     Search
                 </span>
                 <span style={{ color: "var(--mt-ink)" }}>내 상황과 비슷한 법률 문제</span>
