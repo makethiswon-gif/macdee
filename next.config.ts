@@ -179,6 +179,15 @@ const nextConfig: NextConfig = {
         destination: "/dashboard",
         permanent: true,
       },
+      // 4. 2026-09-19 운영 404 로그에서 확인한 옛 아임웹 메뉴 주소·관용 주소.
+      //    대소문자만 다른 /CONTACT → /contact 는 넣지 않는다(리다이렉트 매칭이 대소문자를 가리지 않아 무한 루프가 된다).
+      { source: "/BUSINESS", destination: "/lawfirm-marketing", statusCode: 301 },
+      { source: "/PORTFOLIO01", destination: "/work", statusCode: 301 },
+      { source: "/history", destination: "/about", statusCode: 301 },
+      { source: "/32", destination: "/magazine", statusCode: 301 },
+      { source: "/feed", destination: "/rss.xml", statusCode: 301 },
+      // /blog/{변호사} 는 고객 블로그 호스팅이지만 /blog 자체에는 페이지가 없어 404 였다 → 매거진 목록으로.
+      { source: "/blog", destination: "/magazine", statusCode: 301 },
       {
         // 옛 변호사 URL 구조 /lawyer/{slug} → 현재 /blog/{slug}
         source: "/lawyer/:slug",
