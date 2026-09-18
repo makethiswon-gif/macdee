@@ -1,0 +1,15 @@
+/* renewal.css 가 쓰는 글꼴 선언. kinetic.css 를 쓰지 않는 화면(포털, /renewal 데모 트리)에서만 불러온다.
+   공개 마케팅 레이아웃((marketing)/layout.tsx)은 "Renewal Study" 만 쓰므로 이 파일을 불러오지 않는다. */
+/* Pretendard 동적 서브셋 — 92개 조각 중 실제 쓰인 글자 범위만 내려받는다.
+   전체 한글 폰트(약 1.4MB)를 통째로 받지 않으므로 LCP에 안전하다. */
+@import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
+
+/* IBM Plex Mono — 영문 eyebrow/라벨/숫자 전용 (The Contract 개편, Inter 대체).
+   계약서 타자기·장부 무드. 본문에는 쓰지 않으므로 2굵기만. */
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+
+/* Noto Serif KR — 선언문·조 제목 전용. 법률 문서의 세리프 권위.
+   본문에는 절대 쓰지 않는다(낡아 보인다). 600·700만 로딩. */
+@import "@fontsource/noto-serif-kr/600.css";
+@import "@fontsource/noto-serif-kr/700.css";

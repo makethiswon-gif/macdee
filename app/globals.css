@@ -1,10 +1,7 @@
-/* Self-hosted via @fontsource — no Google CDN call, faster load, no FOUT */
-@import '@fontsource/noto-sans-kr/300.css';
-@import '@fontsource/noto-sans-kr/400.css';
-@import '@fontsource/noto-sans-kr/500.css';
-@import '@fontsource/noto-sans-kr/600.css';
-@import '@fontsource/noto-sans-kr/700.css';
-@import '@fontsource/noto-sans-kr/900.css';
+/* Noto Sans KR 선언은 app/product-fonts.css 로 옮겼다 (2026-09-18).
+   6굵기 × 124조각 = @font-face 744개(약 500KB, gzip 130KB)가 이 공용 CSS 에 들어 있어
+   Noto Sans KR 을 쓰지 않는 공개 마케팅 페이지까지 렌더링을 막는 CSS 로 내려받고 있었다.
+   제품·관리자·포털·블로그 등 이 글꼴을 쓰는 화면의 레이아웃이 product-fonts.css 를 불러온다. */
 @import "tailwindcss";
 
 :root {

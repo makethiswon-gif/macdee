@@ -1,6 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/server";
 import { path, SITE_BASE } from "@/data/renewal/site";
+import { cleanExcerpt, displayAuthor } from "@/lib/renewal/magazine-display";
 
 export interface InsightItem {
     id: string;
@@ -31,11 +32,12 @@ export const getInsightCatalogue = unstable_cache(async (): Promise<InsightItem[
             .order("id", { ascending: true })
             .range(offset, offset + batchSize - 1);
         if (error) throw new Error("매거진 목록을 불러오지 못했습니다.");
-        articles.push(...(data || []));
+        // 옛 칼럼의 요약 찌꺼기("\n\t\t…makethis1.com한국에서…")와 옛 제품명 작성자 표기를 표시용으로 정리한다.
+        articles.push(...(data || []).map((row) => ({ ...row, excerpt: cleanExcerpt(row.excerpt) || null, author: displayAuthor(row.author) })));
         if (!data || data.length < batchSize) break;
     }
     return articles;
-}, ["published-insights-catalogue"], { revalidate: 600, tags: ["magazines"] });
+}, ["published-insights-catalogue-v2"], { revalidate: 600, tags: ["magazines"] });
 
 export function insightIndexHref(page = 1, category?: string | null): string {
     const query = new URLSearchParams();
@@ -50,7 +52,7 @@ export function insightUrl(slug: string): string {
 }
 
 export function insightAuthor(author: string | null) {
-    const name = author?.trim() || "MAKETHIS1 편집팀";
+    const name = displayAuthor(author);
     // A byline naming an editorial team or this company is not a person.
     const isOrganization = /에디터|편집|팀|macdee|makethis1|메이크디스원/i.test(name);
     return {

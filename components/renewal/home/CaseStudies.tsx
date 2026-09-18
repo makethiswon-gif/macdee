@@ -13,8 +13,11 @@ import type { CaseStudy } from "@/data/renewal/cases";
 export default function CaseStudies({
     cases,
     growthLimit = Infinity,
+    showAllLink = true,
 }: {
     cases: CaseStudy[];
+    /** "전체 사례 보기" 링크 — /work 자신에서는 자기 자신으로 가는 링크가 되므로 끈다 */
+    showAllLink?: boolean;
     /** Growth Path 타임라인을 앞에서 몇 개 사례까지 펼칠지 — 홈은 1(길이 관리), /work 는 전부 */
     growthLimit?: number;
 }) {
@@ -163,11 +166,13 @@ export default function CaseStudies({
                     <div style={{ borderTop: "1px solid var(--mt-line)" }} />
                 </div>
 
-                <Reveal index={1}>
-                    <div className="mt-12">
-                        <ArrowLink href={path("/work")}>전체 사례 보기</ArrowLink>
-                    </div>
-                </Reveal>
+                {showAllLink && (
+                    <Reveal index={1}>
+                        <div className="mt-12">
+                            <ArrowLink href={path("/work")}>전체 사례 보기</ArrowLink>
+                        </div>
+                    </Reveal>
+                )}
             </Container>
         </Section>
     );

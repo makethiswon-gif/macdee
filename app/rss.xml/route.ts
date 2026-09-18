@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { cleanExcerpt, displayAuthor } from "@/lib/renewal/magazine-display";
 import { createServiceClient } from "@/lib/supabase/server";
 import { cleanBody } from "@/lib/ai-content";
 import { isPublicLawyerSlug, PUBLIC_BLOG_CHANNELS } from "@/lib/public-content";
@@ -65,9 +66,9 @@ export async function GET() {
       <title>${cdata(article.title || "")}</title>
       <link>${url}</link>
       <guid isPermaLink="true">${url}</guid>
-      <description>${cdata(article.excerpt || "")}</description>
+      <description>${cdata(cleanExcerpt(article.excerpt))}</description>
       <content:encoded>${cdata(`${cover}<p>${body}</p>`)}</content:encoded>
-      <dc:creator>${cdata(article.author || "메이크디스원")}</dc:creator>
+      <dc:creator>${cdata(displayAuthor(article.author))}</dc:creator>
       ${date ? `<pubDate>${new Date(date).toUTCString()}</pubDate>` : ""}
     </item>`,
             });

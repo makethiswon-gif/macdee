@@ -1,3 +1,4 @@
+import "@/app/product-fonts.css";
 import Image from "next/image";
 
 // Shared layout for auth pages (login, signup)

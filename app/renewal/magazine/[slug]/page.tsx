@@ -5,6 +5,7 @@ import { cache } from "react";
 import { createServiceClient } from "@/lib/supabase/server";
 import { Container } from "@/components/renewal/primitives";
 import { renderMagazineBody } from "@/lib/renewal/markdown";
+import { cleanExcerpt, cleanLegacyBody, displayAuthor, formatKstDate } from "@/lib/renewal/magazine-display";
 import { COMPANY, DEMO_BASE, path, SITE_BASE, ogImage } from "@/data/renewal/site";
 import { getInsightServices, insightAuthor, insightIndexHref, insightJsonLd, insightUrl } from "@/lib/renewal/magazine";
 import { renewalRobots } from "../../flags";
@@ -51,18 +52,14 @@ const getMagazine = cache(async (slug: string): Promise<Magazine | null> => {
             .eq("status", "published")
             .single();
         if (error || !data) return null;
-        return data;
+        // 화면·메타·구조화 데이터가 모두 같은 정리본을 쓰도록 조회 직후 한 번만 다듬는다(DB 원문은 그대로).
+        return { ...data, excerpt: cleanExcerpt(data.excerpt), author: displayAuthor(data.author), body: cleanLegacyBody(data.body || "") };
     } catch {
         return null;
     }
 });
 
-function formatDate(iso: string | null): string {
-    if (!iso) return "";
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return "";
-    return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
-}
+const formatDate = formatKstDate;
 
 export async function generateMetadata({
     params,

@@ -1,4 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/server";
+import { cleanExcerpt } from "@/lib/renewal/magazine-display";
 import { isPublicLawyerSlug, PUBLIC_BLOG_CHANNELS } from "@/lib/public-content";
 import { COMPANY, FOUNDER, PLANS, SITE_BASE, absUrl } from "@/data/renewal/site";
 
@@ -91,7 +92,7 @@ export async function GET() {
         if (magazines?.length) {
             const articles = magazines.map(article => {
                 const title = article.title.replace(/[\r\n\[\]]/g, " ");
-                const summary = article.excerpt?.replace(/\s+/g, " ").trim().slice(0, 160);
+                const summary = cleanExcerpt(article.excerpt).slice(0, 160);
                 return `- [${title}](${base}/magazine/${encodeURIComponent(article.slug)})${summary ? `: ${summary}` : ""}`;
             });
             dynamic += `\n\n## 법무법인 마케팅 매거진\n\n메이크디스원이 발행한 변호사 광고, 로펌 블로그, SEO·AI 검색과 상담 전환에 관한 글입니다.\n\n${articles.join("\n")}`;

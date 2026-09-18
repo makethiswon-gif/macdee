@@ -18,7 +18,7 @@ import { renewalRobots } from "../flags";
 //    경쟁사 사례를 일반화해 깎아내리지 않는다.
 
 const URL = absUrl("/work");
-const TITLE = "Case Study | MAKETHIS1";
+const TITLE = "로펌 마케팅 운영 사례 · 고객사 | 메이크디스원";
 const DESC =
     "메이크디스원이 함께한 로펌들의 성장 기록. 측정된 수치가 확인된 사례부터 순차적으로 등록합니다.";
 
@@ -43,7 +43,7 @@ const jsonLd = graph(
     },
     breadcrumbJsonLd([
         { name: "홈", path: "/" },
-        { name: "Case Study", path: "/work" },
+        { name: "운영 사례", path: "/work" },
     ])
 );
 
@@ -114,7 +114,7 @@ export default function Page() {
             </Section>
 
             {hasCases ? (
-                <CaseStudies cases={CASES} />
+                <CaseStudies cases={CASES} showAllLink={false} />
             ) : (
                 <Section tight>
                     <Container>

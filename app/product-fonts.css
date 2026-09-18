@@ -1,0 +1,10 @@
+/* Noto Sans KR — 제품(맥디)·관리자·포털·고객 블로그·법적 고지 화면의 본문 글꼴.
+   Self-hosted via @fontsource — no Google CDN call.
+   공개 마케팅 레이아웃((marketing)/layout.tsx)은 "Renewal Study" 만 쓰므로 이 파일을 불러오지 않는다.
+   ⚠️ 새 최상위 라우트를 만들 때 Noto Sans KR 이 필요하면 그 레이아웃에서 이 파일을 import 할 것. */
+@import '@fontsource/noto-sans-kr/300.css';
+@import '@fontsource/noto-sans-kr/400.css';
+@import '@fontsource/noto-sans-kr/500.css';
+@import '@fontsource/noto-sans-kr/600.css';
+@import '@fontsource/noto-sans-kr/700.css';
+@import '@fontsource/noto-sans-kr/900.css';

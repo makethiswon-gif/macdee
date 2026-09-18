@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatKstDate } from "@/lib/renewal/magazine-display";
 import { Container, Section, Eyebrow, ArrowLink } from "../primitives";
 import Reveal from "../Reveal";
 import { path } from "@/data/renewal/site";
@@ -19,12 +20,7 @@ export interface InsightItem {
     published_at: string | null;
 }
 
-function formatDate(iso: string | null): string {
-    if (!iso) return "";
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return "";
-    return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
-}
+const formatDate = formatKstDate;
 
 function Meta({ item, accent = false }: { item: InsightItem; accent?: boolean }) {
     return (

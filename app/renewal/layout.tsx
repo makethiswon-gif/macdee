@@ -1,4 +1,6 @@
+import "@/app/product-fonts.css";
 import type { Metadata } from "next";
+import "./renewal-fonts.css";
 import "./renewal.css";
 import "./kinetic.css";
 import StudyFont from "@/components/renewal/concepts/StudyFont";

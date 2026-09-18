@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Container, Section, SectionHeader, Eyebrow, Button } from "@/components/renewal/primitives";
 import Reveal from "@/components/renewal/Reveal";
-import { CHANNELS, SYSTEM_STEPS, PRIMARY_CTA, path, absUrl, ogImage } from "@/data/renewal/site";
+import { SERVICES, SYSTEM_STEPS, PRIMARY_CTA, path, absUrl, ogImage } from "@/data/renewal/site";
 import { breadcrumbJsonLd, graph, organizationId } from "@/lib/renewal/schema";
 import { renewalRobots } from "../flags";
 import RelatedInsights from "@/components/renewal/RelatedInsights";
@@ -44,11 +44,12 @@ const jsonLd = graph(
     {
         "@type": "ItemList",
         "@id": `${URL}#services`,
-        itemListElement: CHANNELS.map((c, i) => ({
+        // 화면에 보이는 6개 서비스 영역과 같은 이름·순서·링크를 쓴다.
+        itemListElement: SERVICES.map((s, i) => ({
             "@type": "ListItem",
             position: i + 1,
-            name: c.title,
-            url: absUrl(c.href),
+            name: s.ko,
+            url: absUrl(s.href),
         })),
     },
     breadcrumbJsonLd([

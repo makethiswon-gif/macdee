@@ -1,5 +1,6 @@
 "use client";
 
+import "@/app/product-fonts.css";
 import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";

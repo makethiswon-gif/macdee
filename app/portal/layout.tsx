@@ -1,4 +1,6 @@
+import "@/app/product-fonts.css";
 import type { Metadata } from "next";
+import "../renewal/renewal-fonts.css";
 import "../renewal/renewal.css";
 
 // Client Portal — 로펌 클라이언트와 대표를 잇는 업무 공간.
