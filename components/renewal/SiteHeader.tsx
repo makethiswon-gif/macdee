@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import BrandWordmark from "./BrandWordmark";
-import { NAV, PRIMARY_CTA, path } from "@/data/renewal/site";
+import { NAV, PRIMARY_CTA, path, COMPANY } from "@/data/renewal/site";
 
 export default function SiteHeader() {
     const [scrolled, setScrolled] = useState(false);
@@ -246,6 +246,15 @@ export default function SiteHeader() {
                         >
                             {PRIMARY_CTA.label}
                         </Link>
+                        {/* 모바일에서는 전화가 가장 빠른 상담 경로다. 메뉴 안에서 바로 걸 수 있게 한다. */}
+                        <a
+                            href={`tel:${COMPANY.phone.replace(/[^0-9+]/g, "")}`}
+                            className="mt-3 w-full inline-flex items-center justify-center h-[52px] text-[14px] font-medium rounded-[2px]"
+                            style={{ border: "1px solid var(--mt-line-strong)", color: "var(--mt-ink)" }}
+                            onClick={() => setOpenMenu(false)}
+                        >
+                            전화 상담 · {COMPANY.phone}
+                        </a>
                     </div>
                 </div>
             )}

@@ -16,7 +16,7 @@ export default function GlobalError({
     return (
         <div
             className="min-h-screen flex items-center justify-center bg-[#F8F9FB]"
-            style={{ fontFamily: "'Noto Sans KR', sans-serif" }}
+            style={{ fontFamily: "'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif" }}
         >
             <div className="text-center max-w-md mx-auto px-6">
                 <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-red-50 flex items-center justify-center">
