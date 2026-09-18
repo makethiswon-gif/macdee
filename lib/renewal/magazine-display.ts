@@ -48,6 +48,17 @@ export function cleanLegacyBody(body: string): string {
     html = html.replace(/(<img\b[^>]*?\balt=")[^"]*\.(?:png|jpe?g|gif|webp)(")/gi, "$1$2");
     // 본문 이미지는 지연 로딩
     html = html.replace(/<img\b(?![^>]*\bloading=)/gi, '<img loading="lazy" decoding="async"');
+    // 글머리의 옛 제품명 배너: 16편 모두 본문이 시작되기 전에 "macdee." 로고 배너(또는 네이버 링크 카드의
+    // 미리보기 이미지와 "makethis1.com" 캡션)가 놓여 있다. 첫 글자가 나오기 전의 이미지·빈 문단만 걷어낸다.
+    const lead = /^(\s*<div class="[^"]*_comment_body_[^"]*">)\s*(?:<p[^>]*>\s*(?:<br[^>]*>|&nbsp;|\s)*<\/p>|<(p|h2|h3)\b[^>]*>\s*(?:<br[^>]*>\s*)*(?:<(?:strong|span)\b[^>]*>\s*)*<img\b[^>]*>\s*(?:<\/(?:strong|span)>\s*)*<\/\2>|<div\b[^>]*>\s*<div\b[^>]*>\s*<div\b[^>]*>\s*(?:<img\b[^>]*>|<p[^>]*>\s*makethis1\.com\s*<\/p>)\s*<\/div>\s*<\/div>\s*<\/div>)/i;
+    for (let i = 0; i < 12 && lead.test(html); i++) html = html.replace(lead, "$1");
+    // 배너가 첫 문단 안에서 글과 붙어 있는 변형(<p><img …>본문…): 문단은 두고 이미지와 바로 뒤 줄바꿈만 뺀다
+    html = html.replace(/^(\s*<div class="[^"]*_comment_body_[^"]*">\s*<(?:p|h2|h3)\b[^>]*>)\s*<img\b[^>]*>(?:\s*<br[^>]*>)*/i, "$1");
+    for (let i = 0; i < 4 && lead.test(html); i++) html = html.replace(lead, "$1");
+    // 본문 중간·끝에 끼어 있는 옛 "macdee." 배너(직접 확인한 4장). 도표·표 같은 내용 이미지는 남긴다.
+    html = html.replace(/<img\b[^>]*\/(?:03abbcb71b945|07949070288df|bcb109a6af778|582ce17d69683)\.png"[^>]*>/gi, "");
+    // 빈 문단이 두세 개씩 겹쳐 문단 사이가 과하게 벌어진다 → 하나로
+    html = html.replace(/(?:<p[^>]*>\s*(?:<br[^>]*>|&nbsp;|\s)*<\/p>\s*){2,}/gi, "<p><br></p>");
     // 꼬리에 남은 빈 문단·구분선
     html = html.replace(/(?:\s*<p[^>]*>\s*(?:<br[^>]*>|&nbsp;|\s)*<\/p>\s*|\s*<hr\s*\/?>\s*)+(<\/div>\s*)$/i, "$1");
     return html;

@@ -152,6 +152,10 @@ export default async function InsightArticlePage({
     }
 
     const bodyHtml = renderMagazineBody(magazine.body);
+    // 옛 칼럼은 요약이 본문 첫 문단을 그대로 잘라 온 것이라, 요약을 리드로 보여 주면 같은 글이 두 번 나온다.
+    const squeeze = (v: string) => v.replace(/<[^>]+>/g, "").replace(/&nbsp;/g, "").replace(/\s+/g, "");
+    const excerptKey = squeeze(magazine.excerpt || "").slice(0, 30);
+    const showExcerpt = !!excerptKey && !squeeze(bodyHtml).slice(0, 240).includes(excerptKey);
     const canonicalUrl = insightUrl(magazine.slug);
     const services = getInsightServices(magazine);
 
@@ -225,7 +229,7 @@ export default async function InsightArticlePage({
 
                         <h1 className="mt-h1 mt-6">{magazine.title}</h1>
 
-                        {magazine.excerpt && (
+                        {showExcerpt && (
                             <p
                                 className="mt-body-lg mt-8 pb-10"
                                 style={{ borderBottom: "1px solid var(--mt-line)" }}
