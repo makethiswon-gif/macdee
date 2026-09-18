@@ -47,6 +47,9 @@ const PLAN_LABELS: Record<string, string> = {
 
 type State = "idle" | "sending" | "done" | "error";
 
+// 허니팟 입력칸의 이름. 자동완성·비밀번호 관리자가 의미를 추측할 수 없는 값이어야 한다(company/email/url 등 금지).
+const HONEYPOT_FIELD = "mt_field_x7";
+
 export default function DiagnoseForm() {
     const [state, setState] = useState<State>("idle");
     const [error, setError] = useState("");
@@ -75,7 +78,11 @@ export default function DiagnoseForm() {
         setError("");
 
         const fd = new FormData(e.currentTarget);
-        const payload = Object.fromEntries(fd.entries());
+        const payload: Record<string, FormDataEntryValue> = Object.fromEntries(fd.entries());
+        // 허니팟 값은 서버가 기대하는 키(company)로 옮겨 담는다. 입력칸의 name 을 "company" 로 두면
+        // 브라우저 자동완성이 '회사명'으로 인식해 숨은 칸까지 채우고, 서버가 정상 신청을 봇으로 보고 조용히 버린다.
+        payload.company = payload[HONEYPOT_FIELD] || "";
+        delete payload[HONEYPOT_FIELD];
         // The existing API persists `note`, not the separate `plan` field.
         // Keep the chosen offer in the request without changing the API or database.
         const note = [plan && `[선택 상품] ${PLAN_LABELS[plan]}`, payload.note].filter(Boolean).join("\n\n");
@@ -129,9 +136,11 @@ export default function DiagnoseForm() {
             {/* 허니팟 — 사람에게는 보이지 않는다 */}
             <input
                 type="text"
-                name="company"
+                name={HONEYPOT_FIELD}
                 tabIndex={-1}
                 autoComplete="off"
+                data-lpignore="true"
+                data-1p-ignore="true"
                 aria-hidden="true"
                 className="absolute w-px h-px -left-[9999px] opacity-0"
             />
@@ -146,25 +155,25 @@ export default function DiagnoseForm() {
                         <label className={label} htmlFor="firmName">
                             로펌 · 법률사무소명 <span style={{ color: "var(--mt-accent)" }}>*</span>
                         </label>
-                        <input id="firmName" name="firmName" required className={field} />
+                        <input id="firmName" name="firmName" required autoComplete="organization" className={field} />
                     </div>
                     <div>
                         <label className={label} htmlFor="contactName">
                             담당자 <span style={{ color: "var(--mt-accent)" }}>*</span>
                         </label>
-                        <input id="contactName" name="contactName" required className={field} />
+                        <input id="contactName" name="contactName" required autoComplete="name" className={field} />
                     </div>
                     <div>
                         <label className={label} htmlFor="phone">
                             연락처 <span style={{ color: "var(--mt-accent)" }}>*</span>
                         </label>
-                        <input id="phone" name="phone" required inputMode="tel" className={field} />
+                        <input id="phone" name="phone" required inputMode="tel" autoComplete="tel" className={field} />
                     </div>
                     <div>
                         <label className={label} htmlFor="email">
                             이메일
                         </label>
-                        <input id="email" name="email" type="email" className={field} />
+                        <input id="email" name="email" type="email" inputMode="email" autoComplete="email" className={field} />
                     </div>
                     <div className="sm:col-span-2">
                         <label className={label} htmlFor="plan">
@@ -295,13 +304,13 @@ export default function DiagnoseForm() {
                         <label className={label} htmlFor="siteUrl">
                             홈페이지 주소
                         </label>
-                        <input id="siteUrl" name="siteUrl" placeholder="https://" className={field} />
+                        <input id="siteUrl" name="siteUrl" placeholder="https://" inputMode="url" autoComplete="url" className={field} />
                     </div>
                     <div>
                         <label className={label} htmlFor="blogUrl">
                             블로그 주소
                         </label>
-                        <input id="blogUrl" name="blogUrl" placeholder="https://" className={field} />
+                        <input id="blogUrl" name="blogUrl" placeholder="https://" inputMode="url" className={field} />
                     </div>
                     <div className="sm:col-span-2">
                         <label className={label} htmlFor="tracking">
