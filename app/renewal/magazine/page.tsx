@@ -34,7 +34,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
         // Legacy q= URLs show the same archive without applying a search filter.
         // Preserve the canonical archive and crawl links, but keep duplicates out of Google.
         robots: { index: !hasUnsupportedParameters, follow: true },
-        openGraph: { title, description: DESCRIPTION, url: canonical, type: "website", locale: "ko_KR", siteName: COMPANY.brand, images: [ogImage()] },
+        openGraph: { title, description: DESCRIPTION, url: canonical, type: "website", locale: "ko_KR", siteName: COMPANY.brand, images: [ogImage("magazine")] },
     };
 }
 

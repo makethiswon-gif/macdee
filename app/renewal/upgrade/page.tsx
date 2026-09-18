@@ -16,7 +16,7 @@ const REQUEST = "/diagnose?plan=standard#form";
 export const metadata: Metadata = {
     title: { absolute: TITLE }, description: DESC,
     alternates: { canonical: URL }, robots: renewalRobots(),
-    openGraph: { title: TITLE, description: DESC, url: URL, type: "website", locale: "ko_KR", images: [ogImage()] },
+    openGraph: { title: TITLE, description: DESC, url: URL, type: "website", locale: "ko_KR", images: [ogImage("upgrade")] },
     twitter: { card: "summary_large_image", title: TITLE, description: DESC },
 };
 

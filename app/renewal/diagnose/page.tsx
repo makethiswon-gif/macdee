@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     description: DESC,
     alternates: { canonical: URL },
     robots: renewalRobots(),
-    openGraph: { title: TITLE, description: DESC, url: URL, type: "website", locale: "ko_KR", images: [ogImage()] },
+    openGraph: { title: TITLE, description: DESC, url: URL, type: "website", locale: "ko_KR", images: [ogImage("consult")] },
     twitter: { card: "summary_large_image", title: TITLE, description: DESC },
 };
 
@@ -112,7 +112,8 @@ export default function Page() {
                             </div>
                         </Reveal>
 
-                        <ol>
+                        {/* 마지막 구분선은 목록 밖 장식이다 — <ol> 안에 <div> 를 두면 목록 구조가 깨져 스크린리더가 항목 수를 잘못 읽는다 */}
+                        <ol style={{ borderBottom: "1px solid var(--mt-line)" }}>
                             {WHAT_WE_LOOK_AT.map((w, i) => (
                                 <Reveal key={w.no} as="li" index={i % 3}>
                                     <div
@@ -132,7 +133,6 @@ export default function Page() {
                                     </div>
                                 </Reveal>
                             ))}
-                            <div style={{ borderTop: "1px solid var(--mt-line)" }} />
                         </ol>
                     </div>
                 </Container>

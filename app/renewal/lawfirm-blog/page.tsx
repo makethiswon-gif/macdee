@@ -19,7 +19,7 @@ export const metadata: Metadata = {
         url: URL,
         type: "website",
         locale: "ko_KR",
-        images: [ogImage()],
+        images: [ogImage("lawfirm-blog")],
     },
     twitter: {
         card: "summary_large_image",

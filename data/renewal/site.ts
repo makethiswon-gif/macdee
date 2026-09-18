@@ -49,9 +49,10 @@ export function absUrl(p: string): string {
 /** 공용 OG 이미지 — app/renewal/og.png 라우트가 코드로 그린다.
     파일 컨벤션(opengraph-image)을 쓰지 않는 이유는 그 라우트 주석 참고.
     매거진 상세처럼 자체 커버가 있는 페이지는 이걸 쓰지 않는다. */
-export function ogImage() {
+/** 페이지별 공유 이미지. page 는 app/renewal/og.png/route.tsx 의 OG_COPY 키. 없으면 공용 문구. */
+export function ogImage(page?: string) {
     return {
-        url: absUrl("/og.png"),
+        url: `${absUrl("/og.png")}${page ? `?p=${encodeURIComponent(page)}` : ""}`,
         width: 1200,
         height: 630,
         alt: "MAKETHIS1 — 로펌 마케팅 통합 운영",
