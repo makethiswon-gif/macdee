@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { cleanExcerpt, displayAuthor } from "@/lib/renewal/magazine-display";
+import { cleanExcerpt, displayAuthor, markdownToPlain } from "@/lib/renewal/magazine-display";
 import { createServiceClient } from "@/lib/supabase/server";
 import { cleanBody } from "@/lib/ai-content";
 import { isPublicLawyerSlug, PUBLIC_BLOG_CHANNELS } from "@/lib/public-content";
@@ -29,7 +29,7 @@ export async function GET() {
             const lawyer = post.lawyers as unknown as { slug: string } | null;
             if (!isPublicLawyerSlug(lawyer?.slug)) continue;
             const body = cleanBody(post.body || "");
-            const description = body.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim().slice(0, 300);
+            const description = markdownToPlain(body).slice(0, 300);
             const date = validDate(post.created_at);
             const url = escapeXml(`${SITE_BASE}/blog/${encodeURIComponent(lawyer.slug)}/${encodeURIComponent(post.slug || post.id)}`);
             items.push({

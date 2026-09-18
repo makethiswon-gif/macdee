@@ -59,6 +59,16 @@ export function renderMagazineBody(md: string): string {
             continue; // 수평선은 시각 노이즈라 버린다(기존 페이지와 동일한 정책)
         }
 
+        // "# 제목" 한 줄: 초기 발행분 7편은 본문이 글 제목을 되풀이하며 시작해, 화면에 "# 2025 AI 마케팅…"이
+        // 기호째 문단으로 찍혔다. 글 제목은 페이지가 이미 <h1> 로 내보내므로 맨 앞의 것은 버리고,
+        // 본문 중간에 나오면 소제목(h2)으로 다룬다.
+        const h1 = trimmed.match(/^#\s+(.+)$/);
+        if (h1) {
+            flushAll();
+            if (out.length) out.push(`<h2>${inline(h1[1])}</h2>`);
+            continue;
+        }
+
         const h3 = trimmed.match(/^###\s+(.+)$/);
         if (h3) {
             flushAll();

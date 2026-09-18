@@ -27,6 +27,18 @@ export function cleanExcerpt(excerpt: string | null | undefined): string {
         .trim();
 }
 
+/** 마크다운 본문에서 요약용 평문을 뽑는다. 제목 기호(#)·굵게(**)·인용(>)·목록 기호·링크 문법을 걷어낸다. */
+export function markdownToPlain(md: string | null | undefined): string {
+    return (md || "")
+        .replace(/<[^>]*>/g, " ")
+        .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
+        .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+        .replace(/^\s{0,3}(?:#{1,6}\s+|>\s?|[-*+]\s+|-{3,}\s*$)/gm, "")
+        .replace(/\*\*|__|`/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
 const isLegacyHtml = (body: string) => /^\s*<div[\s>]/i.test(body) && /_comment_body_|cdn\.imweb\.me|class="file_area"/.test(body);
 
 /**
