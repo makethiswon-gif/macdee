@@ -17,8 +17,10 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
         <div data-marketing className="mt-root min-h-screen flex flex-col">
             <StudyFont />
             <script dangerouslySetInnerHTML={{ __html: "document.documentElement.classList.add('mt-js')" }} />
+            {/* 키보드·스크린리더 사용자가 헤더 메뉴를 건너뛰고 본문으로 바로 가는 링크. 포커스를 받을 때만 보인다. */}
+            <a href="#mt-main" className="mt-skip-link">본문으로 건너뛰기</a>
             <SiteHeader />
-            <main className="flex-1">{children}</main>
+            <main id="mt-main" tabIndex={-1} className="flex-1 outline-none">{children}</main>
             <SiteFooter />
         </div>
     );
