@@ -9,8 +9,8 @@ import { reviewBlogEditorial } from "@/lib/blog-editorial-review";
 import { repetitionAvoidDirective } from "@/lib/blog-repetition";
 import { paidAttempt, paidId, paidJsonRequest, PaidOperationError } from "@/lib/blog-images/paid-operation";
 
-// Sonnet 5 + adaptive thinking(effort xhigh)으로 한 편을 길게 뽑으므로 넉넉히.
-// 2026-09-22 대표 지시: 원고·기획 모두 Sonnet 5. 원고는 사고를 깊게(xhigh), 비용은 Opus 대비 약 40%.
+// Sonnet 5 + adaptive thinking(effort high). 2026-09-22 12:02 운영에서 xhigh 가 thinking 에 14,994토큰을 써 본문이 1,006토큰에서 잘렸다(상한 16,000).
+// 그래서 effort 는 high, 상한은 20,000, 대기는 Vercel 300초 안에서 285초. 잘린 응답이 같은 요청 해시로 재사용되지 않게 paidId 를 v15 로 올렸다.
 export const maxDuration = 300;
 export const BLOG_WRITING_MODEL = "claude-sonnet-5";
 
@@ -225,10 +225,10 @@ ${trustBlock}
             : content.trim();
 
         const attempt = paidAttempt(attemptId, confirmPaid);
-        const operationId = paidId("blog-manuscript-v14", { content: content.trim(), field, profileId, topic, attempt });
+        const operationId = paidId("blog-manuscript-v15", { content: content.trim(), field, profileId, topic, attempt });
         const { data } = await paidJsonRequest(operationId, "블로그 원고", BLOG_WRITING_MODEL, () => fetch("https://api.anthropic.com/v1/messages", {
             method: "POST",
-            signal: AbortSignal.timeout(240_000),
+            signal: AbortSignal.timeout(285_000),
             headers: {
                 "Content-Type": "application/json",
                 "x-api-key": apiKey,
@@ -236,9 +236,9 @@ ${trustBlock}
             },
             body: JSON.stringify({
                 model: BLOG_WRITING_MODEL,
-                max_tokens: 16000,
+                max_tokens: 20000,
                 thinking: { type: "adaptive" },
-                output_config: { effort: "xhigh" },
+                output_config: { effort: "high" },
                 system: systemPrompt,
                 messages: [{ role: "user", content: userMessage }],
             }),
