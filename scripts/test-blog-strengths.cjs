@@ -83,11 +83,12 @@ global.fetch = async (url, options) => { assert.equal(url, "https://api.anthropi
     assert.deepEqual((await imageStrengthContext({ id: "A" }, "상속", "강점 없는 원고")).selection.claims, []);
     await store.recordStrengthUse("A", "post-a", selection); await store.recordStrengthUse("A", "post-a", selection);
     aiOutput = `===TITLE===\n상속 원고\n===BODY===\n${body}`;
+    // 2026-09-22: 원고 단계에서 강점 기능을 뺐다. 요청의 strengthIds 는 무시되고, 프롬프트에 승인 문구가 들어가지 않는다.
     const written = await WRITE(req({ profileId: "A", topic: "상속", field: "상속", content: "상속 상담", strengthIds: [claim.id], strengthRevision: 1 }));
     assert.equal(written.status, 200); const article = await written.json();
-    assert.match(article.body, /tel:0537549797/); assert.equal(article.strengthReview.issues.length, 0);
+    assert.match(article.body, /tel:0537549797/); assert.equal(article.strengthReview, undefined); assert.equal(article.strengthSelection, undefined);
     assert.doesNotMatch(aiPrompt, /CONFIDENTIAL|미확인 경력|미확인 특장점|내부 검수만/);
-    assert.match(aiPrompt, /예시는 가정입니다/); assert.match(aiPrompt, /실화처럼 쓰지 않습니다/); assert.ok(aiPrompt.includes(claim.articleText));
+    assert.match(aiPrompt, /예시는 가정입니다/); assert.match(aiPrompt, /실화처럼 쓰지 않습니다/); assert.ok(!aiPrompt.includes(claim.articleText)); assert.match(aiPrompt, /경력·자격·수임 실적은 이 글에 쓰지 않습니다/);
     assert.doesNotMatch(toNaverHtml(article.body), /sourceQuote|sourceRef|private\/source|CONFIDENTIAL|claim-a/);
     // 2026-09-17: 원고에 들어가지 않은 강점은 오류가 아니라 제외 대상이다(모델이 2개 중 1개만 넣어 이미지 전체가 422로 막히던 문제).
     const omitted = await SELECT(req({ profileId: "A", topic: "상속", ids: [claim.id], title: "상속", body: "문구 삭제" }));

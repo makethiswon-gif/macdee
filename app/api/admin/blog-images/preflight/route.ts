@@ -23,7 +23,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "private, no-store" } });
         }
         const topic = typeof body.topic === "string" ? body.topic.slice(0, 40_180) : "";
-        const proof = selectImageProof(context.library, topic, "preflight", body.basicProfile !== false);
+        const proof = selectImageProof(context.library, topic, "preflight", true); // 승인 경력 표시 기능 제거(2026-09-22): 항상 사진만
         for (const name of ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "ADMIN_TOKEN_SECRET"]) if (!process.env[name] || process.env[name] === "[SENSITIVE]") throw new Error(`${name} 설정을 확인해주세요. 유료 생성을 시작하지 않았습니다.`);
         const db = createServiceClient();
         const { data, error } = await db.storage.getBucket("owner-briefings");

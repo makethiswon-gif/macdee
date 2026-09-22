@@ -3,14 +3,16 @@ import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getWritingDNA, dnaDirective } from "@/lib/blog-writing-dna";
 import { appendBlogPhoneContact, blogPhoneContact } from "@/lib/blog-contact";
-import { reconcileStrengths, reviewStrengths, selectStrengths, strengthDirective, validProfileId, type StrengthSelection, type StrengthLibrary } from "@/lib/blog-strengths";
-import { loadStrengthLibrary, signStrengthSelection, StrengthStoreError } from "@/lib/blog-strengths-store";
+import { validProfileId } from "@/lib/blog-strengths";
+import { StrengthStoreError } from "@/lib/blog-strengths-store";
 import { reviewBlogEditorial } from "@/lib/blog-editorial-review";
 import { repetitionAvoidDirective } from "@/lib/blog-repetition";
 import { paidAttempt, paidId, paidJsonRequest, PaidOperationError } from "@/lib/blog-images/paid-operation";
 
-// Opus 5 + adaptive thinking으로 한 편을 길게 뽑으므로 넉넉히
+// Sonnet 5 + adaptive thinking(effort xhigh)으로 한 편을 길게 뽑으므로 넉넉히.
+// 2026-09-22 대표 지시: 원고·기획 모두 Sonnet 5. 원고는 사고를 깊게(xhigh), 비용은 Opus 대비 약 40%.
 export const maxDuration = 300;
+export const BLOG_WRITING_MODEL = "claude-sonnet-5";
 
 // 본문 하단 '기준일' 표기용 (KST)
 function getKstDateLabel(): string {
@@ -23,7 +25,7 @@ export async function POST(request: Request) {
     if (!verifyAdmin(request)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     try {
-        const { content, field, profileId, topic, strengthIds, strengthRevision, attemptId, confirmPaid } = await request.json();
+        const { content, field, profileId, topic, attemptId, confirmPaid } = await request.json();
         if (typeof content !== "string" || !content.trim() || content.length > 40000) {
             return NextResponse.json({ error: "내용을 입력해주세요." }, { status: 400 });
         }
@@ -40,19 +42,14 @@ export async function POST(request: Request) {
         // 없으면 기존 기본값 그대로 (단독 사용 시 동작 유지).
         let dnaBlock = "";
         let trustBlock = "";
-        let strengthSelection: StrengthSelection | null = null;
-        let strengthLibrary: StrengthLibrary | null = null;
         let recentBodies: string[] = [];
         let recentTitles: string[] = [];
         let avoidBlock = "";
         let authorLine = "";
         if (profileId) {
-            if (!validProfileId(profileId) || (strengthIds !== undefined && (!Array.isArray(strengthIds) || !strengthIds.every(validProfileId)))) {
-                return NextResponse.json({ error: "변호사와 강점 선택을 확인해주세요." }, { status: 400 });
+            if (!validProfileId(profileId)) {
+                return NextResponse.json({ error: "변호사 선택을 확인해주세요." }, { status: 400 });
             }
-            const library = await loadStrengthLibrary(profileId);
-            strengthLibrary = library;
-            if (strengthRevision !== undefined && strengthRevision !== library.revision) throw new StrengthStoreError("강점 버전이 변경됐습니다. 다시 확인해주세요.", 409);
             const db = await createAdminClient();
             const { data: recent, error } = await db.from("blog_posts").select("title, body").eq("profile_id", profileId).order("created_at", { ascending: false }).limit(20);
             if (error) throw new StrengthStoreError("최근 원고를 읽지 못했습니다.");
@@ -60,7 +57,6 @@ export async function POST(request: Request) {
             recentTitles = (recent || []).map((p) => p.title || "");
             // 같은 블로그가 매번 같은 말로 끝나지 않게, 이미 쓴 끝맺음·소제목·제목 어미를 피하게 한다(추가 모델 호출 없음).
             avoidBlock = repetitionAvoidDirective(recent || []);
-            strengthSelection = selectStrengths(library, `${field || ""} ${topic || content}`, recentBodies, strengthIds);
         }
         let phoneContact: ReturnType<typeof blogPhoneContact> = null;
         let dnaInfo: { voice: string; heading: string; structure: string; imageCount: number } | null = null;
@@ -214,7 +210,7 @@ ${dnaBlock}
 - 절차는 1. 2. 3. 번호목록으로 정리합니다. 목록 항목은 한두 문장, 항목 사이에 빈 줄을 넣지 않습니다. 비교는 짧은 대조 문단이나 목록으로 쓰고, 가로로 넓은 마크다운 표는 쓰지 않습니다. 목록은 글 전체에서 두 곳을 넘기지 않습니다. 설명은 문장으로 합니다.
 - 큰 키워드를 기계적으로 반복하거나 자극적·낚시성 문구를 쓰지 않습니다. 이미지가 없어도 글만으로 이해되게 씁니다.
 ${trustBlock}
-${strengthSelection ? strengthDirective(strengthSelection) : "[경력 자료 없음] 확인되지 않은 경력과 수임 경험은 쓰지 않습니다."}
+[경력·실적] 변호사의 경력·자격·수임 실적은 이 글에 쓰지 않습니다. 확인되지 않은 경험을 만들지 않고, 글의 신뢰는 법률 설명의 정확성으로만 얻습니다.
 
 [출력 형식] 아래 구분자 형식을 정확히 지키고, 그 외의 말은 한마디도 붙이지 마세요. JSON이 아닙니다.
 ===TITLE===
@@ -229,8 +225,8 @@ ${strengthSelection ? strengthDirective(strengthSelection) : "[경력 자료 없
             : content.trim();
 
         const attempt = paidAttempt(attemptId, confirmPaid);
-        const operationId = paidId("blog-manuscript-v13", { content: content.trim(), field, profileId, topic, strengthIds, strengthRevision, attempt });
-        const { data, context: savedContext } = await paidJsonRequest(operationId, "블로그 원고", "claude-opus-5", () => fetch("https://api.anthropic.com/v1/messages", {
+        const operationId = paidId("blog-manuscript-v14", { content: content.trim(), field, profileId, topic, attempt });
+        const { data } = await paidJsonRequest(operationId, "블로그 원고", BLOG_WRITING_MODEL, () => fetch("https://api.anthropic.com/v1/messages", {
             method: "POST",
             signal: AbortSignal.timeout(240_000),
             headers: {
@@ -239,21 +235,14 @@ ${strengthSelection ? strengthDirective(strengthSelection) : "[경력 자료 없
                 "anthropic-version": "2023-06-01",
             },
             body: JSON.stringify({
-                model: "claude-opus-5",
+                model: BLOG_WRITING_MODEL,
                 max_tokens: 16000,
                 thinking: { type: "adaptive" },
+                output_config: { effort: "xhigh" },
                 system: systemPrompt,
                 messages: [{ role: "user", content: userMessage }],
             }),
-        }), { strengthSelection });
-        const savedSelection = (savedContext as { strengthSelection?: StrengthSelection } | undefined)?.strengthSelection;
-        if (savedSelection && strengthLibrary) {
-            let approved: StrengthSelection;
-            try { approved = selectStrengths(strengthLibrary, `${field || ""} ${topic || content}`, [], savedSelection.claims.map((c) => c.id)); }
-            catch { throw new StrengthStoreError("보존된 원고의 강점 승인 상태가 변경됐습니다. 공개 문구를 확인해주세요. 새 유료 생성은 하지 않았습니다.", 409); }
-            if (JSON.stringify(approved.claims) !== JSON.stringify(savedSelection.claims)) throw new StrengthStoreError("보존된 원고 작성 이후 강점 자료가 변경됐습니다. 공개 문구를 확인해주세요. 새 유료 생성은 하지 않았습니다.", 409);
-            strengthSelection = approved;
-        }
+        }));
         if (data.stop_reason === "max_tokens") throw new PaidOperationError("원고 응답이 중간에 끊겼습니다. 응답은 보존했으며 자동으로 다시 생성하지 않습니다.", operationId, "incomplete_response", 422);
         // adaptive thinking을 켜면 content 배열에 thinking 블록이 먼저 올 수 있으므로 text 블록을 찾는다
         const blocks: Array<{ type: string; text?: string }> = data.content || [];
@@ -271,17 +260,9 @@ ${strengthSelection ? strengthDirective(strengthSelection) : "[경력 자료 없
         const body = appendBlogPhoneContact(`${manuscript}\n\n${footer}`, phoneContact);
         const draftBody = body;
         const charCount = body.replace(/\s/g, "").length; // 공백 제외 글자 수
-        // 고른 강점을 모델이 전부 넣지 않았을 수 있다. 실제로 들어간 것만 남겨야 이후 이미지 단계가 막히지 않는다.
-        let droppedStrengths: string[] = [];
-        if (strengthSelection) { const reconciled = reconcileStrengths(body, strengthSelection); strengthSelection = reconciled.selection; droppedStrengths = reconciled.dropped; }
-
         return NextResponse.json({
-            editorialWarnings: [...reviewBlogEditorial(title, body, recentBodies, recentTitles),
-                ...(droppedStrengths.length ? [`선택한 승인 강점 ${droppedStrengths.length}개는 원고에 들어가지 않아 이번 글에서 제외했습니다. 이미지 제작에는 영향이 없습니다.`] : [])],
+            editorialWarnings: reviewBlogEditorial(title, body, recentBodies, recentTitles),
             factChecklist: parsed.facts,     // 검수자 확인용 사실 목록 (본문에는 포함되지 않는다)
-            strengthSelection,
-            strengthReview: strengthSelection ? reviewStrengths(body, strengthSelection) : null,
-            strengthToken: strengthSelection ? signStrengthSelection(strengthSelection, title, body) : null,
             title,
             body,
             charCount,

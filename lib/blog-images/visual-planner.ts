@@ -12,7 +12,8 @@ import { STUDIO_FORMAT, type StudioSelection } from "../lawyer-studio/types";
 import { contactCopy } from "./three-card-policy";
 import type { ProofSelection } from "./visual-plan-types";
 
-export const PLANNING_MODEL = "claude-opus-5";
+// 2026-09-22 대표 지시: 표지 한 장 구성안(JSON)은 Sonnet 5 로 충분하다. 운영 로그상 Opus 는 편당 입력 1.1만·출력 3천 토큰을 썼다.
+export const PLANNING_MODEL = "claude-sonnet-5";
 export const PLAN_VERSION = "visual-plan-v11";
 export class PlanValidationError extends Error { constructor(message: string) { super(message); this.name = "PlanValidationError"; } }
 const object = (value: unknown): Record<string, unknown> => {

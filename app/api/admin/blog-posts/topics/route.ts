@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
 import { extractClaudeText } from "@/lib/ai/claude-text";
-import { loadStrengthLibrary } from "@/lib/blog-strengths-store";
-import { eligibleStrengths, publicStrength } from "@/lib/blog-strengths";
 
 export const maxDuration = 60;
 const responseHeaders = { "Cache-Control": "private, no-store" };
@@ -188,16 +186,6 @@ export async function POST(request: Request) {
             .slice(0, 40);
 
         const lawyerName = String(profile.lawyer_name || "").split("||")[0] || "변호사";
-        let approved: ReturnType<typeof publicStrength>[] = [];
-        let strengthUnavailable = false;
-        try {
-            approved = eligibleStrengths(await loadStrengthLibrary(profileId))
-                .filter((claim) => Array.isArray(claim.fields) && claim.fields.some((field) => fields.includes(field)))
-                .map(publicStrength);
-        } catch (error) {
-            strengthUnavailable = true;
-            console.error("[Blog topic suggestions] optional strength context unavailable:", error instanceof Error ? error.message : error);
-        }
         const wantCount = Math.max(3, Math.min(10, Number(count) || 6));
 
         const system = `당신은 한국 변호사 블로그의 콘텐츠 전략가입니다.
@@ -206,7 +194,6 @@ export async function POST(request: Request) {
 [반드시 지킬 것]
 - 담당 분야를 벗어나지 마세요. 이 블로그가 다루는 분야는 다음뿐입니다: ${fields.join(", ")}
 - field 값은 위 담당 분야 중 하나를 그대로 반환하세요. 포괄적인 '형사'로 바꾸지 마세요.
-- 공개 승인 강점: ${JSON.stringify(approved)}
 - 위 강점을 독자의 판단 질문과 연결하되, 전문 분야를 넓히거나 미확인 실제 수임 경험·새 경력을 만들지 마세요. 승인 자료가 없으면 일반 정보형 주제를 제안하세요.
 - 주제는 '키워드'가 아니라 '상황'입니다. "이혼 재산분할" 같은 큰 키워드는 금지. 의뢰인이 밤에 실제로 검색할 문장 단위로 좁히세요.
 - angle은 '결과'가 아니라 '판단 근거'여야 합니다. 어떤 결론이 나왔는지가 아니라, 사실관계의 어느 지점에서 결론이 갈리는지를 잡으세요.
@@ -272,8 +259,6 @@ JSON만 반환하세요.`;
             ? "AI 추천 응답이 지연되어 담당 분야 기준 주제로 대신 제안했습니다. 다시 추천받으면 새 후보를 요청합니다."
             : backfilled
                 ? "일부 후보는 담당 분야와 최근 원고를 기준으로 보완했습니다."
-                : strengthUnavailable
-                    ? "공개 강점 자료를 잠시 연결하지 못해 담당 분야와 최근 원고를 기준으로 추천했습니다."
                 : "";
 
         return NextResponse.json({

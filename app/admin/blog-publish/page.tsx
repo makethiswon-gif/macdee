@@ -8,10 +8,7 @@ import { toNaverHtml } from "@/lib/blog-naver-html";
 import { BLOG_CARD_TYPES, EDITORIAL_SET_FORMAT, cardTypesFor, cardLabel, CARD_LABELS, cardRequestProfile, type BlogCardType, type BlogImageCard, type EditorialProfile } from "@/lib/blog-images/card-types";
 import type { ArticleVisualPlan } from "@/lib/blog-images/visual-plan-types";
 import { copyBlogHtml, publishJson, sameDraft, type PublishBatch, type PublishDraft } from "@/lib/blog-publish-workflow";
-import BlogStrengthPicker, { strengthScope, type StrengthChoice } from "@/components/admin/BlogStrengthPicker";
-import type { StrengthSelection, StrengthReview } from "@/lib/blog-strengths";
 import BlogCoverChoices from "@/components/admin/BlogCoverChoices";
-import BlogImageProof from "@/components/admin/BlogImageProof";
 import { studioLibraryUrl, studioRecoveryAction } from "@/lib/lawyer-studio/types";
 
 interface BlogSetting {
@@ -40,10 +37,6 @@ export default function BlogPublishPage() {
     const [title, setTitle] = useState("");
     const [body, setBody] = useState("");
     const [contactWarning, setContactWarning] = useState("");
-    const [strengthChoice, setStrengthChoice] = useState<StrengthChoice | null>(null);
-    const [basicProfile, setBasicProfile] = useState(true);
-    const [usedStrengths, setUsedStrengths] = useState<StrengthSelection | null>(null);
-    const [strengthReview, setStrengthReview] = useState<StrengthReview | null>(null);
     const [editorialWarnings, setEditorialWarnings] = useState<string[]>([]);
     const [factChecklist, setFactChecklist] = useState<string[]>([]);
     const [savedId, setSavedId] = useState<string | null>(null);
@@ -72,9 +65,7 @@ export default function BlogPublishPage() {
     const [savedPosts, setSavedPosts] = useState<{ id: string; title: string; body: string; field: string | null; topic: string | null; card_images?: { type: string }[] }[]>([]);
 
     const profile = profiles.find((p) => p.id === profileId);
-    const draft: PublishDraft = { profileId, title: title.trim(), body, field: draftTopic?.field || null, topic: draftTopic?.topic || null,
-        ...(usedStrengths ? { strengthIds: usedStrengths.claims.map((c) => c.id), strengthRevision: usedStrengths.revision } : {}) };
-    const strengthTopic = directTopic.trim() || `${picked?.field || ""} ${picked?.topic || ""}`.trim();
+    const draft: PublishDraft = { profileId, title: title.trim(), body, field: draftTopic?.field || null, topic: draftTopic?.topic || null };
     const dirty = !sameDraft(savedDraft, draft);
     const busy = step !== "idle" || exporting;
     const valid = !!profileId && !!title.trim() && !!body.trim();
@@ -125,8 +116,7 @@ export default function BlogPublishPage() {
         setTitle(""); setBody(""); setSavedId(null); setSavedDraft(null);
         setLegacySource(false);
         setContactWarning("");
-        setStrengthChoice(null); setUsedStrengths(null); setStrengthReview(null); setEditorialWarnings([]);
-        setBasicProfile(true);
+        setEditorialWarnings([]);
         setError(""); setCopied(false); setProgress(""); setStep("idle"); setImagesStale(false);
         setArticleView("edit");
     };
@@ -135,7 +125,6 @@ export default function BlogPublishPage() {
         if (batch.current || cards.length) setImagesStale(true);
         clearImages(); setCopied(false);
         planningAttempt.current = "";
-        setStrengthReview(null);
         if (kind === "title") setTitle(value); else setBody(value);
     };
 
@@ -218,16 +207,12 @@ export default function BlogPublishPage() {
 
     const makeCards = async (snapshot: PublishDraft, postId: string, op: AbortController, recoverPlanOnly = false) => {
         setStep("cards"); setProgress("변호사 정보 확인 중…");
-        await publishJson("/api/admin/blog-images/preflight", op.signal, { profileId: snapshot.profileId, basicProfile, topic: `${snapshot.title}\n${snapshot.body}` });
+        await publishJson("/api/admin/blog-images/preflight", op.signal, { profileId: snapshot.profileId, basicProfile: true, topic: `${snapshot.title}\n${snapshot.body}` });
         const data = await publishJson<{ profile: EditorialProfile }>(`/api/admin/blog-profiles?id=${encodeURIComponent(snapshot.profileId)}`, op.signal);
         if (!data.profile || data.profile.id !== snapshot.profileId) throw new Error("변호사 상세 정보가 일치하지 않습니다.");
-        const checked = await publishJson<{ selection: StrengthSelection; token: string; review: StrengthReview }>("/api/admin/blog-strengths/select", op.signal,
-            { profileId: snapshot.profileId, topic: `${snapshot.field || ""} ${snapshot.topic || ""}`, ids: snapshot.strengthIds,
-                revision: snapshot.strengthRevision, title: snapshot.title, body: snapshot.body, postId });
-        if (current(op)) { setUsedStrengths(checked.selection); setStrengthReview(checked.review); }
         setProgress("원고 전체를 읽고 이미지 구성 기획 중…");
         const planned = await publishJson<{ plan: ArticleVisualPlan }>("/api/admin/blog-images/plan", op.signal,
-            { title: snapshot.title, content: snapshot.body, profile: { id: data.profile.id }, strengthToken: checked.token, basicProfile,
+            { title: snapshot.title, content: snapshot.body, profile: { id: data.profile.id }, basicProfile: true,
                 attemptId: planningAttempt.current || undefined, confirmPaid: !!planningAttempt.current, forceReplan: !recoverPlanOnly && !!planningAttempt.current, recoverOnly: recoverPlanOnly });
         if (!planned.plan) throw new Error("이미지 구성안을 받지 못했습니다.");
         if (!current(op)) return;
@@ -242,31 +227,28 @@ export default function BlogPublishPage() {
         if (title || body) writingAttempt.current = crypto.randomUUID();
         const op = begin("writing"); if (!op) return;
         setContactWarning("");
-        setUsedStrengths(null); setStrengthReview(null); setEditorialWarnings([]);
+        setEditorialWarnings([]);
         setImagesStale(false); setDraftTopic(topic); setPicked(topic);
         try {
             if (valid && dirty) await persist(draft, savedId, op);
             setStep("writing");
             let imagePreparationError = "";
             try {
-                await publishJson("/api/admin/blog-images/preflight", op.signal, { profileId, checkModel: true, basicProfile, topic: `${topic.field} ${topic.topic}` });
+                await publishJson("/api/admin/blog-images/preflight", op.signal, { profileId, checkModel: true, basicProfile: true, topic: `${topic.field} ${topic.topic}` });
             } catch (e) {
                 if (!current(op)) return;
                 imagePreparationError = message(e);
             }
             const content = detail.trim() || (topic.angle ? `${topic.topic}\n\n[다룰 관점]\n${topic.angle}` : topic.topic);
-            const choice = strengthChoice?.scope === strengthScope(profileId, `${topic.field} ${topic.topic}`.trim()) ? strengthChoice : null;
-            const data = await publishJson<{ title: string; body: string; contactWarning?: string | null; strengthSelection?: StrengthSelection; strengthReview?: StrengthReview; editorialWarnings?: string[]; factChecklist?: string[] }>("/api/admin/claude-blog-write", op.signal,
-                { content, field: topic.field, profileId, topic: topic.topic, strengthIds: choice?.ids, strengthRevision: choice?.revision,
+            const data = await publishJson<{ title: string; body: string; contactWarning?: string | null; editorialWarnings?: string[]; factChecklist?: string[] }>("/api/admin/claude-blog-write", op.signal,
+                { content, field: topic.field, profileId, topic: topic.topic,
                     attemptId: writingAttempt.current || undefined, confirmPaid: !!writingAttempt.current });
             if (!data.title?.trim() || !data.body?.trim()) throw new Error("생성된 원고가 비어 있습니다.");
             if (!current(op)) return;
             clearImages(); setSavedId(null); setSavedDraft(null);
-            const snapshot: PublishDraft = { profileId, title: data.title, body: data.body, field: topic.field || null, topic: topic.topic,
-                ...(data.strengthSelection ? { strengthIds: data.strengthSelection.claims.map((c) => c.id), strengthRevision: data.strengthSelection.revision } : {}) };
+            const snapshot: PublishDraft = { profileId, title: data.title, body: data.body, field: topic.field || null, topic: topic.topic };
             setTitle(snapshot.title); setBody(snapshot.body);
             setContactWarning(data.contactWarning || "");
-            setUsedStrengths(data.strengthSelection || null); setStrengthReview(data.strengthReview || null);
             setEditorialWarnings(data.editorialWarnings || []);
             setFactChecklist(data.factChecklist || []);
             const id = await persist(snapshot, null, op);
@@ -370,10 +352,6 @@ export default function BlogPublishPage() {
         const plan = batch.current?.plan;
         if (plan?.setFormat === EDITORIAL_SET_FORMAT) await publishJson("/api/admin/blog-images/preflight", new AbortController().signal,
             { profileId, proofSelection: plan.proofSelection, proofToken: plan.proofToken, title, content: body });
-        if (!usedStrengths) return;
-        const checked = await publishJson<{ review: StrengthReview }>("/api/admin/blog-strengths/select", new AbortController().signal,
-            { profileId, topic: `${draft.field || ""} ${draft.topic || ""}`, ids: draft.strengthIds, revision: draft.strengthRevision, title: draft.title, body });
-        if (mounted.current) setStrengthReview(checked.review);
     };
 
     const cardClass = "border-b border-[#1F2937] py-5";
@@ -402,10 +380,6 @@ export default function BlogPublishPage() {
                     <option value="">선택하세요</option>
                     {profiles.map((p) => <option key={p.id} value={p.id}>{p.lawyerName} · {p.officeName}</option>)}
                 </select>
-                <label className="mt-3 flex items-center gap-2 text-xs text-[#D1D5DE]"><input type="checkbox" checked={!basicProfile} disabled={busy} onChange={(e) => {
-                    setBasicProfile(!e.target.checked); clearImages(); setImagesStale(true); setCopied(false);
-                }} />두 번째 이미지에 승인 경력 표시</label>
-                <a href="/admin/blog-strengths" className="mt-2 inline-block text-xs text-sky-300 underline">공개 경력 확인·승인</a>
                 {!!savedPosts.length && <label className="mt-4 block text-xs text-[#9CA3B0]">저장 원고에서 이어서 작업
                     <select aria-label="저장 원고에서 이어서 작업" value={savedId || ""} disabled={busy} className={`${inputClass} mt-2`} onChange={(e) => {
                         const post = savedPosts.find((p) => p.id === e.target.value);
@@ -448,7 +422,6 @@ export default function BlogPublishPage() {
                 </div>
                 {topicNotice && <p role="status" className="mt-3 text-xs leading-5 text-amber-300">{topicNotice}</p>}
             </section>
-            {profileId && strengthTopic && <BlogStrengthPicker key={strengthScope(profileId, strengthTopic)} profileId={profileId} topic={strengthTopic} disabled={busy} onChange={setStrengthChoice} />}
             {picked && <section className={cardClass}>
                 <label htmlFor="publish-detail" className="mb-2 block text-xs text-[#9CA3B0]">3 · 사건 내용 (선택)</label>
                 <textarea id="publish-detail" value={detail} onChange={(e) => setDetail(e.target.value)} disabled={busy} rows={4} className={inputClass} />
@@ -495,14 +468,7 @@ export default function BlogPublishPage() {
                 {contactWarning && <p role="status" className="mt-3 text-sm text-amber-300">{contactWarning}</p>}
                 {editorialWarnings.map((warning) => <p key={warning} role="status" className="mt-2 text-xs text-amber-300">검수: {warning}</p>)}
                 {factChecklist.length > 0 && <details className="mt-3 text-xs text-[#9CA3B0]"><summary className="cursor-pointer text-sky-300">발행 전 사실 확인 {factChecklist.length}건 — 조문·기한·수치 (본문에는 들어가지 않습니다)</summary><ul className="mt-2 space-y-1.5">{factChecklist.map((fact, index) => <li key={index}><label className="flex items-start gap-2 leading-5"><input id={`fact-check-${index}`} type="checkbox" className="mt-1" /><span>{fact}</span></label></li>)}</ul></details>}
-                {usedStrengths && <div className="mt-3 border-t border-[#1F2937] py-3 text-xs text-[#BAC2CF]">
-                    <p>공개 강점 버전 {usedStrengths.revision} · {usedStrengths.claims.length}개</p>
-                    {usedStrengths.claims.map((c) => <p key={c.id} className="mt-2">{c.articleText}{!currentSet?.setFormat && <span className="mt-1 block text-[#9CA3B0]">이미지: {c.imageText} · 상담 이미지{c.id === usedStrengths.claims[0]?.id ? "·표지" : ""}</span>}</p>)}
-                    {strengthReview?.applied.map((item) => <p key={`${item.id}-${item.paragraph}`} className="mt-2">본문 {item.paragraph}번째 문단 반영</p>)}
-                    {strengthReview?.issues.map((issue) => <p key={issue} className="mt-2 text-amber-300">{issue}</p>)}
-                </div>}
                 {imagesStale && <p role="status" className="mt-3 text-sm text-amber-300">원고 변경으로 이미지 갱신이 필요합니다.</p>}
-                <BlogImageProof proof={batch.current?.plan.proofSelection} />
                 <BlogCoverChoices options={coverOptions} selected={cards.find((c) => c.type === "thumbnail")?.productionId} busy={busy}
                     canCreate={!!batch.current?.plan.cards.find((c) => c.type === "thumbnail")?.alternateArt} onCreate={() => void makeAlternateCover()} onSelect={(card) => void chooseCover(card)} />
                 {(cards.length > 0 || Object.keys(issues).length > 0) && <div className="mt-5">

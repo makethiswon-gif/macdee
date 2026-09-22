@@ -59,7 +59,7 @@ if (!studioFour) {
             const page = await context.newPage(); page.on("pageerror", e => errors.push(e.message));
             await page.goto(base + "/admin/blog-publish", { waitUntil: "networkidle" });
             await page.locator("#publish-profile").selectOption(profile.id);
-            assert.equal(await page.getByRole("checkbox", { name: "두 번째 이미지에 승인 경력 표시", exact: true }).isChecked(), false);
+            assert.equal(await page.getByRole("checkbox", { name: "두 번째 이미지에 승인 경력 표시" }).count(), 0, "strength option removed 2026-09-22");
             await page.locator("#publish-topic").fill("회생 절차");
             await page.getByRole("button", { name: "바로 원고 생성", exact: true }).click();
             if (imageUnavailable) {
@@ -97,7 +97,7 @@ if (!studioFour) {
             await page.goto(base + "/admin/blog-images", { waitUntil: "networkidle" });
             planningFailure = !studioFour;
             await page.getByRole("combobox", { name: "변호사", exact: true }).selectOption(profile.id);
-            assert.equal(await page.getByRole("checkbox", { name: "두 번째 이미지에 승인 경력 표시", exact: true }).isChecked(), false);
+            assert.equal(await page.getByRole("checkbox", { name: "두 번째 이미지에 승인 경력 표시" }).count(), 0, "strength option removed 2026-09-22");
             await page.getByRole("textbox", { name: "본문", exact: true }).fill(body);
             await page.getByRole("button", { name: "기획하고 이미지 만들기", exact: true }).click();
             if (!studioFour) {

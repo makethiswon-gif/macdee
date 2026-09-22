@@ -7,8 +7,6 @@ export interface PublishDraft {
     body: string;
     field: string | null;
     topic: string | null;
-    strengthIds?: string[];
-    strengthRevision?: number;
 }
 
 export interface PublishBatch {
@@ -22,8 +20,7 @@ export interface PublishBatch {
 
 export function sameDraft(a: PublishDraft | null, b: PublishDraft): boolean {
     return !!a && a.profileId === b.profileId && a.title === b.title && a.body === b.body
-        && a.field === b.field && a.topic === b.topic
-        && JSON.stringify(a.strengthIds) === JSON.stringify(b.strengthIds) && a.strengthRevision === b.strengthRevision;
+        && a.field === b.field && a.topic === b.topic;
 }
 
 export function hasCompleteCardSet(images: { type: string }[], required: readonly string[] = BLOG_CARD_TYPES): boolean {

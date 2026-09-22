@@ -57,7 +57,8 @@ export async function POST(request: Request) {
             plan.strengthToken = context!.token; plan.strengthSelection = context!.selection;
             return NextResponse.json({ plan }, { headers: { "Cache-Control": "private, no-store" } });
         }
-        const proof = selectImageProof(context.library, `${body.title || ""} ${body.content}`, planIdentity.source, body.basicProfile !== false);
+        // 2026-09-22: 신뢰 카드에 승인 경력을 싣는 기능을 뺐다. 항상 사진만(basic).
+        const proof = selectImageProof(context.library, `${body.title || ""} ${body.content}`, planIdentity.source, true);
         await prepareEditorialThree(context.profile, proof, body.title || "", await editorialStudioPhoto(context.profile.id, `${EDITORIAL_SET_FORMAT}:${context.profile.id}`),
             await editorialStudioPhoto(context.profile.id, `${EDITORIAL_SET_FORMAT}:${context.profile.id}`, "contact"));
         const cached = await cachedVisualPlan(cacheId) || oldCached;

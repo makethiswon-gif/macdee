@@ -15,7 +15,6 @@ import { imageReady, imageSetReady, imageHoldReason } from "@/lib/blog-images/qu
 import { generateQualityCard, forEachImage } from "@/lib/blog-images/generate-client";
 import { publishJson } from "@/lib/blog-publish-workflow";
 import BlogCoverChoices from "@/components/admin/BlogCoverChoices";
-import BlogImageProof from "@/components/admin/BlogImageProof";
 
 interface PostItem { id: string; title: string; body: string | null }
 type Job = { state: "waiting" | "running" | "done" | "error" | "skipped"; message?: string };
@@ -45,7 +44,6 @@ export default function BlogImagesPage() {
     // "" = 변호사 기본 지면. 전에는 "contrast" 고정이라 명암 축이 전원 동일했다 —
     // 사진만 바뀌고 틀이 같아 보이던 원인 중 하나.
     const [style, setStyle] = useState<EditorialStyle | "">("");
-    const [basicProfile, setBasicProfile] = useState(true);
     const [plan, setPlan] = useState<ArticleVisualPlan | null>(null);
     const [showPlan, setShowPlan] = useState(false);
     const [cards, setCards] = useState<BlogImageCard[]>([]);
@@ -88,7 +86,6 @@ export default function BlogImagesPage() {
     };
     const changeLawyer = async (id: string) => {
         invalidatePlan();
-        setBasicProfile(true);
         setSelectedId(id); setSelectedPostId(""); setPosts([]); setPostError("");
         const requestId = ++postRequest.current;
         if (!id) { setPostsLoading(false); return; }
@@ -106,7 +103,7 @@ export default function BlogImagesPage() {
         const res = await fetch("/api/admin/blog-images/plan", { method: "POST", credentials: "include",
             headers: { "Content-Type": "application/json" },
             // 프로필을 함께 보내야 변호사별 시리즈 지면(팔레트·서체)이 기획 단계부터 반영된다
-            body: JSON.stringify({ title, content, profile: { id: selectedId }, forceReplan, basicProfile, recoverLegacy, recoverOnly,
+            body: JSON.stringify({ title, content, profile: { id: selectedId }, forceReplan, basicProfile: true, recoverLegacy, recoverOnly,
                 attemptId: planAttempt.current || undefined, confirmPaid: !!planAttempt.current }) });
         const data = await readResponse(res);
         if (!res.ok || !data.plan) throw new Error(data.error || "이미지 기획에 실패했습니다.");
@@ -165,7 +162,7 @@ export default function BlogImagesPage() {
                 return;
             }
             if (!plan || plan.setFormat === EDITORIAL_SET_FORMAT) await publishJson("/api/admin/blog-images/preflight", new AbortController().signal,
-                { profileId: selectedId, basicProfile, topic: `${title}\n${content}` });
+                { profileId: selectedId, basicProfile: true, topic: `${title}\n${content}` });
             const planned = plan || await requestPlan();
             setPhase("등록된 사진과 로고를 확인하고 있습니다.");
             const res = await fetch("/api/admin/blog-profiles?id=" + encodeURIComponent(selectedId), { credentials: "include" });
@@ -253,15 +250,12 @@ export default function BlogImagesPage() {
                 <label className="block text-sm">변호사<select aria-label="변호사" value={selectedId} onChange={(e) => void changeLawyer(e.target.value)} className={inputClass + " mt-2"}><option value="">{loading ? "불러오는 중…" : "변호사를 선택하세요"}</option>{profiles.map((p) => <option key={p.id} value={p.id}>{p.lawyerName} · {p.officeName || "사무소 미등록"}</option>)}</select></label>
                 {selectedProfile && (() => { const idn = getMagazineIdentity(selectedProfile);
                     const family = plan?.strengthSelection?.designFamily;
-                    return <p className="text-xs text-slate-400">{idn.palette} · {DESIGN_LABELS[family && family !== "auto" ? family : idn.family]} · {idn.typography === "serif" ? "명조" : "고딕"} <a className="ml-2 text-sky-300 underline" href="/admin/blog-strengths" target="_blank" rel="noreferrer">공개 강점·지면 설정</a></p>; })()}
+                    return <p className="text-xs text-slate-400">{idn.palette} · {DESIGN_LABELS[family && family !== "auto" ? family : idn.family]} · {idn.typography === "serif" ? "명조" : "고딕"}</p>; })()}
                 <label className="block text-sm">기존 원고 불러오기<select value={selectedPostId} disabled={postsLoading || !posts.length} onChange={(e) => { setSelectedPostId(e.target.value); const p = posts.find((p) => p.id === e.target.value); if (p) { setTitle(p.title); setContent(p.body || ""); invalidatePlan(); } }} className={inputClass + " mt-2"}><option value="">{postsLoading ? "원고 조회 중…" : "직접 입력하거나 원고를 선택하세요"}</option>{posts.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}</select></label>
                 {postError && <p className="text-xs leading-5 text-amber-200">{postError}</p>}
                 <label className="block text-sm">제목<input value={title} maxLength={180} onChange={(e) => { setTitle(e.target.value); invalidatePlan(); }} placeholder="블로그 원고 제목" className={inputClass + " mt-2"} /></label>
                 <label className="block text-sm">본문<textarea aria-label="본문" value={content} maxLength={40000} onChange={(e) => { setContent(e.target.value); invalidatePlan(); }} rows={9} placeholder="최종 검수할 원고를 붙여넣어 주세요." className={inputClass + " mt-2 resize-y leading-6"} /><span className="mt-1 block text-right text-xs text-slate-500">{content.length.toLocaleString()} / 40,000자</span></label>
                 <h2 className="border-t border-slate-800 pt-4 font-semibold">2. 표현 방식</h2>
-                <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!basicProfile} onChange={(e) => {
-                    setBasicProfile(!e.target.checked); invalidatePlan();
-                }} />두 번째 이미지에 승인 경력 표시</label>
                 <label className="block text-sm">시각물<select value={photoSource} onChange={(e) => setPhotoSource(e.target.value as BlogPhotoSource)} className={inputClass + " mt-2"}><option value="ai">AI가 원고에 맞춰 사진·일러스트 기획</option><option value="office">등록된 실제 사무실 사진 사용</option></select></label>
                 {photoSource === "ai" && <label className="block text-sm">AI 이미지 품질<select aria-label="AI 이미지 품질" value={quality} onChange={(e) => setQuality(e.target.value as BlogImageQuality)} className={inputClass + " mt-2"}><option value="high">고품질 (기본)</option><option value="medium">표준</option></select></label>}
                 <label className="block text-sm">편집 스타일<select value={style} onChange={(e) => setStyle(e.target.value as EditorialStyle | "")} className={inputClass + " mt-2"}><option value="">변호사 기본 지면 (권장)</option><option value="contrast">매거진 커버 · 어두운 지면 강제</option><option value="paper">갤러리 에디션 · 밝은 지면 강제</option></select></label>
@@ -282,7 +276,6 @@ export default function BlogImagesPage() {
             </fieldset>
             <section className="min-w-0" aria-label="생성된 이미지">
                 {plan && <div className="mb-6 rounded-xl border border-emerald-900 bg-emerald-950/20 p-5">
-                    <BlogImageProof proof={plan.proofSelection} />
                     <div className="flex items-start justify-between gap-3"><div className="min-w-0 flex-1 break-words [overflow-wrap:anywhere]"><p className="text-xs text-emerald-300">원고에서 찾은 질문</p><h2 className="mt-2 font-semibold">{plan.question}</h2></div><button className="shrink-0 text-sm text-emerald-300" onClick={() => setShowPlan(!showPlan)} aria-expanded={showPlan}>구성안 {showPlan ? "접기" : "보기"}</button></div>
                     <p className="mt-2 whitespace-pre-line break-words text-sm leading-6 text-slate-300 [overflow-wrap:anywhere]">{plan.thesis}</p>
                     {plan.direction && <div className="mt-5 border-t border-emerald-900 pt-4"><p className="text-xs text-emerald-300">선택한 아트디렉션 · {plan.direction.palette} / {plan.direction.typography === "serif" ? "명조" : "고딕"}</p><h3 className="mt-2 text-lg font-semibold">{plan.direction.concept}</h3><p className="mt-2 text-sm leading-6 text-slate-300">{plan.direction.rationale}</p><details className="mt-3 text-xs leading-6 text-slate-400"><summary className="cursor-pointer">함께 비교한 콘셉트 2개</summary>{plan.direction.alternatives.map((a, i) => <p key={i} className="mt-2"><span className="text-slate-200">{a.concept}</span> — {a.reasonNotChosen}</p>)}</details></div>}

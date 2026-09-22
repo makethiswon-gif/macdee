@@ -76,10 +76,10 @@ const types = ["thumbnail", "illustration", "info", "contact"];
         }
         await page.goto(base + "/admin/blog-publish", { waitUntil: "networkidle" });
         await page.locator("#publish-profile").selectOption("A"); await page.locator("#publish-topic").fill("상속 자료");
-        const checkbox = page.getByRole("checkbox"); await checkbox.waitFor(); await checkbox.uncheck();
+        assert.equal(await page.getByRole("checkbox").count(), 0, "publish page no longer offers strength options (2026-09-22)");
         await page.getByRole("button", { name: "바로 원고 생성", exact: true }).click();
         await page.getByRole("button", { name: "카드 4장 완료", exact: true }).waitFor();
-        assert.deepEqual(writes[0].strengthIds, []); assert.equal(writes[0].strengthRevision, 1);
+        assert.equal(writes[0].strengthIds, undefined); assert.equal(writes[0].strengthRevision, undefined);
         assert.doesNotMatch(posts[0].body, /PRIVATE-REVIEW|상속재산 목록과 증빙을 함께/);
         await page.screenshot({ path: path.join(out, "publish-excluded-mobile.png"), fullPage: true });
         assert.deepEqual(errors, []); await context.close();
