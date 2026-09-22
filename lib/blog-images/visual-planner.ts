@@ -10,6 +10,7 @@ import { chooseLayoutRecipe, isLayoutRecipe } from "./layout-recipes";
 import { profileEdition } from "./profile-editions";
 import { STUDIO_FORMAT, type StudioSelection } from "../lawyer-studio/types";
 import { contactCopy } from "./three-card-policy";
+import { usageFromProvider, type UsageEntry } from "@/lib/blog-usage";
 import type { ProofSelection } from "./visual-plan-types";
 
 // 2026-09-22 대표 지시: 표지 한 장 구성안(JSON)은 Sonnet 5 로 충분하다. 운영 로그상 Opus 는 편당 입력 1.1만·출력 3천 토큰을 썼다.
@@ -33,7 +34,7 @@ export function parseJsonObject(raw: string): Record<string, unknown> {
     try { return object(JSON.parse(raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1))); }
     catch { throw new PlanValidationError("구성안 응답을 읽지 못했습니다. 다시 기획해 주세요."); }
 }
-export async function requestEditorialJson(system: string, user: unknown, operationId?: string, schema: Record<string, unknown> = VISUAL_PLAN_SCHEMA, recoverOnly = false): Promise<Record<string, unknown>> {
+export async function requestEditorialJson(system: string, user: unknown, operationId?: string, schema: Record<string, unknown> = VISUAL_PLAN_SCHEMA, recoverOnly = false, usageSink?: UsageEntry[]): Promise<Record<string, unknown>> {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey && !recoverOnly) throw new Error("원고 기획에 필요한 ANTHROPIC_API_KEY 설정을 확인해 주세요.");
     const content: unknown[] = [{ type: "text", text: typeof user === "string" ? user : JSON.stringify(user) }];
@@ -41,13 +42,15 @@ export async function requestEditorialJson(system: string, user: unknown, operat
     const model = PLANNING_MODEL;
     const started = Date.now();
     try {
-        const { data } = await paidJsonRequest(operationId || paidId("visual-plan-v12", { system, user }), stage, model, () => fetch("https://api.anthropic.com/v1/messages", {
+        const id = operationId || paidId("visual-plan-v12", { system, user });
+        const { data, reused, elapsedMs } = await paidJsonRequest(id, stage, model, () => fetch("https://api.anthropic.com/v1/messages", {
             method: "POST", signal: AbortSignal.timeout(240_000),
             headers: { "Content-Type": "application/json", "x-api-key": apiKey || "", "anthropic-version": "2023-06-01" },
             body: JSON.stringify({ model, max_tokens: 10000,
                 thinking: { type: "adaptive" }, output_config: { effort: "high", format: { type: "json_schema", schema } },
                 system, messages: [{ role: "user", content }] }),
         }), undefined, { recoverOnly });
+        usageSink?.push(usageFromProvider("cover-plan", stage, model, data, { operationId: id, reused, elapsedMs }));
         if (data.stop_reason === "max_tokens") throw new PlanValidationError(`${stage} 응답이 중간에 끊겼습니다. 해당 작업만 다시 시도해 주세요.`);
         return parseJsonObject(extractClaudeText(data));
     } catch (e) {

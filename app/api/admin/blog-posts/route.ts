@@ -13,6 +13,7 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const profileId = url.searchParams.get("profile_id");
     const status = url.searchParams.get("status");
+    const id = url.searchParams.get("id"); // 이어하기(?post=) 용 한 편 조회
     // full=1 — 블로그 공장 검수 패널용: 본문까지 포함해 내려준다
     const full = url.searchParams.get("full") === "1";
 
@@ -31,6 +32,7 @@ export async function GET(request: Request) {
                 .limit(100);
             if (profileId) query = query.eq("profile_id", profileId);
             if (status) query = query.eq("status", status);
+            if (id) query = query.eq("id", id);
             return query;
         };
 

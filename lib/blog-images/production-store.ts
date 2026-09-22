@@ -101,14 +101,18 @@ export async function imageTransport(card: BlogImageCard): Promise<BlogImageCard
     return { ...card, imageDataUrl: "", imageUrl: data.signedUrl, imageHash: digest(bytes), artDataUrl: undefined, designReview: undefined, artReview: undefined };
 }
 
+const artScene = (art: VisualBrief) => ({ medium: art.medium, subject: art.subject, scene: art.scene, message: art.message, avoid: art.avoid });
 function artReferencePath(profileId: string, sourceHash: string, type: string, art: VisualBrief) {
-    const scene = { medium: art.medium, subject: art.subject, scene: art.scene, message: art.message, avoid: art.avoid };
     // Layout, phone, palette and typeface changes do not invalidate an existing scene.
-    return `blog-art-index/${digest(JSON.stringify({ profileId, sourceHash, type, scene }))}.json`;
+    return `blog-art-index/${digest(JSON.stringify({ profileId, sourceHash, type, scene: artScene(art) }))}.json`;
 }
-export async function preservedArt(profileId: string, sourceHash: string, type: string, art: VisualBrief): Promise<ProductionCheckpoint | null> {
+// 2026-09-22: 본문을 고친 뒤(sourceHash 변경)에도 표지 장면이 같으면 같은 변호사의 원본 사진을 다시 쓴다.
+// 문구·줄바꿈·색 조정은 재조판만 하고, 사진 재생성은 사용자가 '시각물 재생성'을 눌렀을 때만 한다.
+function sceneReferencePath(profileId: string, type: string, art: VisualBrief) {
+    return `blog-art-index/scene-${digest(JSON.stringify({ profileId, type, scene: artScene(art) }))}.json`;
+}
+async function readArtReference(file: string): Promise<{ productionId: string } | null> {
     const storage = createServiceClient().storage.from(BUCKET);
-    const file = artReferencePath(profileId, sourceHash, type, art);
     const check = await storage.exists(file);
     if (!check.data) {
         const e = check.error as unknown as { statusCode?: string; originalError?: { status?: number } } | null;
@@ -117,16 +121,28 @@ export async function preservedArt(profileId: string, sourceHash: string, type: 
     }
     const { data, error } = await storage.download(file);
     if (error || !data) throw new ImageProductionError("기존 시각물 참조를 읽지 못했습니다. 재생성하지 않고 중단했습니다.");
-    const index = JSON.parse(await data.text());
-    const saved = await loadImageProduction(index.productionId);
-    if (saved.profileId !== profileId || saved.sourceHash !== sourceHash || !saved.artDataUrl) throw new ImageProductionError("보존된 시각물의 소유자 또는 원고가 일치하지 않습니다.");
+    return JSON.parse(await data.text());
+}
+export async function preservedArt(profileId: string, sourceHash: string, type: string, art: VisualBrief): Promise<ProductionCheckpoint | null> {
+    const exact = await readArtReference(artReferencePath(profileId, sourceHash, type, art));
+    if (exact) {
+        const saved = await loadImageProduction(exact.productionId);
+        if (saved.profileId !== profileId || saved.sourceHash !== sourceHash || !saved.artDataUrl) throw new ImageProductionError("보존된 시각물의 소유자 또는 원고가 일치하지 않습니다.");
+        return saved;
+    }
+    const byScene = await readArtReference(sceneReferencePath(profileId, type, art));
+    if (!byScene) return null;
+    const saved = await loadImageProduction(byScene.productionId);
+    if (saved.profileId !== profileId || !saved.artDataUrl) throw new ImageProductionError("보존된 시각물의 소유자가 일치하지 않습니다.");
     return saved;
 }
 export async function indexPreservedArt(checkpoint: ProductionCheckpoint, type: string, art: VisualBrief) {
     if (!checkpoint.artDataUrl) return;
-    const { error } = await createServiceClient().storage.from(BUCKET).upload(artReferencePath(checkpoint.profileId, checkpoint.sourceHash, type, art),
-        JSON.stringify({ productionId: checkpoint.id }), { contentType: "application/json", upsert: true, cacheControl: "0" });
-    if (error) throw new ImageProductionError("원본 복구 참조를 저장하지 못했습니다. 원본은 보존했으며 다시 복구할 수 있습니다.");
+    const storage = createServiceClient().storage.from(BUCKET);
+    for (const file of [artReferencePath(checkpoint.profileId, checkpoint.sourceHash, type, art), sceneReferencePath(checkpoint.profileId, type, art)]) {
+        const { error } = await storage.upload(file, JSON.stringify({ productionId: checkpoint.id }), { contentType: "application/json", upsert: true, cacheControl: "0" });
+        if (error) throw new ImageProductionError("원본 복구 참조를 저장하지 못했습니다. 원본은 보존했으며 다시 복구할 수 있습니다.");
+    }
 }
 
 export interface VisualHistory { sourceHash: string; layoutRecipe?: ArticleVisualPlan["layoutRecipe"]; motif: string; concept: string; cards: { type: string; treatment?: string; diagram?: string; subject?: string }[] }

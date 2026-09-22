@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { verifyAdminToken } from "@/lib/admin-auth";
 import { PlanValidationError, validateVisualPlan, sourceHash, PLAN_VERSION } from "@/lib/blog-images/visual-planner";
 import { EDITORIAL_SET_FORMAT } from "@/lib/blog-images/card-types";
-import { asEditorialThree, planEditorialThree } from "@/lib/blog-images/three-card-plan";
+import { asEditorialThree, planEditorialThree, planEditorialThreeFromBrief } from "@/lib/blog-images/three-card-plan";
+import { coverBriefFromWire } from "@/lib/blog-cover-brief";
+import { appendUsage } from "@/lib/blog-post-state";
+import type { UsageEntry } from "@/lib/blog-usage";
 import { selectImageProof } from "@/lib/blog-images/proof-selection";
 import { prepareEditorialThree } from "@/lib/blog-images/three-card-renderer";
 import { getMagazineIdentity } from "@/lib/blog-images/magazine-identity";
@@ -73,15 +76,22 @@ export async function POST(request: Request) {
         const notes: string[] = [];
         if (context) try { recent = await recentVisualHistory(context.profile.id); }
         catch { notes.push("최근 구성 이력을 읽지 못해 이번 기획은 원고 근거로만 설계했습니다."); }
+        // 2026-09-22 재설계 §3: 원고 응답에 딸려 온 표지 브리프가 있으면 모델 호출 없이 구성안을 조립한다.
+        // 새 유료 기획을 명시적으로 요청했거나(forceReplan) 저장 응답 복구(recoverOnly)면 예전 경로.
+        const usageSink: UsageEntry[] = [];
+        const brief = body.forceReplan === true || body.recoverOnly === true ? null : coverBriefFromWire(body.coverBrief);
         // Keep the original paid-operation ID: a saved provider response is not billed again.
-        const plan = await planEditorialThree(body.title || "", body.content, context.profile, proof, oldCacheId, recent, body.recoverOnly === true);
+        const plan = brief
+            ? planEditorialThreeFromBrief(body.title || "", body.content, context.profile, proof, brief, recent)
+            : await planEditorialThree(body.title || "", body.content, context.profile, proof, oldCacheId, recent, body.recoverOnly === true, usageSink);
         if (context) { plan.strengthToken = context.token; plan.strengthSelection = context.selection; }
         if (context) try { await recordVisualPlan(context.profile.id, plan); }
         catch { notes.push("이번 기획의 구성 이력을 저장하지 못했습니다."); }
         plan.productionNotes = notes;
         if (cacheId) await saveVisualPlan(cacheId, plan);
         if (attempt) await saveVisualPlan(defaultId, plan);
-        return NextResponse.json({ plan }, { headers: { "Cache-Control": "private, no-store" } });
+        await appendUsage(body.postId, usageSink);
+        return NextResponse.json({ plan, usage: usageSink }, { headers: { "Cache-Control": "private, no-store" } });
     }
     catch (e) {
         console.error("[VisualPlan] failed", e instanceof Error ? e.name : "UnknownError");

@@ -1,4 +1,5 @@
 import type { BlogImageQuality } from "./card-types";
+import { usageFromProvider, type UsageEntry } from "@/lib/blog-usage";
 import type { VisualBrief } from "./visual-plan-types";
 import sharp from "sharp";
 import { MAGAZINE_PALETTES } from "./magazine-design";
@@ -40,7 +41,7 @@ No generic empty office, gavel or justice scale unless the requested subject is 
 ${framing}`;
 }
 
-export async function generateEditorialPhoto(brief: VisualBrief, quality: BlogImageQuality = "high", owner?: { profileId: string; attempt: string; recoverOnly?: boolean; frame?: "portrait" | PosterFrame }): Promise<Buffer> {
+export async function generateEditorialPhoto(brief: VisualBrief, quality: BlogImageQuality = "high", owner?: { profileId: string; attempt: string; recoverOnly?: boolean; frame?: "portrait" | PosterFrame; usageSink?: UsageEntry[] }): Promise<Buffer> {
     const key = process.env.OPENAI_API_KEY;
     if (!key) throw new Error("이미지를 생성하려면 서버에 OPENAI_API_KEY 설정이 필요합니다.");
     const effectiveQuality = BLOG_PHOTO_MODEL.startsWith("gpt-image-2.5") && quality === "high" ? "xhigh" : quality;
@@ -51,10 +52,11 @@ export async function generateEditorialPhoto(brief: VisualBrief, quality: BlogIm
     const saved = await privateObjectExists(`blog-paid-operations/${id}/response.json`);
     if (!saved && owner?.recoverOnly) throw new PaidOperationError("이전 원본 응답을 확인하지 못해 추가 과금을 차단했습니다. 저장된 작업을 먼저 확인해주세요. 자동으로 새 이미지를 만들지 않았습니다.", id, "response_not_found");
     if (!saved) await verifyPhotoModel();
-    const { data } = await paidJsonRequest(id, "이미지 원본", BLOG_PHOTO_MODEL, () => fetch("https://api.openai.com/v1/images/generations", {
+    const { data, reused, elapsedMs } = await paidJsonRequest(id, "이미지 원본", BLOG_PHOTO_MODEL, () => fetch("https://api.openai.com/v1/images/generations", {
             method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
             signal: AbortSignal.timeout(240_000), body: JSON.stringify(payload),
         }), undefined, { recoverOnly: owner?.recoverOnly });
+    owner?.usageSink?.push(usageFromProvider("cover-art", "이미지 원본", BLOG_PHOTO_MODEL, data, { operationId: id, reused, elapsedMs }));
     const b64: unknown = data.data?.[0]?.b64_json;
     if (typeof b64 !== "string" || !b64.length || b64.length > 30_000_000) throw new Error("사진 모델에서 정상적인 이미지 파일을 받지 못했습니다.");
     return Buffer.from(b64, "base64");

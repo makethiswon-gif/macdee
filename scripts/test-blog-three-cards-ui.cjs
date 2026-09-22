@@ -41,6 +41,7 @@ if (!studioFour) {
                     ? route.fulfill({ status: 422, contentType: "application/json", body: JSON.stringify({ error: width === 390 ? "두 번째 이미지에는 승인된 스튜디오 사진이 필요합니다. 스튜디오 사진 생성기에서 사진을 승인하고 블로그 연결을 켜주세요." : "승인된 사진은 6장 있습니다. 스튜디오 사진의 블로그 연결이 꺼져 있습니다. 사진함에서 블로그 발행에 승인 사진 사용을 켜주세요." }) }) : reply({ ok: true });
                 if (url.pathname.endsWith("/blog-strengths/select")) return reply({ selection: { profileId: profile.id, claims: [], revision: 0, designFamily: "auto" }, eligible: [], token: "fixture", review: { issues: [], applied: [] } });
                 if (url.pathname.endsWith("/claude-blog-write")) { written++; return reply({ title: "회생 절차의 자료 확인", body, strengthSelection: { profileId: profile.id, claims: [], revision: 0, designFamily: "auto" } }); }
+                if (url.pathname.endsWith("/blog-posts/state")) return reply({ state: { postId: "test-post", stage: "draft", aiUsage: [], factChecks: [], bodyVersions: [] } });
                 if (url.pathname.endsWith("/blog-posts")) { if (req.method() !== "GET") savedDrafts++; return reply(req.method() === "GET" ? { posts: [] } : { id: "test-post" }); }
                 if (url.pathname.endsWith("/blog-images/plan")) {
                     assert.equal(b.basicProfile, true); planningRequests.push(b);
@@ -62,17 +63,20 @@ if (!studioFour) {
             assert.equal(await page.getByRole("checkbox", { name: "두 번째 이미지에 승인 경력 표시" }).count(), 0, "strength option removed 2026-09-22");
             await page.locator("#publish-topic").fill("회생 절차");
             await page.getByRole("button", { name: "바로 원고 생성", exact: true }).click();
+            // 2026-09-22 재설계: 원고 직후 유료 이미지를 자동으로 만들지 않는다. 확정 버튼이 나타날 때까지 기다린다.
+            const confirmButton = page.getByRole("button", { name: `원고 확정 → 이미지 ${types.length}장 만들기 (유료)`, exact: true });
+            await confirmButton.waitFor();
+            assert.equal(written, 1); assert.equal(savedDrafts, 1); assert.equal(generated.length, 0);
+            assert.equal(planningRequests.length, 0, "Manuscript generation never starts a paid image plan by itself");
             if (imageUnavailable) {
-                await page.getByRole("alert").filter({ hasText: "원고는 저장했습니다. 이미지 생성만 보류했습니다:" }).waitFor();
-                assert.equal(written, 1); assert.equal(savedDrafts, 1); assert.equal(generated.length, 0);
-                assert.equal(planningRequests.length, 0, "Missing readiness cannot bill an image plan");
+                await page.getByRole("alert").filter({ hasText: "원고는 저장했습니다. 이미지 준비 확인:" }).waitFor();
                 if (width === 390 || width === 320) {
                     assert.equal(await page.getByRole("link", { name: width === 390 ? "스튜디오 사진 승인하기" : "블로그 연결 설정" }).getAttribute("href"), `/admin/lawyer-studio?profileId=${profile.id}&view=library`);
-                    assert.equal(await page.getByRole("button", { name: "새 이미지 구성안 기획 (유료)", exact: true }).isDisabled(), true);
+                    assert.equal(await page.getByRole("button", { name: "새 이미지 구성안 기획 (유료)", exact: true }).count(), 0, "Paid replanning is not offered before the manuscript is confirmed");
                 }
                 imageUnavailable = false;
-                await page.getByRole("button", { name: `저장하고 카드 ${types.length}장 만들기`, exact: true }).click();
             }
+            await confirmButton.click();
             if (!studioFour) {
                 await page.getByRole("alert").filter({ hasText: "원고의 핵심" }).waitFor();
                 assert.equal(written, 1); assert.equal(savedDrafts, 1); assert.equal(generated.length, 0);
