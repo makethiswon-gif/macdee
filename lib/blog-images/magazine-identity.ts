@@ -80,7 +80,7 @@ export function getMagazineIdentity(profile: Pick<EditorialProfile, "id" | "lawy
     const publication: Record<string, LayoutFamily> = {
         mmlhi2x25zu2h: "ledger", mmswe2dmpr95z: "column", mmlmhtx361r67: "column",
         mmlk8qh6gqq9l: "journal", mmlg8fcm9bdgl: "dossier", mqaaoypk621p6: "poster",
-        mmkfnvun052ja: "atlas", mmkfuvwrvg64o: "atlas", mrvn35u3cxprq: "dossier",
+        mmkfnvun052ja: "atlas", mrvn35u3cxprq: "dossier",
         mpatjgph1tnl5: "column", mse8rx0bkl9f0: "ledger",
     };
     const family = profile.designFamily && profile.designFamily !== "auto" && FAMILIES.includes(profile.designFamily) ? profile.designFamily : publication[profile.id] || suggested;

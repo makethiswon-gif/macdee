@@ -65,7 +65,7 @@ export const PROFILE_EDITIONS: readonly ProfileEdition[] = [
 ];
 const assignments: Record<string, string> = {
     mmlhi2x25zu2h: "axis", mmswe2dmpr95z: "saerok", mmlmhtx361r67: "saerok", mmlk8qh6gqq9l: "calla",
-    mmkfnvun052ja: "il", mmkfuvwrvg64o: "il", mmkc1ylfhv1t6: "oleun", mmlg8fcm9bdgl: "knal",
+    mmkfnvun052ja: "il", mmkc1ylfhv1t6: "oleun", mmlg8fcm9bdgl: "knal",
     mqaaoypk621p6: "jeongung", mse8rx0bkl9f0: "younghui", mpatjgph1tnl5: "youon", mrvn35u3cxprq: "jeongeum",
 };
 const normalized = (s: string) => s.replace(/[\s|]/g, "");
