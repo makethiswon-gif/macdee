@@ -1,11 +1,11 @@
 // 딥마카이 크루룸 — 클라이언트와 서버가 함께 쓰는 상수. 서버 전용 코드는 server.ts에.
 
 export const MEMBERS = [
-    { key: "pd", name: "PD", role: "제작 · 편집 · 광고", tone: "red" },
-    { key: "kim", name: "김승연", role: "진행", tone: "indigo" },
-    { key: "lee", name: "이윤준", role: "진행", tone: "olive" },
-    { key: "son", name: "손진수", role: "진행", tone: "tan" },
-    { key: "seo", name: "서진수", role: "진행", tone: "denim" },
+    { key: "pd", name: "PD", role: "제작 · 편집 · 광고" },
+    { key: "kim", name: "김승연", role: "진행" },
+    { key: "lee", name: "이윤준", role: "진행" },
+    { key: "son", name: "손진수", role: "진행" },
+    { key: "seo", name: "서진수", role: "진행" },
 ] as const;
 
 export type MemberKey = (typeof MEMBERS)[number]["key"];

@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "@/app/product-fonts.css";
-import "@fontsource/do-hyeon";
-import "@fontsource/black-ops-one";
+import "@fontsource/ibm-plex-mono/500.css";
+import "@fontsource/ibm-plex-mono/600.css";
 import "../crew.css";
 
 // 딥마카이 크루룸 — 주소를 아는 사람만. 색인 금지(메타 + middleware X-Robots-Tag), 사이트맵·내부 링크에 넣지 않는다.
@@ -13,12 +13,15 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-    themeColor: "#1F2C4D",
+    themeColor: [
+        { media: "(prefers-color-scheme: light)", color: "#F3F4F6" },
+        { media: "(prefers-color-scheme: dark)", color: "#0E0F12" },
+    ],
     width: "device-width",
     initialScale: 1,
     viewportFit: "cover",
 };
 
 export default function CrewLayout({ children }: { children: React.ReactNode }) {
-    return <div className="dm-root">{children}</div>;
+    return <div className="cr">{children}</div>;
 }

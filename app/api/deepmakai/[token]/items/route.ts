@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getClientIp, rateLimitOk, tooManyRequests } from "@/lib/ratelimit";
-import { createItem, isCrewToken, listItems, TableMissingError } from "@/lib/deepmakai/server";
+import { createItem, isCrewToken, isPreview, listItems, TableMissingError } from "@/lib/deepmakai/server";
 import { IDEA_CATEGORIES, KINDS, LIMITS, MEMBER_KEYS, type Kind } from "@/lib/deepmakai/shared";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +22,7 @@ export async function GET(req: Request, { params }: Ctx) {
     if (!kind || !KINDS.includes(kind)) return NextResponse.json({ error: "bad_kind" }, { status: 400 });
     try {
         const items = await listItems(kind);
-        return NextResponse.json({ items }, { headers: { "Cache-Control": "no-store" } });
+        return NextResponse.json({ items, preview: isPreview() }, { headers: { "Cache-Control": "no-store" } });
     } catch (e) {
         return fail(e);
     }
