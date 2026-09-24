@@ -2,11 +2,11 @@ import { timingSafeEqual } from "crypto";
 import { createServiceClient } from "@/lib/supabase/server";
 import type { CrewItem, IdeaStatus, Kind } from "./shared";
 
-// 주소를 아는 사람만 들어오는 방. 토큰은 env로 바꿀 수 있고, 링크는 어디에도 걸지 않는다.
-const CREW_TOKEN = process.env.DEEPMAKAI_CREW_TOKEN || "jbs93n569em6";
+// Production links are secrets: never publish the token or accept a development fallback.
+const CREW_TOKEN = process.env.DEEPMAKAI_CREW_TOKEN || (process.env.NODE_ENV === "production" ? "" : "local-preview");
 
 export function isCrewToken(token: string | undefined): boolean {
-    if (!token) return false;
+    if (!CREW_TOKEN || !token) return false;
     const a = Buffer.from(token);
     const b = Buffer.from(CREW_TOKEN);
     return a.length === b.length && timingSafeEqual(a, b);
