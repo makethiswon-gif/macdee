@@ -7,7 +7,7 @@ import { Check, Copy, Download, Eye, Loader2, Lightbulb, PenLine, Save, ImageIco
 import { toNaverHtml } from "@/lib/blog-naver-html";
 import { BLOG_CARD_TYPES, EDITORIAL_SET_FORMAT, cardTypesFor, cardLabel, CARD_LABELS, cardRequestProfile, type BlogCardType, type BlogImageCard, type EditorialProfile } from "@/lib/blog-images/card-types";
 import type { ArticleVisualPlan } from "@/lib/blog-images/visual-plan-types";
-import { copyBlogHtml, publishJson, sameDraft, type PublishBatch, type PublishDraft } from "@/lib/blog-publish-workflow";
+import { copyBlogHtml, publishJson, PublishRequestError, sameDraft, type PublishBatch, type PublishDraft } from "@/lib/blog-publish-workflow";
 import BlogCoverChoices from "@/components/admin/BlogCoverChoices";
 import { studioLibraryUrl, studioRecoveryAction } from "@/lib/lawyer-studio/types";
 import { summarizeUsage, USAGE_KIND_LABELS, type UsageEntry } from "@/lib/blog-usage";
@@ -31,6 +31,8 @@ interface BlogSetting {
 interface TopicCandidate { topic: string; field: string; angle: string; titleIdea: string; reason: string }
 interface SavedPost { id: string; profile_id?: string; title: string; body: string; field: string | null; topic: string | null; card_images?: { type: string; url: string }[] }
 interface WriteResponse { title: string; body: string; contactWarning?: string | null; editorialWarnings?: string[]; factChecklist?: string[]; usage?: UsageEntry; coverBrief?: CoverBrief | null; question?: string; thesis?: string; mode?: "topic" | "rewrite"; bodyHash?: string }
+interface WriteRequest { content: string; source?: string; field: string; profileId: string; topic: string; attemptId?: string; confirmPaid: boolean }
+interface WriteFailure { request: WriteRequest; topic: TopicCandidate; usage?: UsageEntry }
 interface EditResponse { replacement: string; label: string; target: string; title: string; body: string; warnings: string[]; usage?: UsageEntry }
 type Step = "idle" | "topics" | "writing" | "saving" | "cards" | "editing";
 const message = (e: unknown) => e instanceof Error ? e.message : "요청 처리에 실패했습니다.";
@@ -76,6 +78,7 @@ export default function BlogPublishPage() {
     const [progress, setProgress] = useState("");
     const [step, setStep] = useState<Step>("idle");
     const [error, setError] = useState("");
+    const [writeFailure, setWriteFailure] = useState<WriteFailure | null>(null);
     const [copied, setCopied] = useState(false);
     const [exporting, setExporting] = useState(false);
     const [imagesStale, setImagesStale] = useState(false);
@@ -197,6 +200,7 @@ export default function BlogPublishPage() {
         batch.current = null; imageAttempts.current = {}; setCards([]); setCoverOptions([]); setCardUrls([]); setResumedUrls(false); setIssues({}); setPreview(null);
     };
     const reset = () => {
+        setWriteFailure(null);
         planningAttempt.current = ""; writingAttempt.current = ""; editAttempt.current = ""; coverBrief.current = null;
         active.current?.abort(); active.current = null;
         if (copyTimer.current) clearTimeout(copyTimer.current);
@@ -344,21 +348,27 @@ export default function BlogPublishPage() {
     const guidanceText = () => [guide.question && `[핵심 질문] ${guide.question.trim()}`, guide.condition && `[결론을 가르는 조건] ${guide.condition.trim()}`,
         guide.viewpoint && `[변호사의 관점] ${guide.viewpoint.trim()}`, detail.trim() && `[사건 내용]\n${detail.trim()}`].filter(Boolean).join("\n");
 
-    const write = async (topic: TopicCandidate | null, source = "") => {
-        if (!profileId || (!topic && !source.trim())) return;
-        if ((title || body) && !window.confirm("현재 원고는 저장 후 보존하고 새 원고를 생성합니다. 새 AI 생성 비용이 발생합니다. 계속할까요?")) return;
-        if (title || body) writingAttempt.current = crypto.randomUUID();
+    const write = async (topic: TopicCandidate | null, source = "", retry?: "recover" | "regenerate") => {
+        const failed = retry ? writeFailure : null;
+        if (!profileId || (!topic && !source.trim()) || (retry && (!failed || failed.request.profileId !== profileId)) || active.current) return;
+        if (retry === "regenerate") {
+            if (!window.confirm("이전 요청도 이미 과금됐을 수 있습니다. 보존된 응답은 그대로 두고 원고를 새로 작성하며 추가 AI 비용이 발생합니다. 계속할까요?")) return;
+        } else if (!retry && (title || body) && !window.confirm("현재 원고는 저장 후 보존하고 새 원고를 생성합니다. 새 AI 생성 비용이 발생합니다. 계속할까요?")) return;
+        if (retry === "regenerate" || (!retry && (title || body))) writingAttempt.current = crypto.randomUUID();
         const op = begin("writing"); if (!op) return;
+        let pendingRequest: WriteRequest | null = null;
+        let receivedManuscript = false;
         setContactWarning(""); setEditorialWarnings([]); setImagesStale(false);
-        const rewrite = source.trim().length >= REWRITE_MIN;
-        const effectiveTopic: TopicCandidate = topic || { topic: source.trim().split(/\n/)[0].slice(0, 80), field: "", angle: "", titleIdea: "", reason: "" };
+        const sourceInput = failed?.request.source ?? source;
+        const rewrite = sourceInput.trim().length >= REWRITE_MIN;
+        const effectiveTopic: TopicCandidate = failed?.topic || topic || { topic: sourceInput.trim().split(/\n/)[0].slice(0, 80), field: "", angle: "", titleIdea: "", reason: "" };
         setDraftTopic(effectiveTopic); setPicked(topic);
         try {
             if (valid && dirty) await persist(draft, savedId, op);
-            setStep("writing"); setProgress(rewrite ? "붙여넣은 글을 자료로 새 원고를 쓰는 중…" : "원고 생성 중…");
+            setStep("writing"); setProgress(retry === "recover" ? "저장된 원고 응답 확인 중(추가 AI 호출 없음)…" : rewrite ? "붙여넣은 글을 자료로 새 원고를 쓰는 중…" : "원고 생성 중…");
             let imagePreparationError = "";
             try {
-                await publishJson("/api/admin/blog-images/preflight", op.signal, { profileId, checkModel: true, basicProfile: true, topic: `${effectiveTopic.field} ${effectiveTopic.topic}` });
+                if (retry !== "recover") await publishJson("/api/admin/blog-images/preflight", op.signal, { profileId, checkModel: true, basicProfile: true, topic: `${effectiveTopic.field} ${effectiveTopic.topic}` });
             } catch (e) {
                 if (!current(op)) return;
                 imagePreparationError = message(e);
@@ -366,11 +376,15 @@ export default function BlogPublishPage() {
             const guidance = guidanceText();
             const content = rewrite ? guidance
                 : [effectiveTopic.topic, effectiveTopic.angle && `[다룰 관점]\n${effectiveTopic.angle}`, guidance].filter(Boolean).join("\n\n");
-            const data = await publishJson<WriteResponse>("/api/admin/claude-blog-write", op.signal,
-                { content, ...(rewrite ? { source: source.trim() } : {}), field: effectiveTopic.field, profileId, topic: effectiveTopic.topic,
-                    attemptId: writingAttempt.current || undefined, confirmPaid: !!writingAttempt.current });
+            pendingRequest = failed ? { ...failed.request,
+                ...(retry === "regenerate" ? { attemptId: writingAttempt.current, confirmPaid: true } : {}) }
+                : { content, ...(rewrite ? { source: sourceInput.trim() } : {}), field: effectiveTopic.field, profileId, topic: effectiveTopic.topic,
+                    attemptId: writingAttempt.current || undefined, confirmPaid: !!writingAttempt.current };
+            const data = await publishJson<WriteResponse>("/api/admin/claude-blog-write", op.signal, { ...pendingRequest, recoverOnly: retry === "recover" });
             if (!data.title?.trim() || !data.body?.trim()) throw new Error("생성된 원고가 비어 있습니다.");
+            receivedManuscript = true;
             if (!current(op)) return;
+            setWriteFailure(null);
             clearImages(); setSavedId(null); setSavedDraft(null); setConfirmed(false); setEditResult(null); setBodyVersions([]);
             const snapshot: PublishDraft = { profileId, title: data.title, body: data.body, field: effectiveTopic.field || null, topic: effectiveTopic.topic };
             setTitle(snapshot.title); setBody(snapshot.body);
@@ -388,7 +402,13 @@ export default function BlogPublishPage() {
                 setPlanOpen(false);
                 if (imagePreparationError) setError(`원고는 저장했습니다. 이미지 준비 확인: ${imagePreparationError}`);
             }
-        } catch (e) { if (current(op)) setError(message(e)); }
+        } catch (e) {
+            if (current(op)) {
+                setError(message(e));
+                if (pendingRequest && !receivedManuscript) setWriteFailure({ request: pendingRequest, topic: effectiveTopic,
+                    usage: e instanceof PublishRequestError && e.usage && !e.usage.reused ? e.usage : failed?.usage });
+            }
+        }
         finally { finish(op); }
     };
     const writeFromSource = () => { const text = sourceText.trim(); if (text) void write(null, text); };
@@ -558,6 +578,11 @@ export default function BlogPublishPage() {
                 </ul>
             </details>}
             {error && <div role="alert" className="my-4 break-words rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">{error}
+                {writeFailure && <div className="mt-3 flex flex-wrap gap-3">
+                    <button disabled={busy} className="inline-flex items-center gap-1 underline disabled:opacity-40" onClick={() => void write(writeFailure.topic, writeFailure.request.source || "", "recover")}><RefreshCw size={14} />저장된 원고 응답 복구 (무료)</button>
+                    <button disabled={busy} className="inline-flex items-center gap-1 underline disabled:opacity-40" onClick={() => void write(writeFailure.topic, writeFailure.request.source || "", "regenerate")}><PenLine size={14} />새 원고 생성 (유료)</button>
+                    {writeFailure.usage && <span className="w-full text-xs">이전 요청 비용: {usd(writeFailure.usage.estimatedUsd)}</span>}
+                </div>}
                 {studioRecovery && <a href={studioLibraryUrl(profileId)} target="_blank" rel="noopener noreferrer" className="mt-3 block underline">{studioRecovery}</a>}
                 {valid && !batch.current && stage === 3 && <div className="mt-3 flex flex-wrap gap-3">
                     <button disabled={busy} className="underline disabled:opacity-40" title="저장된 기획 응답만 복구합니다. 아직 제작하지 않은 이미지에는 생성 비용이 발생할 수 있습니다." onClick={() => void saveAndMakeCards(undefined, false, true)}>저장된 구성안으로 이어 만들기</button>

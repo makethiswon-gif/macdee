@@ -10,14 +10,15 @@ import { repetitionAvoidDirective } from "@/lib/blog-repetition";
 import { paidAttempt, paidId, paidJsonRequest, PaidOperationError } from "@/lib/blog-images/paid-operation";
 import { createHash } from "node:crypto";
 import { usageFromProvider } from "@/lib/blog-usage";
-import { COVER_MARKER, coverBriefInstruction, parseCoverBrief, type CoverBrief } from "@/lib/blog-cover-brief";
+import { coverBriefInstruction, parseCoverBrief, type CoverBrief } from "@/lib/blog-cover-brief";
 import { editorialCoverLayout } from "@/lib/blog-images/three-card-policy";
-import { recentVisualHistory } from "@/lib/blog-images/production-store";
+import { ImageProductionError, recentVisualHistory } from "@/lib/blog-images/production-store";
 import type { EditorialProfile } from "@/lib/blog-images/card-types";
 import type { LayoutRecipe } from "@/lib/blog-images/layout-recipes";
+import { readManuscriptResponse } from "@/lib/blog-manuscript-response";
 
-// Sonnet 5 + adaptive thinking(effort high). 2026-09-22 12:02 운영에서 xhigh 가 thinking 에 14,994토큰을 써 본문이 1,006토큰에서 잘렸다(상한 16,000).
-// 그래서 effort 는 high, 상한은 20,000, 대기는 Vercel 300초 안에서 285초. 잘린 응답이 같은 요청 해시로 재사용되지 않게 paidId 를 v15 로 올렸다.
+// high used 16,067-17,000 / 20,000 tokens for thinking in production.
+// Keep the total cap and paid ID; medium leaves more room for the manuscript without silently rebilling retries.
 export const maxDuration = 300;
 export const BLOG_WRITING_MODEL = "claude-sonnet-5";
 
@@ -30,9 +31,10 @@ function getKstDateLabel(): string {
 // POST: 관리자가 입력한 정보를 받아 변호사 블로그용 법률 콘텐츠 생성
 export async function POST(request: Request) {
     if (!verifyAdmin(request)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+    let responseUsage: ReturnType<typeof usageFromProvider> | undefined;
     try {
-        const { content: contentInput, source, field, profileId, topic, attemptId, confirmPaid } = await request.json();
+        const { content: contentInput, source, field, profileId, topic, attemptId, confirmPaid, recoverOnly } = await request.json();
+        if (recoverOnly != null && typeof recoverOnly !== "boolean") return NextResponse.json({ error: "복구 요청 형식을 확인해주세요." }, { status: 400 });
         // 2026-09-22: '주제 직접 입력'을 '글·메모 붙여넣기(재창작)'로 바꿨다. 붙여넣은 글이 200자 이상이면 그 글을 자료로 새 원고를 쓰고,
         // 짧으면 예전처럼 주제로 취급한다. content 는 추천 주제 경로의 주제·관점·사건 메모다.
         const sourceText = typeof source === "string" ? source.trim() : "";
@@ -271,18 +273,19 @@ ${trustBlock}
                 model: BLOG_WRITING_MODEL,
                 max_tokens: 20000,
                 thinking: { type: "adaptive" },
-                output_config: { effort: "high" },
+                output_config: { effort: "medium" },
                 system: systemPrompt,
                 messages: [{ role: "user", content: userMessage }],
             }),
-        }));
+        }), undefined, { recoverOnly: recoverOnly === true });
         const usage = usageFromProvider("manuscript", "블로그 원고", BLOG_WRITING_MODEL, data, { operationId, reused, elapsedMs });
-        if (data.stop_reason === "max_tokens") throw new PaidOperationError("원고 응답이 중간에 끊겼습니다. 응답은 보존했으며 자동으로 다시 생성하지 않습니다.", operationId, "incomplete_response", 422);
-        // adaptive thinking을 켜면 content 배열에 thinking 블록이 먼저 올 수 있으므로 text 블록을 찾는다
-        const blocks: Array<{ type: string; text?: string }> = data.content || [];
-        const rawContent = blocks.find((b) => b.type === "text")?.text || "";
-
-        const parsed = parseDelimiterFormat(rawContent);
+        responseUsage = usage;
+        const parsed = readManuscriptResponse(data);
+        console.info("[BlogManuscriptResponse]", { operationId, stopReason: data.stop_reason, complete: parsed.complete, recoveredBody: parsed.complete && parsed.truncated, textCharacters: parsed.raw.length });
+        if (!parsed.complete) throw new PaidOperationError(parsed.truncated
+            ? "원고 본문이 응답 토큰 한도에서 끊겼습니다. 미완성 원고는 저장하지 않았고 응답은 보존했습니다. 복구는 추가 과금 없이 확인만 하며, 다시 작성하려면 '새 원고 생성 (유료)'을 선택해주세요."
+            : "완성된 원고를 받지 못했습니다. 응답은 보존했으며 자동 재생성하지 않습니다.", operationId, "incomplete_response", 422);
+        const rawContent = parsed.raw;
         const title = parsed.title;
         const rawDraftBody = parsed.body;
         if (!title.trim() || !rawDraftBody.trim()) throw new PaidOperationError("완성된 원고를 받지 못했습니다. 응답은 보존했으며 자동 재생성하지 않습니다.", operationId, "incomplete_response", 422);
@@ -295,8 +298,8 @@ ${trustBlock}
         const draftBody = body;
         const charCount = body.replace(/\s/g, "").length; // 공백 제외 글자 수
         // 표지 브리프는 원고와 독립으로 검증한다. 깨져도 원고는 그대로 쓰고, 이미지 단계가 예전 기획(유료)으로 대신한다.
-        let coverBrief: CoverBrief | null = null, coverWarning = "";
-        if (coverLayout) {
+        let coverBrief: CoverBrief | null = null, coverWarning = parsed.warning;
+        if (coverLayout && !parsed.truncated) {
             const cover = parseCoverBrief(rawContent, coverLayout);
             coverBrief = cover.brief;
             if (!coverBrief) coverWarning = `표지 브리프를 읽지 못했습니다(${cover.issues.join(", ")}). 이미지 단계에서 별도 기획(유료)으로 대신합니다.`;
@@ -324,37 +327,12 @@ ${trustBlock}
                 : null,
         });
     } catch (err) {
-        if (err instanceof PaidOperationError) return NextResponse.json({ error: err.message, operationId: err.operationId, code: err.code }, { status: err.status });
+        if (err instanceof PaidOperationError) return NextResponse.json({ error: err.message, operationId: err.operationId, code: err.code, usage: responseUsage }, { status: err.status });
+        if (err instanceof ImageProductionError) return NextResponse.json({ error: err.message }, { status: err.status });
         if (err instanceof StrengthStoreError) return NextResponse.json({ error: err.message }, { status: err.status });
         console.error("[Claude Blog Write] Error:", err instanceof Error ? err.name : "UnknownError");
         return NextResponse.json({ error: "서버 오류" }, { status: 500 });
     }
-}
-
-// ─── ===TITLE=== / ===BODY=== / ===FACTS=== 구분자 파싱 ───
-function parseDelimiterFormat(raw: string): { title: string; body: string; facts: string[] } {
-    const text = raw.split(COVER_MARKER)[0];
-    const titleMarker = "===TITLE===";
-    const bodyMarker = "===BODY===";
-    const factsMarker = "===FACTS===";
-    const factsIdx = text.indexOf(factsMarker);
-    const facts = factsIdx === -1 ? [] : text.substring(factsIdx + factsMarker.length).split(/\r?\n/)
-        .map((line) => line.replace(/^\s*[-·*]\s*/, "").trim()).filter((line) => line.length >= 4).slice(0, 40);
-    const main = factsIdx === -1 ? text : text.substring(0, factsIdx);
-    const titleIdx = main.indexOf(titleMarker);
-    const bodyIdx = main.indexOf(bodyMarker);
-
-    if (titleIdx !== -1 && bodyIdx !== -1) {
-        const title = main.substring(titleIdx + titleMarker.length, bodyIdx).trim();
-        const body = main.substring(bodyIdx + bodyMarker.length).trim();
-        return { title, body, facts };
-    }
-
-    // 구분자가 없으면 첫 줄을 제목으로, 나머지를 본문으로 처리 (안전망)
-    const lines = main.trim().split("\n");
-    const title = (lines[0] || "제목 없음").replace(/^#+\s*/, "").trim();
-    const body = lines.slice(1).join("\n").trim() || main.trim();
-    return { title, body, facts };
 }
 
 /** 재창작 원문의 문장이 본문에 거의 그대로 들어갔는지 — 20자 이상 문장의 정규화 부분 일치. 표절이 아니라 '베끼기' 경고용. */

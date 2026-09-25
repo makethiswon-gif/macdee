@@ -1,5 +1,13 @@
 import { BLOG_CARD_TYPES, type BlogCardType, type BlogImageCard, type EditorialProfile } from "./blog-images/card-types";
 import type { ArticleVisualPlan } from "./blog-images/visual-plan-types";
+import type { UsageEntry } from "./blog-usage";
+
+export class PublishRequestError extends Error {
+    constructor(message: string, public code?: string, public operationId?: string, public usage?: UsageEntry) {
+        super(message);
+        this.name = "PublishRequestError";
+    }
+}
 
 export interface PublishDraft {
     profileId: string;
@@ -33,13 +41,13 @@ export async function publishJson<T>(url: string, signal: AbortSignal, payload?:
         credentials: "include", signal,
         ...(payload === undefined ? {} : { headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }),
     });
-    let data: T & { error?: string };
+    let data: T & { error?: string; code?: string; operationId?: string; usage?: UsageEntry };
     try { data = await res.json(); } catch {
         signal.throwIfAborted();
         throw new Error(res.status === 413 ? "이미지 용량이 서버 요청 한도를 초과했습니다 (413)." : `서버 응답을 읽지 못했습니다 (${res.status}).`);
     }
     signal.throwIfAborted();
-    if (!res.ok || data.error) throw new Error(data.error || `요청에 실패했습니다 (${res.status}).`);
+    if (!res.ok || data.error) throw new PublishRequestError(data.error || `요청에 실패했습니다 (${res.status}).`, data.code, data.operationId, data.usage);
     return data;
 }
 
