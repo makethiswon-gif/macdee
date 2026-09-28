@@ -782,6 +782,7 @@ export default function BlogPublishPage() {
                                 </> : <ImageIcon className="text-[#4B5563]" />}
                             </div>
                             {issues[type] && <p role="alert" className="mt-2 break-words text-xs text-red-300">{issues[type]}</p>}
+                            {card?.sharedAsset && <p className="mt-2 text-xs text-[#9CA3B0]">{card.sharedAsset.reused ? "저장본 재사용 · 새로 만들지 않음" : "처음 제작 · 다음 글부터 재사용"}</p>}
                             {card?.layoutChecks && !card.layoutChecks.passed && <p className="mt-2 break-words text-xs text-amber-300">배치 확인 필요: {card.layoutChecks.issues.join(" ")}</p>}
                             {card?.warnings?.map((warning, i) => <p key={i} className="mt-1 break-words text-xs text-amber-300">{warning}</p>)}
                             <div className="mt-2 flex flex-wrap gap-2">

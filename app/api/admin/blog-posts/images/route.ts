@@ -6,7 +6,9 @@ import { BLOG_CARD_TYPES, PROFILE_CARD_TYPES, PROFILE_SET_FORMAT, EDITORIAL_SET_
 import { verifyImageProof } from "@/lib/blog-images/proof-selection";
 import { loadStrengthLibrary, StrengthStoreError } from "@/lib/blog-strengths-store";
 import { hasCompleteCardSet } from "@/lib/blog-publish-workflow";
-import { verifyImageRelease, digest, loadImageProduction, retryStorage } from "@/lib/blog-images/production-store";
+import { verifyImageRelease, readImageRelease, digest, loadImageProduction, retryStorage } from "@/lib/blog-images/production-store";
+import { sharedCardByHash, type SharedCardRecord } from "@/lib/blog-images/shared-cards";
+import type { BlogImageCard } from "@/lib/blog-images/card-types";
 import { sourceHash } from "@/lib/blog-images/visual-planner";
 import { resolveStudioPhotos, resolveEditorialStudioPhoto } from "@/lib/lawyer-studio/blog";
 import { STUDIO_FORMAT, StudioError, StudioPhotoRequiredError } from "@/lib/lawyer-studio/types";
@@ -63,7 +65,18 @@ export async function POST(request: Request) {
         const profileSet = Array.isArray(requiredTypes) && requiredTypes.length === PROFILE_CARD_TYPES.length
             && PROFILE_CARD_TYPES.every((type) => requiredTypes.includes(type));
         const editorialSet = payload.setFormat === EDITORIAL_SET_FORMAT;
-        if (editorialSet && (!profileSet || images.some(img => !img.productionId))) return NextResponse.json({ error: "신뢰 이미지 세트는 보존된 3장 제작 작업으로 저장해주세요." }, { status: 422 });
+        // 2·3번 재사용 카드(2026-09-28): 발행 서명에 든 PNG 해시로 서버 기록을 찾는다. 바이트는 이미 공개 저장소에 있다.
+        // 서명 자체의 검증(이 원고·세트·변호사)은 아래에서 다른 카드와 똑같이 한다.
+        const sharedRecords = new Map<IncomingImage, SharedCardRecord>();
+        // 제작 기록(productionId)이 있는 카드는 예전 경로 그대로. 재사용 카드는 제작 기록 없이 온다.
+        if (editorialSet) for (const img of images) {
+            if (img.productionId) continue;
+            const release = readImageRelease(img.releaseToken);
+            if (!release || release.type !== img.type || (img.type !== "info" && img.type !== "contact")) continue;
+            const record = await sharedCardByHash(release.profileId, release.pngHash, img.type);
+            if (record) sharedRecords.set(img, record);
+        }
+        if (editorialSet && (!profileSet || images.some(img => !img.productionId && !sharedRecords.has(img)))) return NextResponse.json({ error: "신뢰 이미지 세트는 보존된 3장 제작 작업으로 저장해주세요." }, { status: 422 });
         const format = profileSet ? { setFormat: editorialSet ? EDITORIAL_SET_FORMAT : PROFILE_SET_FORMAT } : {};
         if (requiredTypes !== undefined && !profileSet && (!Array.isArray(requiredTypes) || requiredTypes.length !== BLOG_CARD_TYPES.length
             || !BLOG_CARD_TYPES.every((type) => requiredTypes.includes(type)))) {
@@ -71,7 +84,7 @@ export async function POST(request: Request) {
         }
         // New editors transfer only IDs. Read already-paid, signed bytes on the server.
         // Large PNGs and portraits never travel back through a Vercel request body.
-        for (const img of images) if (img.productionId) {
+        for (const img of images) if (img.productionId && !sharedRecords.has(img)) {
             const saved = await loadImageProduction(img.productionId);
             if (!saved.card || saved.card.type !== img.type || saved.card.setId !== img.setId || saved.card.releaseToken !== img.releaseToken) {
                 return NextResponse.json({ error: "보존된 이미지와 저장 요청이 일치하지 않습니다." }, { status: 422 });
@@ -85,7 +98,7 @@ export async function POST(request: Request) {
             }
             img.dataUrl = saved.card.imageDataUrl;
         }
-        if (images.some((img) => !/^[a-z][a-z0-9_-]*$/i.test(img.type) || !String(img.dataUrl).startsWith("data:image/png;base64,"))) {
+        if (images.some((img) => !/^[a-z][a-z0-9_-]*$/i.test(img.type) || (!sharedRecords.has(img) && !String(img.dataUrl).startsWith("data:image/png;base64,")))) {
             return NextResponse.json({ error: "유효한 PNG 이미지가 필요합니다." }, { status: 400 });
         }
 
@@ -93,17 +106,28 @@ export async function POST(request: Request) {
         const { data: row, error: readError } = await supabase.from("blog_posts").select("card_images,profile_id,title,body,updated_at").eq("id", postId).single();
         if (readError || !row) return NextResponse.json({ error: "저장된 원고를 찾지 못했습니다." }, { status: 404 });
         const hashOfSource = sourceHash(row.title || "", row.body || "");
-        const saved: { type: string; url: string; releaseToken?: string; pngHash?: string; setId?: string; productionId?: string }[] = [];
+        // 재사용 카드도 이 변호사의 것이어야 하고, 신뢰 사진은 지금도 승인 상태여야 한다.
+        for (const [img, record] of sharedRecords) {
+            if (record.profileId !== row.profile_id) return NextResponse.json({ error: "다른 변호사의 이미지는 저장할 수 없습니다." }, { status: 422 });
+            if (img.type === "info") await sharedStudioCheck(row.profile_id, record);
+        }
+        const saved: { type: string; url: string; releaseToken?: string; pngHash?: string; setId?: string; productionId?: string; shared?: boolean }[] = [];
         const setId = images[0].setId;
         // Validate the whole incoming set before uploading any bytes.
         if (requiredTypes && images.some((img) => !verifyImageRelease(img.releaseToken, { profileId: row.profile_id, sourceHash: hashOfSource,
-            type: img.type, pngHash: digest(Buffer.from(img.dataUrl.split(",")[1], "base64")), setId: setId || "", ...format }) || img.setId !== setId)) {
+            type: img.type, pngHash: sharedRecords.get(img)?.pngHash ?? digest(Buffer.from(img.dataUrl.split(",")[1], "base64")), setId: setId || "", ...format }) || img.setId !== setId)) {
             return NextResponse.json({ error: "저장 가능한 이미지가 아니거나 원고·변호사가 변경되었습니다. 현재 구성으로 다시 처리해주세요." }, { status: 422 });
         }
 
         const kept = single ? ((row.card_images as typeof saved | null) || []).filter(x => (!requiredTypes || (requiredTypes.includes(x.type) && x.setId === setId)) && !images.some(img => img.type === x.type)) : [];
         // Recheck retained studio provenance too, before any storage upload.
-        for (const img of kept.filter(x => editorialSet && x.type === "info" && x.productionId)) {
+        for (const img of kept.filter(x => editorialSet && x.type === "info" && (x.productionId || x.shared))) {
+            if (img.shared) {
+                const record = await sharedCardByHash(row.profile_id, img.pngHash || "", "info");
+                if (!record) throw new StudioPhotoRequiredError();
+                await sharedStudioCheck(row.profile_id, record);
+                continue;
+            }
             const prior = await loadImageProduction(img.productionId!);
             if (!prior.card || prior.card.type !== "info" || prior.profileId !== row.profile_id || prior.sourceHash !== hashOfSource
                 || prior.card.releaseToken !== img.releaseToken || prior.card.setFormat !== EDITORIAL_SET_FORMAT
@@ -113,6 +137,12 @@ export async function POST(request: Request) {
 
         for (let i = 0; i < images.length; i++) {
             const img = images[i];
+            const shared = sharedRecords.get(img);
+            if (shared) {
+                // 같은 PNG 가 공개 저장소에 이미 있다 — 원고 폴더에 사본을 만들지 않고 그 주소를 기록한다.
+                saved.push({ type: img.type, url: shared.url, ...(requiredTypes ? { releaseToken: img.releaseToken, pngHash: shared.pngHash, setId, shared: true } : {}) });
+                continue;
+            }
             const base64 = String(img.dataUrl || "").split(",")[1];
             if (!base64) return NextResponse.json({ error: "빈 이미지입니다." }, { status: 400 });
 
@@ -141,7 +171,7 @@ export async function POST(request: Request) {
         let merged = saved;
         if (single) {
             // Old three-card uploads did not retain provenance. Rebind the second photo before completing a new upload.
-            merged = [...kept.filter(x => !editorialSet || x.type !== "info" || x.productionId), ...saved];
+            merged = [...kept.filter(x => !editorialSet || x.type !== "info" || x.productionId || x.shared), ...saved];
         }
 
         // 다 모였을 때만 발행 대기로 올린다
@@ -168,4 +198,10 @@ export async function POST(request: Request) {
     } catch (err: unknown) {
         return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: err instanceof StrengthStoreError || err instanceof StudioError ? err.status : 500 });
     }
+}
+
+/** 재사용 신뢰 카드의 사진이 지금도 이 변호사의 승인 사진인지 — 원고 폴더에 저장하던 카드와 같은 확인. */
+async function sharedStudioCheck(profileId: string, record: SharedCardRecord) {
+    if (editorialStudioPhotoMissing(record.card as BlogImageCard)) throw new StudioPhotoRequiredError();
+    await resolveEditorialStudioPhoto(profileId, record.card.studioPhotos);
 }
