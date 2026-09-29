@@ -70,6 +70,12 @@ export async function paidJsonRequest(id: string, stage: string, model: string, 
     catch { throw new PaidOperationError("AI 응답 형식이 올바르지 않습니다. 응답은 보존했고 자동으로 다시 생성하지 않았습니다.", id, "invalid_response", 422); }
     console.info("[BlogPaidOperation]", { operationId: id, stage, model, reused, status: result.status, requestId: result.requestId, elapsedMs: result.elapsedMs, usage: reused ? undefined : data.usage });
     if (result.status < 200 || result.status >= 300) {
+        // 클로드 구독 작업기(lib/ai/subscription-relay.ts)의 실패는 원인을 그대로 보여 준다. API 청구는 없다.
+        if (result.requestId?.startsWith("subscription:")) {
+            const detail = typeof data?.error?.message === "string" ? data.error.message.slice(0, 300) : "";
+            const reason = result.status === 429 ? "클로드 구독 사용 한도(5시간·주간)에 걸렸습니다" : "클로드 구독 작업기가 응답을 만들지 못했습니다";
+            throw new PaidOperationError(`${reason}${detail ? `: ${detail}` : ""} (${result.status}). 이 결과는 보존했습니다. 새로 요청하거나 AI 실행 방식을 API로 바꿔 주세요.`, id, "provider_rejected", result.status === 429 ? 429 : 502);
+        }
         const reason = result.status === 429 ? "AI 사용 한도 또는 요청 속도 제한" : [401, 403].includes(result.status) ? "AI 계정의 API 키 또는 모델 이용 권한" : "AI 제공업체 응답";
         throw new PaidOperationError(`${reason}을 확인해주세요 (${result.status}). 이 응답은 보존했으며 재시도 버튼은 추가 과금을 발생시키지 않습니다.`, id, "provider_rejected", result.status === 429 ? 429 : 502);
     }

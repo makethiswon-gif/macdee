@@ -10,6 +10,7 @@ import type { VisualHistory } from "./production-store";
 import { posterFrame, posterPhotoDirection, posterFamily } from "./poster-layout";
 import type { UsageEntry } from "@/lib/blog-usage";
 import type { CoverBrief } from "@/lib/blog-cover-brief";
+import type { ClaudeEngine } from "@/lib/ai/claude-engine";
 import { PLAN_VERSION } from "./visual-planner";
 
 export function asEditorialThree(plan: ArticleVisualPlan, profile: EditorialProfile, proof: ProofSelection, title: string, content: string): ArticleVisualPlan {
@@ -19,7 +20,7 @@ export function asEditorialThree(plan: ArticleVisualPlan, profile: EditorialProf
         proofSelection: proof, proofToken: signImageProof(proof), cards: [cover, { type: "info" }, { type: "contact" }] }, title, content);
 }
 
-export async function planEditorialThree(title: string, content: string, profile: EditorialProfile, proof: ProofSelection, operationId: string, recent: VisualHistory[], recoverOnly = false, usageSink?: UsageEntry[]): Promise<ArticleVisualPlan> {
+export async function planEditorialThree(title: string, content: string, profile: EditorialProfile, proof: ProofSelection, operationId: string, recent: VisualHistory[], recoverOnly = false, usageSink?: UsageEntry[], engine: ClaudeEngine = "api"): Promise<ArticleVisualPlan> {
     const identity = getMagazineIdentity(profile), layoutRecipe = editorialCoverLayout(profile, recent);
     const schema = structuredClone(VISUAL_PLAN_SCHEMA);
     const cardSchema = (schema.properties.cards as { items: { properties: Record<string, unknown>; required: string[] } }).items;
@@ -32,7 +33,7 @@ cards에는 thumbnail 1개만 반환한다. question은 검색자의 질문, the
 art는 주제에 맞는 생활 장면, 의미 있는 디테일 사진 또는 편집 일러스트 하나다. 서로 다른 접근 2개를 direction.alternatives로 비교하되 원화는 한 장만 만든다. 최근 이력의 소재·동작·시점을 반복하지 않는다. 법봉·저울·법원 기둥·빈 상담실·회색 3D 정물·무관한 서류를 만능 소재로 쓰지 않는다. 실제 변호사나 의뢰인 얼굴, 사건 재현, 읽히는 문서·숫자·문자·로고를 생성하지 않는다. 사진은 자연색과 한국의 현실적인 공간을 기준으로 한다. story에 익명 인물을 쓰면 중원거리의 작은 전신으로 기획하고 머리부터 양발까지 사진 안에 보여준다. 상반신만 공중에 떠 있거나 몸통이 도로에 녹아드는 구도, 신체 일부를 어둠으로 지워서 제목 여백을 만드는 구도는 금지한다.
 art.scene에 피사체 배치, 촬영 거리, 행동, 빛의 방향과 재질을 구체적으로 쓴다. ${posterPhotoDirection(posterFrame(layoutRecipe))} 제목 뒤에는 하늘·벽·물·잔디·그늘처럼 실제 공간의 연속적인 색면을 확보한다. 생활 소품 하나나 익명의 인물 실루엣 등 명료한 피사체 하나가 주제와 연결되게 한다. 같은 책상 위 서류나 창밖을 보는 인물을 모든 글에 반복하지 않는다. 바다·잔디·의자도 주제와 무관하면 반복하지 않는다. 포스터 같은 공간감, 은은한 그레인, 자연색과 부드러운 하이라이트가 중요하다. 선명도를 과하게 올리지 않는다. 참고한 사진의 인물이나 브랜드·문구를 복제하지 않고 한국의 새로운 장면을 기획한다. 초상에 범죄자·가해자처럼 낙인을 붙이지 않는다. 일상 장면은 법률적 결론의 증거나 실제 사건 재현처럼 연출하지 않는다. 글자는 생성하지 않으며 합성 조판할 위치를 비워둔다.
 evidence는 실제 문단 ID와 연속된 원문 구절을 그대로 복사한다. treatment=feature. 모든 스키마 필드는 채우되 미사용 infographic은 kind:none, items:[], 미사용 art는 medium:none, avoid:[]를 쓴다. alternateArt는 선택적인 대안 기획일 뿐 자동 생성 대상이 아니다.`,
-        { title, paragraphs: articleParagraphs(content), recentVisuals: recent }, operationId, schema, recoverOnly, usageSink);
+        { title, paragraphs: articleParagraphs(content), recentVisuals: recent }, operationId, schema, recoverOnly, usageSink, engine);
     normalizePlanWire(raw);
     const cover = Array.isArray(raw.cards) ? raw.cards.find(c => c && (c as { type?: string }).type === "thumbnail") : undefined;
     if (!cover) throw new PlanValidationError("표지 구성안을 확인하지 못했습니다. 응답은 보존했고 자동 재요청하지 않았습니다.");
