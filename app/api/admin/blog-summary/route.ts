@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
+import { extractClaudeText } from "@/lib/ai/claude-text";
+import { SONNET_MODEL, minimalThinking } from "@/lib/ai/models";
 
 
 export async function POST(request: NextRequest) {
@@ -20,7 +22,8 @@ export async function POST(request: NextRequest) {
                 "content-type": "application/json",
             },
             body: JSON.stringify({
-                model: "claude-haiku-4-5-20251001",
+                model: SONNET_MODEL,
+                thinking: minimalThinking(SONNET_MODEL),
                 max_tokens: 400,
                 messages: [{
                     role: "user",
@@ -50,7 +53,7 @@ ${content.slice(0, 3000)}`,
         }
 
         const data = await res.json();
-        const summary = data.content?.[0]?.text || "";
+        const summary = extractClaudeText(data);
         return NextResponse.json({ summary });
     } catch (err) {
         console.error("AI summary error:", err);

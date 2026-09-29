@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { extractClaudeText } from "@/lib/ai/claude-text";
+import { SONNET_MODEL } from "@/lib/ai/models";
 import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
 
+
+// Sonnet 5.5 는 사고가 기본으로 켜져 있어 최대 1.6만 토큰을 받는다(초당 약 85토큰 → 3분 안팎). 시간 제한을 명시한다.
+export const maxDuration = 300;
 
 // POST: Generate magazine article with Claude
 export async function POST(request: Request) {
@@ -87,8 +91,8 @@ ${category || "법률정보"}
                 "anthropic-version": "2023-06-01",
             },
             body: JSON.stringify({
-                model: "claude-opus-5",
-                max_tokens: 8192,
+                model: SONNET_MODEL,
+                max_tokens: 16000,
                 system: systemPrompt,
                 messages: [{ role: "user", content: prompt }],
             }),
@@ -106,6 +110,8 @@ ${category || "법률정보"}
         }
 
         const data = await res.json();
+        // 사고가 max_tokens 를 먹어 본문이 끊겼으면 미완성 글을 내보내지 않는다.
+        if (data.stop_reason === "max_tokens") return NextResponse.json({ error: "AI 응답이 길이 제한에서 끊겼습니다. 다시 생성해주세요." }, { status: 502 });
         const rawContent = extractClaudeText(data);
 
         // Parse delimiter-based format

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
 import { extractClaudeText } from "@/lib/ai/claude-text";
+import { SONNET_MODEL } from "@/lib/ai/models";
 // 변호사용 글쓰기 DNA는 쓰지 않는다. 그 문체 카탈로그는 "변호사가 의뢰인에게"라
 // 광고회사인 맥디에는 맞지 않는다. 강조 밀도와 분량만 빌려 쓴다.
 import { getWritingDNA } from "@/lib/blog-writing-dna";
@@ -150,7 +151,7 @@ ${String(mag.body || "").substring(0, 12000)}`;
             method: "POST",
             headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
             body: JSON.stringify({
-                model: "claude-opus-5",
+                model: SONNET_MODEL,
                 max_tokens: 16000,
                 thinking: { type: "adaptive" },
                 system: systemPrompt,
@@ -163,7 +164,10 @@ ${String(mag.body || "").substring(0, 12000)}`;
             return NextResponse.json({ error: `재작성 실패: ${err.substring(0, 200)}` }, { status: 500 });
         }
 
-        const { title, body: draftBody } = parseDelimited(extractClaudeText(await res.json()));
+        const data = await res.json();
+        // 사고가 max_tokens 를 먹어 본문이 끊겼으면 미완성 글을 저장하지 않는다.
+        if (data.stop_reason === "max_tokens") return NextResponse.json({ error: "재작성 응답이 길이 제한에서 끊겼습니다. 다시 시도해주세요." }, { status: 502 });
+        const { title, body: draftBody } = parseDelimited(extractClaudeText(data));
         if (!title || !draftBody) {
             return NextResponse.json({ error: "재작성 결과를 읽지 못했습니다." }, { status: 500 });
         }

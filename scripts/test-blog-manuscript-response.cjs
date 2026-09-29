@@ -69,7 +69,7 @@ async function call(payload) { const res = await POST(request(payload)); return 
 
     result = await call(input);
     assert.equal(result.status, 200); assert.equal(calls, 1);
-    assert.equal(lastRequest.output_config.effort, "medium"); assert.equal(lastRequest.max_tokens, 20000);
+    assert.equal(lastRequest.output_config.effort, "high"); assert.equal(lastRequest.max_tokens, 20000);
     assert.match(lastRequest.system, /정확해야 합니다/); assert.match(lastRequest.system, /===COVER===/);
     assert.equal(result.data.coverBrief, null); assert.ok(result.data.editorialWarnings.some(w => /원고는 복구/.test(w)));
     assert.match(result.data.body, /조건을 확인합니다/); assert.ok(!result.data.body.includes("기획 중"));

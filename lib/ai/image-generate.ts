@@ -1,3 +1,6 @@
+import { extractClaudeText } from "./claude-text";
+import { SONNET_MODEL, minimalThinking } from "./models";
+
 // ─── 업로드 내용 기반 Gemini(나노바나나) 이미지 생성 ───
 // 1. Claude가 사건 요약을 분석하여 구체적 장면 프롬프트 생성
 // 2. Gemini가 해당 프롬프트로 웹툰/사진 이미지 생성
@@ -62,7 +65,8 @@ async function generateScenePromptWithClaude(
                 "anthropic-version": "2023-06-01",
             },
             body: JSON.stringify({
-                model: "claude-haiku-4-5",
+                model: SONNET_MODEL,
+                thinking: minimalThinking(SONNET_MODEL),
                 max_tokens: 500,
                 system: systemPrompt,
                 messages: [{ role: "user", content: caseDetails }],
@@ -75,7 +79,7 @@ async function generateScenePromptWithClaude(
         }
 
         const data = await res.json();
-        const scenePrompt = data.content?.[0]?.text?.trim() || "";
+        const scenePrompt = extractClaudeText(data).trim();
 
         if (!scenePrompt) return buildFallbackPrompt(caseType, hookText);
 
@@ -307,12 +311,13 @@ Output ONLY the English image prompt. No explanation, no quotes, no markdown.`;
                 "anthropic-version": "2023-06-01",
             },
             body: JSON.stringify({
-                model: "claude-haiku-4-5",
+                model: SONNET_MODEL,
+                thinking: minimalThinking(SONNET_MODEL),
                 max_tokens: 400,
                 system: systemPrompt,
                 messages: [{ role: "user", content: userMsg }],
             }),
-        }, 6000);
+        }, 15000);
 
         if (!res.ok) {
             console.error("[BlogContentImg] Claude scene gen failed:", await res.text());
@@ -320,7 +325,7 @@ Output ONLY the English image prompt. No explanation, no quotes, no markdown.`;
         }
 
         const data = await res.json();
-        const prompt = data.content?.[0]?.text?.trim() || "";
+        const prompt = extractClaudeText(data).trim();
         return prompt || fallback;
     } catch (err) {
         console.error("[BlogContentImg] Claude scene gen error/timeout:", err instanceof Error ? err.message : err);

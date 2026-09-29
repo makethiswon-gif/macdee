@@ -7,8 +7,9 @@
 // - 검색·수집은 대표가 버튼을 누를 때만 실행한다. 자동 실행 없음.
 
 import { extractClaudeText } from "@/lib/ai/claude-text";
+import { SONNET_MODEL, WRITING_EFFORT } from "@/lib/ai/models";
 
-export const FIRM_RESEARCH_MODEL = "claude-opus-5";
+export const FIRM_RESEARCH_MODEL = SONNET_MODEL;
 const AI_TIMEOUT_MS = 260_000;
 const PAGE_FETCH_TIMEOUT_MS = 12_000;
 const MAX_PAGE_BYTES = 1_500_000;
@@ -104,8 +105,8 @@ export async function researchFirmWithAI(firmName: string, hints: string[], sign
                 "anthropic-version": "2023-06-01", "anthropic-beta": "web-fetch-2025-09-10",
             },
             body: JSON.stringify({
-                model: FIRM_RESEARCH_MODEL, max_tokens: 12000,
-                thinking: { type: "adaptive" }, output_config: { effort: "medium" },
+                model: FIRM_RESEARCH_MODEL, max_tokens: 16000,
+                thinking: { type: "adaptive" }, output_config: { effort: WRITING_EFFORT },
                 system: RESEARCH_SYSTEM,
                 tools: [
                     { type: "web_search_20250305", name: "web_search", max_uses: 10 },

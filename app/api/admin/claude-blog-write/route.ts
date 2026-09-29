@@ -8,7 +8,7 @@ import { StrengthStoreError } from "@/lib/blog-strengths-store";
 import { reviewBlogEditorial } from "@/lib/blog-editorial-review";
 import { repetitionAvoidDirective } from "@/lib/blog-repetition";
 import { paidAttempt, paidId, paidJsonRequest, PaidOperationError } from "@/lib/blog-images/paid-operation";
-import { BLOG_WRITING_MODEL } from "@/lib/ai/models";
+import { BLOG_WRITING_MODEL, WRITING_EFFORT } from "@/lib/ai/models";
 import { createHash } from "node:crypto";
 import { usageFromProvider } from "@/lib/blog-usage";
 import { coverBriefInstruction, parseCoverBrief, type CoverBrief } from "@/lib/blog-cover-brief";
@@ -18,9 +18,10 @@ import type { EditorialProfile } from "@/lib/blog-images/card-types";
 import type { LayoutRecipe } from "@/lib/blog-images/layout-recipes";
 import { readManuscriptResponse } from "@/lib/blog-manuscript-response";
 
-// Sonnet 5.5(2026-09-29 전환; 모델 ID 는 lib/ai/models.ts). effort 는 Sonnet 5.5 에서 재보정돼 같은 단계의 사고량이 다르므로 전환 후 첫 원고들의 사고 토큰을 원고 비용 패널로 확인한다.
-// high used 16,067-17,000 / 20,000 tokens for thinking in production (Sonnet 5, 2026-09-25).
-// Keep the total cap and paid ID; medium leaves more room for the manuscript without silently rebilling retries.
+// Sonnet 5.5(2026-09-29 전환; 모델 ID·노력 단계는 lib/ai/models.ts). 노력 단계는 2026-09-29 대표 지시로 medium → high.
+// Sonnet 5 에서 high 는 원고 14건 중 3건이 max_tokens 20,000 에서 끊겼다(사고 1.5만~1.9만 토큰, 초당 약 85토큰). 5.5 는 단계가 재보정돼 같은 양이라고 볼 수 없으니
+// 전환 뒤 첫 원고들의 출력 토큰을 원고 비용 패널로 확인하고, 끊기면 WRITING_EFFORT 만 "medium" 으로 내린다. 유료 응답 ID(v16)는 그대로 둔다 — 저장된 응답을 다시 과금 없이 복구할 수 있다.
+// max_tokens 는 올리지 않는다: 285초 제한 안에 나오는 토큰이 약 2.4만이라 그 이상은 끊김이 아니라 시간 초과(응답 유실)가 된다.
 export const maxDuration = 300;
 
 // 본문 하단 '기준일' 표기용 (KST)
@@ -274,7 +275,7 @@ ${trustBlock}
                 model: BLOG_WRITING_MODEL,
                 max_tokens: 20000,
                 thinking: { type: "adaptive" },
-                output_config: { effort: "medium" },
+                output_config: { effort: WRITING_EFFORT },
                 system: systemPrompt,
                 messages: [{ role: "user", content: userMessage }],
             }),

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitOk, getClientIp, tooManyRequests } from "@/lib/ratelimit";
+import { extractClaudeText } from "@/lib/ai/claude-text";
+import { SONNET_MODEL, minimalThinking } from "@/lib/ai/models";
 
 export const maxDuration = 180;
 
@@ -112,9 +114,9 @@ ${goals || "온라인 맞춤 마케팅 상담 문의 증가 및 수임률 향상
                 "anthropic-version": "2023-06-01",
             },
             body: JSON.stringify({
-                model: "claude-haiku-4-5-20251001",
+                model: SONNET_MODEL,
+                thinking: minimalThinking(SONNET_MODEL),
                 max_tokens: 4096,
-                temperature: 0.7,
                 system: systemPrompt,
                 messages: [{ role: "user", content: userMessage }],
             }),
@@ -127,7 +129,7 @@ ${goals || "온라인 맞춤 마케팅 상담 문의 증가 및 수임률 향상
         }
 
         const data = await res.json();
-        const content = data.content?.[0]?.text || "";
+        const content = extractClaudeText(data);
 
         return NextResponse.json({ success: true, analysis: content });
     } catch (err) {

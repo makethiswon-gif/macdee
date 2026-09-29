@@ -6,7 +6,7 @@ const resolve = Module._resolveFilename;
 Module._resolveFilename = function (name, ...args) { return resolve.call(this, name.startsWith("@/") ? path.join(root, name.slice(2)) : name, ...args); };
 Module._extensions[".ts"] = (m, f) => m._compile(ts.transpileModule(fs.readFileSync(f, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText, f);
 
-const { SONNET_MODEL, BLOG_WRITING_MODEL, minimalThinking } = require("../lib/ai/models.ts");
+const { SONNET_MODEL, BLOG_WRITING_MODEL, WRITING_EFFORT, minimalThinking } = require("../lib/ai/models.ts");
 const { TOKEN_PRICES, estimateUsd } = require("../lib/ai/pricing.ts");
 const { supportsSamplingParams } = require("../lib/ai/claude-text.ts");
 const { usageFromProvider } = require("../lib/blog-usage.ts");
@@ -63,4 +63,57 @@ assert.match(fs.readFileSync(path.join(root, "lib/blog-images/visual-planner.ts"
 // 강제 도구 호출(tool_choice any/tool)은 Sonnet 5.5 에서 400 — 앱 코드에 없어야 한다
 const forced = files.filter((f) => /tool_choice\s*:\s*\{\s*type\s*:\s*["'](any|tool)["']/.test(fs.readFileSync(f, "utf8"))).map(rel);
 assert.deepEqual(forced, [], "강제 도구 호출 사용: " + forced.join(", "));
-console.log(`PASS: Sonnet 5.5 model/thinking pairing, pricing (2/10/0.2/2.5), sampling-param guard, actual-model usage records, no stale model literals or thinking-disabled or forced tool_choice in ${files.length} app/lib files`);
+
+// 6) 2026-09-29 대표 지시: Opus·Haiku 는 모두 Sonnet 5.5 로. 앱 코드에 Opus/Haiku 모델 ID 리터럴이 다시 생기지 않게 —
+//    단가표(옛 응답의 비용 계산)와 저장된 구성안이 기록한 기획 모델 허용 목록만 예외.
+const oldFamilyAllowed = new Set(["lib/ai/pricing.ts", "lib/blog-images/visual-planner.ts"]);
+const oldFamily = files.filter((f) => !oldFamilyAllowed.has(rel(f)) && /["'`]claude-(opus|haiku)[a-z0-9.-]*["'`]/.test(fs.readFileSync(f, "utf8"))).map(rel);
+assert.deepEqual(oldFamily, [], "Opus/Haiku 모델 ID 는 Sonnet 5.5(lib/ai/models.ts)로: " + oldFamily.join(", "));
+assert.equal(require("../lib/firm-research.ts").FIRM_RESEARCH_MODEL, SONNET_MODEL);
+
+// 7) 글쓰기 계열의 노력 단계: 원고·부분 수정·로펌 리서치는 WRITING_EFFORT(high) — medium 으로 조용히 되돌아가지 않게.
+//    끊김 위험(Sonnet 5 high 는 14건 중 3건이 20,000 토큰에서 끊김) 때문에 원고 max_tokens/시간 제한은 짝으로 고정한다.
+assert.equal(WRITING_EFFORT, "high");
+const src = (f) => fs.readFileSync(path.join(root, f), "utf8");
+for (const f of ["app/api/admin/claude-blog-write/route.ts", "app/api/admin/claude-blog-edit/route.ts", "lib/firm-research.ts"]) {
+    assert.match(src(f), /output_config\s*:\s*\{\s*effort\s*:\s*WRITING_EFFORT\s*\}/, f + " 은 WRITING_EFFORT 를 쓴다");
+    assert.doesNotMatch(src(f), /effort\s*:\s*["']medium["']/, f + " 에 medium 리터럴 금지");
+}
+const durations = (f) => ({ max: Number(/maxDuration\s*=\s*(\d+)/.exec(src(f))[1]), timeout: Number(/AbortSignal\.timeout\(([\d_]+)\)/.exec(src(f))[1].replaceAll("_", "")) });
+const write = durations("app/api/admin/claude-blog-write/route.ts"), edit = durations("app/api/admin/claude-blog-edit/route.ts");
+assert.equal(write.max, 300); assert.equal(write.timeout, 285000); assert.match(src("app/api/admin/claude-blog-write/route.ts"), /max_tokens:\s*20000/, "원고 한도는 285초 안에 나오는 토큰(약 2.4만)을 넘지 않는다");
+assert.equal(edit.max, 180); assert.equal(edit.timeout, 160000); assert.match(src("app/api/admin/claude-blog-edit/route.ts"), /max_tokens:\s*12000/);
+assert.ok(write.timeout < write.max * 1000 && edit.timeout < edit.max * 1000, "AI 호출 제한 시간은 함수 제한보다 짧아야 응답이 유실되지 않는다");
+// 이미지 구성안 기획은 올리지 않았다(스키마에 묶인 JSON·거의 안 쓰는 대체 경로) — high 유지, 한도 1만.
+assert.match(src("lib/blog-images/visual-planner.ts"), /effort\s*:\s*"high"\s*,\s*format/);
+
+// 8) 예전 Haiku 자리: 짧은 정형 출력은 사고 최소(사고가 max_tokens 를 먹지 않게), 5 세대에 없는 temperature 는 없고, text 블록만 읽는다.
+const haikuSeats = { "app/api/admin/blog-summary/route.ts": 1, "app/api/admin/seo-titles/analyze/route.ts": 1, "app/api/consulting/route.ts": 1, "lib/threads/caption.ts": 1, "lib/ai/image-generate.ts": 2 };
+for (const [f, n] of Object.entries(haikuSeats)) {
+    const text = src(f);
+    assert.equal((text.match(/thinking\s*:\s*minimalThinking\(SONNET_MODEL\)/g) || []).length, n, f);
+    assert.equal((text.match(/model\s*:\s*SONNET_MODEL/g) || []).length, n, f);
+    assert.doesNotMatch(text, /temperature\s*:/, f + ": Sonnet 5.5 는 temperature 를 받지 않는다(400)");
+    assert.doesNotMatch(text, /content\?*\.\[0\]\?*\.text/, f + ": 첫 블록이 thinking 일 수 있어 extractClaudeText 로 읽는다");
+}
+// 공용 프로바이더: 전처리·AI 검색은 사고 최소, 콘텐츠 생성은 기본(적응형) 사고 — 실제로 보내는 요청 본문으로 확인
+(async () => {
+    process.env.ANTHROPIC_API_KEY = "test-key";
+    const { getPreprocessor, getAISearchGenerator, getContentGenerator, ClaudeProvider } = require("../lib/ai/providers.ts");
+    let sent = null;
+    const realFetch = global.fetch;
+    global.fetch = async (_url, init) => { sent = JSON.parse(init.body); return new Response(JSON.stringify({ content: [{ type: "thinking", thinking: "" }, { type: "text", text: "ok" }], model: "claude-sonnet-5-5", usage: { input_tokens: 1, output_tokens: 1 } }), { status: 200 }); };
+    try {
+        const messages = [{ role: "system", content: "s" }, { role: "user", content: "u" }];
+        for (const [name, make] of [["getPreprocessor", getPreprocessor], ["getAISearchGenerator", getAISearchGenerator]]) {
+            const answer = await make().generate(messages, { temperature: 0.1, maxTokens: 300 });
+            assert.equal(sent.model, "claude-sonnet-5-5", name); assert.deepEqual(sent.thinking, { type: "between_tools" }, name);
+            assert.ok(!("temperature" in sent), name + ": temperature 는 걸러진다"); assert.equal(sent.max_tokens, 300); assert.equal(answer.content, "ok", name + ": thinking 블록 뒤의 text 를 읽는다");
+        }
+        await getContentGenerator().generate(messages, { temperature: 0.7 });
+        assert.equal(sent.model, "claude-sonnet-5-5"); assert.ok(!("thinking" in sent), "콘텐츠 생성은 기본(적응형) 사고"); assert.ok(!("temperature" in sent));
+        await new ClaudeProvider().generate(messages);
+        assert.ok(!("thinking" in sent));
+    } finally { global.fetch = realFetch; }
+    console.log(`PASS: Sonnet 5.5 model/thinking pairing, pricing (2/10/0.2/2.5), sampling-param guard, actual-model usage records, no stale model literals or thinking-disabled or forced tool_choice in ${files.length} app/lib files; no Opus/Haiku ids left, writing effort=${WRITING_EFFORT} (manuscript/edit/firm research), Haiku seats use minimal thinking without temperature`);
+})().catch((e) => { console.error(e); process.exit(1); });

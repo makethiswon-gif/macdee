@@ -19,3 +19,12 @@ const SONNET_5_5 = /^claude-sonnet-5-5\b/;
 export function minimalThinking(model: string): { type: "between_tools" } | { type: "disabled" } {
     return SONNET_5_5.test(model) ? { type: "between_tools" } : { type: "disabled" };
 }
+
+/**
+ * 글을 쓰고 고치는 호출(블로그 원고·부분 수정·로펌 리서치)의 노력 단계. 2026-09-29 대표 지시로 medium → high(Sonnet 5.5 의 기본값과 같다).
+ * Sonnet 5 에서 high 는 원고 14건 중 3건이 max_tokens 20,000 에서 끊겼다(사고 1.5만~1.9만 토큰, 초당 약 85토큰). 5.5 는 단계가 재보정돼 같은 양이라고 볼 수 없으니
+ * 전환 뒤 첫 원고들의 출력 토큰을 원고 비용 패널로 확인하고, 끊기면 이 값만 "medium" 으로 내린다.
+ * 원고 호출은 285초 제한이라 max_tokens 를 더 올릴 수 없다(그 안에 나오는 토큰은 약 2.4만 — 넘으면 끊김이 아니라 시간 초과로 응답이 사라진다).
+ * 이미지 구성안 기획(visual-planner)은 스키마에 묶인 JSON 이고 거의 안 쓰는 대체 경로라 올리지 않았다(high 유지).
+ */
+export const WRITING_EFFORT = "high" as const;

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
+import { extractClaudeText } from "@/lib/ai/claude-text";
+import { SONNET_MODEL, minimalThinking } from "@/lib/ai/models";
 
 export const maxDuration = 300;
 
@@ -92,15 +94,16 @@ async function generateNewTitle(oldTitle: string, body: string | null): Promise<
                 "anthropic-version": "2023-06-01",
             },
             body: JSON.stringify({
-                model: "claude-haiku-4-5",
-                max_tokens: 100,
+                model: SONNET_MODEL,
+                thinking: minimalThinking(SONNET_MODEL),
+                max_tokens: 200,
                 system: SEO_TITLE_SYSTEM,
                 messages: [{ role: "user", content: userMsg }],
             }),
         });
         if (!res.ok) return oldTitle;
         const data = await res.json();
-        let title = (data.content?.[0]?.text || "").trim();
+        let title = extractClaudeText(data).trim();
         // 따옴표·번호 제거
         title = title.replace(/^["'"'`]+|["'"'`]+$/g, "");
         title = title.replace(/^\d+\.\s*/, "");
@@ -179,7 +182,7 @@ export async function POST(request: Request) {
 
         const lawyerMap = new Map((lawyers || []).map(l => [l.id, { name: l.name as string, slug: l.slug as string | null }]));
 
-        // Claude Haiku로 새 제목 생성 (동시 8개씩)
+        // Claude Sonnet 5.5(사고 최소)로 새 제목 생성 (동시 8개씩)
         const analysis = await pMap(rows, async (p): Promise<AnalysisRow> => {
             const issues = detectIssues(p.title);
             const lawyer = lawyerMap.get(p.lawyer_id);

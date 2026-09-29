@@ -1,3 +1,5 @@
+import { SONNET_MODEL, minimalThinking } from "@/lib/ai/models";
+
 // 이미 작성된 매거진 글을 Threads(스레드)용 홍보 캡션(400자 이내)으로 요약 생성.
 // URL은 넣지 않음(링크는 link_attachment로 별도 첨부).
 export async function generateThreadsCaption(input: {
@@ -29,9 +31,9 @@ export async function generateThreadsCaption(input: {
                 "anthropic-version": "2023-06-01",
             },
             body: JSON.stringify({
-                model: "claude-haiku-4-5",
+                model: SONNET_MODEL,
+                thinking: minimalThinking(SONNET_MODEL),
                 max_tokens: 1024,
-                temperature: 0.8,
                 system,
                 messages: [{ role: "user", content: user }],
             }),

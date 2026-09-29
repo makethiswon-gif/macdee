@@ -1,8 +1,8 @@
 import { getPreprocessor, getContentGenerator } from "./ai/providers";
 
 // Client Portal 의 AI 3역.
-//   digestRecord    — 로펌 자료(상담기록·수임내역·판결문)를 구조화(DB화). Haiku.
-//   organizeWorklog — 대표의 거친 업무 메모를 정돈된 항목으로. Haiku.
+//   digestRecord    — 로펌 자료(상담기록·수임내역·판결문)를 구조화(DB화). Sonnet 5.5(사고 최소).
+//   organizeWorklog — 대표의 거친 업무 메모를 정돈된 항목으로. Sonnet 5.5(사고 최소).
 //   dailyAdvice     — 자료·업무일지를 근거로 오늘의 전략 조언 + 할 일. Sonnet.
 //
 // 원칙: 조언에도 §42 를 적용한다 — 보장·과장 표현 금지, 근거 없는 수치 금지.

@@ -4,8 +4,9 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { uploadMagazineCover } from "@/lib/supabase/storage";
 import { postToThreads } from "@/lib/threads/post";
 import nodemailer from "nodemailer";
+import { SONNET_MODEL } from "@/lib/ai/models";
 
-// 웹검색 + Opus 생성 + 이미지 생성까지 한 번에 처리하므로 넉넉히
+// 웹검색 + Sonnet 5.5 생성 + 이미지 생성까지 한 번에 처리하므로 넉넉히
 export const maxDuration = 300;
 
 // 크론이 자기 서버의 관리자 API를 부를 때 쓰는 토큰. 서버의 발급 형식과 같다.
@@ -145,7 +146,7 @@ export async function GET(request: Request) {
     }
 }
 
-// ─── Claude Opus 5 + 웹검색으로 기사 생성 ───
+// ─── Claude Sonnet 5.5 + 웹검색으로 기사 생성 ───
 interface Article {
     title: string;
     meta_title: string;
@@ -227,6 +228,7 @@ web_search 도구로 '오늘 기준 가장 최근의' 변호사·법무법인 �
     // 서버 도구(web_search)는 pause_turn으로 끊길 수 있어 짧게 루프
     const messages: Array<{ role: string; content: unknown }> = [{ role: "user", content: userPrompt }];
     let allText = "";
+    let stopReason = "";
 
     for (let i = 0; i < 5; i++) {
         const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -237,7 +239,7 @@ web_search 도구로 '오늘 기준 가장 최근의' 변호사·법무법인 �
                 "anthropic-version": "2023-06-01",
             },
             body: JSON.stringify({
-                model: "claude-opus-5",
+                model: SONNET_MODEL,
                 max_tokens: 16000,
                 system: systemPrompt,
                 tools: [{ type: "web_search_20260209", name: "web_search" }],
@@ -256,11 +258,18 @@ web_search 도구로 '오늘 기준 가장 최근의' 변호사·법무법인 �
             if (b.type === "text" && b.text) allText += b.text + "\n";
         }
 
+        stopReason = data.stop_reason || "";
         if (data.stop_reason === "pause_turn") {
             messages.push({ role: "assistant", content: data.content });
             continue; // 서버가 이어서 처리
         }
         break;
+    }
+
+    // 사고가 max_tokens 를 먹어 글이 끊겼으면 미완성 매거진을 발행하지 않는다.
+    if (stopReason === "max_tokens") {
+        console.error("[Daily Magazine] 응답이 max_tokens 에서 끊겼습니다 — 발행하지 않습니다.");
+        return null;
     }
 
     return parseDelimiterFormat(allText);

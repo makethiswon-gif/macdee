@@ -267,7 +267,7 @@ export default function BlogImagesPage() {
                     </div>
                     {missingContact.length > 0 && <p className="mt-3 text-xs leading-5 text-amber-200">{missingContact.join(" · ")} 등록이 필요합니다.</p>}
                 </div>}
-                <p className="text-xs leading-6 text-slate-400">기획 Claude Opus 5 · 이미지 {requiredTypes.length}장<br />기획·이미지 생성에는 API 비용이 발생합니다.</p>
+                <p className="text-xs leading-6 text-slate-400">기획 Claude Sonnet 5.5 · 이미지 {requiredTypes.length}장<br />기획·이미지 생성에는 API 비용이 발생합니다.</p>
                 <div className="space-y-2">
                     <button type="button" onClick={() => void generate()} disabled={busy || !selectedId || !content.trim()} className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-400 px-4 py-4 font-semibold text-slate-950 disabled:opacity-40">{busy ? <Loader2 size={18} className="animate-spin" /> : <WandSparkles size={18} />}{busy ? "작업 중…" : plan ? "이 구성으로 이미지 만들기" : "기획하고 이미지 만들기"}</button>
                     <button type="button" onClick={() => void previewPlan()} disabled={busy || !content.trim()} className="w-full rounded-lg border border-slate-600 px-4 py-3 text-sm disabled:opacity-40">{plan ? "구성안 다시 기획하기" : "구성안 먼저 보기"}</button>

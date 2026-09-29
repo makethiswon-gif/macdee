@@ -1,5 +1,5 @@
 import { extractClaudeText, supportsSamplingParams } from "./claude-text";
-import { SONNET_MODEL } from "./models";
+import { SONNET_MODEL, minimalThinking } from "./models";
 // ─── AI Provider Abstraction Layer ───
 // 모델 교체가 쉽도록 인터페이스로 추상화
 
@@ -157,10 +157,13 @@ export class ClaudeProvider implements AIProvider {
     name = "claude";
     private apiKey: string;
     private model: string;
+    private shortAnswer: boolean;
 
-    constructor(model: string = SONNET_MODEL) {
+    // shortAnswer: 정형 JSON·요약처럼 사고가 필요 없는 호출 — 사고를 최소로 해 max_tokens 를 사고가 먹지 않게 한다(예전 Haiku 자리).
+    constructor(model: string = SONNET_MODEL, options: { shortAnswer?: boolean } = {}) {
         this.apiKey = process.env.ANTHROPIC_API_KEY || "";
         this.model = model;
+        this.shortAnswer = options.shortAnswer === true;
     }
 
     async generate(messages: AIMessage[], options?: { temperature?: number; maxTokens?: number }): Promise<AIResponse> {
@@ -180,6 +183,7 @@ export class ClaudeProvider implements AIProvider {
                 body: JSON.stringify({
                     model: this.model,
                     max_tokens: options?.maxTokens ?? 8192,
+                    ...(this.shortAnswer ? { thinking: minimalThinking(this.model) } : {}),
                     // Claude 5 세대는 temperature/top_p/top_k 미지원 (전송 시 400)
                     ...(supportsSamplingParams(this.model)
                         ? { temperature: options?.temperature ?? 0.7 }
@@ -203,21 +207,21 @@ export class ClaudeProvider implements AIProvider {
 }
 
 // ─── Provider Factory ───
-// 전처리: Claude Haiku 4.5 — 구조화 JSON 추출·PII 마스킹은 Haiku로 충분 (Sonnet 대비 ~75% 절감)
+// 전처리: Claude Sonnet 5.5(사고 최소) — 구조화 JSON 추출·PII 마스킹. 2026-09-29 대표 지시로 Haiku 4.5 에서 Sonnet 으로 통일
 export function getPreprocessor(): AIProvider {
     if (!process.env.ANTHROPIC_API_KEY) {
         // Fallback to OpenAI if Claude key not set
         return new OpenAIProvider("gpt-5-mini");
     }
-    return new ClaudeProvider("claude-haiku-4-5-20251001");
+    return new ClaudeProvider(SONNET_MODEL, { shortAnswer: true });
 }
 
-// AI 검색 프로필 생성: Claude Haiku 4.5 — 짧은 정형화 출력, Sonnet 불필요
+// AI 검색 프로필 생성: Claude Sonnet 5.5(사고 최소) — 짧은 정형화 출력. 2026-09-29 Haiku 4.5 에서 통일
 export function getAISearchGenerator(): AIProvider {
     if (!process.env.ANTHROPIC_API_KEY) {
         return new OpenAIProvider("gpt-5-mini");
     }
-    return new ClaudeProvider("claude-haiku-4-5-20251001");
+    return new ClaudeProvider(SONNET_MODEL, { shortAnswer: true });
 }
 
 // 콘텐츠 생성: Claude Sonnet 5.5 (최고 글쓰기 품질)

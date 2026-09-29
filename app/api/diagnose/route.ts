@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { rateLimitOk, getClientIp, tooManyRequests } from "@/lib/ratelimit";
 import { scrapeUrl } from "@/lib/ai/blog-scraper";
 import nodemailer from "nodemailer";
+import { SONNET_MODEL } from "@/lib/ai/models";
 
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
@@ -124,8 +125,8 @@ ${input.blogSample || "(본문을 가져오지 못했습니다 — 웹검색으�
                 "anthropic-version": "2023-06-01",
             },
             body: JSON.stringify({
-                model: "claude-opus-5",
-                max_tokens: 8000,
+                model: SONNET_MODEL,
+                max_tokens: 12000,
                 system,
                 tools: [{ type: "web_search_20260209", name: "web_search" }],
                 messages,

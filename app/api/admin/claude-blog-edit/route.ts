@@ -7,11 +7,11 @@ import { paidAttempt, paidId, paidJsonRequest, PaidOperationError } from "@/lib/
 import { usageFromProvider } from "@/lib/blog-usage";
 import { appendUsage } from "@/lib/blog-post-state";
 import { resolveEditScope, applyEdit, type EditScope } from "@/lib/blog-edit-scope";
-import { BLOG_WRITING_MODEL } from "@/lib/ai/models";
+import { BLOG_WRITING_MODEL, WRITING_EFFORT } from "@/lib/ai/models";
 
 // 부분 수정 — 원고 전체를 다시 쓰지 않고 지정한 구간만 고친다(2026-09-22 재설계 §4).
-// 모델에는 고칠 구간 + 앞뒤 문맥 + 문체 요약만 보낸다(입력 1~2천 토큰). 사고 수준은 medium: 문장 손질에 깊은 추론은 필요 없다.
-export const maxDuration = 120;
+// 모델에는 고칠 구간 + 앞뒤 문맥 + 문체 요약만 보낸다(입력 1~2천 토큰). 노력 단계는 WRITING_EFFORT(2026-09-29 high). 구간 하나라 사고량은 작지만 사고도 max_tokens 에 들어가므로 한도에 여유를 둔다.
+export const maxDuration = 180;
 const KINDS = ["title", "intro", "section", "paragraph", "closing"];
 
 export async function POST(request: Request) {
@@ -53,9 +53,9 @@ ${styleLine ? `[문체]\n${styleLine}\n` : ""}[출력 형식] 아래 구분자 �
         const attempt = paidAttempt(body.attemptId, body.confirmPaid);
         const operationId = paidId("blog-edit-v1", { title, target: target.target, instruction, scope, attempt });
         const { data, reused, elapsedMs } = await paidJsonRequest(operationId, "부분 수정", BLOG_WRITING_MODEL, () => fetch("https://api.anthropic.com/v1/messages", {
-            method: "POST", signal: AbortSignal.timeout(100_000),
+            method: "POST", signal: AbortSignal.timeout(160_000),
             headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
-            body: JSON.stringify({ model: BLOG_WRITING_MODEL, max_tokens: 6000, thinking: { type: "adaptive" }, output_config: { effort: "medium" }, system, messages: [{ role: "user", content: user }] }),
+            body: JSON.stringify({ model: BLOG_WRITING_MODEL, max_tokens: 12000, thinking: { type: "adaptive" }, output_config: { effort: WRITING_EFFORT }, system, messages: [{ role: "user", content: user }] }),
         }));
         const usage = usageFromProvider("edit", "부분 수정", BLOG_WRITING_MODEL, data, { operationId, reused, elapsedMs });
         await appendUsage(body.postId, [usage]);
