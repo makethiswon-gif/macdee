@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
 import { extractClaudeText } from "@/lib/ai/claude-text";
+import { BLOG_WRITING_MODEL, minimalThinking } from "@/lib/ai/models";
 
 export const maxDuration = 60;
 const responseHeaders = { "Cache-Control": "private, no-store" };
@@ -226,10 +227,11 @@ JSON만 반환하세요.`;
                 headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
                 signal: AbortSignal.timeout(45_000),
                 body: JSON.stringify({
-                    model: "claude-sonnet-5",
+                    model: BLOG_WRITING_MODEL,
                     max_tokens: 4000,
                     // 정형 JSON 출력이라 thinking이 필요 없다. 켜두면 max_tokens를 먹고 JSON이 잘린다.
-                    thinking: { type: "disabled" },
+                    // Sonnet 5.5 에서는 {type:"disabled"} 가 400 이라 모델에 맞는 최소 사고 값을 쓴다(lib/ai/models.ts).
+                    thinking: minimalThinking(BLOG_WRITING_MODEL),
                     system,
                     messages: [{ role: "user", content: user }],
                 }),

@@ -6,6 +6,7 @@ export const PRICING_UPDATED = "2026-09-22";
 export interface TokenPrice { input: number; output: number; cacheRead: number; cacheWrite: number }
 export const TOKEN_PRICES: Record<string, TokenPrice> = {
     "claude-opus-5": { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 },
+    "claude-sonnet-5-5": { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 2.5 }, // 2026-09-29 공식 가격표 확인(Sonnet 5 와 동일)
     "claude-sonnet-5": { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 2.5 },
     "claude-haiku-4-5": { input: 1, output: 5, cacheRead: 0.1, cacheWrite: 1.25 },
 };

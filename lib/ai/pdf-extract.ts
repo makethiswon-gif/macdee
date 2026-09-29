@@ -1,4 +1,5 @@
 import { extractClaudeText } from "./claude-text";
+import { SONNET_MODEL } from "./models";
 /**
  * PDF 텍스트 추출 유틸리티
  * 1단계: pdf-parse로 텍스트 추출 (텍스트 기반 PDF)
@@ -60,7 +61,7 @@ export async function extractTextFromImage(buffer: Buffer, mimeType: string): Pr
             "anthropic-version": "2023-06-01",
         },
         body: JSON.stringify({
-            model: "claude-sonnet-5",
+            model: SONNET_MODEL,
             max_tokens: 16384,
             system: OCR_SYSTEM_PROMPT,
             messages: [
@@ -139,7 +140,7 @@ async function ocrViaClaudeDocument(apiKey: string, base64: string): Promise<str
             "anthropic-version": "2023-06-01",
         },
         body: JSON.stringify({
-            model: "claude-sonnet-5",
+            model: SONNET_MODEL,
             max_tokens: 16384,
             system: OCR_SYSTEM_PROMPT,
             messages: [
@@ -183,7 +184,7 @@ async function ocrViaClaudeBase64Image(apiKey: string, base64: string): Promise<
             "anthropic-version": "2023-06-01",
         },
         body: JSON.stringify({
-            model: "claude-sonnet-5",
+            model: SONNET_MODEL,
             max_tokens: 16384,
             system: OCR_SYSTEM_PROMPT,
             messages: [

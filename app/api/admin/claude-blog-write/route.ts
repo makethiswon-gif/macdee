@@ -8,6 +8,7 @@ import { StrengthStoreError } from "@/lib/blog-strengths-store";
 import { reviewBlogEditorial } from "@/lib/blog-editorial-review";
 import { repetitionAvoidDirective } from "@/lib/blog-repetition";
 import { paidAttempt, paidId, paidJsonRequest, PaidOperationError } from "@/lib/blog-images/paid-operation";
+import { BLOG_WRITING_MODEL } from "@/lib/ai/models";
 import { createHash } from "node:crypto";
 import { usageFromProvider } from "@/lib/blog-usage";
 import { coverBriefInstruction, parseCoverBrief, type CoverBrief } from "@/lib/blog-cover-brief";
@@ -17,10 +18,10 @@ import type { EditorialProfile } from "@/lib/blog-images/card-types";
 import type { LayoutRecipe } from "@/lib/blog-images/layout-recipes";
 import { readManuscriptResponse } from "@/lib/blog-manuscript-response";
 
-// high used 16,067-17,000 / 20,000 tokens for thinking in production.
+// Sonnet 5.5(2026-09-29 전환; 모델 ID 는 lib/ai/models.ts). effort 는 Sonnet 5.5 에서 재보정돼 같은 단계의 사고량이 다르므로 전환 후 첫 원고들의 사고 토큰을 원고 비용 패널로 확인한다.
+// high used 16,067-17,000 / 20,000 tokens for thinking in production (Sonnet 5, 2026-09-25).
 // Keep the total cap and paid ID; medium leaves more room for the manuscript without silently rebilling retries.
 export const maxDuration = 300;
-export const BLOG_WRITING_MODEL = "claude-sonnet-5";
 
 // 본문 하단 '기준일' 표기용 (KST)
 function getKstDateLabel(): string {
@@ -281,6 +282,9 @@ ${trustBlock}
         const usage = usageFromProvider("manuscript", "블로그 원고", BLOG_WRITING_MODEL, data, { operationId, reused, elapsedMs });
         responseUsage = usage;
         const parsed = readManuscriptResponse(data);
+        // Sonnet 5.5 는 안전 분류(거절) 범주가 Sonnet 5 보다 늘었다. 성범죄·스토킹·가정폭력처럼 민감한 법률 주제는 드물게 걸릴 수 있으니,
+        // 미완성 원고로 뭉뚱그리지 않고 원인을 알려 준다. 응답은 유료 응답 저장소에 보존되며 자동으로 다시 쓰지 않는다.
+        if (parsed.refusal) throw new PaidOperationError(`모델의 안전 장치가 이 원고 작성을 거절했습니다${parsed.refusal.category ? ` (범주: ${parsed.refusal.category})` : ""}. 응답은 보존했고 자동으로 다시 쓰지 않았습니다. 사건 묘사나 표현을 바꿔 '새 원고 생성 (유료)'으로 다시 시도해주세요. 거절된 요청의 과금 여부는 범주에 따라 달라 청구 내역에서 확인할 수 있습니다.`, operationId, "refused", 422);
         console.info("[BlogManuscriptResponse]", { operationId, stopReason: data.stop_reason, complete: parsed.complete, recoveredBody: parsed.complete && parsed.truncated, textCharacters: parsed.raw.length });
         if (!parsed.complete) throw new PaidOperationError(parsed.truncated
             ? "원고 본문이 응답 토큰 한도에서 끊겼습니다. 미완성 원고는 저장하지 않았고 응답은 보존했습니다. 복구는 추가 과금 없이 확인만 하며, 다시 작성하려면 '새 원고 생성 (유료)'을 선택해주세요."

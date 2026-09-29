@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { createServiceClient } from "@/lib/supabase/server";
 import { extractClaudeText } from "@/lib/ai/claude-text";
+import { SONNET_MODEL } from "@/lib/ai/models";
 import {
     EMPTY_SOURCE_COUNTS, getKstMonthRange, insufficientStrategyReport, parseStrategyReport,
     redactStrategyText, StrategyEvidenceAccumulator,
@@ -148,7 +149,7 @@ export const STRATEGY_SYSTEM_PROMPT = `당신은 MAKETHIS1 대표 전용 월간 
 export async function generateStrategyWithAI(pack: StrategyEvidencePack, month: string, parentSignal: AbortSignal): Promise<{ report: StrategyReport; model: string }> {
     const key = process.env.ANTHROPIC_API_KEY;
     if (!key) throw new StrategyServiceError("월간 전략 생성용 AI 키가 설정되지 않았습니다.", 503);
-    const model = process.env.PORTAL_STRATEGY_MODEL || "claude-sonnet-5";
+    const model = process.env.PORTAL_STRATEGY_MODEL || SONNET_MODEL;
     const deadline = signalWithDeadline(parentSignal, AI_TIMEOUT_MS);
     try {
         const response = await fetch("https://api.anthropic.com/v1/messages", {

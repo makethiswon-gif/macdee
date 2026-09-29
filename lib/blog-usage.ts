@@ -32,6 +32,10 @@ const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0
 export function usageFromProvider(kind: UsageKind, stage: string, model: string, data: unknown,
     meta: { operationId?: string; reused: boolean; elapsedMs?: number; status?: number; note?: string }): UsageEntry {
     const u = (data && typeof data === "object" ? (data as { usage?: Record<string, unknown> }).usage : undefined) || {};
+    // 요청한 모델이 아니라 응답이 알려 주는 실제 모델을 쓴다: 모델을 바꾼 뒤 저장된 옛 응답을 재사용해도 기록이 맞다.
+    // (OpenAI 이미지 응답에는 model 필드가 없어 전달받은 값을 그대로 쓴다.)
+    const answered = data && typeof data === "object" ? (data as { model?: unknown }).model : undefined;
+    if (typeof answered === "string" && /^claude-/.test(answered)) model = answered;
     const outDetails = (u.output_tokens_details as Record<string, unknown> | undefined) || {};
     const entry: UsageEntry = {
         at: new Date().toISOString(), kind, stage, model, operationId: meta.operationId, reused: meta.reused, status: meta.status,

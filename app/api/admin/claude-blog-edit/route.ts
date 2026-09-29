@@ -7,7 +7,7 @@ import { paidAttempt, paidId, paidJsonRequest, PaidOperationError } from "@/lib/
 import { usageFromProvider } from "@/lib/blog-usage";
 import { appendUsage } from "@/lib/blog-post-state";
 import { resolveEditScope, applyEdit, type EditScope } from "@/lib/blog-edit-scope";
-import { BLOG_WRITING_MODEL } from "@/app/api/admin/claude-blog-write/route";
+import { BLOG_WRITING_MODEL } from "@/lib/ai/models";
 
 // 부분 수정 — 원고 전체를 다시 쓰지 않고 지정한 구간만 고친다(2026-09-22 재설계 §4).
 // 모델에는 고칠 구간 + 앞뒤 문맥 + 문체 요약만 보낸다(입력 1~2천 토큰). 사고 수준은 medium: 문장 손질에 깊은 추론은 필요 없다.

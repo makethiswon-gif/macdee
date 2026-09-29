@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
+import { BLOG_WRITING_MODEL, minimalThinking } from "@/lib/ai/models";
 
 export const maxDuration = 120;
 
@@ -220,9 +221,10 @@ ${newsBrief}
         const res = await fetch("https://api.anthropic.com/v1/messages", {
             method: "POST",
             headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
-            // sonnet-5는 adaptive thinking이 기본 ON이라 thinking이 max_tokens를 먹고 JSON이 잘린다.
+            // Sonnet 은 adaptive thinking이 기본 ON이라 thinking이 max_tokens를 먹고 JSON이 잘린다.
             // 정형 JSON 출력이라 thinking 불필요 — 끄면 응답이 절반 시간에 끝난다.
-            body: JSON.stringify({ model: "claude-sonnet-5", max_tokens: 3000, thinking: { type: "disabled" }, system, messages: [{ role: "user", content: user }] }),
+            // Sonnet 5.5 에서는 {type:"disabled"} 가 400 이라 모델에 맞는 최소 사고 값을 쓴다(lib/ai/models.ts).
+            body: JSON.stringify({ model: BLOG_WRITING_MODEL, max_tokens: 3000, thinking: minimalThinking(BLOG_WRITING_MODEL), system, messages: [{ role: "user", content: user }] }),
         });
         if (!res.ok) throw new Error(await res.text());
         const data = await res.json();

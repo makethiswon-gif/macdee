@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { ClaudeProvider } from "@/lib/ai/providers";
+import { SONNET_MODEL } from "@/lib/ai/models";
 import type { AIMessage } from "@/lib/ai/providers";
 import { verifyAdminToken } from "@/lib/admin-auth";
 
@@ -52,7 +53,7 @@ export async function POST(req: Request) {
             );
         }
 
-        const provider = new ClaudeProvider("claude-sonnet-5");
+        const provider = new ClaudeProvider(SONNET_MODEL);
 
         const messages: AIMessage[] = [
             { role: "system", content: BLOG_POLISH_SYSTEM },

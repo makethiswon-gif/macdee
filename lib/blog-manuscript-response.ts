@@ -1,6 +1,6 @@
 import { COVER_MARKER } from "./blog-cover-brief";
 
-type Message = { stop_reason?: string | null; content?: Array<{ type: string; text?: string }> };
+type Message = { stop_reason?: string | null; stop_details?: { category?: string | null } | null; content?: Array<{ type: string; text?: string }> };
 
 /** A closed BODY can survive a truncated FACTS/COVER tail; an open BODY cannot. */
 export function readManuscriptResponse(data: Message) {
@@ -32,5 +32,7 @@ export function readManuscriptResponse(data: Message) {
             ? "원고 본문과 사실 확인 목록은 완성됐지만 표지 기획이 응답 한도에서 끊겼습니다. 원고는 복구했으며 추가 AI 호출은 하지 않았습니다. 이미지 확정 시 별도 기획 비용이 발생합니다."
             : "원고 본문은 완성됐지만 사실 확인 목록과 표지 기획이 응답 한도에서 끊겼습니다. 본문만 복구했으며 법률 근거를 직접 검수해주세요. 추가 AI 호출은 하지 않았습니다. 이미지 확정 시 별도 기획 비용이 발생할 수 있습니다."
         : "";
-    return { raw, title, body, facts, complete, truncated, warning };
+    // 안전 분류가 거절한 응답. 본문이 일부 나왔더라도 완성 원고로 취급하지 않는다.
+    const refusal = data.stop_reason === "refusal" ? { category: typeof data.stop_details?.category === "string" ? data.stop_details.category.slice(0, 40) : "" } : null;
+    return { raw, title, body, facts, complete, truncated, warning, refusal };
 }

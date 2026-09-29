@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { extractClaudeText } from "@/lib/ai/claude-text";
+import { BLOG_WRITING_MODEL } from "@/lib/ai/models";
 import { BLOG_CARD_TYPES, PROFILE_CARD_TYPES, PROFILE_SET_FORMAT, EDITORIAL_SET_FORMAT, type EditorialProfile, type BlogCardType } from "./card-types";
 import { parseInfographicResult } from "./infographic";
 import { articleParagraphs, type ArtDirection, type ArticleVisualPlan, type PlannedCard, type SourceEvidence, type VisualBrief } from "./visual-plan-types";
@@ -14,7 +15,7 @@ import { usageFromProvider, type UsageEntry } from "@/lib/blog-usage";
 import type { ProofSelection } from "./visual-plan-types";
 
 // 2026-09-22 대표 지시: 표지 한 장 구성안(JSON)은 Sonnet 5 로 충분하다. 운영 로그상 Opus 는 편당 입력 1.1만·출력 3천 토큰을 썼다.
-export const PLANNING_MODEL = "claude-sonnet-5";
+export const PLANNING_MODEL = BLOG_WRITING_MODEL;
 export const PLAN_VERSION = "visual-plan-v11";
 export class PlanValidationError extends Error { constructor(message: string) { super(message); this.name = "PlanValidationError"; } }
 const object = (value: unknown): Record<string, unknown> => {
@@ -171,7 +172,7 @@ export function validateVisualPlan(value: unknown, title: string, content: strin
             publicationEdition: string(raw.publicationEdition, "변호사 전용 지면", 100) } : {}),
         ...(studioSet ? { setFormat: STUDIO_FORMAT, studioPhotos, publicationEdition: string(raw.publicationEdition, "변호사 전용 지면", 100) } : {}),
         ...(direction ? { direction } : {}), ...(raw.planningRevision === 12 ? { planningRevision: 12 } : {}), ...(!checkHash ? { planningModel: PLANNING_MODEL }
-            : typeof raw.planningModel === "string" && ["claude-opus-5", "claude-fable-5-1", "claude-sonnet-5"].includes(raw.planningModel) ? { planningModel: raw.planningModel } : {}) };
+            : typeof raw.planningModel === "string" && ["claude-opus-5", "claude-fable-5-1", "claude-sonnet-5", "claude-sonnet-5-5"].includes(raw.planningModel) ? { planningModel: raw.planningModel } : {}) };
 }
 
 /** One paid cover brief. The profile and contact cards are deterministic assets. */

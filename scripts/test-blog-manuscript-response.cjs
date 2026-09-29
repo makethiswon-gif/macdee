@@ -52,6 +52,11 @@ async function call(payload) { const res = await POST(request(payload)); return 
     assert.equal(result.complete, true); assert.deepEqual(result.facts, []); assert.match(result.warning, /직접 검수/);
     assert.equal(readManuscriptResponse(message(text.replaceAll("\n", "\r\n"), "max_tokens")).complete, true);
     for (const stop of ["refusal", "pause_turn", "tool_use", undefined]) assert.equal(readManuscriptResponse({ ...message(), stop_reason: stop }).complete, false);
+    // 2026-09-29 Sonnet 5.5: 안전 분류의 거절은 미완성 원고와 구분한다(범주 전달, 본문이 일부 있어도 완성으로 보지 않음)
+    result = readManuscriptResponse({ ...message(), stop_reason: "refusal", stop_details: { category: "general_harms" } });
+    assert.equal(result.complete, false); assert.deepEqual(result.refusal, { category: "general_harms" });
+    assert.deepEqual(readManuscriptResponse({ ...message(), stop_reason: "refusal" }).refusal, { category: "" });
+    assert.equal(readManuscriptResponse(message()).refusal, null); assert.equal(readManuscriptResponse(message(text, "max_tokens")).refusal, null);
     for (const raw of ["", "제목만", "===TITLE===\n제목\n===BODY===\n===FACTS===", "===BODY===\n본문\n===TITLE===\n제목\n===FACTS===", bodyCut + "인용한 ===FACTS=== 문자열"]) {
         assert.equal(readManuscriptResponse(message(raw, "max_tokens")).complete, false);
     }
@@ -82,6 +87,15 @@ async function call(payload) { const res = await POST(request(payload)); return 
     assert.equal((await call({ ...second, attemptId: "new-attempt" })).status, 400); assert.equal(calls, 2);
     provider = message();
     assert.equal((await call({ ...second, attemptId: "new-attempt", confirmPaid: true })).status, 200); assert.equal(calls, 3);
+
+    // 거절(refusal): 전용 안내·코드, 응답 보존, 자동 재호출 없음, 복구 확인은 추가 호출 없이 같은 결과
+    const refused = { ...input, content: "Sensitive fixture topic" }; provider = { stop_reason: "refusal", stop_details: { category: "general_harms" }, content: [{ type: "text", text: "" }], usage: { input_tokens: 10000, output_tokens: 12 } };
+    const callsBeforeRefusal = calls;
+    const refusalResult = await call(refused);
+    assert.equal(refusalResult.status, 422); assert.equal(refusalResult.data.code, "refused"); assert.match(refusalResult.data.error, /안전 장치.*거절/); assert.match(refusalResult.data.error, /general_harms/);
+    assert.equal(refusalResult.data.body, undefined); assert.equal(calls, callsBeforeRefusal + 1);
+    const refusalRecovery = await call({ ...refused, recoverOnly: true }); assert.equal(refusalRecovery.status, 422); assert.equal(refusalRecovery.data.code, "refused"); assert.equal(calls, callsBeforeRefusal + 1, "Refusal recovery never dispatches again");
+    provider = message();
 
     const { publishJson, PublishRequestError } = require("../lib/blog-publish-workflow.ts");
     const failure = { error: "Incomplete", code: "incomplete_response", operationId: id, usage: result.data.usage };

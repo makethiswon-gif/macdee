@@ -1,4 +1,5 @@
 import { extractClaudeText, supportsSamplingParams } from "./claude-text";
+import { SONNET_MODEL } from "./models";
 // ─── AI Provider Abstraction Layer ───
 // 모델 교체가 쉽도록 인터페이스로 추상화
 
@@ -151,13 +152,13 @@ export class OpenAIProvider implements AIProvider {
     }
 }
 
-// ─── Claude Provider (Claude Sonnet 5 for content generation) ───
+// ─── Claude Provider (Claude Sonnet 5.5 for content generation) ───
 export class ClaudeProvider implements AIProvider {
     name = "claude";
     private apiKey: string;
     private model: string;
 
-    constructor(model = "claude-sonnet-5") {
+    constructor(model: string = SONNET_MODEL) {
         this.apiKey = process.env.ANTHROPIC_API_KEY || "";
         this.model = model;
     }
@@ -219,11 +220,11 @@ export function getAISearchGenerator(): AIProvider {
     return new ClaudeProvider("claude-haiku-4-5-20251001");
 }
 
-// 콘텐츠 생성: Claude Sonnet 5 (최고 글쓰기 품질)
+// 콘텐츠 생성: Claude Sonnet 5.5 (최고 글쓰기 품질)
 export function getContentGenerator(): AIProvider {
     if (!process.env.ANTHROPIC_API_KEY) {
         console.error("[AI] ANTHROPIC_API_KEY not set! Claude is required for content generation.");
         throw new Error("ANTHROPIC_API_KEY is required for content generation. Claude produces the best quality content.");
     }
-    return new ClaudeProvider("claude-sonnet-5");
+    return new ClaudeProvider(SONNET_MODEL);
 }
