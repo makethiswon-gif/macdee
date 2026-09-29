@@ -16,6 +16,8 @@ import { paidAttempt, paidId, PaidOperationError } from "@/lib/blog-images/paid-
 import { loadStudioLibrary } from "@/lib/lawyer-studio/store";
 import { selectStudioPhotos, checkStudioBlogReady, editorialStudioPhoto } from "@/lib/lawyer-studio/blog";
 import { STUDIO_FORMAT, StudioError } from "@/lib/lawyer-studio/types";
+import { parseClaudeEngine } from "@/lib/ai/claude-engine";
+import { assertSubscriptionReady, SubscriptionUnavailableError } from "@/lib/ai/subscription-relay";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -80,10 +82,13 @@ export async function POST(request: Request) {
         // 새 유료 기획을 명시적으로 요청했거나(forceReplan) 저장 응답 복구(recoverOnly)면 예전 경로.
         const usageSink: UsageEntry[] = [];
         const brief = body.forceReplan === true || body.recoverOnly === true ? null : coverBriefFromWire(body.coverBrief);
+        // 2026-09-29: 모델 기획이 필요할 때만 실행 방식(API/클로드 구독)이 의미가 있다. 브리프 조립은 AI 호출이 없다.
+        const engine = parseClaudeEngine(body.engine);
+        if (!brief && engine === "subscription" && body.recoverOnly !== true) await assertSubscriptionReady();
         // Keep the original paid-operation ID: a saved provider response is not billed again.
         const plan = brief
             ? planEditorialThreeFromBrief(body.title || "", body.content, context.profile, proof, brief, recent)
-            : await planEditorialThree(body.title || "", body.content, context.profile, proof, oldCacheId, recent, body.recoverOnly === true, usageSink);
+            : await planEditorialThree(body.title || "", body.content, context.profile, proof, oldCacheId, recent, body.recoverOnly === true, usageSink, engine);
         if (context) { plan.strengthToken = context.token; plan.strengthSelection = context.selection; }
         if (context) try { await recordVisualPlan(context.profile.id, plan); }
         catch { notes.push("이번 기획의 구성 이력을 저장하지 못했습니다."); }
@@ -95,6 +100,6 @@ export async function POST(request: Request) {
     }
     catch (e) {
         console.error("[VisualPlan] failed", e instanceof Error ? e.name : "UnknownError");
-        return NextResponse.json({ error: e instanceof Error ? e.message : "이미지 기획에 실패했습니다.", ...(e instanceof PaidOperationError ? { operationId: e.operationId, code: e.code } : {}) }, { status: e instanceof StudioError || e instanceof StrengthStoreError || e instanceof ImageProductionError ? e.status : e instanceof PlanValidationError ? 422 : 502 });
+        return NextResponse.json({ error: e instanceof Error ? e.message : "이미지 기획에 실패했습니다.", ...(e instanceof PaidOperationError ? { operationId: e.operationId, code: e.code } : e instanceof SubscriptionUnavailableError ? { code: "subscription_offline" } : {}) }, { status: e instanceof StudioError || e instanceof StrengthStoreError || e instanceof ImageProductionError || e instanceof SubscriptionUnavailableError ? e.status : e instanceof PlanValidationError ? 422 : 502 });
     }
 }

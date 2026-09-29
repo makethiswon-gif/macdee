@@ -3,8 +3,11 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
 import { extractClaudeText } from "@/lib/ai/claude-text";
 import { BLOG_WRITING_MODEL, minimalThinking } from "@/lib/ai/models";
+import { claudeDispatch, parseClaudeEngine } from "@/lib/ai/claude-engine";
+import { assertSubscriptionReady, SubscriptionUnavailableError } from "@/lib/ai/subscription-relay";
 
-export const maxDuration = 60;
+// 구독 경로(대표 PC 작업기)는 Claude Code 기동 시간이 더해져 API(45초)보다 오래 기다린다.
+export const maxDuration = 120;
 const responseHeaders = { "Cache-Control": "private, no-store" };
 
 // 블로그 하나에 맞는 주제 후보를 여러 개 뽑는다. 관리자가 그중 하나를 골라 원고를 만든다.
@@ -145,8 +148,11 @@ export async function POST(request: Request) {
     }
 
     try {
-        const { profileId, count } = await request.json();
+        const { profileId, count, engine: engineInput } = await request.json();
         if (!profileId) return NextResponse.json({ error: "변호사를 선택해주세요." }, { status: 400 });
+        const engine = parseClaudeEngine(engineInput);
+        // 구독을 골랐는데 작업기가 꺼져 있으면 기본 후보로 조용히 대신하지 않고 알린다.
+        if (engine === "subscription") await assertSubscriptionReady();
 
         const supabase = await createAdminClient();
 
@@ -219,24 +225,23 @@ JSON만 반환하세요.`;
 
         let topics: TopicCandidate[] = [];
         let aiUnavailable = false;
+        let unavailableReason = "";
         try {
-            const apiKey = process.env.ANTHROPIC_API_KEY;
-            if (!apiKey) throw new Error("ANTHROPIC_API_KEY is unavailable");
-            const res = await fetch("https://api.anthropic.com/v1/messages", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
-                signal: AbortSignal.timeout(45_000),
-                body: JSON.stringify({
-                    model: BLOG_WRITING_MODEL,
-                    max_tokens: 4000,
-                    // 정형 JSON 출력이라 thinking이 필요 없다. 켜두면 max_tokens를 먹고 JSON이 잘린다.
-                    // Sonnet 5.5 에서는 {type:"disabled"} 가 400 이라 모델에 맞는 최소 사고 값을 쓴다(lib/ai/models.ts).
-                    thinking: minimalThinking(BLOG_WRITING_MODEL),
-                    system,
-                    messages: [{ role: "user", content: user }],
-                }),
-            });
-            if (!res.ok) throw new Error(`Claude ${res.status}: ${(await res.text()).slice(0, 200)}`);
+            if (engine === "api" && !process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is unavailable");
+            const res = await claudeDispatch(engine, {
+                model: BLOG_WRITING_MODEL,
+                max_tokens: 4000,
+                // 정형 JSON 출력이라 thinking이 필요 없다. 켜두면 max_tokens를 먹고 JSON이 잘린다.
+                // Sonnet 5.5 에서는 {type:"disabled"} 가 400 이라 모델에 맞는 최소 사고 값을 쓴다(lib/ai/models.ts).
+                thinking: minimalThinking(BLOG_WRITING_MODEL),
+                system,
+                messages: [{ role: "user", content: user }],
+            }, { stage: "주제 추천", timeoutMs: engine === "subscription" ? 100_000 : 45_000 })();
+            if (!res.ok) {
+                const detail = await res.text();
+                if (engine === "subscription") { try { unavailableReason = (JSON.parse(detail) as { error?: { message?: string } }).error?.message || ""; } catch { /* 원문은 로그에만 */ } }
+                throw new Error(`Claude ${res.status}: ${detail.slice(0, 200)}`);
+            }
             const raw = extractClaudeText(await res.json())
                 .replace(/^\s*```(?:json)?/i, "")
                 .replace(/```\s*$/, "")
@@ -258,7 +263,9 @@ JSON만 반환하세요.`;
         const backfilled = unique.length < wantCount;
         if (backfilled) unique.push(...fallbackCandidates(fields, written, unique.map((topic) => topic.topic), wantCount - unique.length));
         const notice = aiUnavailable
-            ? "AI 추천 응답이 지연되어 담당 분야 기준 주제로 대신 제안했습니다. 다시 추천받으면 새 후보를 요청합니다."
+            ? engine === "subscription"
+                ? `클로드 구독 추천을 받지 못해 담당 분야 기준 주제로 대신 제안했습니다${unavailableReason ? ` (${unavailableReason})` : ""}. 다시 추천받으면 새 후보를 요청합니다.`
+                : "AI 추천 응답이 지연되어 담당 분야 기준 주제로 대신 제안했습니다. 다시 추천받으면 새 후보를 요청합니다."
             : backfilled
                 ? "일부 후보는 담당 분야와 최근 원고를 기준으로 보완했습니다."
                 : "";
@@ -270,6 +277,7 @@ JSON만 반환하세요.`;
             notice,
         }, { headers: responseHeaders });
     } catch (err: unknown) {
+        if (err instanceof SubscriptionUnavailableError) return NextResponse.json({ error: err.message, code: "subscription_offline" }, { status: err.status });
         return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });
     }
 }

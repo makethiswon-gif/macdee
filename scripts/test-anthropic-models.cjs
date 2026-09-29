@@ -79,7 +79,8 @@ for (const f of ["app/api/admin/claude-blog-write/route.ts", "app/api/admin/clau
     assert.match(src(f), /output_config\s*:\s*\{\s*effort\s*:\s*WRITING_EFFORT\s*\}/, f + " 은 WRITING_EFFORT 를 쓴다");
     assert.doesNotMatch(src(f), /effort\s*:\s*["']medium["']/, f + " 에 medium 리터럴 금지");
 }
-const durations = (f) => ({ max: Number(/maxDuration\s*=\s*(\d+)/.exec(src(f))[1]), timeout: Number(/AbortSignal\.timeout\(([\d_]+)\)/.exec(src(f))[1].replaceAll("_", "")) });
+// 제한 시간은 직접 fetch 의 AbortSignal.timeout(...) 이거나, 실행 방식 선택(claudeDispatch) 뒤로는 timeoutMs: ... 로 넘긴다
+const durations = (f) => ({ max: Number(/maxDuration\s*=\s*(\d+)/.exec(src(f))[1]), timeout: Number(/(?:AbortSignal\.timeout\(|timeoutMs\s*:\s*)([\d_]+)/.exec(src(f))[1].replaceAll("_", "")) });
 const write = durations("app/api/admin/claude-blog-write/route.ts"), edit = durations("app/api/admin/claude-blog-edit/route.ts");
 assert.equal(write.max, 300); assert.equal(write.timeout, 285000); assert.match(src("app/api/admin/claude-blog-write/route.ts"), /max_tokens:\s*20000/, "원고 한도는 285초 안에 나오는 토큰(약 2.4만)을 넘지 않는다");
 assert.equal(edit.max, 180); assert.equal(edit.timeout, 160000); assert.match(src("app/api/admin/claude-blog-edit/route.ts"), /max_tokens:\s*12000/);

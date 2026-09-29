@@ -17,6 +17,8 @@ import { ImageProductionError, recentVisualHistory } from "@/lib/blog-images/pro
 import type { EditorialProfile } from "@/lib/blog-images/card-types";
 import type { LayoutRecipe } from "@/lib/blog-images/layout-recipes";
 import { readManuscriptResponse } from "@/lib/blog-manuscript-response";
+import { claudeDispatch, engineOperationId, missingApiKey, parseClaudeEngine } from "@/lib/ai/claude-engine";
+import { assertSubscriptionReady, SubscriptionUnavailableError } from "@/lib/ai/subscription-relay";
 
 // Sonnet 5.5(2026-09-29 전환; 모델 ID·노력 단계는 lib/ai/models.ts). 노력 단계는 2026-09-29 대표 지시로 medium → high.
 // Sonnet 5 에서 high 는 원고 14건 중 3건이 max_tokens 20,000 에서 끊겼다(사고 1.5만~1.9만 토큰, 초당 약 85토큰). 5.5 는 단계가 재보정돼 같은 양이라고 볼 수 없으니
@@ -35,7 +37,9 @@ export async function POST(request: Request) {
     if (!verifyAdmin(request)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     let responseUsage: ReturnType<typeof usageFromProvider> | undefined;
     try {
-        const { content: contentInput, source, field, profileId, topic, attemptId, confirmPaid, recoverOnly } = await request.json();
+        const { content: contentInput, source, field, profileId, topic, attemptId, confirmPaid, recoverOnly, engine: engineInput } = await request.json();
+        // 2026-09-29: engine=subscription 이면 API 대신 대표 PC 의 클로드 구독 작업기로 보낸다(lib/ai/subscription-relay.ts).
+        const engine = parseClaudeEngine(engineInput);
         if (recoverOnly != null && typeof recoverOnly !== "boolean") return NextResponse.json({ error: "복구 요청 형식을 확인해주세요." }, { status: 400 });
         // 2026-09-22: '주제 직접 입력'을 '글·메모 붙여넣기(재창작)'로 바꿨다. 붙여넣은 글이 200자 이상이면 그 글을 자료로 새 원고를 쓰고,
         // 짧으면 예전처럼 주제로 취급한다. content 는 추천 주제 경로의 주제·관점·사건 메모다.
@@ -49,8 +53,7 @@ export async function POST(request: Request) {
         if ((field != null && (typeof field !== "string" || field.length > 200)) || (topic != null && (typeof topic !== "string" || topic.length > 1000))) {
             return NextResponse.json({ error: "분야와 주제의 형식 또는 길이를 확인해주세요." }, { status: 400 });
         }
-        const apiKey = process.env.ANTHROPIC_API_KEY;
-        if (!apiKey) {
+        if (missingApiKey(engine)) {
             return NextResponse.json({ error: "ANTHROPIC_API_KEY가 설정되지 않았습니다." }, { status: 500 });
         }
 
@@ -262,25 +265,18 @@ ${trustBlock}
             : fieldLine ? `${fieldLine}[작성할 내용]\n${content}` : content;
 
         const attempt = paidAttempt(attemptId, confirmPaid);
-        const operationId = paidId("blog-manuscript-v16", { content, source: rewrite ? sourceText : "", field, profileId, topic, attempt, cover: !!coverLayout });
-        const { data, reused, elapsedMs } = await paidJsonRequest(operationId, "블로그 원고", BLOG_WRITING_MODEL, () => fetch("https://api.anthropic.com/v1/messages", {
-            method: "POST",
-            signal: AbortSignal.timeout(285_000),
-            headers: {
-                "Content-Type": "application/json",
-                "x-api-key": apiKey,
-                "anthropic-version": "2023-06-01",
-            },
-            body: JSON.stringify({
-                model: BLOG_WRITING_MODEL,
-                max_tokens: 20000,
-                thinking: { type: "adaptive" },
-                output_config: { effort: WRITING_EFFORT },
-                system: systemPrompt,
-                messages: [{ role: "user", content: userMessage }],
-            }),
-        }), undefined, { recoverOnly: recoverOnly === true });
-        const usage = usageFromProvider("manuscript", "블로그 원고", BLOG_WRITING_MODEL, data, { operationId, reused, elapsedMs });
+        const operationId = engineOperationId(paidId("blog-manuscript-v16", { content, source: rewrite ? sourceText : "", field, profileId, topic, attempt, cover: !!coverLayout }), engine);
+        // 작업기가 꺼져 있으면 유료 작업 잠금을 걸기 전에 알린다. 복구는 저장 응답만 읽으므로 작업기가 필요 없다.
+        if (engine === "subscription" && recoverOnly !== true) await assertSubscriptionReady();
+        const { data, reused, elapsedMs } = await paidJsonRequest(operationId, "블로그 원고", BLOG_WRITING_MODEL, claudeDispatch(engine, {
+            model: BLOG_WRITING_MODEL,
+            max_tokens: 20000,
+            thinking: { type: "adaptive" },
+            output_config: { effort: WRITING_EFFORT },
+            system: systemPrompt,
+            messages: [{ role: "user", content: userMessage }],
+        }, { stage: "블로그 원고", timeoutMs: 285_000, operationId }), undefined, { recoverOnly: recoverOnly === true });
+        const usage = usageFromProvider("manuscript", "블로그 원고", BLOG_WRITING_MODEL, data, { operationId, reused, elapsedMs, engine });
         responseUsage = usage;
         const parsed = readManuscriptResponse(data);
         // Sonnet 5.5 는 안전 분류(거절) 범주가 Sonnet 5 보다 늘었다. 성범죄·스토킹·가정폭력처럼 민감한 법률 주제는 드물게 걸릴 수 있으니,
@@ -333,6 +329,7 @@ ${trustBlock}
         });
     } catch (err) {
         if (err instanceof PaidOperationError) return NextResponse.json({ error: err.message, operationId: err.operationId, code: err.code, usage: responseUsage }, { status: err.status });
+        if (err instanceof SubscriptionUnavailableError) return NextResponse.json({ error: err.message, code: "subscription_offline" }, { status: err.status });
         if (err instanceof ImageProductionError) return NextResponse.json({ error: err.message }, { status: err.status });
         if (err instanceof StrengthStoreError) return NextResponse.json({ error: err.message }, { status: err.status });
         console.error("[Claude Blog Write] Error:", err instanceof Error ? err.name : "UnknownError");
