@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { sectionProgress } from "./home-motion-state";
+import { sectionProgress, storyProgress } from "./home-motion-state";
 import s from "./home-motion.module.css";
 
 /** One event-driven frame for all home-only sections. Nothing polls at rest. */
@@ -31,7 +31,10 @@ export default function HomeMotionController() {
             const away = hero ? hero.getBoundingClientRect().bottom < 90 : false;
             const height = Math.max(1, window.innerHeight);
             for (const { el, rect } of readings) {
-                el.style.setProperty("--section-progress", String(stopped() ? 1 : sectionProgress(rect.top, height)));
+                const progress = stopped() ? 1 : el.dataset.motionRange === "story"
+                    ? storyProgress(rect.top, rect.height, height) : sectionProgress(rect.top, height);
+                el.style.setProperty("--section-progress", String(progress));
+                el.dataset.motionStep = String(Math.min(2, Math.floor(progress * 3)));
                 el.dataset.motionReady = "true";
             }
             if (control) control.dataset.away = String(away);
@@ -46,6 +49,7 @@ export default function HomeMotionController() {
             setReduced(media.matches);
             if (stopped()) targets.forEach(el => {
                 el.style.setProperty("--section-progress", "1");
+                el.dataset.motionStep = "2";
                 el.dataset.motionReady = "true";
             });
             request();
@@ -59,6 +63,7 @@ export default function HomeMotionController() {
                     // A fast jump past a section must leave completed artwork behind.
                     if (entry.boundingClientRect.top < 0) {
                         el.style.setProperty("--section-progress", "1");
+                        el.dataset.motionStep = "2";
                         el.dataset.motionReady = "true";
                     }
                 }
@@ -81,7 +86,7 @@ export default function HomeMotionController() {
             document.removeEventListener("visibilitychange", sync);
             window.removeEventListener("scroll", request);
             window.removeEventListener("resize", request);
-            targets.forEach(el => { el.style.removeProperty("--section-progress"); delete el.dataset.motionReady; });
+            targets.forEach(el => { el.style.removeProperty("--section-progress"); delete el.dataset.motionReady; delete el.dataset.motionStep; });
             delete root.dataset.motionPaused;
             delete root.dataset.reducedMotion;
             if (control) delete control.dataset.ready;

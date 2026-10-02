@@ -4,6 +4,7 @@ import { path } from "@/data/renewal/site";
 import type { CaseStudy } from "@/data/renewal/cases";
 import type { CSSProperties, ReactNode } from "react";
 import styles from "./editorial-motion.module.css";
+import CaseGrowthScene from "./CaseGrowthScene";
 
 // Only the homepage opts into the document treatment. /work keeps its original
 // reveal and geometry, while homepage text stays still above animated paper.
@@ -43,6 +44,7 @@ export default function CaseStudies({
     if (!cases.length) return null;
 
     const hasSample = cases.some((c) => c.isSample);
+    const firstPublishedIndex = cases.findIndex((c) => !c.isSample);
 
     return (
         <Section data-clause="CASES" className={homeMotion ? styles.caseSection : ""}>
@@ -86,6 +88,10 @@ export default function CaseStudies({
                                     <span className="w-6 h-px" style={{ background: "var(--mt-line-strong)" }} />
                                     <h3 className="text-[17px] font-semibold">{c.field}</h3>
                                 </div>
+
+                                {homeMotion && i === firstPublishedIndex && (
+                                    <CaseGrowthScene caseStudy={c} />
+                                )}
 
                                 <div className={`grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-12 ${homeMotion ? styles.caseGrid : ""}`}>
                                     <div className={homeMotion ? styles.caseColumn : undefined} style={homeMotion ? { "--paper-angle": "-2.4deg", "--paper-shift": "-18px" } as CSSProperties : undefined}>

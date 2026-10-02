@@ -6,6 +6,7 @@ import Reveal from "../Reveal";
 import { useScrollProgress } from "../useScrollProgress";
 import { SERVICES, path } from "@/data/renewal/site";
 import styles from "./service-plan-motion.module.css";
+import ServiceWorkbenchScene from "./ServiceWorkbenchScene";
 
 // 서비스 범위 — 01~06.
 //
@@ -56,19 +57,7 @@ function ConnectedServices() {
             <Container>
                 <SectionHeader eyebrow="Services" serif title="우리가 맡는 일." />
                 <div className={styles.serviceWorkbench}>
-                    <div className={styles.serviceMap} data-home-motion="service-map" aria-hidden="true">
-                        <div className={styles.mapSpine} />
-                        {SERVICES.map((svc, i) => (
-                            <div key={svc.no} className={styles.serviceMapNode} style={{ ["--sheet" as string]: i }}>
-                                <div className={styles.serviceMapSheet}>
-                                    <span>{svc.no}</span>
-                                    <span>{svc.en}</span>
-                                    <i />
-                                </div>
-                                <span className={styles.mapJoint} />
-                            </div>
-                        ))}
-                    </div>
+                    <ServiceWorkbenchScene />
 
                     <div className={styles.serviceGrid}>
                         {SERVICES.map((svc, i) => (

@@ -1,5 +1,6 @@
 import { Container } from "../primitives";
 import Reveal from "../Reveal";
+import { ChannelExpansionScene } from "./OperationsScene";
 import {
     NEW_CHANNEL_TITLE,
     NEW_CHANNEL_BODY,
@@ -59,6 +60,12 @@ export default function InvariantClause() {
                     <Reveal index={2}>
                         <p className="mt-body-lg mt-7 max-w-[640px]">{NEW_CHANNEL_BODY}</p>
                     </Reveal>
+
+                </div>
+
+                <ChannelExpansionScene />
+
+                <div className="mt-section-heading max-w-[820px]">
 
                     {/* 채널별 현황 — 접힌 상세. 궁금한 사람만 연다 */}
                     <Reveal index={3}>

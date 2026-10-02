@@ -12,7 +12,7 @@ const compile = filename => ts.transpileModule(fs.readFileSync(path.join(directo
 }).outputText;
 const math = { exports: {} };
 vm.runInNewContext(compile('home-motion-state.ts'), { exports: math.exports });
-const { sectionProgress } = math.exports;
+const { sectionProgress, storyProgress } = math.exports;
 
 for (const [top, height, expected] of [
     [1000, 1000, 0], [940, 1000, 0], [630, 1000, .5], [320, 1000, 1], [-1000, 1000, 1],
@@ -27,6 +27,13 @@ for (const height of [320, 667, 812, 1000, 2000]) {
         previous = value;
     }
 }
+
+assert.equal(storyProgress(180, 1700, 1000), 0, 'Long track waits until its frame can be read');
+assert.equal(storyProgress(-270, 1700, 1000), .5, 'Long track progresses through its pinned span');
+assert.equal(storyProgress(-720, 1700, 1000), 1, 'Long track completes before its frame leaves view');
+assert.equal(storyProgress(180, 1700, 0), 1);
+assert.equal(storyProgress(180, NaN, 1000), 1);
+assert.equal(storyProgress(-1000, 400, 1000), 1, 'Collapsed tracks stay bounded');
 
 function events(initial = {}) {
     const handlers = new Map();
@@ -211,5 +218,16 @@ r.intersect([0, true], [1, true]); r.frame();
 assert(r.elements.every(element => element.styles.get('--section-progress') === '1'));
 assert.equal(r.frames.size, 0);
 r.cleanup();
+
+const story = mount();
+story.elements[0].dataset.motionRange = 'story';
+story.elements[0].rect = { top: -270, height: 1700, bottom: 1430 };
+story.intersect([0, true]); story.frame();
+assert.equal(story.elements[0].styles.get('--section-progress'), '0.5');
+assert.equal(story.elements[0].dataset.motionStep, '1', 'Story stage reflects the long-track midpoint');
+story.toggle(); story.frame();
+assert.equal(story.elements[0].dataset.motionStep, '2', 'Global off completes the story stage');
+story.cleanup();
+assert.equal(story.elements[0].dataset.motionStep, undefined);
 
 console.log('PASS: bounded progress, batched geometry, visible-only work, coalesced finite RAF, hidden resume, initial/dynamic reduced motion, global off/on, fast-scroll settling, cleanup');

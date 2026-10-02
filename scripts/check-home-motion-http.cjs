@@ -9,8 +9,12 @@ async function main() {
     const $ = cheerio.load(await response.text());
     const motion = type => $(`[data-home-motion="${type}"]`);
     assert.equal($('[data-home-motion-root]').length,1);
-    for (const type of ['services','service-map','journey','plans','closing-assembly','closing-rule']) assert.equal(motion(type).length,1,type);
-    for (const type of ['journey-step','plan-sheet','case-document']) assert.equal(motion(type).length,3,type);
+    for (const type of ['services','journey','plans','closing-assembly','closing-rule']) assert.equal(motion(type).length,1,type);
+    for (const type of ['service-story','journey-story','operations-story','case-growth-story','channels-story','team-story']) {
+        assert.equal(motion(type).length,1,type);
+        assert.equal(motion(type).attr('data-motion-range'),'story',type);
+    }
+    for (const type of ['plan-sheet','case-document']) assert.equal(motion(type).length,3,type);
     // Magazine is intentionally omitted if the existing database read fails.
     assert.equal(motion('magazine-cover').length,$('[data-clause="INSIGHTS"] a[href^="/magazine/"]').length);
     assert.equal(motion('plan-sheet').find('details[open]').length,3,'All scopes in no-JS HTML');
@@ -30,6 +34,6 @@ async function main() {
         assert(!other.includes('data-home-motion-root'),`${route}: home controller leaked`);
         assert(!other.includes('data-home-motion="case-document"'),`${route}: home case motion leaked`);
     }
-    console.log(`PASS: all six effects, SSR copy/prices/expanded scopes, canonical, ${targets.length} internal destinations HTTP 200, 5 non-home routes isolated`);
+    console.log(`PASS: six graphic stories plus prior effects, SSR copy/prices/expanded scopes, canonical, ${targets.length} internal destinations HTTP 200, 5 non-home routes isolated`);
 }
 main().catch(e=>{console.error(e.message);process.exitCode=1;});
