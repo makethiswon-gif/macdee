@@ -1,6 +1,6 @@
-import { Kinetic } from "../concepts/BoldHero";
+import AssemblyHero from "./AssemblyHero";
 
-// The approved D composition without review chrome or a blocking intro.
+// Selected SIX → ONE motion lives on the home only; archived studies stay intact.
 export default function HeroSection() {
-    return <div className="mt-kinetic-home"><Kinetic /></div>;
+    return <AssemblyHero />;
 }
