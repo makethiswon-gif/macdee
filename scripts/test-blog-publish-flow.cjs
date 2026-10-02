@@ -49,6 +49,7 @@ let lastPage = null, counters = () => "";
                 if (url.pathname.endsWith("/blog-images/generate-design")) {
                     generated.push(b);
                     return reply({ card: { type: b.cardType, name: b.cardType, setFormat: format, publicationEdition: plan.publicationEdition, imageDataUrl: png, width: 2000, height: 2000, altText: "등록 자료", placement: "본문", warnings: [], designVersion: "editorial-v11", layoutChecks: { passed: true, issues: [], textBlocks: 1 }, releaseToken: "r", productionId: "prod-" + b.cardType, setId: "set-1", artSourceHash: b.cardType === "thumbnail" ? "test" : undefined,
+                        ...(b.cardType !== "thumbnail" ? { sharedAsset: { fingerprint: "fixture-" + b.cardType, reused: true } } : {}),
                         ...(b.cardType === "info" ? { studioPhotos: [{ assetId: "approved-fixture", version: 1 }], photoChecks: { source: "studio", width: 1280, height: 1600, areaRatio: 0.8, upscale: 1.25 } } : {}),
                         ...(b.cardType === "contact" ? { contactActions: [{ label: "상담", display: "02-1234-5678", href: "tel:0212345678" }] } : {}) }, usage: [] });
                 }
@@ -72,6 +73,8 @@ let lastPage = null, counters = () => "";
             await page.getByRole("button", { name: "카드 3장 완료", exact: true }).waitFor();
             assert.equal(plans.length, 1); assert.deepEqual(plans[0].coverBrief.kicker, "개인회생"); assert.equal(plans[0].postId, "saved-post");
             assert.equal(generated.length, 3); assert.ok(generated.every((g) => g.renderOnly === true && !g.attemptId), "Resume is render-only: no paid generation");
+            // 2·3번 재사용 카드는 화면에 '저장본 재사용'으로 표시된다(2026-09-28)
+            assert.equal(await page.getByText("저장본 재사용 · 새로 만들지 않음", { exact: true }).count(), 2);
             assert.equal(posts, 0, "Resume never creates a new post");
             // 복사: 저장 이미지 3장 + 전화 링크
             await page.getByRole("button", { name: "네이버용 복사", exact: true }).click();

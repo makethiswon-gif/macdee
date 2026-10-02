@@ -47,6 +47,8 @@ export interface BlogImageCard {
     layoutChecks?: { passed: boolean; issues: string[]; textBlocks: number };
     photoChecks?: { source: "art" | "portrait" | "office" | "studio"; width: number; height: number; areaRatio: number; upscale: number };
     contactActions?: { label: string; display: string; href: string }[];
+    /** 2·3번 재사용 카드: 변호사별로 한 번 만든 PNG 를 원고마다 다시 쓴다. reused=false 면 이번에 처음 만든 것. */
+    sharedAsset?: { fingerprint: string; reused: boolean };
     // Optional, compressed original art permits typography/layout changes without image-model calls.
     artDataUrl?: string;
     artSourceHash?: string;

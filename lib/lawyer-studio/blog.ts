@@ -38,7 +38,8 @@ export async function resolveEditorialStudioPhoto(profileId: string, selections:
     if (!selections || selections.length !== 1) throw new StudioError("두 번째 이미지에 사용할 승인 사진 한 장을 확인해주세요.", 422);
     return (await resolveApprovedPhotos(profileId, selections))[0];
 }
-export async function editorialStudioPhoto(profileId: string, edition: string, role: "info" | "contact" = "info") {
+/** 신뢰·상담 카드에 쓸 승인 사진을 고른다(바이트는 읽지 않는다). 재사용 카드의 지문 계산과 실제 제작이 같은 선택을 쓴다. */
+export async function editorialStudioSelection(profileId: string, edition: string, role: "info" | "contact" = "info") {
     const library = await loadStudioLibrary(profileId);
     const approved = library.assets.filter(a => a.status === "approved").sort((a, b) => a.id.localeCompare(b.id));
     if (!library.blogEnabled || !approved.length) {
@@ -49,7 +50,12 @@ export async function editorialStudioPhoto(profileId: string, edition: string, r
     const selected = approved[(parseInt(digest(edition).slice(0, 8), 16) + (role === "contact" ? 1 : 0)) % approved.length];
     const selections = [{ assetId: selected.id, version: selected.version }];
     const asset = await resolveEditorialStudioPhoto(profileId, selections);
-    return { bytes: await readStudioBytes(asset.renderedPath), kind: "studio" as const, selections };
+    return { asset, selections };
+}
+export async function editorialStudioPhoto(profileId: string, edition: string, role: "info" | "contact" = "info") {
+    const chosen = await editorialStudioSelection(profileId, edition, role);
+    if (!chosen) return undefined;
+    return { bytes: await readStudioBytes(chosen.asset.renderedPath), kind: "studio" as const, selections: chosen.selections };
 }
 export async function renderStudioBlogCard(opts: BriefRenderOptions): Promise<BlogImageCard> {
     const assets = await resolveStudioPhotos(opts.profile.id, opts.plan.studioPhotos);

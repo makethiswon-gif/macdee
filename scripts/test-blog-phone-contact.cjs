@@ -45,7 +45,7 @@ global.fetch = async (url, options) => {
     assert.equal(url, "https://api.anthropic.com/v1/messages");
     aiCalls++;
     aiPrompt = JSON.parse(options.body).system;
-    return Response.json({ content: [{ type: "text", text: `===TITLE===\n검수 원고\n===BODY===\n${fixtureBody}` }] });
+    return Response.json({ stop_reason: "end_turn", content: [{ type: "text", text: `===TITLE===\n검수 원고\n===BODY===\n${fixtureBody}` }] });
 };
 const { blogPhoneContact, appendBlogPhoneContact } = require("../lib/blog-contact.ts");
 const { toNaverHtml } = require("../lib/blog-naver-html.ts");

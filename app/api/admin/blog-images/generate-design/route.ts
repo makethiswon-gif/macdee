@@ -20,7 +20,9 @@ import { paidAttempt, PaidOperationError } from "@/lib/blog-images/paid-operatio
 import { repairImageLayout } from "@/lib/blog-images/quality-controller";
 import { imageReady, imageHoldReason } from "@/lib/blog-images/quality-policy";
 import { STUDIO_FORMAT, StudioError } from "@/lib/lawyer-studio/types";
-import { resolveStudioPhotos, renderStudioBlogCard, editorialStudioPhoto } from "@/lib/lawyer-studio/blog";
+import { resolveStudioPhotos, renderStudioBlogCard, editorialStudioPhoto, editorialStudioSelection } from "@/lib/lawyer-studio/blog";
+import { findSharedCard, isShareableCard, saveSharedCard, sharedCardBytes, sharedCardFingerprint, sharedCardForPost } from "@/lib/blog-images/shared-cards";
+import type { BlogImageCard } from "@/lib/blog-images/card-types";
 import { posterFrame } from "@/lib/blog-images/poster-layout";
 import { appendUsage } from "@/lib/blog-post-state";
 import type { UsageEntry } from "@/lib/blog-usage";
@@ -62,7 +64,7 @@ export async function POST(request: Request) {
         if (plan.setFormat === EDITORIAL_SET_FORMAT) {
             if (plan.publicationEdition !== `${EDITORIAL_SET_FORMAT}:${profile.id}`) throw new PlanValidationError("현재 변호사와 신뢰 지면의 소유자가 다릅니다.");
             verifyImageProof(plan.proofToken, plan.proofSelection, context.library, plan.sourceHash);
-            if (type === "thumbnail") await prepareEditorialThree(profile, plan.proofSelection!, body.title || "",
+            if (type === "thumbnail" && !(await sharedPairReady(profile, plan, body.style))) await prepareEditorialThree(profile, plan.proofSelection!, body.title || "",
                 await editorialStudioPhoto(profile.id, plan.publicationEdition!), await editorialStudioPhoto(profile.id, plan.publicationEdition!, "contact"));
         }
         if (plan.setFormat === STUDIO_FORMAT) {
@@ -98,6 +100,20 @@ export async function POST(request: Request) {
         const attempt = paidAttempt(body.attemptId, body.confirmPaid);
         const usageSink: UsageEntry[] = []; // 이 요청에서 실제로 일어난 유료 호출(재사용은 0원으로 기록)
         const feedback = Array.isArray(body.artFeedback) ? body.artFeedback.filter((s: unknown): s is string => typeof s === "string").slice(0, 4).map((s: string) => s.slice(0, 350)) : [];
+        // 2·3번 재사용(2026-09-28): 그리는 입력이 같은 카드가 이미 있으면 다시 그리지 않고, 이 원고의 서명만 붙여 돌려준다.
+        // '새 작업'(attempt)은 사용자가 다시 그리기를 고른 것이라 재사용하지 않는다(결과가 같으면 같은 기록으로 덮인다).
+        let sharedFingerprint = "";
+        const sharedResponse = async (card: BlogImageCard, record: Parameters<typeof sharedCardBytes>[0]) => {
+            if (body.transport !== "asset") { card.imageDataUrl = `data:image/png;base64,${(await sharedCardBytes(record)).toString("base64")}`; delete card.imageUrl; }
+            await appendUsage(body.postId, usageSink);
+            return NextResponse.json({ card, usage: usageSink }, { headers: { "Cache-Control": "private, no-store" } });
+        };
+        if (isShareableCard(plan, type) && !attempt) {
+            const chosen = await editorialStudioSelection(profile.id, plan.publicationEdition!, type);
+            sharedFingerprint = sharedCardFingerprint({ type, profile, plan, card: planned, style: body.style, selection: chosen?.selections || null });
+            const shared = await findSharedCard(profile.id, sharedFingerprint, type);
+            if (shared) return await sharedResponse(sharedCardForPost(shared, { profileId: profile.id, sourceHash: plan.sourceHash, setId, plan, planned, reused: true }), shared);
+        }
         const editorialPhoto = plan.setFormat === EDITORIAL_SET_FORMAT && (type === "info" || type === "contact")
             ? await editorialStudioPhoto(profile.id, plan.publicationEdition!, type) : undefined;
         const productionId = digest(JSON.stringify({ version: 11, plan, profile, type, quality: body.quality || "high",
@@ -192,6 +208,12 @@ export async function POST(request: Request) {
         else { delete card.releaseToken; card.warnings.push(imageHoldReason(card)); }
         checkpoint.card = card; checkpoint.state = "complete";
         await saveImageProduction(checkpoint);
+        if (sharedFingerprint && card.releaseToken) {
+            try {
+                const shared = await saveSharedCard(profile.id, sharedFingerprint, card);
+                return await sharedResponse(sharedCardForPost(shared, { profileId: profile.id, sourceHash: plan.sourceHash, setId, plan, planned, reused: false }), shared);
+            } catch (e) { console.warn("[SharedCard] not saved:", e instanceof Error ? e.message.slice(0, 160) : "unknown"); }
+        }
         return await response(card);
     } catch (e) {
         console.error("[BlogVisualV7] failed", e instanceof Error ? e.name : "UnknownError");
@@ -199,4 +221,18 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: timedOut ? "이미지 생성 응답이 지연됐습니다. 자동으로 중복 요청하지 않았습니다. 해당 작업만 다시 시도해 주세요."
             : e instanceof Error ? e.message : "이미지 생성에 실패했습니다.", ...(e instanceof PaidOperationError ? { operationId: e.operationId, code: e.code } : {}) }, { status: e instanceof StudioError || e instanceof StrengthStoreError || e instanceof ImageProductionError ? e.status : e instanceof PlanValidationError || e instanceof ContactProfileError ? 400 : 502 });
     }
+}
+
+/** 신뢰·상담 두 카드가 이번 구성 그대로 재사용 기록에 있으면, 표지 전에 하던 시험 렌더를 생략해도 된다. */
+async function sharedPairReady(profile: EditorialProfile, plan: ReturnType<typeof validateVisualPlan>, style: unknown): Promise<boolean> {
+    try {
+        for (const type of ["info", "contact"] as const) {
+            const planned = plan.cards.find((c) => c.type === type);
+            if (!planned || !isShareableCard(plan, type)) return false;
+            const chosen = await editorialStudioSelection(profile.id, plan.publicationEdition!, type);
+            const fingerprint = sharedCardFingerprint({ type, profile, plan, card: planned, style: typeof style === "string" ? style : undefined, selection: chosen?.selections || null });
+            if (!(await findSharedCard(profile.id, fingerprint, type))) return false;
+        }
+        return true;
+    } catch { return false; } // 확인이 안 되면 예전처럼 시험 렌더를 한다
 }

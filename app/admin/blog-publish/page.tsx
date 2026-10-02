@@ -7,7 +7,7 @@ import { Check, Copy, Download, Eye, Loader2, Lightbulb, PenLine, Save, ImageIco
 import { toNaverHtml } from "@/lib/blog-naver-html";
 import { BLOG_CARD_TYPES, EDITORIAL_SET_FORMAT, cardTypesFor, cardLabel, CARD_LABELS, cardRequestProfile, type BlogCardType, type BlogImageCard, type EditorialProfile } from "@/lib/blog-images/card-types";
 import type { ArticleVisualPlan } from "@/lib/blog-images/visual-plan-types";
-import { copyBlogHtml, publishJson, sameDraft, type PublishBatch, type PublishDraft } from "@/lib/blog-publish-workflow";
+import { copyBlogHtml, publishJson, PublishRequestError, sameDraft, type PublishBatch, type PublishDraft } from "@/lib/blog-publish-workflow";
 import BlogCoverChoices from "@/components/admin/BlogCoverChoices";
 import { studioLibraryUrl, studioRecoveryAction } from "@/lib/lawyer-studio/types";
 import { summarizeUsage, USAGE_KIND_LABELS, type UsageEntry } from "@/lib/blog-usage";
@@ -16,11 +16,14 @@ import { coverStillMatches, type CoverBrief } from "@/lib/blog-cover-brief";
 import { editScopeOptions, type EditScope } from "@/lib/blog-edit-scope";
 import { contactActions } from "@/lib/blog-images/contact-details";
 import { PRICING_UPDATED } from "@/lib/ai/pricing";
+import { CLAUDE_ENGINES, CLAUDE_ENGINE_LABELS, formatAge, parseClaudeEngine, type ClaudeEngine, type WorkerStatus } from "@/lib/ai/claude-engine-shared";
 
 // 블로그 발행 — 2026-09-22 재설계.
 //  1 기획·자료 → 2 원고 검수·확정 → 3 이미지·발행. 원고 직후 유료 이미지를 자동으로 만들지 않고, '원고 확정' 뒤에 시작한다.
 //  ?post={id} 로 이어하기. 서버는 결정적 ID 로 기획·이미지를 재사용하므로 다시 요청해도 추가 과금이 없다.
 //  '주제 직접 입력'은 '글·메모 붙여넣기'로 바뀌었다: 200자 이상이면 그 글을 자료로 새 원고를 쓴다(재창작).
+// 2026-09-29: 'AI 실행' 선택 — API 크레딧 또는 클로드 구독(대표 PC 작업기, lib/ai/subscription-relay.ts).
+//  구독은 원고·부분 수정·주제 추천·표지 기획(Claude 호출)에만 적용된다. 표지 원본 이미지는 OpenAI API 라 그대로 유료다.
 
 interface BlogSetting {
     id: string; lawyerName: string; officeName: string;
@@ -31,6 +34,8 @@ interface BlogSetting {
 interface TopicCandidate { topic: string; field: string; angle: string; titleIdea: string; reason: string }
 interface SavedPost { id: string; profile_id?: string; title: string; body: string; field: string | null; topic: string | null; card_images?: { type: string; url: string }[] }
 interface WriteResponse { title: string; body: string; contactWarning?: string | null; editorialWarnings?: string[]; factChecklist?: string[]; usage?: UsageEntry; coverBrief?: CoverBrief | null; question?: string; thesis?: string; mode?: "topic" | "rewrite"; bodyHash?: string }
+interface WriteRequest { content: string; source?: string; field: string; profileId: string; topic: string; attemptId?: string; confirmPaid: boolean; engine: ClaudeEngine }
+interface WriteFailure { request: WriteRequest; topic: TopicCandidate; usage?: UsageEntry }
 interface EditResponse { replacement: string; label: string; target: string; title: string; body: string; warnings: string[]; usage?: UsageEntry }
 type Step = "idle" | "topics" | "writing" | "saving" | "cards" | "editing";
 const message = (e: unknown) => e instanceof Error ? e.message : "요청 처리에 실패했습니다.";
@@ -42,6 +47,8 @@ const download = (url: string, filename: string) => {
 const hashText = (v: string) => { let h = 0x811c9dc5; for (let i = 0; i < v.length; i++) { h ^= v.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(16).padStart(8, "0"); };
 const usd = (v: number | null) => v == null ? "단가 미확인" : `$${v.toFixed(v < 0.1 ? 3 : 2)}`;
 const REWRITE_MIN = 200;
+const ENGINE_STORAGE_KEY = "blog-publish-ai-engine";
+const WORKER_LAUNCHER = "C:\\클로드\\claude-subscription-worker\\start.cmd";
 const FACT_STATUS_LABELS: Record<FactCheck["status"], string> = { unverified: "미확인", verified: "확인함", corrected: "수정함", stale: "재확인 필요" };
 
 export default function BlogPublishPage() {
@@ -76,6 +83,7 @@ export default function BlogPublishPage() {
     const [progress, setProgress] = useState("");
     const [step, setStep] = useState<Step>("idle");
     const [error, setError] = useState("");
+    const [writeFailure, setWriteFailure] = useState<WriteFailure | null>(null);
     const [copied, setCopied] = useState(false);
     const [exporting, setExporting] = useState(false);
     const [imagesStale, setImagesStale] = useState(false);
@@ -84,6 +92,8 @@ export default function BlogPublishPage() {
     const [editScope, setEditScope] = useState("");
     const [editInstruction, setEditInstruction] = useState("");
     const [editResult, setEditResult] = useState<EditResponse | null>(null);
+    const [engine, setEngine] = useState<ClaudeEngine>("api");
+    const [worker, setWorker] = useState<WorkerStatus | null>(null);
     const active = useRef<AbortController | null>(null);
     const batch = useRef<PublishBatch | null>(null);
     const coverBrief = useRef<CoverBrief | null>(null);
@@ -110,6 +120,9 @@ export default function BlogPublishPage() {
     const usage = summarizeUsage(aiUsage);
     const scopeOptions = editScopeOptions(body);
     const rewriteMode = sourceText.trim().length >= REWRITE_MIN;
+    const subscription = engine === "subscription";
+    /** Claude 호출 버튼의 비용 표시. 구독은 API 청구가 없다(구독 사용량만 줄어든다). */
+    const claudeCost = subscription ? "구독" : "유료";
 
     useEffect(() => {
         mounted.current = true;
@@ -128,6 +141,26 @@ export default function BlogPublishPage() {
             if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
         };
     }, []);
+    // AI 실행 방식은 이 브라우저에 기억한다(기본 API).
+    useEffect(() => {
+        try { setEngine(parseClaudeEngine(window.localStorage.getItem(ENGINE_STORAGE_KEY))); } catch { /* 저장소 차단 시 기본값 */ }
+    }, []);
+    // 구독을 고른 동안에만 작업기 상태를 본다. 작업 단계가 바뀔 때도 다시 확인한다.
+    useEffect(() => {
+        if (engine !== "subscription") { setWorker(null); return; }
+        let stopped = false;
+        const check = () => publishJson<{ status: WorkerStatus }>("/api/admin/claude-subscription/status", new AbortController().signal)
+            .then((data) => { if (!stopped) setWorker(data.status); })
+            .catch(() => { if (!stopped) setWorker({ online: false, lastSeen: null, ageSec: null, lastError: "상태 확인 실패" }); });
+        void check();
+        const timer = setInterval(check, 15_000);
+        return () => { stopped = true; clearInterval(timer); };
+    }, [engine, step]);
+    const chooseEngine = (next: ClaudeEngine) => {
+        if (active.current || exportingRef.current) return;
+        setEngine(next);
+        try { window.localStorage.setItem(ENGINE_STORAGE_KEY, next); } catch { /* 기억만 못 한다 */ }
+    };
     // ?post= 이어하기: 프로필 목록이 오면 그 원고를 연다.
     useEffect(() => {
         const id = resumeId.current;
@@ -197,6 +230,7 @@ export default function BlogPublishPage() {
         batch.current = null; imageAttempts.current = {}; setCards([]); setCoverOptions([]); setCardUrls([]); setResumedUrls(false); setIssues({}); setPreview(null);
     };
     const reset = () => {
+        setWriteFailure(null);
         planningAttempt.current = ""; writingAttempt.current = ""; editAttempt.current = ""; coverBrief.current = null;
         active.current?.abort(); active.current = null;
         if (copyTimer.current) clearTimeout(copyTimer.current);
@@ -226,7 +260,7 @@ export default function BlogPublishPage() {
         const op = begin("topics"); if (!op) return;
         setTopics([]); setTopicNotice(""); setPicked(null);
         try {
-            const data = await publishJson<{ topics: TopicCandidate[]; notice?: string }>("/api/admin/blog-posts/topics", op.signal, { profileId, count: 6 });
+            const data = await publishJson<{ topics: TopicCandidate[]; notice?: string }>("/api/admin/blog-posts/topics", op.signal, { profileId, count: 6, engine });
             if (current(op)) { setTopics(data.topics || []); setTopicNotice(data.notice || ""); }
         } catch (e) { if (current(op)) setError(message(e)); }
         finally { finish(op); }
@@ -331,7 +365,7 @@ export default function BlogPublishPage() {
         const brief = coverBrief.current;
         setProgress(brief && !planningAttempt.current ? "원고 응답의 표지 브리프로 구성안 조립 중(추가 AI 호출 없음)…" : "원고 전체를 읽고 이미지 구성 기획 중…");
         const planned = await publishJson<{ plan: ArticleVisualPlan; usage?: UsageEntry[] }>("/api/admin/blog-images/plan", op.signal,
-            { title: snapshot.title, content: snapshot.body, profile: { id: data.profile.id }, basicProfile: true, postId, ...(brief ? { coverBrief: brief } : {}),
+            { title: snapshot.title, content: snapshot.body, profile: { id: data.profile.id }, basicProfile: true, postId, engine, ...(brief ? { coverBrief: brief } : {}),
                 attemptId: planningAttempt.current || undefined, confirmPaid: !!planningAttempt.current, forceReplan: !recoverPlanOnly && !!planningAttempt.current, recoverOnly: recoverPlanOnly });
         if (!planned.plan) throw new Error("이미지 구성안을 받지 못했습니다.");
         if (!current(op)) return;
@@ -344,21 +378,30 @@ export default function BlogPublishPage() {
     const guidanceText = () => [guide.question && `[핵심 질문] ${guide.question.trim()}`, guide.condition && `[결론을 가르는 조건] ${guide.condition.trim()}`,
         guide.viewpoint && `[변호사의 관점] ${guide.viewpoint.trim()}`, detail.trim() && `[사건 내용]\n${detail.trim()}`].filter(Boolean).join("\n");
 
-    const write = async (topic: TopicCandidate | null, source = "") => {
-        if (!profileId || (!topic && !source.trim())) return;
-        if ((title || body) && !window.confirm("현재 원고는 저장 후 보존하고 새 원고를 생성합니다. 새 AI 생성 비용이 발생합니다. 계속할까요?")) return;
-        if (title || body) writingAttempt.current = crypto.randomUUID();
+    const write = async (topic: TopicCandidate | null, source = "", retry?: "recover" | "regenerate") => {
+        const failed = retry ? writeFailure : null;
+        if (!profileId || (!topic && !source.trim()) || (retry && (!failed || failed.request.profileId !== profileId)) || active.current) return;
+        if (retry === "regenerate") {
+            if (!window.confirm(subscription ? "보존된 응답은 그대로 두고 클로드 구독으로 원고를 새로 작성합니다(API 비용 없음, 구독 사용량 차감). 계속할까요?"
+                : "이전 요청도 이미 과금됐을 수 있습니다. 보존된 응답은 그대로 두고 원고를 새로 작성하며 추가 AI 비용이 발생합니다. 계속할까요?")) return;
+        } else if (!retry && (title || body) && !window.confirm(subscription ? "현재 원고는 저장 후 보존하고 클로드 구독으로 새 원고를 생성합니다. 계속할까요?"
+            : "현재 원고는 저장 후 보존하고 새 원고를 생성합니다. 새 AI 생성 비용이 발생합니다. 계속할까요?")) return;
+        if (retry === "regenerate" || (!retry && (title || body))) writingAttempt.current = crypto.randomUUID();
         const op = begin("writing"); if (!op) return;
+        let pendingRequest: WriteRequest | null = null;
+        let receivedManuscript = false;
         setContactWarning(""); setEditorialWarnings([]); setImagesStale(false);
-        const rewrite = source.trim().length >= REWRITE_MIN;
-        const effectiveTopic: TopicCandidate = topic || { topic: source.trim().split(/\n/)[0].slice(0, 80), field: "", angle: "", titleIdea: "", reason: "" };
+        const sourceInput = failed?.request.source ?? source;
+        const rewrite = sourceInput.trim().length >= REWRITE_MIN;
+        const effectiveTopic: TopicCandidate = failed?.topic || topic || { topic: sourceInput.trim().split(/\n/)[0].slice(0, 80), field: "", angle: "", titleIdea: "", reason: "" };
         setDraftTopic(effectiveTopic); setPicked(topic);
         try {
             if (valid && dirty) await persist(draft, savedId, op);
-            setStep("writing"); setProgress(rewrite ? "붙여넣은 글을 자료로 새 원고를 쓰는 중…" : "원고 생성 중…");
+            setStep("writing"); setProgress(retry === "recover" ? "저장된 원고 응답 확인 중(추가 AI 호출 없음)…"
+                : `${rewrite ? "붙여넣은 글을 자료로 새 원고를 쓰는 중" : "원고 생성 중"}${subscription ? " — 클로드 구독(내 PC 작업기), 보통 2~4분" : ""}…`);
             let imagePreparationError = "";
             try {
-                await publishJson("/api/admin/blog-images/preflight", op.signal, { profileId, checkModel: true, basicProfile: true, topic: `${effectiveTopic.field} ${effectiveTopic.topic}` });
+                if (retry !== "recover") await publishJson("/api/admin/blog-images/preflight", op.signal, { profileId, checkModel: true, basicProfile: true, topic: `${effectiveTopic.field} ${effectiveTopic.topic}` });
             } catch (e) {
                 if (!current(op)) return;
                 imagePreparationError = message(e);
@@ -366,11 +409,16 @@ export default function BlogPublishPage() {
             const guidance = guidanceText();
             const content = rewrite ? guidance
                 : [effectiveTopic.topic, effectiveTopic.angle && `[다룰 관점]\n${effectiveTopic.angle}`, guidance].filter(Boolean).join("\n\n");
-            const data = await publishJson<WriteResponse>("/api/admin/claude-blog-write", op.signal,
-                { content, ...(rewrite ? { source: source.trim() } : {}), field: effectiveTopic.field, profileId, topic: effectiveTopic.topic,
-                    attemptId: writingAttempt.current || undefined, confirmPaid: !!writingAttempt.current });
+            // 복구는 처음 요청한 실행 방식의 보존 응답을 읽고, 새로 생성은 지금 고른 방식으로 보낸다.
+            pendingRequest = failed ? { ...failed.request,
+                ...(retry === "regenerate" ? { attemptId: writingAttempt.current, confirmPaid: true, engine } : {}) }
+                : { content, ...(rewrite ? { source: sourceInput.trim() } : {}), field: effectiveTopic.field, profileId, topic: effectiveTopic.topic,
+                    attemptId: writingAttempt.current || undefined, confirmPaid: !!writingAttempt.current, engine };
+            const data = await publishJson<WriteResponse>("/api/admin/claude-blog-write", op.signal, { ...pendingRequest, recoverOnly: retry === "recover" });
             if (!data.title?.trim() || !data.body?.trim()) throw new Error("생성된 원고가 비어 있습니다.");
+            receivedManuscript = true;
             if (!current(op)) return;
+            setWriteFailure(null);
             clearImages(); setSavedId(null); setSavedDraft(null); setConfirmed(false); setEditResult(null); setBodyVersions([]);
             const snapshot: PublishDraft = { profileId, title: data.title, body: data.body, field: effectiveTopic.field || null, topic: effectiveTopic.topic };
             setTitle(snapshot.title); setBody(snapshot.body);
@@ -388,7 +436,13 @@ export default function BlogPublishPage() {
                 setPlanOpen(false);
                 if (imagePreparationError) setError(`원고는 저장했습니다. 이미지 준비 확인: ${imagePreparationError}`);
             }
-        } catch (e) { if (current(op)) setError(message(e)); }
+        } catch (e) {
+            if (current(op)) {
+                setError(message(e));
+                if (pendingRequest && !receivedManuscript) setWriteFailure({ request: pendingRequest, topic: effectiveTopic,
+                    usage: e instanceof PublishRequestError && e.usage && !e.usage.reused ? e.usage : failed?.usage });
+            }
+        }
         finally { finish(op); }
     };
     const writeFromSource = () => { const text = sourceText.trim(); if (text) void write(null, text); };
@@ -433,7 +487,7 @@ export default function BlogPublishPage() {
         try {
             const scope: EditScope = { kind: option.kind, ...(option.index != null ? { index: option.index } : {}) };
             const data = await publishJson<EditResponse>("/api/admin/claude-blog-edit", op.signal,
-                { postId: savedId, profileId, title, body, scope, instruction: editInstruction.trim(), attemptId: editAttempt.current || undefined, confirmPaid: !!editAttempt.current });
+                { postId: savedId, profileId, title, body, scope, instruction: editInstruction.trim(), attemptId: editAttempt.current || undefined, confirmPaid: !!editAttempt.current, engine });
             editAttempt.current = "";
             if (current(op)) { setEditResult(data); if (data.usage) setAiUsage((prev) => [...prev, data.usage!]); }
         } catch (e) { if (current(op)) setError(message(e)); }
@@ -546,25 +600,49 @@ export default function BlogPublishPage() {
                 <h1 className="text-[19px] font-semibold text-white">블로그 발행</h1>
                 <nav aria-label="발행 단계" className="flex flex-wrap gap-1.5">{stepPill(1, "기획·자료")}{stepPill(2, "원고 검수·확정")}{stepPill(3, "이미지·발행")}</nav>
             </div>
+            <div className="mb-3 rounded-lg border border-[#1F2937] px-3 py-2 text-xs">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                    <span id="ai-engine-label" className="text-[#9CA3B0]">AI 실행</span>
+                    <div role="radiogroup" aria-labelledby="ai-engine-label" className="inline-flex rounded-lg bg-[#0B0F1A] p-0.5">
+                        {CLAUDE_ENGINES.map((value) => <button key={value} type="button" role="radio" aria-checked={engine === value} disabled={busy}
+                            onClick={() => chooseEngine(value)} className={`min-h-8 rounded-md px-3 disabled:cursor-not-allowed disabled:opacity-50 ${engine === value ? "bg-[#3563AE] text-white" : "text-[#9CA3B0] hover:text-white"}`}>
+                            {CLAUDE_ENGINE_LABELS[value]}</button>)}
+                    </div>
+                    {subscription ? <span role="status" className={worker?.online ? "text-emerald-300" : "text-amber-300"}>
+                        {worker == null ? "내 PC 작업기 확인 중…" : worker.online ? `● 내 PC 작업기 연결됨${worker.running ? ` · 처리 중 ${worker.running}건` : ""}` : `● 내 PC 작업기 꺼짐${worker.ageSec != null ? ` · 마지막 신호 ${formatAge(worker.ageSec)} 전` : ""}`}
+                    </span> : <span className="text-[#6B7280]">Anthropic API 크레딧으로 과금됩니다</span>}
+                </div>
+                {subscription && <p className="mt-1.5 leading-5 text-[#9CA3B0]">
+                    원고·부분 수정·주제 추천·표지 기획을 대표 PC에 로그인된 Claude Code(구독)로 처리합니다. API 비용은 0원이고 구독 사용량(5시간·주간 한도)이 줄어듭니다. 표지 원본 이미지는 OpenAI API라 그대로 유료입니다.
+                    {worker && !worker.online && <span className="block text-amber-300">PC에서 {WORKER_LAUNCHER}를 실행해 작업기를 켜 주세요. 꺼져 있으면 요청이 시작되지 않습니다.</span>}
+                    {worker?.online && worker.lastError && <span className="block text-amber-300">최근 오류: {worker.lastError}</span>}
+                </p>}
+            </div>
             {savedId && <details className="mb-3 rounded-lg border border-[#1F2937] px-3 py-2 text-xs text-[#9CA3B0]">
-                <summary className="cursor-pointer">이 원고 AI 비용(추정) {usd(usage.estimatedUsd)}{usage.unpricedCount ? ` + 이미지 모델 ${usage.unpricedCount}회(단가 미확인)` : ""} · 유료 {usage.paidCount}회{usage.reusedCount ? ` · 재사용 ${usage.reusedCount}회(0원)` : ""} — 청구액이 아니라 {PRICING_UPDATED} 단가표 기준 추정입니다</summary>
+                <summary className="cursor-pointer">이 원고 AI 비용(추정) {usd(usage.estimatedUsd)}{usage.unpricedCount ? ` + 이미지 모델 ${usage.unpricedCount}회(단가 미확인)` : ""} · 유료 {usage.paidCount}회{usage.subscriptionCount ? ` · 구독 ${usage.subscriptionCount}회(0원)` : ""}{usage.reusedCount ? ` · 재사용 ${usage.reusedCount}회(0원)` : ""} — 청구액이 아니라 {PRICING_UPDATED} 단가표 기준 추정입니다</summary>
                 <ul className="mt-2 space-y-1">
                     {aiUsage.map((u, i) => <li key={i} className="flex flex-wrap gap-x-3">
                         <span className="text-[#D1D5DE]">{USAGE_KIND_LABELS[u.kind] || u.kind}</span><span>{u.model}</span>
-                        <span>{u.reused ? "저장 응답 재사용 · 0원" : `입력 ${(u.input + u.cacheRead + u.cacheWrite).toLocaleString()} · 출력 ${u.output.toLocaleString()}${u.thinking ? `(사고 ${u.thinking.toLocaleString()})` : ""}${u.imageOutput ? ` · 이미지 ${u.imageOutput.toLocaleString()}` : ""} · ${usd(u.estimatedUsd)}`}</span>
+                        <span>{u.reused ? "저장 응답 재사용 · 0원" : `입력 ${(u.input + u.cacheRead + u.cacheWrite).toLocaleString()} · 출력 ${u.output.toLocaleString()}${u.thinking ? `(사고 ${u.thinking.toLocaleString()})` : ""}${u.imageOutput ? ` · 이미지 ${u.imageOutput.toLocaleString()}` : ""} · ${u.engine === "subscription" ? "클로드 구독 · 0원" : usd(u.estimatedUsd)}`}</span>
                         <span>{new Date(u.at).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}</span>
                     </li>)}
                     {!aiUsage.length && <li>기록된 호출이 없습니다.</li>}
                 </ul>
             </details>}
             {error && <div role="alert" className="my-4 break-words rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">{error}
+                {writeFailure && <div className="mt-3 flex flex-wrap gap-3">
+                    <button disabled={busy} className="inline-flex items-center gap-1 underline disabled:opacity-40" onClick={() => void write(writeFailure.topic, writeFailure.request.source || "", "recover")}><RefreshCw size={14} />저장된 원고 응답 복구 (무료)</button>
+                    <button disabled={busy} className="inline-flex items-center gap-1 underline disabled:opacity-40" onClick={() => void write(writeFailure.topic, writeFailure.request.source || "", "regenerate")}><PenLine size={14} />새 원고 생성 ({claudeCost})</button>
+                    {writeFailure.usage && <span className="w-full text-xs">이전 요청 비용: {usd(writeFailure.usage.estimatedUsd)}</span>}
+                </div>}
                 {studioRecovery && <a href={studioLibraryUrl(profileId)} target="_blank" rel="noopener noreferrer" className="mt-3 block underline">{studioRecovery}</a>}
                 {valid && !batch.current && stage === 3 && <div className="mt-3 flex flex-wrap gap-3">
                     <button disabled={busy} className="underline disabled:opacity-40" title="저장된 기획 응답만 복구합니다. 아직 제작하지 않은 이미지에는 생성 비용이 발생할 수 있습니다." onClick={() => void saveAndMakeCards(undefined, false, true)}>저장된 구성안으로 이어 만들기</button>
                     <button disabled={busy || !!studioRecovery} className="underline disabled:opacity-40" onClick={() => {
-                        if (!window.confirm("저장된 원고는 다시 쓰지 않습니다. 이미지 구성안만 새로 기획하며 Claude 비용이 발생합니다. 계속할까요?")) return;
+                        if (!window.confirm(subscription ? "저장된 원고는 다시 쓰지 않습니다. 이미지 구성안만 클로드 구독으로 새로 기획합니다. 계속할까요?"
+                            : "저장된 원고는 다시 쓰지 않습니다. 이미지 구성안만 새로 기획하며 Claude 비용이 발생합니다. 계속할까요?")) return;
                         planningAttempt.current = crypto.randomUUID(); void saveAndMakeCards();
-                    }}>새 이미지 구성안 기획 (유료)</button></div>}
+                    }}>새 이미지 구성안 기획 ({claudeCost})</button></div>}
             </div>}
 
             {/* ── 1 · 기획·자료 ── */}
@@ -600,7 +678,7 @@ export default function BlogPublishPage() {
                         <button onClick={writeFromSource} disabled={!profileId || !sourceText.trim() || busy} className={primary}>
                             {step === "writing" ? <Loader2 size={14} className="animate-spin" /> : <PenLine size={14} />}{rewriteMode ? "이 글로 원고 재창작" : "바로 원고 생성"}
                         </button>
-                        <span className="text-xs text-[#9CA3B0]">{rewriteMode ? `재창작 모드 · ${sourceText.trim().length.toLocaleString()}자` : "주제 모드"} · 원고 1편 약 $0.13(추정)</span>
+                        <span className="text-xs text-[#9CA3B0]">{rewriteMode ? `재창작 모드 · ${sourceText.trim().length.toLocaleString()}자` : "주제 모드"} · {subscription ? "클로드 구독 · API 비용 0원" : "원고 1편 약 $0.13(추정)"}</span>
                     </div>
                     <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
                         <span className="text-xs text-[#9CA3B0]">추천 주제</span>
@@ -702,15 +780,15 @@ export default function BlogPublishPage() {
                         </ul>
                     </div>
                     <div className="rounded-lg border border-[#1F2937] p-3">
-                        <h3 className="text-xs font-semibold text-[#D1D5DE]">필요한 부분만 수정 <span className="font-normal text-[#6B7280]">— 지정한 구간과 앞뒤 문맥만 보냅니다 (약 $0.01~0.03)</span></h3>
+                        <h3 className="text-xs font-semibold text-[#D1D5DE]">필요한 부분만 수정 <span className="font-normal text-[#6B7280]">— 지정한 구간과 앞뒤 문맥만 보냅니다 ({subscription ? "클로드 구독 · 0원" : "약 $0.01~0.03"})</span></h3>
                         <select aria-label="수정 범위" value={editScope} disabled={busy || !valid} onChange={(e) => { setEditScope(e.target.value); setEditResult(null); }} className={`${inputClass} mt-2`}>
                             <option value="">수정할 범위 선택</option>
                             {scopeOptions.map((o) => <option key={`${o.kind}:${o.index ?? ""}`} value={`${o.kind}:${o.index ?? ""}`}>{o.label}{o.preview ? ` — ${o.preview}…` : ""}</option>)}
                         </select>
                         <textarea aria-label="수정 지시" value={editInstruction} disabled={busy || !valid} onChange={(e) => setEditInstruction(e.target.value)} rows={3} placeholder="예: 첫 문장을 독자의 상황으로 바로 시작하게. 수치는 그대로." className={`${inputClass} mt-2`} />
                         <div className="mt-2 flex flex-wrap gap-2">
-                            <button onClick={() => void requestEdit()} disabled={busy || !valid || !editScope || !editInstruction.trim()} className={secondary}>{step === "editing" ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}수정안 받기 (유료 소액)</button>
-                            {editResult && <button onClick={() => { editAttempt.current = crypto.randomUUID(); void requestEdit(); }} disabled={busy} className={secondary} title="같은 지시로 다른 수정안을 새로 받습니다(추가 과금)."><RefreshCw size={14} />다른 안</button>}
+                            <button onClick={() => void requestEdit()} disabled={busy || !valid || !editScope || !editInstruction.trim()} className={secondary}>{step === "editing" ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}수정안 받기 ({subscription ? "구독" : "유료 소액"})</button>
+                            {editResult && <button onClick={() => { editAttempt.current = crypto.randomUUID(); void requestEdit(); }} disabled={busy} className={secondary} title={subscription ? "같은 지시로 다른 수정안을 새로 받습니다(클로드 구독)." : "같은 지시로 다른 수정안을 새로 받습니다(추가 과금)."}><RefreshCw size={14} />다른 안</button>}
                         </div>
                         {editResult && <div className="mt-3 text-xs">
                             <p className="text-[#9CA3B0]">{editResult.label} — 수정 전 / 수정 후</p>
@@ -757,6 +835,7 @@ export default function BlogPublishPage() {
                                 </> : <ImageIcon className="text-[#4B5563]" />}
                             </div>
                             {issues[type] && <p role="alert" className="mt-2 break-words text-xs text-red-300">{issues[type]}</p>}
+                            {card?.sharedAsset && <p className="mt-2 text-xs text-[#9CA3B0]">{card.sharedAsset.reused ? "저장본 재사용 · 새로 만들지 않음" : "처음 제작 · 다음 글부터 재사용"}</p>}
                             {card?.layoutChecks && !card.layoutChecks.passed && <p className="mt-2 break-words text-xs text-amber-300">배치 확인 필요: {card.layoutChecks.issues.join(" ")}</p>}
                             {card?.warnings?.map((warning, i) => <p key={i} className="mt-1 break-words text-xs text-amber-300">{warning}</p>)}
                             <div className="mt-2 flex flex-wrap gap-2">

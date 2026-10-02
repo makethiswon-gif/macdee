@@ -8,6 +8,8 @@ import { usageFromProvider } from "@/lib/blog-usage";
 import { appendUsage } from "@/lib/blog-post-state";
 import { resolveEditScope, applyEdit, type EditScope } from "@/lib/blog-edit-scope";
 import { BLOG_WRITING_MODEL } from "@/app/api/admin/claude-blog-write/route";
+import { claudeDispatch, engineOperationId, missingApiKey, parseClaudeEngine } from "@/lib/ai/claude-engine";
+import { assertSubscriptionReady, SubscriptionUnavailableError } from "@/lib/ai/subscription-relay";
 
 // 부분 수정 — 원고 전체를 다시 쓰지 않고 지정한 구간만 고친다(2026-09-22 재설계 §4).
 // 모델에는 고칠 구간 + 앞뒤 문맥 + 문체 요약만 보낸다(입력 1~2천 토큰). 사고 수준은 medium: 문장 손질에 깊은 추론은 필요 없다.
@@ -24,8 +26,8 @@ export async function POST(request: Request) {
     if (!title || !text || text.length > 60_000 || !instruction || !scope || !KINDS.includes(scope.kind) || (scope.index != null && !Number.isInteger(scope.index))) {
         return NextResponse.json({ error: "수정할 범위와 지시를 확인해주세요." }, { status: 400 });
     }
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) return NextResponse.json({ error: "ANTHROPIC_API_KEY가 설정되지 않았습니다." }, { status: 500 });
+    const engine = parseClaudeEngine(body.engine);
+    if (missingApiKey(engine)) return NextResponse.json({ error: "ANTHROPIC_API_KEY가 설정되지 않았습니다." }, { status: 500 });
     try {
         const target = scope.kind === "title" ? { label: "제목", start: 0, end: 0, target: title, before: "", after: text.slice(0, 700) } : resolveEditScope(text, scope);
         if (!target) return NextResponse.json({ error: "지정한 범위를 원고에서 찾지 못했습니다." }, { status: 400 });
@@ -51,13 +53,12 @@ ${styleLine ? `[문체]\n${styleLine}\n` : ""}[출력 형식] 아래 구분자 �
 ===END===`;
         const user = `[제목] ${title}\n\n[지시]\n${instruction}\n\n[수정할 범위: ${target.label}]\n${target.target}${target.before ? `\n\n[앞 문맥 — 출력하지 않음]\n${target.before}` : ""}${target.after ? `\n\n[뒤 문맥 — 출력하지 않음]\n${target.after}` : ""}`;
         const attempt = paidAttempt(body.attemptId, body.confirmPaid);
-        const operationId = paidId("blog-edit-v1", { title, target: target.target, instruction, scope, attempt });
-        const { data, reused, elapsedMs } = await paidJsonRequest(operationId, "부분 수정", BLOG_WRITING_MODEL, () => fetch("https://api.anthropic.com/v1/messages", {
-            method: "POST", signal: AbortSignal.timeout(100_000),
-            headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
-            body: JSON.stringify({ model: BLOG_WRITING_MODEL, max_tokens: 6000, thinking: { type: "adaptive" }, output_config: { effort: "medium" }, system, messages: [{ role: "user", content: user }] }),
-        }));
-        const usage = usageFromProvider("edit", "부분 수정", BLOG_WRITING_MODEL, data, { operationId, reused, elapsedMs });
+        const operationId = engineOperationId(paidId("blog-edit-v1", { title, target: target.target, instruction, scope, attempt }), engine);
+        if (engine === "subscription") await assertSubscriptionReady();
+        const { data, reused, elapsedMs } = await paidJsonRequest(operationId, "부분 수정", BLOG_WRITING_MODEL, claudeDispatch(engine,
+            { model: BLOG_WRITING_MODEL, max_tokens: 6000, thinking: { type: "adaptive" }, output_config: { effort: "medium" }, system, messages: [{ role: "user", content: user }] },
+            { stage: "부분 수정", timeoutMs: 100_000, operationId }));
+        const usage = usageFromProvider("edit", "부분 수정", BLOG_WRITING_MODEL, data, { operationId, reused, elapsedMs, engine });
         await appendUsage(body.postId, [usage]);
         if (data.stop_reason === "max_tokens") throw new PaidOperationError("수정 응답이 중간에 끊겼습니다. 응답은 보존했으며 자동으로 다시 요청하지 않습니다.", operationId, "incomplete_response");
         const raw = ((data.content || []) as { type: string; text?: string }[]).find((b) => b.type === "text")?.text || "";
@@ -75,6 +76,7 @@ ${styleLine ? `[문체]\n${styleLine}\n` : ""}[출력 형식] 아래 구분자 �
             { headers: { "Cache-Control": "private, no-store" } });
     } catch (err) {
         if (err instanceof PaidOperationError) return NextResponse.json({ error: err.message, operationId: err.operationId, code: err.code }, { status: err.status });
+        if (err instanceof SubscriptionUnavailableError) return NextResponse.json({ error: err.message, code: "subscription_offline" }, { status: err.status });
         console.error("[Claude Blog Edit] Error:", err instanceof Error ? err.name : "UnknownError");
         return NextResponse.json({ error: err instanceof Error ? err.message : "부분 수정에 실패했습니다." }, { status: 500 });
     }

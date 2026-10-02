@@ -21,8 +21,10 @@ export interface UsageEntry {
     thinking: number;
     imageOutput: number;
     elapsedMs: number;
-    /** 단가표 기준 추정 USD. 단가 미확인 모델은 null. 재사용은 0. */
+    /** 단가표 기준 추정 USD. 단가 미확인 모델은 null. 재사용·구독은 0. */
     estimatedUsd: number | null;
+    /** 클로드 구독(대표 PC 작업기)으로 처리한 호출. API 청구가 없다(2026-09-29). */
+    engine?: "subscription";
     note?: string;
 }
 
@@ -30,7 +32,7 @@ const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0
 
 /** Anthropic(messages)과 OpenAI(images) 응답의 usage 를 한 형태로. */
 export function usageFromProvider(kind: UsageKind, stage: string, model: string, data: unknown,
-    meta: { operationId?: string; reused: boolean; elapsedMs?: number; status?: number; note?: string }): UsageEntry {
+    meta: { operationId?: string; reused: boolean; elapsedMs?: number; status?: number; note?: string; engine?: "api" | "subscription" }): UsageEntry {
     const u = (data && typeof data === "object" ? (data as { usage?: Record<string, unknown> }).usage : undefined) || {};
     const outDetails = (u.output_tokens_details as Record<string, unknown> | undefined) || {};
     const entry: UsageEntry = {
@@ -38,13 +40,16 @@ export function usageFromProvider(kind: UsageKind, stage: string, model: string,
         input: num(u.input_tokens), cacheRead: num(u.cache_read_input_tokens), cacheWrite: num(u.cache_creation_input_tokens),
         output: num(u.output_tokens), thinking: num(outDetails.thinking_tokens), imageOutput: num(outDetails.image_tokens),
         elapsedMs: num(meta.elapsedMs), estimatedUsd: null, ...(meta.note ? { note: meta.note } : {}),
+        ...(meta.engine === "subscription" ? { engine: "subscription" as const } : {}),
     };
-    entry.estimatedUsd = meta.reused ? 0 : estimateUsd(model, entry);
+    entry.estimatedUsd = meta.reused || entry.engine === "subscription" ? 0 : estimateUsd(model, entry);
     return entry;
 }
 
 export interface UsageSummary {
     count: number; paidCount: number; reusedCount: number;
+    /** 클로드 구독으로 처리한 호출 수 — 토큰은 합산하지만 금액은 0. */
+    subscriptionCount: number;
     input: number; output: number; thinking: number; imageOutput: number;
     /** 단가를 아는 호출의 합. */
     estimatedUsd: number;
@@ -54,13 +59,14 @@ export interface UsageSummary {
 }
 
 export function summarizeUsage(entries: UsageEntry[]): UsageSummary {
-    const s: UsageSummary = { count: 0, paidCount: 0, reusedCount: 0, input: 0, output: 0, thinking: 0, imageOutput: 0, estimatedUsd: 0, unpricedCount: 0, byKind: {} };
+    const s: UsageSummary = { count: 0, paidCount: 0, reusedCount: 0, subscriptionCount: 0, input: 0, output: 0, thinking: 0, imageOutput: 0, estimatedUsd: 0, unpricedCount: 0, byKind: {} };
     for (const e of entries) {
         s.count++;
         const k = (s.byKind[e.kind] = s.byKind[e.kind] || { count: 0, paidCount: 0, estimatedUsd: 0 });
         k.count++;
         if (e.reused) { s.reusedCount++; continue; }
-        s.paidCount++; k.paidCount++;
+        if (e.engine === "subscription") s.subscriptionCount++;
+        else { s.paidCount++; k.paidCount++; }
         s.input += e.input + e.cacheRead + e.cacheWrite; s.output += e.output; s.thinking += e.thinking; s.imageOutput += e.imageOutput;
         if (e.estimatedUsd == null) s.unpricedCount++;
         else { s.estimatedUsd += e.estimatedUsd; k.estimatedUsd += e.estimatedUsd; }

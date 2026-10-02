@@ -13,24 +13,35 @@ function key() {
     if (!process.env.ADMIN_TOKEN_SECRET) throw new ImageProductionError("이미지 저장 서명 설정을 확인해주세요.");
     return process.env.ADMIN_TOKEN_SECRET;
 }
-interface Release { version: 11; profileId: string; sourceHash: string; type: string; pngHash: string; setId: string; setFormat?: string }
+export interface ImageRelease { version: 11; profileId: string; sourceHash: string; type: string; pngHash: string; setId: string; setFormat?: string }
+type Release = ImageRelease;
 export function signImageRelease(card: BlogImageCard, profileId: string, sourceHash: string): string {
     if (!card.layoutChecks?.passed || !card.setId) throw new ImageProductionError("레이아웃 검사를 통과하지 않은 이미지는 저장할 수 없습니다.", 422);
-    const payload = Buffer.from(JSON.stringify({ version: 11, profileId, sourceHash, type: card.type,
-        pngHash: digest(Buffer.from(card.imageDataUrl.split(",")[1], "base64")), setId: card.setId,
-        ...(card.setFormat ? { setFormat: card.setFormat } : {}) } satisfies Release)).toString("base64url");
+    return signImageReleaseForHash(digest(Buffer.from(card.imageDataUrl.split(",")[1], "base64")),
+        { profileId, sourceHash, type: card.type, setId: card.setId, ...(card.setFormat ? { setFormat: card.setFormat } : {}) });
+}
+/** 이미 검증된 PNG 의 해시로 서명한다 — 재사용 카드(2·3번)를 원고마다 다시 그리지 않고 이 원고·세트에 묶을 때 쓴다. */
+export function signImageReleaseForHash(pngHash: string, fields: Omit<Release, "version" | "pngHash">): string {
+    if (!/^[a-f0-9]{64}$/.test(pngHash) || !fields.setId) throw new ImageProductionError("저장 서명에 필요한 이미지 정보를 확인해주세요.", 422);
+    const payload = Buffer.from(JSON.stringify({ version: 11, profileId: fields.profileId, sourceHash: fields.sourceHash, type: fields.type,
+        pngHash, setId: fields.setId, ...(fields.setFormat ? { setFormat: fields.setFormat } : {}) } satisfies Release)).toString("base64url");
     return `${payload}.${createHmac("sha256", key()).update(`blog-image-release:${payload}`).digest("hex")}`;
 }
-export function verifyImageRelease(token: unknown, expected: Omit<Release, "version">): boolean {
-    if (typeof token !== "string" || token.length > 2048) return false;
+/** 서명이 맞으면 서명된 내용을, 아니면 null. */
+export function readImageRelease(token: unknown): ImageRelease | null {
+    if (typeof token !== "string" || token.length > 2048) return null;
     const [payload, sig, extra] = token.split(".");
-    if (extra || !/^[a-f0-9]{64}$/.test(sig || "")) return false;
+    if (extra || !/^[a-f0-9]{64}$/.test(sig || "")) return null;
     const signature = createHmac("sha256", key()).update(`blog-image-release:${payload}`).digest();
-    if (!timingSafeEqual(signature, Buffer.from(sig, "hex"))) return false;
+    if (!timingSafeEqual(signature, Buffer.from(sig, "hex"))) return null;
     try {
         const data = JSON.parse(Buffer.from(payload, "base64url").toString()) as Release;
-        return data.version === 11 && Object.entries(expected).every(([k, v]) => data[k as keyof Release] === v);
-    } catch { return false; }
+        return data.version === 11 ? data : null;
+    } catch { return null; }
+}
+export function verifyImageRelease(token: unknown, expected: Omit<Release, "version">): boolean {
+    const data = readImageRelease(token);
+    return !!data && Object.entries(expected).every(([k, v]) => data[k as keyof Release] === v);
 }
 
 export interface ProductionCheckpoint {

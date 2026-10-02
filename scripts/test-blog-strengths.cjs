@@ -38,7 +38,7 @@ const { toNaverHtml } = require("../lib/blog-naver-html.ts");
 const { reviewBlogEditorial } = require("../lib/blog-editorial-review.ts");
 const req = (body, auth = true, origin = "http://localhost") => new Request("http://localhost/api/admin/test", { method: "POST", headers: { "Content-Type": "application/json", Origin: origin, ...(auth ? { "x-fixture": "yes" } : {}) }, body: JSON.stringify(body) });
 let aiPrompt = "", aiOutput = "", aiFailure = false;
-global.fetch = async (url, options) => { assert.equal(url, "https://api.anthropic.com/v1/messages"); aiPrompt = JSON.parse(options.body).system; return aiFailure ? new Response("fixture unavailable", { status: 503 }) : Response.json({ content: [{ type: "text", text: aiOutput }] }); };
+global.fetch = async (url, options) => { assert.equal(url, "https://api.anthropic.com/v1/messages"); aiPrompt = JSON.parse(options.body).system; return aiFailure ? new Response("fixture unavailable", { status: 503 }) : Response.json({ stop_reason: "end_turn", content: [{ type: "text", text: aiOutput }] }); };
 
 (async () => {
     const today = new Date().toISOString().slice(0, 10), later = new Date(Date.now() + 86400000 * 90).toISOString().slice(0, 10);

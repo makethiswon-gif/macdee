@@ -50,6 +50,12 @@ async function registeredPhoto(profile: EditorialProfile, preferOffice = false):
     throw new Error("사용 가능한 등록 사진이 없습니다. 사진·로고 관리에서 변호사 또는 로펌 사진을 확인한 뒤 이미지만 다시 시도해주세요. 유료 이미지 생성은 시작하지 않았습니다.");
 }
 
+/** 상담 카드(3번)에 인쇄되는 제목·표제. 재사용 카드의 지문도 이 값을 쓴다 — 렌더와 지문이 어긋나지 않게 한 곳에서 정한다. */
+export function editorialContactCopy(plan: Pick<BriefRenderOptions["plan"], "question" | "cards">, card: Pick<BriefRenderOptions["card"], "heading">) {
+    const heading = posterContactHeading([plan.question, plan.cards.find(c => c.type === "thumbnail")?.heading, card.heading].filter(Boolean).join(" "));
+    return { heading, kicker: heading.split("\n")[0] + " 상담" };
+}
+
 export async function prepareEditorialThree(profile: EditorialProfile, proof: ProofSelection, title: string, editorialPhoto?: BriefRenderOptions["editorialPhoto"], contactPhoto = editorialPhoto) {
     if (!contactActions(profile).some(a => a.href.startsWith("tel:"))) throw new Error("상담 이미지에 사용할 대표 전화번호를 등록해주세요. 유료 생성은 시작하지 않았습니다.");
     const plan = { version: "visual-plan-v11" as const, sourceHash: proof.sourceHash, question: "", thesis: "", cards: [], paragraphs: [],
@@ -169,8 +175,8 @@ export async function renderEditorialThree(opts: BriefRenderOptions): Promise<Bl
             photo(source, 0, 0, W, 728);
             rect(c, 0, 728, W, H - 728, "#152E34");
         } else photo(source, 0, 0, W, H, "cover");
-        const heading = posterContactHeading([plan.question, plan.cards.find(c => c.type === "thumbnail")?.heading, card.heading].filter(Boolean).join(" "));
-        const poster = drawPhotoPoster(c, { heading, kicker: heading.split("\n")[0] + " 상담", name: firmProfile ? name : `${name} ${label}`, brand, brandColor: accent, phone: primary.display, portraitPanel, recipe: edition?.cover || recipe, forceLight: opts.style === "contrast" });
+        const { heading, kicker } = editorialContactCopy(plan, card);
+        const poster = drawPhotoPoster(c, { heading, kicker, name: firmProfile ? name : `${name} ${label}`, brand, brandColor: accent, phone: primary.display, portraitPanel, recipe: edition?.cover || recipe, forceLight: opts.style === "contrast" });
         protectedRuns += poster.protectedRuns;
         boxes.push(...poster.boxes); issues.push(...poster.issues);
     } else throw new Error("새 이미지 세트는 표지·신뢰·연락 3장입니다.");
