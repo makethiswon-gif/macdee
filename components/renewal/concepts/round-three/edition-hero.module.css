@@ -205,3 +205,25 @@
     .motionMount { transform: rotate(-7deg); }
     :global([data-design-scene][data-ready="true"]) .sheetEntry { animation: none; }
 }
+
+/* The selected home has a stronger exit: the three prints open the next spread.
+   The study route keeps its original quieter comparison choreography. */
+.homeHero { --mx: 0; --my: 0; --scroll: 0; min-height: max(780px,calc(100svh - 84px)); }
+.homeHero .masthead { transform-origin: left top; transform: translateY(calc(var(--scroll) * -85px)) scale(calc(1 - var(--scroll) * .12)); }
+.homeHero .contentMount { transform: translate3d(calc(var(--mx) * -12px - var(--scroll) * 300px),calc(var(--my) * -8px + var(--scroll) * 50px),0) rotate(calc(-11deg - var(--mx) * 2deg - var(--scroll) * 18deg)); }
+.homeHero .campaignMount { transform: translate3d(calc(var(--mx) * 22px + var(--scroll) * 380px),calc(var(--my) * 16px - var(--scroll) * 60px),40px) rotate(calc(11deg + var(--mx) * 3deg + var(--scroll) * 23deg)); }
+.homeHero .motionMount { transform: translate3d(calc(var(--mx) * 30px + var(--scroll) * 230px),calc(var(--my) * 22px + var(--scroll) * 180px),65px) rotate(calc(-7deg + var(--mx) * 2deg - var(--scroll) * 21deg)); }
+.homeHero[data-playing="false"] .sheetEntry { animation-play-state: paused; }
+@media (max-width: 800px) {
+    .homeHero { min-height: 0; }
+    .homeHero .masthead { transform: translateY(calc(var(--scroll) * -30px)); }
+    .homeHero .contentMount { transform: translateX(calc(var(--scroll) * -100px)) rotate(calc(-11deg - var(--scroll) * 12deg)); }
+    .homeHero .campaignMount { transform: translateX(calc(var(--scroll) * 150px)) rotate(calc(11deg + var(--scroll) * 15deg)); }
+    .homeHero .motionMount { transform: translate(calc(var(--scroll) * 95px),calc(var(--scroll) * 70px)) rotate(calc(-7deg - var(--scroll) * 12deg)); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .homeHero .masthead { transform: none; }
+    .homeHero .contentMount { transform: rotate(-11deg); }
+    .homeHero .campaignMount { transform: rotate(11deg); }
+    .homeHero .motionMount { transform: rotate(-7deg); }
+}

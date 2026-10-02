@@ -95,8 +95,8 @@ function MotionPrint() {
     </div>;
 }
 
-export default function EditionHero() {
-    return <section className={s.hero} aria-labelledby="edition-hero-title" data-edition-hero>
+export default function EditionHero({ home = false }: { home?: boolean }) {
+    return <section className={`${s.hero} ${home ? s.homeHero : ""}`} aria-labelledby="edition-hero-title" data-edition-hero data-home-edition-hero={home || undefined} data-design-scene={home || undefined} data-playing={home ? "false" : undefined}>
         <div className={s.canvas}>
             <div className={s.masthead} aria-hidden="true"><span>MAKE</span><span>THIS1<span className={s.mastheadDot}>.</span></span></div>
             <div className={s.artwork} aria-hidden="true">

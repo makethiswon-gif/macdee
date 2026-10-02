@@ -1,0 +1,48 @@
+.root { position: relative; color: #004aad; background: #fff; font-family: "Renewal Study",Arial,sans-serif; overflow-x: clip; --mt-ink: #004aad; --mt-gray: #42536b; --mt-line: #004aad35; }
+.root *, .root *::before, .root *::after { box-sizing: border-box; }
+.root :where(a) { text-decoration: none; }
+.root :is(a,button,summary):focus-visible { outline: 3px solid #ff9337 !important; outline-offset: 5px; }
+.root :is(section,[id]) { scroll-margin-top: 100px; }
+.root :global([data-reveal]) { opacity: 1 !important; transform: none !important; clip-path: none !important; visibility: visible !important; animation: none !important; transition: none !important; }
+.root [data-edition-scene] { --ep: 1; }
+/* Keep the complete printed page if the enhancement bundle fails or is delayed. */
+:global(html.mt-js) .root[data-edition-ready="true"] [data-edition-scene] { --ep: 0; }
+.root[data-motion-paused="true"] [data-edition-scene], .root[data-reduced-motion="true"] [data-edition-scene], .root[data-short-viewport="true"] [data-edition-scene] { --ep: 1 !important; }
+.root [data-edition-scene]:focus-within { --ep: 1 !important; }
+.root[data-motion-paused="true"] *, .root[data-motion-paused="true"] *::before, .root[data-motion-paused="true"] *::after,
+.root[data-reduced-motion="true"] *, .root[data-reduced-motion="true"] *::before, .root[data-reduced-motion="true"] *::after { animation: none !important; transition: none !important; }
+.cover { padding-top: 84px; }
+.imprint { padding: 32px 5.2% 44px; border-top: 1px solid #004aad35; display: flex; justify-content: space-between; align-items: center; gap: 30px; background: #f2f2ec; }
+.imprintCopy > p { margin: 0; font-size: 13px; line-height: 1.8; }
+.imprintCopy > p:first-child { font-weight: 650; }
+.imprintCopy > .before { margin-top: 14px; color: #466285; font-size: 10px; }
+.before i { font-style: normal; }
+.before strong { color: #004aad; }
+.proof { display: flex; gap: clamp(25px,5vw,90px); margin: 0; }
+.proof > div { display: flex; flex-direction: column-reverse; gap: 4px; }
+.proof dt { color: #466285; font-size: 11px; }
+.proof dd { margin: 0; font-size: clamp(30px,3.3vw,52px); font-weight: 650; line-height: 1; letter-spacing: -.06em; }
+.proof dd span { font-size: 17px; letter-spacing: -.02em; margin-left: 2px; }
+.controls { position: fixed; z-index: 45; right: 20px; bottom: 20px; display: none; }
+.controls[data-ready="true"] { display: block; }
+.controls button { background: #fff; color: #004aad; border: 1px solid #004aad66; border-radius: 0; box-shadow: 0 4px 14px #001c4910; font: inherit; font-size: 11px; padding: 10px 14px; min-height: 42px; display: flex; align-items: center; gap: 12px; cursor: pointer; }
+.controls button:disabled { cursor: default; }
+:global(.mt-root[data-marketing]):has(.root) > header { --mt-bg: #fff; --mt-ink: #004aad; --mt-accent: #004aad; --mt-surface: #f5f5ee; --mt-gray: #42536b; --mt-line: #004aad35; background: #fffffffa !important; border-bottom: 1px solid #004aad25 !important; }
+:global(.mt-root[data-marketing]):has(.root) > header a[aria-label="MAKETHIS1 홈"] { background: #004aad; padding: 7px 13px; }
+:global(.mt-root[data-marketing]):has(.root) > header a[aria-label="MAKETHIS1 홈"] img { width: 94px; }
+:global(.mt-root[data-marketing]):has(.root) > header :is(a,button):focus-visible { outline-color: #ff9337; }
+@media (max-width: 767px) {
+    .cover { padding-top: 72px; }
+    .imprint { padding: 25px 22px 35px; flex-direction: column; align-items: flex-start; gap: 28px; }
+    .proof { gap: 25px; width: 100%; justify-content: space-between; }
+    .proof dd { font-size: 32px; }
+    .proof dd span { font-size: 13px; }
+    .proof dt { font-size: 10px; }
+    .controls { bottom: 12px; right: 12px; }
+    .controls button { padding: 9px 11px; font-size: 10px; }
+    :global(.mt-root[data-marketing]):has(.root) > header a[aria-label="MAKETHIS1 홈"] img { width: 74px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .root [data-edition-scene] { --ep: 1 !important; }
+    .root *, .root *::before, .root *::after { animation: none !important; transition: none !important; }
+}
