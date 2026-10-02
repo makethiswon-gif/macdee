@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getInsightCatalogue, getRelatedInsights } from "@/lib/renewal/magazine";
+import { getInsightCatalogue } from "@/lib/renewal/magazine";
 
 import HomeEditionHero from "@/components/renewal/home/edition/HomeEditionHero";
 import ServiceSpread from "@/components/renewal/home/edition/ServiceSpread";
@@ -117,10 +117,10 @@ const jsonLd = {
 };
 
 export default async function RenewalHome() {
-    // 날짜만으로 고르지 않고, 기존 발행글 중 로펌 마케팅과 관련 있는 글을 연결한다.
-    const [catalogue, insights] = await Promise.all([
-        getInsightCatalogue().catch(() => []), getRelatedInsights("lawfirm-marketing", 3),
-    ]);
+    // Catalogue is already ordered by publication date (newest first).
+    // Homepage shows the latest three; service pages retain their related picks.
+    const catalogue = await getInsightCatalogue().catch(() => []);
+    const insights = catalogue.slice(0, 3);
 
     return (
         <>

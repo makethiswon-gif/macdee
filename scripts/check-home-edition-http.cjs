@@ -206,6 +206,17 @@ async function main() {
         assert(articleLinks.length > 0, 'Visible insights requires articles');
         assertCopy(scene('insights'), ['법무법인 마케팅, 먼저 읽어볼 글.', '마케팅 매거진 전체 보기'], 'Insights heading');
         articleLinks.each((_, node) => assert($(node).find('h3').text().trim(), 'Each article has an SSR title'));
+        const archive = await localGet(new URL('/magazine', base));
+        assert.equal(archive.status, 200, 'Latest article archive');
+        const archiveDom = cheerio.load(archive.html);
+        const collection = archiveDom('script[type="application/ld+json"]').toArray()
+            .map(node => JSON.parse(archiveDom(node).text()))
+            .find(value => value['@type'] === 'CollectionPage');
+        assert(collection?.mainEntity?.itemListElement, 'Archive exposes ordered published articles');
+        const expectedLatest = collection.mainEntity.itemListElement.slice(0, 3)
+            .map(item => decodeURI(new URL(item.url).pathname));
+        assert.deepEqual(articleLinks.map((_, node) => decodeURI($(node).attr('href'))).get(), expectedLatest,
+            'Homepage must show the same newest three articles as the archive');
     }
 
     const targets = new Set();
