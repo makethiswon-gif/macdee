@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Container, SectionHeader } from "../primitives";
 import Reveal from "../Reveal";
 import { PLANS, PLANS_FOOTNOTE, PLANS_FAQ, path } from "@/data/renewal/site";
+import styles from "./service-plan-motion.module.css";
 
 // #plans — 세 가지 운영안과 예상 비용.
 //
@@ -10,9 +11,9 @@ import { PLANS, PLANS_FOOTNOTE, PLANS_FAQ, path } from "@/data/renewal/site";
 // STANDARD는 대표의 통합상품 전환 지시(2026-09-07), 상위 상품은 기존 기준가.
 // CTA 는 진단 폼으로 가며 ?plan= 쿼리로 선택한 운영안이 폼에 반영된다.
 
-export default function PlansSection() {
+export default function PlansSection({ homeMotion = false }: { homeMotion?: boolean }) {
     return (
-        <section id="plans" data-clause="PLANS" className="py-[88px] md:py-[140px]">
+        <section id="plans" data-clause="PLANS" data-home-motion={homeMotion ? "plans" : undefined} className={`py-[88px] md:py-[140px] ${homeMotion ? styles.plans : ""}`}>
             <Container>
                 <Reveal>
                     <SectionHeader
@@ -27,9 +28,16 @@ export default function PlansSection() {
                     {PLANS.map((plan, i) => (
                         <Reveal key={plan.key} index={i} className="h-full">
                             <article
-                                className="mt-plan h-full flex flex-col px-7 py-8 md:px-8 md:py-9"
+                                className={`mt-plan h-full flex flex-col px-7 py-8 md:px-8 md:py-9 ${homeMotion ? styles.planCard : ""}`}
                                 data-featured={plan.featured ? "" : undefined}
+                                data-home-motion={homeMotion ? "plan-sheet" : undefined}
                             >
+                                {homeMotion && (
+                                    <div className={styles.planLayers} aria-hidden="true">
+                                        {[0, 1, 2].map((layer) => <span key={layer} style={{ ["--layer" as string]: layer }} />)}
+                                        <i />
+                                    </div>
+                                )}
                                 {/* 헤더 — 견적서 표제 */}
                                 <div className="flex items-start justify-between gap-3">
                                     <div>
@@ -71,7 +79,19 @@ export default function PlansSection() {
                                 </p>
 
                                 {/* 포함 내역 */}
-                                <div className="mt-6 flex-1">
+                                {homeMotion ? (
+                                    <details className={styles.planScope} open>
+                                        <summary>
+                                            <span>{plan.includesLabel}</span>
+                                            <span className={styles.scopeToggle} aria-hidden="true"><i /><i /></span>
+                                        </summary>
+                                        <ul className={styles.scopeItems}>
+                                            {plan.includes.map((it) => (
+                                                <li key={it}><span aria-hidden="true">―</span><span>{it}</span></li>
+                                            ))}
+                                        </ul>
+                                    </details>
+                                ) : <div className="mt-6 flex-1">
                                     <p className="mt-en mt-label text-[10.5px]" style={{ color: "var(--mt-gray)" }}>
                                         {plan.includesLabel}
                                     </p>
@@ -89,7 +109,7 @@ export default function PlansSection() {
                                             </li>
                                         ))}
                                     </ul>
-                                </div>
+                                </div>}
 
                                 {/* CTA — 선택한 운영안이 진단 폼에 반영된다 */}
                                 <div className="mt-7">

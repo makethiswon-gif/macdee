@@ -12,6 +12,8 @@ import WhyMakethis1 from "@/components/renewal/home/WhyMakethis1";
 import InsightsPreview from "@/components/renewal/home/InsightsPreview";
 import PlansSection from "@/components/renewal/home/PlansSection";
 import FinalCTA from "@/components/renewal/home/FinalCTA";
+import HomeMotionController from "@/components/renewal/home/HomeMotionController";
+import motionStyles from "@/components/renewal/home/home-motion.module.css";
 
 import { CASES } from "@/data/renewal/cases";
 import { COMPANY, FOUNDER, absUrl, ogImage } from "@/data/renewal/site";
@@ -139,18 +141,21 @@ export default async function RenewalHome() {
 
                 핵심 원칙: 첫 화면 5초 안에 "필요한 마케팅 전부를 한 팀이 운영해
                 간단해진다"가 읽혀야 한다. 효과 없이 읽어도 구조가 이해된다. */}
+            <div data-home-motion-root className={motionStyles.root}>
+            <HomeMotionController />
             <HeroSection />
-            <ServicesSection />
+            <ServicesSection homeMotion />
             <ClientJourney />
             <ProblemSection />
             <PartnerLogos />
             {/* 홈은 첫 사례만 Growth Path 를 펼친다 — 전체는 /work */}
-            <CaseStudies cases={CASES} growthLimit={1} />
+            <CaseStudies cases={CASES} growthLimit={1} homeMotion />
             <InvariantClause />
             <WhyMakethis1 />
             <InsightsPreview items={insights} total={catalogue.length} />
-            <PlansSection />
+            <PlansSection homeMotion />
             <FinalCTA />
+            </div>
         </>
     );
 }

@@ -5,6 +5,7 @@ import { Container, SectionHeader } from "../primitives";
 import Reveal from "../Reveal";
 import { useScrollProgress } from "../useScrollProgress";
 import { SERVICES, path } from "@/data/renewal/site";
+import styles from "./service-plan-motion.module.css";
 
 // 서비스 범위 — 01~06.
 //
@@ -43,7 +44,66 @@ function ItemList({ items }: { items: (typeof SERVICES)[number]["items"] }) {
     );
 }
 
-export default function ServicesSection() {
+export default function ServicesSection({ homeMotion = false }: { homeMotion?: boolean }) {
+    return homeMotion ? <ConnectedServices /> : <LegacyServices />;
+}
+
+// The moving sheets are decorative. Links, disclosure controls and copy stay
+// on fixed surfaces, including keyboard focus and the no-JavaScript render.
+function ConnectedServices() {
+    return (
+        <section id="scope" data-clause="SERVICES" data-home-motion="services" className={styles.services}>
+            <Container>
+                <SectionHeader eyebrow="Services" serif title="우리가 맡는 일." />
+                <div className={styles.serviceWorkbench}>
+                    <div className={styles.serviceMap} data-home-motion="service-map" aria-hidden="true">
+                        <div className={styles.mapSpine} />
+                        {SERVICES.map((svc, i) => (
+                            <div key={svc.no} className={styles.serviceMapNode} style={{ ["--sheet" as string]: i }}>
+                                <div className={styles.serviceMapSheet}>
+                                    <span>{svc.no}</span>
+                                    <span>{svc.en}</span>
+                                    <i />
+                                </div>
+                                <span className={styles.mapJoint} />
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className={styles.serviceGrid}>
+                        {SERVICES.map((svc, i) => (
+                            <article key={svc.no} className={styles.serviceCard} style={{ ["--sheet" as string]: i }}>
+                                <span className={styles.cardRule} aria-hidden="true" />
+                                <div className={styles.serviceHeading}>
+                                    <span className={styles.serviceNumber}>{svc.no}</span>
+                                    <div>
+                                        <Link href={path(svc.href)} className={styles.serviceLink}>
+                                            <span>{svc.ko}</span><span aria-hidden="true">↗</span>
+                                        </Link>
+                                        <p className={styles.serviceEnglish}>{svc.en}</p>
+                                    </div>
+                                </div>
+                                <p className={styles.serviceSummary}>{svc.summary}</p>
+                                <details className={styles.serviceDetails}>
+                                    <summary>세부 업무 보기<span aria-hidden="true">+</span></summary>
+                                    <div className={styles.serviceItems}><ItemList items={svc.items} /></div>
+                                </details>
+                            </article>
+                        ))}
+                    </div>
+                </div>
+
+                <div className={styles.serviceNotes}>
+                    <p>운영 범위는 상품에 따라 다릅니다. 조건부 항목은 확정 서비스가 아니며, 필요성·광고 허용 여부에 따라 검토합니다.</p>
+                    <p>변호사법·대한변협 광고 규정을 준수하며, 법률 표현은 법학 전공자가 검수합니다.</p>
+                    <Link href={path("/lawfirm-marketing")}>전체 업무 보기 <span aria-hidden="true">↗</span></Link>
+                </div>
+            </Container>
+        </section>
+    );
+}
+
+function LegacyServices() {
     const stageRef = useScrollProgress<HTMLDivElement>();
 
     return (

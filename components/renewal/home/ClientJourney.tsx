@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Container } from "../primitives";
 import Reveal from "../Reveal";
-import { useScrollProgress } from "../useScrollProgress";
+import s from "./home-motion.module.css";
 import { JOURNEY, path } from "@/data/renewal/site";
 
 // 의뢰인 여정 (ONE BLUE THREAD).
@@ -184,10 +184,8 @@ const SCENES = [SearchScene, HomepageScene, ContactScene];
 const BADGE_A = [0.25, 0.47, 0.76]; // 카드별 기존 배지 등장 시작
 
 export default function ClientJourney() {
-    const stageRef = useScrollProgress<HTMLDivElement>();
-
     return (
-        <section id="system" data-clause="JOURNEY" className="pt-[88px] md:pt-[140px] pb-[88px] md:pb-[140px]">
+        <section id="system" data-clause="JOURNEY" data-home-motion="journey" className={`${s.journey} pt-[88px] md:pt-[140px] pb-[88px] md:pb-[140px]`}>
             <Container>
                 {/* 섹션 진입 — 제목 줄 단위 마스크 리빌 */}
                 <div className="mt-section-heading max-w-[820px]">
@@ -211,12 +209,17 @@ export default function ClientJourney() {
 
             {/* ── 스크롤 무대 ── */}
             {/* 165→140svh — 홈 길이 다이어트(2026-08-29) */}
-            <div ref={stageRef} className="mt-stage mt-stage-track lg:h-[140svh]">
+            <div className={`mt-stage mt-stage-track ${s.journeyStage}`}>
                 <div className="mt-stage-pin">
-                    <Container className="pt-14 lg:pt-0">
-                        <div className="relative pl-7 lg:pl-0">
+                    <Container>
+                        <svg className={s.journeyRail} viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true">
+                            <path className={s.railBase} d="M 0 66 H 235 Q 260 66 280 46 L 300 26 Q 316 10 340 10 H 575 Q 600 10 620 30 L 638 48 Q 656 66 680 66 H 1000" />
+                            <path className={s.railInk} pathLength={1} d="M 0 66 H 235 Q 260 66 280 46 L 300 26 Q 316 10 340 10 H 575 Q 600 10 620 30 L 638 48 Q 656 66 680 66 H 1000" />
+                            {[{x:80,y:66},{x:480,y:10},{x:880,y:66}].map(({x,y}) => <g key={x}><circle cx={x} cy={y} r={8}/><circle className={s.railCore} cx={x} cy={y} r={4}/></g>)}
+                        </svg>
+                        <div className={s.journeyLayout}>
                             {/* 모바일: 세로 경로 */}
-                            <div className="lg:hidden absolute left-1 top-2 bottom-2" aria-hidden="true">
+                            <div className={s.legacyRail} aria-hidden="true">
                                 <span className="mt-jvline" />
                                 <span className="mt-jvfill" />
                                 <span className="mt-jvdot">
@@ -227,7 +230,7 @@ export default function ClientJourney() {
                             </div>
 
                             {/* 데스크톱: 카드 상단 검은 선 위의 파란 진행선 + 의뢰인 점 */}
-                            <div className="hidden lg:block absolute -top-0 left-0 right-0 h-0 z-10" aria-hidden="true">
+                            <div className={s.legacyRail} aria-hidden="true">
                                 <span
                                     className="mt-jtrack-fill absolute left-0 top-0 h-[2px]"
                                     style={{ background: "var(--mt-accent)" }}
@@ -237,18 +240,20 @@ export default function ClientJourney() {
                                 </span>
                             </div>
 
-                            <ol className="grid grid-cols-1 lg:grid-cols-3 gap-x-10 gap-y-10">
+                            <ol className={`grid grid-cols-1 lg:grid-cols-3 gap-x-10 gap-y-10 ${s.journeyGrid}`}>
                                 {JOURNEY.map((step, i) => {
                                     const Scene = SCENES[i];
                                     return (
                                         <li
                                             key={step.no}
-                                            className="mt-jcard h-full pt-7"
+                                            className={`mt-jcard h-full pt-7 ${s.journeyCard}`}
+                                            data-home-motion="journey-step"
                                             style={{
                                                 borderTop: "2px solid var(--mt-ink)",
                                                 ["--a" as string]: A[i],
                                             }}
                                         >
+                                            <span className={s.stepRail} aria-hidden="true" />
                                             <p className="mt-en mt-num text-[11px] font-medium" style={{ color: "var(--mt-accent)" }}>
                                                 {step.no}
                                             </p>

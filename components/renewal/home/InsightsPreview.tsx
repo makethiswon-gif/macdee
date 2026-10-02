@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { formatKstDate } from "@/lib/renewal/magazine-display";
 import { Container, Section, Eyebrow, ArrowLink } from "../primitives";
-import Reveal from "../Reveal";
 import { path } from "@/data/renewal/site";
+import styles from "./editorial-motion.module.css";
 
 // SECTION 07 — Insights.
 //
@@ -18,9 +18,30 @@ export interface InsightItem {
     excerpt: string | null;
     category: string | null;
     published_at: string | null;
+    cover_image_url?: string | null;
 }
 
 const formatDate = formatKstDate;
+
+// Real, already-published cover art only. Articles without an asset retain an
+// editorial type cover, never an invented photo or a generated case illustration.
+function EditorialCover({ item, compact = false }: { item: InsightItem; compact?: boolean }) {
+    return (
+        <div className={`${styles.cover} ${compact ? styles.compactCover : ""}`} aria-hidden="true">
+            {item.cover_image_url ? (
+                // Existing magazine assets are not restricted to one image host.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={item.cover_image_url} alt="" loading="lazy" decoding="async" width="800" height="500" />
+            ) : (
+                <span className={styles.typeCover}>INSIGHTS</span>
+            )}
+            <span className={styles.coverRule} />
+            <span className={styles.coverShutter} />
+            <span className={styles.coverShutter} />
+            <span className={styles.coverShutter} />
+        </div>
+    );
+}
 
 function Meta({ item, accent = false }: { item: InsightItem; accent?: boolean }) {
     return (
@@ -46,7 +67,7 @@ export default function InsightsPreview({ items, total }: { items: InsightItem[]
     const [lead, ...rest] = items;
 
     return (
-        <Section data-clause="INSIGHTS">
+        <Section data-clause="INSIGHTS" className={styles.magazineSection}>
             <Container>
                 <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
                     <div>
@@ -62,61 +83,57 @@ export default function InsightsPreview({ items, total }: { items: InsightItem[]
                                 </>
                             )}
                         </div>
-                        <Reveal variant="mask">
-                            <h2 className="mt-h2">법무법인 마케팅, 먼저 읽어볼 글.</h2>
-                        </Reveal>
+                        <h2 className="mt-h2">법무법인 마케팅, 먼저 읽어볼 글.</h2>
                     </div>
-                    <Reveal variant="rise" index={1}>
+                    <div>
                         <ArrowLink href={path("/magazine")}>마케팅 매거진 전체 보기</ArrowLink>
-                    </Reveal>
+                    </div>
                 </div>
 
                 <div className="mt-14 md:mt-18 grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] gap-12 lg:gap-20">
-                    {/* 큰 기사 — 문서철: 뒤에 겹친 보조 문서가 정렬되며 한 장이 앞으로 나온다.
-                        화면 진입 시 1회, 이후 정지(무한 슬라이드·마키 없음) */}
-                    <Reveal variant="rise">
-                        <div className="mt-paperstack">
+                    {/* The cover moves, not the title or its clickable target. */}
+                    <div className={styles.magazineCard} data-home-motion="magazine-cover">
                         <Link
                             href={path(`/magazine/${lead.slug}`)}
-                            className="group block p-7 md:p-9 rounded-[2px]"
-                            style={{
-                                background: "var(--mt-surface)",
-                                border: "1px solid var(--mt-line)",
-                                borderTop: "2px solid var(--mt-ink)",
-                            }}
+                            className={`group block ${styles.leadLink}`}
                         >
-                            <Meta item={lead} accent />
-                            <h3 className="mt-6 text-[clamp(1.35rem,2.3vw,1.85rem)] font-semibold leading-[1.38] tracking-tight">
-                                <span className="mt-underline">{lead.title}</span>
-                            </h3>
-                            <span
-                                className="mt-8 inline-flex items-center gap-1.5 text-[13px] font-medium"
-                                style={{ color: "var(--mt-ink)" }}
-                            >
-                                읽기
-                                <span className="transition-transform duration-200 group-hover:translate-x-1">
-                                    →
+                            <EditorialCover item={lead} />
+                            <div className={styles.leadCopy}>
+                                <Meta item={lead} accent />
+                                <h3 className="mt-6 text-[clamp(1.35rem,2.3vw,1.85rem)] font-semibold leading-[1.38] tracking-tight">
+                                    <span className="mt-underline">{lead.title}</span>
+                                </h3>
+                                <span
+                                    className="mt-8 inline-flex items-center gap-1.5 text-[13px] font-medium"
+                                    style={{ color: "var(--mt-ink)" }}
+                                >
+                                    읽기
+                                    <span className="transition-transform duration-200 group-hover:translate-x-1">
+                                        →
+                                    </span>
                                 </span>
-                            </span>
+                            </div>
                         </Link>
-                        </div>
-                    </Reveal>
+                    </div>
 
                     {/* 목록 */}
                     <ul>
-                        {rest.map((a, i) => (
-                            <Reveal key={a.id} as="li" variant="rise" index={i + 1}>
+                        {rest.map((a) => (
+                            <li key={a.id} className={styles.magazineCard} data-home-motion="magazine-cover">
                                 <Link
                                     href={path(`/magazine/${a.slug}`)}
-                                    className="group block py-8"
+                                    className={`group py-8 ${styles.articleLink}`}
                                     style={{ borderTop: "1px solid var(--mt-line)" }}
                                 >
-                                    <Meta item={a} />
-                                    <h3 className="mt-4 text-[16px] font-semibold leading-[1.5] tracking-tight">
-                                        <span className="mt-underline">{a.title}</span>
-                                    </h3>
+                                    <div>
+                                        <Meta item={a} />
+                                        <h3 className="mt-4 text-[16px] font-semibold leading-[1.5] tracking-tight">
+                                            <span className="mt-underline">{a.title}</span>
+                                        </h3>
+                                    </div>
+                                    <EditorialCover item={a} compact />
                                 </Link>
-                            </Reveal>
+                            </li>
                         ))}
                         <li style={{ borderTop: "1px solid var(--mt-line)" }} />
                     </ul>

@@ -2,6 +2,22 @@ import { Container, Section, SectionHeader, ArrowLink } from "../primitives";
 import Reveal from "../Reveal";
 import { path } from "@/data/renewal/site";
 import type { CaseStudy } from "@/data/renewal/cases";
+import type { CSSProperties, ReactNode } from "react";
+import styles from "./editorial-motion.module.css";
+
+// Only the homepage opts into the document treatment. /work keeps its original
+// reveal and geometry, while homepage text stays still above animated paper.
+function CaseReveal({ children, homeMotion, index = 0, as = "div", className = "" }: {
+    children: ReactNode;
+    homeMotion: boolean;
+    index?: number;
+    as?: "div" | "li";
+    className?: string;
+}) {
+    if (!homeMotion) return <Reveal as={as} index={index} className={className}>{children}</Reveal>;
+    const Tag = as;
+    return <Tag className={className}>{children}</Tag>;
+}
 
 // Case Study.
 // 로고 나열이 아니라 BEFORE → STRATEGY → RESULT 구조로 보여준다.
@@ -14,19 +30,22 @@ export default function CaseStudies({
     cases,
     growthLimit = Infinity,
     showAllLink = true,
+    homeMotion = false,
 }: {
     cases: CaseStudy[];
     /** "전체 사례 보기" 링크 — /work 자신에서는 자기 자신으로 가는 링크가 되므로 끈다 */
     showAllLink?: boolean;
     /** Growth Path 타임라인을 앞에서 몇 개 사례까지 펼칠지 — 홈은 1(길이 관리), /work 는 전부 */
     growthLimit?: number;
+    /** Homepage-only paper alignment; shared work page remains unchanged. */
+    homeMotion?: boolean;
 }) {
     if (!cases.length) return null;
 
     const hasSample = cases.some((c) => c.isSample);
 
     return (
-        <Section data-clause="CASES">
+        <Section data-clause="CASES" className={homeMotion ? styles.caseSection : ""}>
             <Container>
                 <SectionHeader
                     eyebrow="Case Studies"
@@ -51,10 +70,11 @@ export default function CaseStudies({
 
                 <div className="mt-14 md:mt-20 flex flex-col">
                     {cases.map((c, i) => (
-                        <Reveal key={c.id} index={i}>
+                        <CaseReveal key={c.id} index={i} homeMotion={homeMotion}>
                             <article
-                                className="py-12 md:py-16"
+                                className={`py-12 md:py-16 ${homeMotion ? styles.caseDocument : ""}`}
                                 style={{ borderTop: "1px solid var(--mt-line)" }}
+                                data-home-motion={homeMotion ? "case-document" : undefined}
                             >
                                 <div className="flex items-baseline gap-4 mb-10">
                                     <span
@@ -67,8 +87,8 @@ export default function CaseStudies({
                                     <h3 className="text-[17px] font-semibold">{c.field}</h3>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-12">
-                                    <div>
+                                <div className={`grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-12 ${homeMotion ? styles.caseGrid : ""}`}>
+                                    <div className={homeMotion ? styles.caseColumn : undefined} style={homeMotion ? { "--paper-angle": "-2.4deg", "--paper-shift": "-18px" } as CSSProperties : undefined}>
                                         <p className="mt-en mt-label mb-5" style={{ color: "var(--mt-gray)" }}>
                                             운영 전
                                         </p>
@@ -81,7 +101,7 @@ export default function CaseStudies({
                                         </ul>
                                     </div>
 
-                                    <div>
+                                    <div className={homeMotion ? styles.caseColumn : undefined} style={homeMotion ? { "--paper-angle": "1.8deg", "--paper-shift": "10px" } as CSSProperties : undefined}>
                                         <p className="mt-en mt-label mb-5" style={{ color: "var(--mt-gray)" }}>
                                             한 일
                                         </p>
@@ -94,7 +114,7 @@ export default function CaseStudies({
                                         </ul>
                                     </div>
 
-                                    <div>
+                                    <div className={homeMotion ? `${styles.caseColumn} ${styles.caseResult}` : undefined} style={homeMotion ? { "--paper-angle": "-1.4deg", "--paper-shift": "20px" } as CSSProperties : undefined}>
                                         <p className="mt-en mt-label mb-5" style={{ color: "var(--mt-gray)" }}>
                                             결과
                                         </p>
@@ -130,7 +150,7 @@ export default function CaseStudies({
                                                 style={{ background: "var(--mt-accent)", opacity: 0.45 }}
                                             />
                                             {c.growth.map((g, gi) => (
-                                                <Reveal key={g.en} as="li" index={gi} className="relative pb-9 last:pb-0">
+                                                <CaseReveal key={g.en} as="li" index={gi} homeMotion={homeMotion} className="relative pb-9 last:pb-0">
                                                     <span
                                                         aria-hidden
                                                         className="absolute -left-7 top-[5px] w-[7px] h-[7px] rounded-full"
@@ -146,7 +166,7 @@ export default function CaseStudies({
                                                         {g.title}
                                                     </h4>
                                                     <p className="mt-body mt-2 text-[13.5px] max-w-[64ch]">{g.desc}</p>
-                                                </Reveal>
+                                                </CaseReveal>
                                             ))}
                                         </ol>
                                     </div>
@@ -161,17 +181,17 @@ export default function CaseStudies({
                                     </p>
                                 )}
                             </article>
-                        </Reveal>
+                        </CaseReveal>
                     ))}
                     <div style={{ borderTop: "1px solid var(--mt-line)" }} />
                 </div>
 
                 {showAllLink && (
-                    <Reveal index={1}>
+                    <CaseReveal index={1} homeMotion={homeMotion}>
                         <div className="mt-12">
                             <ArrowLink href={path("/work")}>전체 사례 보기</ArrowLink>
                         </div>
-                    </Reveal>
+                    </CaseReveal>
                 )}
             </Container>
         </Section>

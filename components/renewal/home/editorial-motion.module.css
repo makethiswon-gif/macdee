@@ -1,0 +1,198 @@
+/* Homepage editorial choreography. All copy/link boxes are stationary; only
+   paper backplates and already-published image assets react to scroll. */
+.caseSection {
+    overflow-x: clip;
+}
+
+.caseDocument,
+.magazineCard {
+    --section-progress: 1;
+}
+
+.caseGrid {
+    gap: 20px;
+    padding: 12px 0;
+}
+
+.caseColumn {
+    position: relative;
+    isolation: isolate;
+    padding: 30px 24px 32px;
+}
+
+.caseColumn::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    pointer-events: none;
+    background: var(--mt-surface, #fff);
+    border: 1px solid var(--mt-line);
+    border-top: 3px solid #004aad;
+    transform-origin: 50% 15%;
+}
+
+.caseColumn::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 22px;
+    height: 22px;
+    background: linear-gradient(45deg, #e4edfa 49%, transparent 50%);
+    pointer-events: none;
+}
+
+.caseResult::before {
+    background: #eff4fb;
+}
+
+.caseDocument[data-motion-ready="true"] .caseColumn::before {
+    transform: translateY(calc((1 - var(--section-progress)) * var(--paper-shift)))
+        rotate(calc((1 - var(--section-progress)) * var(--paper-angle)));
+}
+
+.magazineSection {
+    overflow-x: clip;
+}
+
+.leadLink {
+    border: 1px solid var(--mt-line);
+    border-top: 3px solid #004aad;
+    background: var(--mt-surface, #fff);
+}
+
+.leadCopy {
+    padding: 28px 32px 34px;
+}
+
+.cover {
+    position: relative;
+    isolation: isolate;
+    aspect-ratio: 16 / 9;
+    overflow: clip;
+    background: #004aad;
+    pointer-events: none;
+}
+
+.cover img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.typeCover {
+    position: absolute;
+    top: 50%;
+    left: -0.025em;
+    transform: translateY(-50%);
+    color: #fff;
+    font-size: clamp(52px, 6.7vw, 102px);
+    font-weight: 700;
+    letter-spacing: -0.09em;
+    line-height: 1;
+}
+
+.coverRule {
+    position: absolute;
+    inset: 15px;
+    border: 1px solid rgb(255 255 255 / 36%);
+    pointer-events: none;
+}
+
+.coverShutter {
+    position: absolute;
+    top: -1px;
+    bottom: -1px;
+    left: 0;
+    width: 33.5%;
+    background: #004aad;
+    transform-origin: top;
+    transform: scaleY(0);
+}
+
+.coverShutter:nth-last-child(2) {
+    left: 33.33%;
+    background: #064597;
+    transform-origin: bottom;
+}
+
+.coverShutter:last-child {
+    left: 66.66%;
+    background: #053d85;
+}
+
+.magazineCard[data-motion-ready="true"] .coverShutter {
+    transform: scaleY(calc(1 - var(--section-progress)));
+}
+
+.magazineCard[data-motion-ready="true"] .cover img {
+    transform: scale(calc(1 + (1 - var(--section-progress)) * 0.065));
+}
+
+.articleLink {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 112px;
+    align-items: start;
+    gap: 24px;
+}
+
+.compactCover {
+    aspect-ratio: 1;
+}
+
+.compactCover .typeCover {
+    font-size: 45px;
+}
+
+.compactCover .coverRule {
+    inset: 8px;
+}
+
+.leadLink:focus-visible,
+.articleLink:focus-visible {
+    outline: 3px solid #004aad;
+    outline-offset: 5px;
+}
+
+@media (max-width: 1023px) {
+    .caseGrid { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 767px) {
+    .caseGrid { gap: 18px; }
+    .caseColumn { padding: 26px 22px 28px; }
+    .caseDocument[data-motion-ready="true"] .caseColumn::before {
+        transform: translateY(calc((1 - var(--section-progress)) * var(--paper-shift) * 0.35))
+            rotate(calc((1 - var(--section-progress)) * var(--paper-angle) * 0.45));
+    }
+    .leadCopy { padding: 24px; }
+    .articleLink { grid-template-columns: minmax(0, 1fr) 76px; gap: 16px; }
+    .compactCover .typeCover { font-size: 32px; }
+    .magazineCard[data-motion-ready="true"] .cover img {
+        transform: scale(calc(1 + (1 - var(--section-progress)) * 0.025));
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .caseDocument[data-motion-ready="true"] .caseColumn::before,
+    .magazineCard[data-motion-ready="true"] .cover img {
+        transform: none;
+    }
+    .magazineCard[data-motion-ready="true"] .coverShutter {
+        transform: scaleY(0);
+    }
+}
+
+:global([data-reduced-motion="true"]) .caseDocument[data-motion-ready="true"] .caseColumn::before,
+:global([data-reduced-motion="true"]) .magazineCard[data-motion-ready="true"] .cover img,
+:global([data-motion-paused="true"]) .caseDocument[data-motion-ready="true"] .caseColumn::before,
+:global([data-motion-paused="true"]) .magazineCard[data-motion-ready="true"] .cover img {
+    transform: none;
+}
+
+:global([data-reduced-motion="true"]) .magazineCard[data-motion-ready="true"] .coverShutter,
+:global([data-motion-paused="true"]) .magazineCard[data-motion-ready="true"] .coverShutter {
+    transform: scaleY(0);
+}
