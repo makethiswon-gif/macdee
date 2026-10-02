@@ -1,5 +1,7 @@
 # /renewal 인수인계 (→ Codex)
 
+> **2026-10-02 LIVE EDITION 운영 반영 승인:** 대표가 C안을 선택하고 전체 홈 구현 뒤 배포를 승인했다. 현재 홈은 `components/renewal/home/edition/`의 종이·편집 지면 기반 스크롤 구성이다(`ab6ab76`). 서비스 브로슈어, 검색→상담 지면, 운영 통합, 실제 고객·사례·팀, 매거진 인쇄, 견적서, 상담 커튼을 연결한다. 원문·가격·데이터와 관리자 기능은 유지한다. 최신 `origin/main`의 `301dc6c`까지 병합해 블로그·구독 실행·크루룸 변경을 보존했다. 배포는 GitHub main push → Vercel 자동 배포 방식이며 수동 CLI 덮어쓰기를 하지 않는다. `/design-lab`는 비교 보관용으로 기존 `flags.ts`의 검색봇별 색인 제외 정책을 따른다. 검증: 타입/빌드, `scripts/test-home-edition.cjs` 19건, `scripts/check-home-edition-http.cjs` 내부 링크 23개·주요 카피·가격·5개 타 경로 격리, 1440/375px·낮은 가로 화면·키보드·JS 차단 브라우저 검수. 원래 작업 폴더의 미커밋 블로그 변경은 배포에 포함하지 않는다.
+
 > **2026-10-02 SIX → ONE 구현:** 대표가 조립형 시안을 먼저 구현하도록 승인했다. `design/home-six-to-one` 브랜치의 `AssemblyHero`/`AssemblyMotion`을 홈의 `HeroSection`에 연결한다. 기존 D 비교 시안·전역 스타일·카피·서비스 링크·실적 데이터·SEO는 보존한다. 장식용 여섯 면만 2.8초 동안 조립하며, 실제 링크와 H1은 움직이지 않는다. 작업 사본은 `C:\클로드\makethis1-home-motion`이며 원래 작업 폴더의 미완료 블로그 변경을 포함하지 않는다. 커밋/검증과 운영 반영 여부는 아래 §7 참고.
 
 > **2026-09-07 홈페이지 로고 적용:** 대표가 승인한 MAKE / THIS1 2단 워드마크를 공개 마케팅 헤더·푸터와 `/og.png`에 적용했다. 흰색 투명 PNG 원형을 그대로 사용(`public/brand/makethis1-white-v1.png`, 768×396, 26,660 bytes). `BrandWordmark`를 분리하여 기존 `Logo`를 쓰는 포털·제품·관리자·favicon은 보존했다. 본문 카피·상품·키네틱 타이포 연출은 변경하지 않았다. `npx tsc --noEmit`, `npm run build`, `node scripts/test-marketing-logo.cjs http://localhost:3103` 통과: 공개 14개 경로 HTTP 200/SSR 로고, 375·640·768·1024·1440px 비율/겹침/가로 넘침, 메뉴/Escape/포커스, JS 비활성·reduced-motion, 관리자·로그인·포털 분리 확인. 375/1440px 헤더·푸터 및 1200×630 OG 스크린샷 육안 검수.
