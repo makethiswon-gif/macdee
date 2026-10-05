@@ -2,6 +2,7 @@ import { unstable_cache } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/server";
 import { path, SITE_BASE } from "@/data/renewal/site";
 import { cleanExcerpt, displayAuthor } from "@/lib/renewal/magazine-display";
+import { queryDeadline, readPublished } from "@/lib/renewal/magazine-read";
 
 export interface InsightItem {
     id: string;
@@ -24,14 +25,15 @@ export const getInsightCatalogue = unstable_cache(async (): Promise<InsightItem[
     const articles: InsightItem[] = [];
     const batchSize = 200;
     for (let offset = 0; ; offset += batchSize) {
-        const { data, error } = await supabase.from("magazines")
+        // 읽지 못하면 예외 — unstable_cache 가 예전 목록을 계속 보여 주고(재생성 실패는 캐시하지 않음), 연속 실패 중에는 조회를 쉰다.
+        const data = await readPublished<InsightItem[]>("매거진 목록", () => supabase.from("magazines")
             .select("id, title, slug, excerpt, category, cover_image_url, published_at, author, tags")
             .eq("status", "published")
             .order("published_at", { ascending: false, nullsFirst: false })
             .order("created_at", { ascending: false })
             .order("id", { ascending: true })
-            .range(offset, offset + batchSize - 1);
-        if (error) throw new Error("매거진 목록을 불러오지 못했습니다.");
+            .range(offset, offset + batchSize - 1)
+            .abortSignal(queryDeadline()));
         // 옛 칼럼의 요약 찌꺼기("\n\t\t…makethis1.com한국에서…")와 옛 제품명 작성자 표기를 표시용으로 정리한다.
         articles.push(...(data || []).map((row) => ({ ...row, excerpt: cleanExcerpt(row.excerpt) || null, author: displayAuthor(row.author) })));
         if (!data || data.length < batchSize) break;

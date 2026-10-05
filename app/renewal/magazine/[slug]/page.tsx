@@ -7,7 +7,8 @@ import { Container } from "@/components/renewal/primitives";
 import { renderMagazineBody } from "@/lib/renewal/markdown";
 import { cleanExcerpt, cleanLegacyBody, displayAuthor, formatKstDate } from "@/lib/renewal/magazine-display";
 import { COMPANY, DEMO_BASE, path, SITE_BASE, ogImage } from "@/data/renewal/site";
-import { getInsightServices, insightAuthor, insightIndexHref, insightJsonLd, insightUrl } from "@/lib/renewal/magazine";
+import { getInsightCatalogue, getInsightServices, insightAuthor, insightIndexHref, insightJsonLd, insightUrl, type InsightItem } from "@/lib/renewal/magazine";
+import { queryDeadline, readPublished } from "@/lib/renewal/magazine-read";
 import { renewalRobots } from "../../flags";
 
 // 매거진 상세 리스킨 (Phase 8).
@@ -41,22 +42,26 @@ interface Magazine {
     author: string;
 }
 
+// 있음 → 글 / 정말 없음 → null(404) / 읽지 못함 → 예외(lib/renewal/magazine-read.ts).
+// 예전에는 조회 실패도 null 로 돌려줘서, 데이터베이스가 응답하지 않은 동안 실제로 있는 글이 404 로 나가고
+// ISR 이 그 404 를 revalidate(600초) 동안 굳혔다(2026-10-05). 예외는 캐시되지 않고, 이미 만든 페이지는 그대로 보여 준다.
 const getMagazine = cache(async (slug: string): Promise<Magazine | null> => {
+    let decodedSlug: string;
     try {
-        const decodedSlug = decodeURIComponent(slug);
-        const supabase = createServiceClient();
-        const { data, error } = await supabase
-            .from("magazines")
-            .select("*")
-            .eq("slug", decodedSlug)
-            .eq("status", "published")
-            .single();
-        if (error || !data) return null;
-        // 화면·메타·구조화 데이터가 모두 같은 정리본을 쓰도록 조회 직후 한 번만 다듬는다(DB 원문은 그대로).
-        return { ...data, excerpt: cleanExcerpt(data.excerpt), author: displayAuthor(data.author), body: cleanLegacyBody(data.body || "") };
+        decodedSlug = decodeURIComponent(slug);
     } catch {
-        return null;
+        return null; // 깨진 주소는 정말 없는 글이다
     }
+    const data = await readPublished<Magazine>("매거진 글", () => createServiceClient()
+        .from("magazines")
+        .select("*")
+        .eq("slug", decodedSlug)
+        .eq("status", "published")
+        .abortSignal(queryDeadline())
+        .maybeSingle());
+    if (!data) return null;
+    // 화면·메타·구조화 데이터가 모두 같은 정리본을 쓰도록 조회 직후 한 번만 다듬는다(DB 원문은 그대로).
+    return { ...data, excerpt: cleanExcerpt(data.excerpt), author: displayAuthor(data.author), body: cleanLegacyBody(data.body || "") };
 });
 
 const formatDate = formatKstDate;
@@ -122,30 +127,14 @@ export default async function InsightArticlePage({
     }
 
     // 관련 글 — GEO 구조(§23)의 내부링크 요건. 같은 카테고리 우선, 부족하면 최신순.
-    let related: Pick<Magazine, "id" | "title" | "slug" | "category" | "published_at">[] = [];
+    // 목록과 같은 캐시(getInsightCatalogue)에서 고른다: 글마다 데이터베이스를 두 번 더 읽지 않고, 읽지 못해도 본문은 그대로 나간다.
+    let related: Pick<InsightItem, "id" | "title" | "slug" | "category" | "published_at">[] = [];
     try {
-        const supabase = createServiceClient();
-        const { data: sameCat } = await supabase
-            .from("magazines")
-            .select("id, title, slug, category, published_at")
-            .eq("status", "published")
-            .eq("category", magazine.category)
-            .neq("id", magazine.id)
-            .order("published_at", { ascending: false, nullsFirst: false })
-            .limit(3);
-        related = sameCat || [];
-        if (related.length < 3) {
-            const { data: latest } = await supabase
-                .from("magazines")
-                .select("id, title, slug, category, published_at")
-                .eq("status", "published")
-                .neq("id", magazine.id)
-                .order("published_at", { ascending: false, nullsFirst: false })
-                .limit(6);
-            for (const m of latest || []) {
-                if (related.length >= 3) break;
-                if (!related.some((r) => r.id === m.id)) related.push(m);
-            }
+        const others = (await getInsightCatalogue()).filter((m) => m.id !== magazine.id);
+        related = others.filter((m) => m.category === magazine.category).slice(0, 3);
+        for (const m of others) {
+            if (related.length >= 3) break;
+            if (!related.some((r) => r.id === m.id)) related.push(m);
         }
     } catch {
         related = [];
