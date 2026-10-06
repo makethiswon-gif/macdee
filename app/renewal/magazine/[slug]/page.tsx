@@ -7,7 +7,7 @@ import { Container } from "@/components/renewal/primitives";
 import { renderMagazineBody } from "@/lib/renewal/markdown";
 import { cleanExcerpt, cleanLegacyBody, displayAuthor, formatKstDate } from "@/lib/renewal/magazine-display";
 import { COMPANY, DEMO_BASE, path, SITE_BASE, ogImage } from "@/data/renewal/site";
-import { getInsightServices, insightAuthor, insightIndexHref, insightJsonLd, insightUrl } from "@/lib/renewal/magazine";
+import { getInsightGuides, getInsightServices, insightAuthor, insightIndexHref, insightJsonLd, insightUrl } from "@/lib/renewal/magazine";
 import { renewalRobots } from "../../flags";
 
 // 매거진 상세 리스킨 (Phase 8).
@@ -158,6 +158,7 @@ export default async function InsightArticlePage({
     const showExcerpt = !!excerptKey && !squeeze(bodyHtml).slice(0, 240).includes(excerptKey);
     const canonicalUrl = insightUrl(magazine.slug);
     const services = getInsightServices(magazine);
+    const guides = getInsightGuides(magazine);
 
     const plainText = magazine.body
         .replace(/```[\s\S]*?```/g, "")
@@ -295,10 +296,11 @@ export default async function InsightArticlePage({
 
                         <aside aria-labelledby="article-services-heading" className="mt-12 border-y py-8" style={{ borderColor: "var(--mt-line)" }}>
                             <h2 id="article-services-heading" className="text-[19px] font-semibold">우리 로펌에 적용하려면</h2>
-                            <p className="mt-body mt-3 text-[14px]">메이크디스원이 맡는 업무와 운영 방식을 확인해 보세요.</p>
+                            <p className="mt-body mt-3 text-[14px]">관련 가이드와 메이크디스원이 맡는 업무를 확인해 보세요.</p>
                             <ul className="mt-5 space-y-3 text-[14px]">
+                                {guides.map((guide) => <li key={guide.href}><Link href={guide.href} className="underline underline-offset-4">{guide.label} →</Link></li>)}
                                 {services.map((service) => <li key={service.href}><Link href={service.href} className="underline underline-offset-4">{service.label} →</Link></li>)}
-                                <li><Link href={path("/lawfirm-marketing")} className="underline underline-offset-4">법무법인 통합 마케팅 서비스 →</Link></li>
+                                <li><Link href={path("/lawfirm-marketing")} className="underline underline-offset-4">법무법인 마케팅 서비스 범위 →</Link></li>
                             </ul>
                         </aside>
                     </div>

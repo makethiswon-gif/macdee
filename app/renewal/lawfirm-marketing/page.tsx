@@ -6,6 +6,7 @@ import { SERVICES, SYSTEM_STEPS, PRIMARY_CTA, path, absUrl, ogImage } from "@/da
 import { breadcrumbJsonLd, graph, organizationId } from "@/lib/renewal/schema";
 import { renewalRobots } from "../flags";
 import RelatedInsights from "@/components/renewal/RelatedInsights";
+import { LAWFIRM_MARKETING_FAQ, LAWFIRM_MARKETING_INTRO } from "@/data/renewal/guides";
 
 // WHAT WE DO 허브 — 한 팀이 실제로 하는 일의 전체 문서.
 //
@@ -18,9 +19,10 @@ import RelatedInsights from "@/components/renewal/RelatedInsights";
 //  - 수임·매출 연결은 "로펌이 제공한 범위 안에서" 를 항상 붙인다.
 
 const URL = absUrl("/lawfirm-marketing");
-const TITLE = "법무법인·로펌 마케팅 서비스와 운영 범위 | 메이크디스원";
+// 목표 검색어 "법무법인 마케팅"을 제목 맨 앞에 둔다(2026-10-06).
+const TITLE = "법무법인 마케팅 서비스 — 로펌 마케팅 운영 범위와 방식 | 메이크디스원";
 const DESC =
-    "법무법인 마케팅을 어디까지 맡길 수 있을까요? 변호사 블로그, 네이버·구글 광고, SEO·AI 검색, 홈페이지, 상담 분석의 업무 범위와 연결 방식을 확인하세요.";
+    "법무법인 마케팅을 어디까지 맡길 수 있을까요? 변호사 광고, 블로그, 네이버·구글 광고, SEO·AI 검색, 홈페이지, 상담 분석까지 한 팀이 운영하는 범위와 방식, 비용을 확인하세요.";
 
 export const metadata: Metadata = {
     title: { absolute: TITLE },
@@ -52,9 +54,18 @@ const jsonLd = graph(
             url: absUrl(s.href),
         })),
     },
+    {
+        "@type": "FAQPage",
+        "@id": `${URL}#faq`,
+        mainEntity: LAWFIRM_MARKETING_FAQ.map((f) => ({
+            "@type": "Question",
+            name: f.q,
+            acceptedAnswer: { "@type": "Answer", text: f.a },
+        })),
+    },
     breadcrumbJsonLd([
         { name: "홈", path: "/" },
-        { name: "로펌 통합 마케팅", path: "/lawfirm-marketing" },
+        { name: "법무법인 마케팅 서비스", path: "/lawfirm-marketing" },
     ])
 );
 
@@ -199,7 +210,7 @@ export default function Page() {
         <>
             <script
                 type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
             />
 
             {/* ── HERO ── */}
@@ -222,6 +233,30 @@ export default function Page() {
                     </Reveal>
                 </Container>
             </section>
+
+            {/* ── 정의 — "법무법인 마케팅이란" 에 한 문단으로 답한다 ── */}
+            <Section tight>
+                <Container>
+                    <div
+                        className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-x-10 gap-y-6 pt-12"
+                        style={{ borderTop: "1px solid var(--mt-line)" }}
+                    >
+                        <h2 className="mt-en mt-label" style={{ color: "var(--mt-gray)" }}>법무법인 마케팅이란</h2>
+                        <div className="max-w-[720px]">
+                            {LAWFIRM_MARKETING_INTRO.map((p) => (
+                                <p key={p} className="mt-body-lg mb-5">{p}</p>
+                            ))}
+                            <p className="mt-body text-[14px]">
+                                처음이라면{" "}
+                                <Link href={path("/lawyer-marketing")} className="underline underline-offset-4">변호사 마케팅 가이드</Link>
+                                에서 채널별 역할과 시작 순서를, 규정이 궁금하다면{" "}
+                                <Link href={path("/lawyer-advertising")} className="underline underline-offset-4">변호사 광고 가이드</Link>
+                                를 먼저 읽어 보세요.
+                            </p>
+                        </div>
+                    </div>
+                </Container>
+            </Section>
 
             {/* ── 영역 상세 — 영역별 전체 품목 ── */}
             <Section tight>
@@ -517,6 +552,22 @@ export default function Page() {
                             </ul>
                         </div>
                     </Reveal>
+                </Container>
+            </Section>
+
+            {/* ── FAQ ── */}
+            <Section tight id="faq">
+                <Container>
+                    <SectionHeader eyebrow="FAQ" title="법무법인 마케팅, 자주 묻는 질문" />
+                    <div className="mt-12 max-w-[880px]">
+                        {LAWFIRM_MARKETING_FAQ.map((f) => (
+                            <details key={f.q} className="mt-svc-details" style={{ borderTop: "1px solid var(--mt-line)" }}>
+                                <summary className="py-6 cursor-pointer font-semibold">{f.q}</summary>
+                                <p className="mt-body pb-6">{f.a}</p>
+                            </details>
+                        ))}
+                        <div style={{ borderTop: "1px solid var(--mt-line)" }} />
+                    </div>
                 </Container>
             </Section>
 

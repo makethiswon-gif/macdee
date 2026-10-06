@@ -37,6 +37,8 @@ const OG_COPY: Record<string, { kicker?: string; lines: [string, string?] }> = {
     upgrade: { kicker: "기존 고객 안내", lines: ["블로그는 이어가고.", "마케팅은 넓히고."] },
     magazine: { kicker: "매거진", lines: ["로펌 마케팅,", "지금 알아둘 것."] },
     contact: { kicker: "문의", lines: ["편하게", "문의하세요."] },
+    "lawyer-marketing": { kicker: "변호사 마케팅 가이드", lines: ["변호사 마케팅,", "무엇부터 어떻게."] },
+    "lawyer-advertising": { kicker: "변호사 광고 가이드", lines: ["변호사 광고,", "규정 안에서."] },
 };
 
 export async function GET(request: Request) {

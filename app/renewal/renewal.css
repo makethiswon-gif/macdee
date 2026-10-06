@@ -1451,6 +1451,56 @@ html.mt-js .mt-root .mt-pstamp {
     border: 1px solid var(--mt-line);
 }
 
+/* ── 키워드 가이드(/lawyer-marketing, /lawyer-advertising) 전용 ──
+   매거진 본문(.mt-article)의 타이포를 그대로 쓰고, 표와 첫 제목 간격만 더한다.
+   .mt-guide 로 범위를 묶어 기존 매거진 글의 렌더링은 바꾸지 않는다. */
+.mt-root .mt-guide > section:first-child > h2 {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+}
+.mt-root .mt-guide .mt-guide-table {
+    margin: 0 0 1.8em;
+    overflow-x: auto;
+    border-top: 1px solid var(--mt-line-strong);
+}
+.mt-root .mt-guide .mt-guide-table:focus-visible {
+    outline: 2px solid var(--mt-accent);
+    outline-offset: 4px;
+}
+.mt-root .mt-guide table {
+    width: 100%;
+    min-width: 560px;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+    line-height: 1.65;
+    text-align: left;
+}
+.mt-root .mt-guide caption {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+.mt-root .mt-guide :is(th, td) {
+    padding: 0.85em 1em 0.85em 0;
+    border-bottom: 1px solid var(--mt-line);
+    vertical-align: top;
+    word-break: keep-all;
+}
+.mt-root .mt-guide thead th {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--mt-gray);
+}
+.mt-root .mt-guide tbody th {
+    font-weight: 600;
+    color: var(--mt-ink);
+    min-width: 8.5em;
+}
+
 /* ── 밑줄 hover. 링크 제목용 micro interaction ── */
 .mt-root .mt-underline {
     background-image: linear-gradient(currentColor, currentColor);

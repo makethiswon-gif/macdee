@@ -7,19 +7,23 @@ import JourneySpread from "@/components/renewal/home/edition/JourneySpread";
 import OperationsSpread from "@/components/renewal/home/edition/OperationsSpread";
 import { PartnerEdition, CaseEdition, TeamEdition } from "@/components/renewal/home/edition/EvidenceSpreads";
 import { ChannelEdition, InsightEdition, PlanEdition, ContactEdition } from "@/components/renewal/home/edition/ClosingSpreads";
+import { GuideEdition } from "@/components/renewal/home/edition/GuideEdition";
 import EditionMotionController from "@/components/renewal/home/edition/EditionMotionController";
 import editionStyles from "@/components/renewal/home/edition/edition-home.module.css";
 
 import { CASES } from "@/data/renewal/cases";
-import { COMPANY, FOUNDER, absUrl, ogImage } from "@/data/renewal/site";
+import { COMPANY, FOUNDER, PLANS_FAQ, absUrl, ogImage } from "@/data/renewal/site";
+import { HOME_KEYWORD_FAQ } from "@/data/renewal/guides";
 import { renewalRobots } from "./flags";
 
 export const revalidate = 600;
 
 const URL = absUrl("/");
-const TITLE = "법무법인 마케팅 · 변호사 광고 | 메이크디스원 MAKETHIS1";
+// 목표 검색어(대표 요청 2026-10-06): 법무법인 마케팅 · 변호사 마케팅 · 변호사 광고.
+// 세 검색어를 제목 앞쪽에 두고, 브랜드는 뒤로 보낸다(검색 결과에서 잘려도 검색어는 남는다).
+const TITLE = "법무법인 마케팅 · 변호사 마케팅 · 변호사 광고 | 메이크디스원";
 const DESCRIPTION =
-    "법무법인·법률사무소를 위한 통합 마케팅. 변호사 블로그, 네이버·구글 광고, SEO·AI 검색, 홈페이지와 상담 분석까지 메이크디스원이 운영합니다. 서비스 범위와 월 운영비를 확인하세요.";
+    "법무법인 마케팅부터 변호사 광고까지 한 팀이 운영합니다. 네이버·구글 광고, 변호사 블로그, SEO·AI 검색, 홈페이지, 상담·수임 분석 — 변호사 마케팅 서비스 범위와 월 운영비를 확인하세요.";
 
 // 루트 레이아웃의 title 템플릿(macdee)이 붙지 않도록 absolute 로 고정한다.
 export const metadata: Metadata = {
@@ -65,7 +69,7 @@ const jsonLd = {
             alternateName: ["메이크디스원", "macdee", "맥디"],
             url: COMPANY.site,
             description:
-                "법무법인·법률사무소의 마케팅을 통합 운영하는 메이크디스원. 변호사 광고·검색·콘텐츠·홈페이지·상담 분석을 함께 관리합니다.",
+                "법무법인·법률사무소의 마케팅을 통합 운영하는 메이크디스원. 변호사 마케팅과 변호사 광고 — 검색·콘텐츠·홈페이지·상담 분석을 함께 관리합니다.",
             founder: {
                 "@type": "Person",
                 name: FOUNDER.name,
@@ -79,6 +83,7 @@ const jsonLd = {
             knowsAbout: [
                 "로펌 마케팅",
                 "법무법인 마케팅",
+                "변호사 마케팅",
                 "변호사 광고",
                 "법무법인 광고",
                 "네이버 파워링크",
@@ -113,6 +118,16 @@ const jsonLd = {
             isPartOf: { "@id": `${URL}#website` },
             about: { "@id": `${URL}#organization` },
         },
+        {
+            // 화면에 보이는 두 FAQ(가이드 FAQ + 비용 FAQ)를 그대로 옮긴다.
+            "@type": "FAQPage",
+            "@id": `${URL}#faq`,
+            mainEntity: [...HOME_KEYWORD_FAQ, ...PLANS_FAQ].map((f) => ({
+                "@type": "Question",
+                name: f.q,
+                acceptedAnswer: { "@type": "Answer", text: f.a },
+            })),
+        },
     ],
 };
 
@@ -126,7 +141,7 @@ export default async function RenewalHome() {
         <>
             <script
                 type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
             />
 
             {/* "필요한 전부, 한 팀" 구조 (대표 지시 2026-08-29 — 계약서 은유 폐기).
@@ -148,6 +163,7 @@ export default async function RenewalHome() {
             <ChannelEdition />
             <TeamEdition />
             <InsightEdition items={insights} total={catalogue.length} />
+            <GuideEdition />
             <PlanEdition />
             <ContactEdition />
             </div>

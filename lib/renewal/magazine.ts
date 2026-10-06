@@ -77,6 +77,12 @@ const TOPICS: Topic[] = [
     { slug: "conversion", label: "로펌 상담·수임 분석", terms: /전환율|상담\s*전환|상담\s*폼|응대\s*속도|인테이크|상담\s*전화|상담\s*경로|리드\s*관리|CPA/gi },
 ];
 
+// 키워드 가이드. 서비스 연결(getInsightServices)과 섞지 않고 글 하단에 따로 링크한다.
+const GUIDE_TOPICS: Topic[] = [
+    { slug: "lawyer-advertising", label: "변호사 광고 가이드 — 규정과 채널", terms: /변호사\s*광고|법률\s*광고|로펌\s*광고|광고\s*규정|광고규정|변협|대한변호사협회|변호사법|광고\s*심사|징계/gi },
+    { slug: "lawyer-marketing", label: "변호사 마케팅 가이드 — 방법·채널·비용", terms: /변호사\s*마케팅|법무법인\s*마케팅|로펌\s*마케팅|법률\s*마케팅|법률사무소\s*마케팅|마케팅\s*비용|대행사|수임/gi },
+];
+
 function topicScore(item: Pick<InsightItem, "title" | "tags" | "excerpt">, topic: Topic) {
     const occurrences = (value: string) => Math.min((value.match(topic.terms) || []).length, 3);
     return occurrences(item.title) * 6 + occurrences((item.tags || []).join(" ")) * 3
@@ -88,7 +94,7 @@ function topicScore(item: Pick<InsightItem, "title" | "tags" | "excerpt">, topic
 const MARKETING_STARTER_SLUGS = ["125402348", "26243995", "13069827"];
 
 export async function getRelatedInsights(serviceSlug: string, limit = 3): Promise<InsightItem[]> {
-    const topic = TOPICS.find((entry) => entry.slug === serviceSlug);
+    const topic = [...TOPICS, ...GUIDE_TOPICS].find((entry) => entry.slug === serviceSlug);
     if (!topic) return [];
     try {
         const catalogue = await getInsightCatalogue();
@@ -112,5 +118,12 @@ export function getInsightServices(item: Pick<InsightItem, "title" | "tags" | "e
         .filter(({ score }) => score >= 3)
         .sort((a, b) => b.score - a.score)
         .slice(0, 2)
+        .map(({ slug, label }) => ({ href: path(`/${slug}`), label }));
+}
+
+/** 글과 주제가 맞는 가이드. 매거진은 전부 로펌 마케팅 글이라 맞는 게 없으면 변호사 마케팅 가이드로 보낸다. */
+export function getInsightGuides(item: Pick<InsightItem, "title" | "tags" | "excerpt">) {
+    const matched = GUIDE_TOPICS.filter((topic) => topicScore(item, topic) > 0);
+    return (matched.length ? matched : GUIDE_TOPICS.slice(-1))
         .map(({ slug, label }) => ({ href: path(`/${slug}`), label }));
 }

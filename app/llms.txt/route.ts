@@ -20,8 +20,12 @@ const STATIC = `# MAKETHIS1 (메이크디스원) — 법무법인·변호사 마
 ${PLANS.map(p => `- ${p.en}: ${p.price}`).join("\n")}
 광고 매체비는 별도입니다. 세부 범위와 부가세는 최종 견적에서 확인합니다.
 
+## 가이드
+- [변호사 마케팅 가이드: 방법·채널·비용·대행사 고르는 법](${absUrl("/lawyer-marketing")})
+- [변호사 광고 가이드: 변호사법·변협 광고 규정과 채널](${absUrl("/lawyer-advertising")})
+
 ## 서비스
-- [통합 운영](${absUrl("/lawfirm-marketing")})
+- [법무법인 마케팅 통합 운영](${absUrl("/lawfirm-marketing")})
 - [네이버·구글 광고](${absUrl("/naver-ads")})
 - [검색 노출](${absUrl("/lawfirm-seo")})
 - [AI 검색](${absUrl("/geo")})

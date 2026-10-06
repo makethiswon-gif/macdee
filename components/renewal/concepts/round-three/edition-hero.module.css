@@ -25,7 +25,7 @@
 .copy { position: relative; z-index: 3; width: 49%; padding: clamp(390px, 32vw, 480px) 0 34px var(--gutter); pointer-events: none; }
 .overline { font-size: 10px; font-weight: 600; letter-spacing: .075em; line-height: 1.5; }
 .title { margin-top: 14px !important; font-size: clamp(29px, 2.72vw, 43px); font-weight: 600; line-height: 1.24; letter-spacing: -.065em; word-break: keep-all; }
-.title > span { display: block; max-width: 480px; }
+.title > span { display: block; max-width: 530px; } /* "법무법인 마케팅에 필요한 모든 것." 한 줄 유지(43px 기준 약 520px) */
 .title > strong { display: block; font-weight: 800; }
 .body { max-width: 425px; margin-top: 18px !important; color: #42536b; font-size: 14px; line-height: 1.8; letter-spacing: -.025em; word-break: keep-all; }
 .actions { display: flex; flex-wrap: wrap; gap: 12px 25px; margin-top: 24px; pointer-events: auto; }
@@ -226,4 +226,10 @@
     .homeHero .contentMount { transform: rotate(-11deg); }
     .homeHero .campaignMount { transform: rotate(11deg); }
     .homeHero .motionMount { transform: rotate(-7deg); }
+}
+
+/* "법무법인 마케팅에 필요한 모든 것." 이 360px(갤럭시 기본 폭)에서도 한 줄로 남게 한다.
+   375px 에서 27px → 26.25px 로 거의 차이가 없고, 320px 까지 마지막 어절이 떨어지지 않는다. */
+@media (max-width: 385px) {
+    .title { font-size: 7vw; }
 }

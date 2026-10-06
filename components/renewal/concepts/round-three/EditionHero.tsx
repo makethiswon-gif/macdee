@@ -111,7 +111,7 @@ export default function EditionHero({ home = false }: { home?: boolean }) {
             <div className={s.copy}>
                 <p className={s.overline}>{HERO_OVERLINE}</p>
                 <h1 className={s.title} id="edition-hero-title" data-locked-title>
-                    <span>로펌 마케팅에 필요한 모든 것.</span>{" "}<strong>메이크디스원 하나로</strong>
+                    <span>법무법인 마케팅에 필요한 모든 것.</span>{" "}<strong>메이크디스원 하나로</strong>
                 </h1>
                 <p className={s.body} data-locked-body>{HERO_BODY}</p>
                 <div className={s.actions} data-locked-actions>

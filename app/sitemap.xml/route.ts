@@ -36,7 +36,8 @@ export async function GET() {
 
         if (DEMO_BASE === "") {
             for (const page of [
-                "/lawfirm-marketing", "/naver-ads", "/lawfirm-seo", "/geo",
+                "/lawfirm-marketing", "/lawyer-marketing", "/lawyer-advertising",
+                "/naver-ads", "/lawfirm-seo", "/geo",
                 "/lawfirm-blog", "/lawfirm-website", "/conversion", "/work",
                 "/contact", "/consult", "/upgrade",
             ]) add(absUrl(page));

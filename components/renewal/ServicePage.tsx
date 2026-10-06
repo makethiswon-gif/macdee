@@ -254,7 +254,7 @@ export function serviceJsonLd(service: ServiceContent, url: string) {
             },
             breadcrumbJsonLd([
                 { name: "홈", path: "/" },
-                { name: "로펌 통합 마케팅", path: "/lawfirm-marketing" },
+                { name: "법무법인 마케팅 서비스", path: "/lawfirm-marketing" },
                 { name: service.name, path: `/${service.slug}` },
             ]),
         ],

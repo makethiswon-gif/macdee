@@ -10,7 +10,7 @@ const audit = process.argv.includes('--audit');
 const canonicalOrigin = 'https://www.makethis1.com';
 const local = ['localhost', '127.0.0.1', '[::1]'].includes(new URL(origin).hostname);
 const canCheckArticles = local && process.env.RENEWAL_QA_READ_ONLY === '1';
-const routes = ['/', '/about', '/magazine', '/lawfirm-marketing', '/naver-ads', '/lawfirm-seo', '/geo', '/lawfirm-blog', '/lawfirm-website', '/conversion', '/work', '/contact', '/consult', '/upgrade'];
+const routes = ['/', '/about', '/magazine', '/lawfirm-marketing', '/lawyer-marketing', '/lawyer-advertising', '/naver-ads', '/lawfirm-seo', '/geo', '/lawfirm-blog', '/lawfirm-website', '/conversion', '/work', '/contact', '/consult', '/upgrade'];
 const report = { origin, mode: audit ? 'audit' : 'assert', pages: [], sitemap: {}, pagination: {}, articles: [], failures: [] };
 
 function check(condition, description) {
@@ -107,6 +107,18 @@ async function main() {
     if (home) {
         check(home('title').text().includes('법무법인 마케팅'), 'Home title must target 법무법인 마케팅');
         check(home('main').text().includes('법무법인 마케팅'), 'Home original visible content must describe 법무법인 마케팅');
+        // 2026-10-06 목표 검색어: 세 검색어가 홈 제목에 있고, 각 가이드로 서버 HTML 링크가 이어진다.
+        for (const keyword of ['변호사 마케팅', '변호사 광고']) check(home('title').text().includes(keyword), `Home title must target ${keyword}`);
+        for (const guide of ['/lawyer-marketing', '/lawyer-advertising']) check(home(`main a[href="${guide}"]`).length > 0, `Home must link to ${guide} in original HTML`);
+        check(home('script[type="application/ld+json"]').text().includes('"FAQPage"'), 'Home FAQ must ship FAQPage structured data');
+    }
+    for (const [route, keyword] of [['/lawyer-marketing', '변호사 마케팅'], ['/lawyer-advertising', '변호사 광고'], ['/lawfirm-marketing', '법무법인 마케팅']]) {
+        if (!results.has(route)) continue;
+        const page = load(results.get(route).body);
+        check(page('title').text().startsWith(keyword), `${route}: title must start with ${keyword}`);
+        check(page('h1').text().includes(keyword.split(' ')[0]), `${route}: H1 must mention ${keyword}`);
+    }
+    if (home) {
         report.verificationTags = {
             google: home('meta[name="google-site-verification"]').length,
             naver: home('meta[name="naver-site-verification"]').length,

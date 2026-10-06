@@ -18,7 +18,7 @@ export default function SiteFooter() {
             }}
         >
             <Container className="py-20 md:py-28">
-                <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr_1fr_1fr] gap-12 lg:gap-10">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr_1fr] gap-12 lg:gap-10">
                     <div>
                         <Link href={path("/")} aria-label="MAKETHIS1 홈" className="inline-block">
                             <BrandWordmark className="w-[160px] md:w-[180px]" />
@@ -42,6 +42,28 @@ export default function SiteFooter() {
                                         className="inline-block py-2 -my-2 text-[13.5px] transition-opacity hover:opacity-60"
                                     >
                                         {c.label}
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    </nav>
+
+                    <nav>
+                        <p className="mt-en mt-label mb-5" style={{ color: "var(--mt-gray)" }}>
+                            가이드
+                        </p>
+                        <ul className="flex flex-col gap-3">
+                            {[
+                                { label: "변호사 마케팅 가이드", href: "/lawyer-marketing" },
+                                { label: "변호사 광고 가이드", href: "/lawyer-advertising" },
+                                { label: "법무법인 마케팅 서비스", href: "/lawfirm-marketing" },
+                            ].map((l) => (
+                                <li key={l.href}>
+                                    <Link
+                                        href={path(l.href)}
+                                        className="inline-block py-2 -my-2 text-[13.5px] transition-opacity hover:opacity-60"
+                                    >
+                                        {l.label}
                                     </Link>
                                 </li>
                             ))}
