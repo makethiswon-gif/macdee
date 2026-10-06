@@ -2,11 +2,11 @@ import { randomUUID } from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { scrapeUrl } from "@/lib/ai/blog-scraper";
 import { maskPII } from "@/lib/ai/mask-pii";
-import { getContentGenerator, type AIMessage } from "@/lib/ai/providers";
+import { getMigrationRewriter, type AIMessage } from "@/lib/ai/providers";
 import { makeSlug } from "@/lib/slug";
 import { parseAiContent, cleanBody } from "@/lib/ai-content";
 
-export const maxDuration = 300; // 5분 — 여러 URL 처리에 충분한 시간
+export const maxDuration = 800; // 13분 — 화면이 4편씩 묶어 보낸다(편당 윤문 2회, 회당 최대 150초)
 
 function cleanSeoTitle(raw: string, fallback: string): string {
     let t = raw.replace(/\*\*/g, "").trim();
@@ -245,7 +245,7 @@ export async function POST(request: Request) {
                     }
 
                     // Step 4: Generate content — Google SEO + AI Search only
-                    const generator = getContentGenerator();
+                    const generator = getMigrationRewriter(); // Sonnet 5.5, 사고 최소
                     const customPrompt = lawyer.schema_data?.customPrompt;
                     const results: { channel: string; title: string; success: boolean }[] = [];
 
@@ -262,8 +262,8 @@ export async function POST(request: Request) {
                         ];
 
                         const seoResult = await withTimeout(
-                            generator.generate(seoMessages, { temperature: 0.4, maxTokens: 5000 }),
-                            120000,
+                            generator.generate(seoMessages, { temperature: 0.4, maxTokens: 8000 }),
+                            150000,
                             "SEO 윤문"
                         );
 
@@ -298,8 +298,8 @@ export async function POST(request: Request) {
                         ];
 
                         const aiResult = await withTimeout(
-                            generator.generate(aiMessages, { temperature: 0.3, maxTokens: 5000 }),
-                            60000,
+                            generator.generate(aiMessages, { temperature: 0.3, maxTokens: 8000 }),
+                            150000,
                             "AI 검색 윤문"
                         );
 

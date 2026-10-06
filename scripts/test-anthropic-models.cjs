@@ -101,16 +101,24 @@ for (const [f, n] of Object.entries(haikuSeats)) {
     assert.doesNotMatch(text, /temperature\s*:/, f + ": Sonnet 5.5 는 temperature 를 받지 않는다(400)");
     assert.doesNotMatch(text, /content\?*\.\[0\]\?*\.text/, f + ": 첫 블록이 thinking 일 수 있어 extractClaudeText 로 읽는다");
 }
+// 네이버 블로그 옮기기 윤문(2026-10-06): Sonnet 5.5·사고 최소, 한도 8,000, 회당 150초, 함수 800/600초 — 5.5 의 기본 사고가 한도 5,000 을 먹지 않게
+for (const [f, max] of [["app/api/migrate/process/route.ts", 800], ["app/api/migrate/process-one/route.ts", 600]]) {
+    const text = src(f);
+    assert.match(text, /getMigrationRewriter\(\)/, f); assert.doesNotMatch(text, /getContentGenerator\(\)/, f);
+    assert.equal(Number(/maxDuration\s*=\s*(\d+)/.exec(text)[1]), max, f);
+    assert.equal((text.match(/maxTokens:\s*8000/g) || []).length, 2, f); assert.doesNotMatch(text, /maxTokens:\s*5000/, f);
+}
+assert.doesNotMatch(src("app/api/migrate/process/route.ts"), /(?:60000|120000),\s*\n\s*"(?:SEO|AI 검색) 윤문"/, "윤문 제한 시간은 150초");
 // 공용 프로바이더: 전처리·AI 검색은 사고 최소, 콘텐츠 생성은 기본(적응형) 사고 — 실제로 보내는 요청 본문으로 확인
 (async () => {
     process.env.ANTHROPIC_API_KEY = "test-key";
-    const { getPreprocessor, getAISearchGenerator, getContentGenerator, ClaudeProvider } = require("../lib/ai/providers.ts");
+    const { getPreprocessor, getAISearchGenerator, getMigrationRewriter, getContentGenerator, ClaudeProvider } = require("../lib/ai/providers.ts");
     let sent = null;
     const realFetch = global.fetch;
     global.fetch = async (_url, init) => { sent = JSON.parse(init.body); return new Response(JSON.stringify({ content: [{ type: "thinking", thinking: "" }, { type: "text", text: "ok" }], model: "claude-sonnet-5-5", usage: { input_tokens: 1, output_tokens: 1 } }), { status: 200 }); };
     try {
         const messages = [{ role: "system", content: "s" }, { role: "user", content: "u" }];
-        for (const [name, make] of [["getPreprocessor", getPreprocessor], ["getAISearchGenerator", getAISearchGenerator]]) {
+        for (const [name, make] of [["getPreprocessor", getPreprocessor], ["getAISearchGenerator", getAISearchGenerator], ["getMigrationRewriter", getMigrationRewriter]]) {
             const answer = await make().generate(messages, { temperature: 0.1, maxTokens: 300 });
             assert.equal(sent.model, "claude-sonnet-5-5", name); assert.deepEqual(sent.thinking, { type: "between_tools" }, name);
             assert.ok(!("temperature" in sent), name + ": temperature 는 걸러진다"); assert.equal(sent.max_tokens, 300); assert.equal(answer.content, "ok", name + ": thinking 블록 뒤의 text 를 읽는다");

@@ -224,6 +224,14 @@ export function getAISearchGenerator(): AIProvider {
     return new ClaudeProvider(SONNET_MODEL, { shortAnswer: true });
 }
 
+// 네이버 블로그 옮기기 윤문: Claude Sonnet 5.5, 사고 최소(between_tools) — 2026-10-06.
+// 5.5 는 기본으로 깊게 생각해 한도 5,000 을 사고가 다 먹고(원고에서 사고 2만 토큰 실측) 60~120초 제한에 걸렸다.
+// 기존 글을 다듬는 일이라 깊은 추론보다 빠르고 끊기지 않는 쪽이 낫다(50편 묶음 처리).
+export function getMigrationRewriter(): AIProvider {
+    if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is required for blog migration.");
+    return new ClaudeProvider(SONNET_MODEL, { shortAnswer: true });
+}
+
 // 콘텐츠 생성: Claude Sonnet 5.5 (최고 글쓰기 품질)
 export function getContentGenerator(): AIProvider {
     if (!process.env.ANTHROPIC_API_KEY) {

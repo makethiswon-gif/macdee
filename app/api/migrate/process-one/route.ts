@@ -2,11 +2,11 @@ import { randomUUID } from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { scrapeUrl } from "@/lib/ai/blog-scraper";
 import { maskPII } from "@/lib/ai/mask-pii";
-import { getContentGenerator, type AIMessage } from "@/lib/ai/providers";
+import { getMigrationRewriter, type AIMessage } from "@/lib/ai/providers";
 import { makeSlug } from "@/lib/slug";
 import { parseAiContent, cleanBody } from "@/lib/ai-content";
 
-export const maxDuration = 300;
+export const maxDuration = 600;
 
 function cleanSeoTitle(raw: string, fallback: string): string {
     let t = raw.replace(/\*\*/g, "").trim();
@@ -202,7 +202,7 @@ export async function POST(request: Request) {
         }
 
         // Step 4: Google SEO + AI Search 병렬 생성
-        const generator = getContentGenerator();
+        const generator = getMigrationRewriter(); // Sonnet 5.5, 사고 최소
         const customPrompt = lawyer.schema_data?.customPrompt;
 
         let seoSystem = MIGRATE_SEO_SYSTEM;
@@ -212,11 +212,11 @@ export async function POST(request: Request) {
             generator.generate([
                 { role: "system", content: seoSystem },
                 { role: "user", content: `다음은 변호사가 직접 작성한 기존 네이버 블로그 글입니다. 이 글을 구글 SEO에 최적화된 형태로 리라이팅해주세요.\n\n[원문 제목] ${scraped.title}\n\n[원문 본문]\n${maskedText}` },
-            ], { temperature: 0.4, maxTokens: 5000 }),
+            ], { temperature: 0.4, maxTokens: 8000 }),
             generator.generate([
                 { role: "system", content: MIGRATE_AI_SEARCH_SYSTEM },
                 { role: "user", content: `다음은 변호사가 직접 작성한 기존 네이버 블로그 글입니다. AI 검색엔진이 이 변호사를 추천할 수 있도록 콘텐츠를 생성해주세요.\n\n[변호사 이름] ${lawyer.name}\n\n[원문 제목] ${scraped.title}\n\n[원문 본문]\n${maskedText}` },
-            ], { temperature: 0.3, maxTokens: 5000 }),
+            ], { temperature: 0.3, maxTokens: 8000 }),
         ]);
 
         const results: { channel: string; title: string; success: boolean }[] = [];
