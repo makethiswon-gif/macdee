@@ -1,0 +1,60 @@
+.root { display: contents; }
+.motionControl { display: none; position: fixed; bottom: 18px; right: 20px; z-index: 45; }
+.motionControl[data-ready="true"][data-away="true"] { display: block; }
+.motionControl button { display: flex; align-items: center; gap: 15px; min-height: 44px; padding: 10px 15px; border: 1px solid #adc2df; color: #004aad; background: #fff; font: inherit; font-size: 12px; cursor: pointer; }
+.motionControl button:focus-visible { outline: 3px solid #004aad; outline-offset: 4px; }
+.motionControl button:disabled { cursor: default; }
+.journey { --section-progress: 1; }
+.journeyRail { width: 100%; height: 112px; display: block; overflow: visible; margin: 26px 0 0; color: #004aad; }
+.railBase { fill: none; stroke: #c0d1e8; stroke-width: 1; }
+.railInk { fill: none; stroke: currentColor; stroke-width: 3; stroke-dasharray: 1; stroke-dashoffset: calc(1 - var(--section-progress,1)); }
+.journeyRail circle { fill: #f1f5fb; stroke: currentColor; stroke-width: 2; }
+.journeyRail .railCore { fill: currentColor; stroke: none; transform-box: fill-box; transform-origin: center; transform: scale(calc(.2 + var(--section-progress,1) * .8)); }
+.journey .journeyLayout { position: relative; padding-left: 0; }
+.journey .journeyCard { position: relative; --section-progress: 1; }
+.stepRail { display: block; position: absolute; top: -3px; left: 0; width: 100%; height: 5px; background: #004aad; transform-origin: left; transform: scaleX(var(--section-progress,1)); }
+.journey .journeyStage { --p: 1 !important; }
+.journey .legacyRail { display: none !important; }
+.journey .journeyGrid { column-gap: 4%; }
+.journey .journeyCard::before { content: ""; position: absolute; right: 0; top: 28px; width: 34px; height: 34px; border-top: 1px solid #9eb9db; border-right: 1px solid #9eb9db; transform: translateX(calc((1 - var(--section-progress,1)) * -16px)); }
+.final { position: relative; isolation: isolate; overflow: clip; --section-progress: 1; }
+.finalGrid { display: grid; grid-template-columns: minmax(0,1.45fr) minmax(0,1fr); align-items: center; gap: 50px; }
+.finalCopy { position: relative; z-index: 1; }
+.finalArt { position: relative; height: 350px; display: grid; place-items: center; perspective: 1100px; pointer-events: none; }
+.finalFrame { position: absolute; inset: 6px 0; border: 1px solid #ffffff40; }
+.finalFrame::before,.finalFrame::after { content: ""; position: absolute; background: #ffffff20; }
+.finalFrame::before { height: 1px; width: 120%; left: -10%; top: 50%; }
+.finalFrame::after { width: 1px; height: 120%; top: -10%; left: 50%; }
+.finalSheets { position: relative; width: 250px; height: 250px; transform-style: preserve-3d; transform: rotateX(calc(14deg * (1 - var(--section-progress,1)))) rotateY(calc(-26deg * (1 - var(--section-progress,1)))) rotateZ(calc(-8deg * (1 - var(--section-progress,1)))); }
+.finalSheet { position: absolute; left: 0; width: 100%; height: calc(100% / 6 + 1px); top: calc(var(--i) * 100% / 6); background: #fff; transform: translate3d(calc((var(--i) - 2.5) * 18px * (1 - var(--section-progress,1))),calc((var(--i) - 2.5) * 15px * (1 - var(--section-progress,1))),calc((5 - var(--i)) * 20px * (1 - var(--section-progress,1)))); }
+.finalLogo { position: absolute; inset: 0; display: grid; place-items: center; color: #004aad; font-size: 100px; font-weight: 760; letter-spacing: -.1em; opacity: var(--section-progress,1); transform: translateZ(130px); }
+.finalCaption { position: absolute; bottom: -7px; left: 0; right: 0; display: flex; justify-content: space-between; font-size: 10px; letter-spacing: .12em; color: #e1ebfa; }
+.final :is(a,button):focus-visible { outline-color: #fff !important; }
+.finalRule { height: 1px; background: #ffffff80; margin-top: 48px; transform: scaleX(var(--section-progress,1)); transform-origin: left; }
+.root[data-motion-paused="true"] [data-home-motion],.root[data-reduced-motion="true"] [data-home-motion] { --section-progress: 1 !important; }
+.root[data-motion-paused="true"] :global(.mt-stage) { --p: 1 !important; }
+.root[data-motion-paused="true"] *, .root[data-motion-paused="true"] *::before, .root[data-motion-paused="true"] *::after { animation: none !important; transition: none !important; }
+@media (max-width: 1023px) {
+    .journeyRail { height: 80px; }
+    .journey .journeyLayout { padding-left: 22px; }
+    .journey .journeyCard { border-top: 0 !important; padding-top: 0 !important; }
+    .stepRail { top: 0; left: -22px; bottom: -40px; width: 3px; height: auto; transform-origin: top; transform: scaleY(var(--section-progress,1)); }
+    .journeyCard::after { content: ""; position: absolute; top: 0; bottom: -40px; width: 1px; left: -21px; background: #b9cce4; z-index: -1; }
+    .finalGrid { gap: 28px; grid-template-columns: minmax(0,1.5fr) minmax(0,1fr); }
+    .finalArt { height: 285px; }
+    .finalSheets { width: 190px; height: 190px; }
+}
+@media (max-width: 767px) {
+    .motionControl { bottom: 12px; right: 12px; }
+    .motionControl button { min-height: 42px; padding: 8px 12px; gap: 10px; font-size: 11px; }
+    .journeyRail { height: 58px; margin-top: 24px; }
+    .finalGrid { grid-template-columns: minmax(0,1fr); gap: 42px; }
+    .finalArt { height: 238px; max-width: 340px; width: 100%; margin-inline: auto; }
+    .finalSheets { width: 170px; height: 170px; }
+    .finalLogo { font-size: 76px; }
+    .finalSheet { transform: translateX(calc((var(--i) - 2.5) * 12px * (1 - var(--section-progress,1)))); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .root [data-home-motion] { --section-progress: 1 !important; }
+    .root *, .root *::before, .root *::after { animation: none !important; transition: none !important; }
+}

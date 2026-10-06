@@ -3,9 +3,11 @@ import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { uploadMagazineCover } from "@/lib/supabase/storage";
 import { postToThreads } from "@/lib/threads/post";
+import { invalidateMagazineCache } from "@/lib/renewal/magazine-cache";
 import nodemailer from "nodemailer";
 import { SONNET_MODEL } from "@/lib/ai/models";
 
+// Legacy endpoint name retained. Scheduled weekly: Monday 01:00 UTC / 10:00 KST.
 // 웹검색 + Sonnet 5.5 생성 + 이미지 생성까지 한 번에 처리하므로 넉넉히
 export const maxDuration = 300;
 
@@ -92,6 +94,7 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: "발행 실패", detail: error.message }, { status: 500 });
         }
 
+        invalidateMagazineCache();
         const url = `${BASE_URL}/magazine/${inserted.slug}`;
 
         // 5) 스레드(Threads) 자동 포스팅 — 사용자 요청으로 기본 중단(2026-07).

@@ -1,0 +1,171 @@
+.track {
+    --section-progress: 1;
+    --build: clamp(0, calc(var(--section-progress) / .24), 1);
+    --reach: clamp(0, calc((var(--section-progress) - .28) / .29), 1);
+    --expand: clamp(0, calc((var(--section-progress) - .65) / .3), 1);
+    position: relative;
+    height: auto;
+    margin: 0 0 52px;
+}
+
+:global(html.mt-js) .track { height: 155svh; }
+
+.frame {
+    position: relative;
+    display: grid;
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    height: min(720px, calc(100svh - 160px));
+    min-height: 390px;
+    padding: clamp(20px, 2.8vw, 40px);
+    color: #fff;
+    background: #004aad;
+    overflow: clip;
+    isolation: isolate;
+}
+
+:global(html.mt-js) .frame { position: sticky; top: 100px; }
+
+.topline, .caption {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .055em;
+}
+.topline { padding-bottom: 22px; }
+.stages { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
+.stage { position: relative; padding-top: 14px; border-top: 1px solid #ffffff4a; }
+.stageRule { position: absolute; left: 0; right: 0; top: -2px; height: 4px; background: #fff; transform-origin: left; transform: scaleX(var(--build)); }
+.stage:nth-child(2) .stageRule { transform: scaleX(var(--reach)); }
+.stage:nth-child(3) .stageRule { transform: scaleX(var(--expand)); }
+.stageName { display: block; font-size: clamp(26px, 4.1vw, 62px); font-weight: 750; line-height: 1; letter-spacing: -.065em; }
+.stageTitle { display: block; margin-top: 10px; font-size: clamp(11px, 1.15vw, 16px); line-height: 1.45; letter-spacing: -.025em; }
+.diagram { position: relative; min-height: 0; margin-block: 22px; }
+.connections { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.connections path { fill: none; stroke: #fff; stroke-width: 4; vector-effect: non-scaling-stroke; stroke-dasharray: 1; }
+.reachWire { stroke-dashoffset: calc(1 - var(--reach)); opacity: var(--reach); }
+.expandWire { stroke-dashoffset: calc(1 - var(--expand)); opacity: var(--expand); }
+.junction { fill: #fff; opacity: var(--expand); }
+
+/* One website is assembled, connected to discovery, then reused for new areas. */
+.website {
+    position: absolute; left: 6%; top: 3%; width: 49%; height: 54%;
+    display: flex; flex-direction: column;
+    background: #fff; color: #004aad;
+    transform: translateX(calc((1 - var(--reach)) * 40%)) scale(calc(1 + (1 - var(--reach)) * .15));
+    transform-origin: center;
+    box-shadow: 10px 10px 0 #00357e;
+    z-index: 2;
+}
+.browserBar { flex: 0 0 14%; min-height: 19px; display: flex; align-items: center; gap: 5px; padding: 0 4%; border-bottom: 1px solid #c9d8eb; }
+.browserBar > span { width: 4px; height: 4px; background: #91acd0; border-radius: 50%; }
+.browserBar b { margin-left: auto; font-size: clamp(9px, 1vw, 12px); font-weight: 500; }
+.websiteBody { flex: 1; min-height: 0; padding: 4% 5%; display: grid; grid-template-rows: 14% minmax(0, 1fr) auto; gap: 7%; }
+.siteMasthead { display: flex; align-items: center; gap: 5%; }
+.siteMasthead i { display: block; width: 29%; height: 100%; background: #004aad; }
+.siteMasthead span { width: 15%; height: 3px; background: #b4c9e4; }
+.siteMasthead span:first-of-type { margin-left: auto; }
+.postGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8%; min-height: 0; }
+.post { min-height: 0; display: flex; flex-direction: column; gap: 7%; transform: translateY(calc((1 - var(--build)) * (55px + var(--post) * 32px))) rotate(calc((1 - var(--build)) * (var(--post) * 10deg - 5deg))); }
+.postArtwork { position: relative; flex: 1; min-height: 12px; background: #e1ebf8; overflow: clip; display: flex; flex-direction: column; justify-content: center; padding: 8% 12%; gap: 14%; }
+.postArtwork span { width: 100%; height: 15%; background: #004aad; transform: scaleX(calc(.2 + var(--build) * .8)); transform-origin: left; }
+.postArtwork span:nth-child(2) { width: 85%; background: #477bbd; }
+.postArtwork span:nth-child(3) { width: 62%; background: #91afd5; }
+.post:nth-child(2) .postArtwork { background: #cfdef1; flex-direction: row; align-items: end; padding-bottom: 0; gap: 9%; }
+.post:nth-child(2) .postArtwork span { height: 65%; width: 65%; transform: rotate(-12deg) translateY(calc((1 - var(--build)) * 25px)); }
+.post:nth-child(2) .postArtwork span:nth-child(2) { margin-left: -35%; background: #7099ca; height: 90%; }
+.post:nth-child(2) .postArtwork span:nth-child(3) { display: none; }
+.post strong { font-size: clamp(10px, 1.1vw, 16px); font-weight: 650; line-height: 1.2; white-space: nowrap; }
+.post > i { display: block; height: 3px; width: 100%; background: #c6d6eb; }
+.post > i:last-child { width: 68%; }
+.channelStrip { display: flex; gap: 14px; border-top: 1px solid #d6e1ef; padding-top: 5px; font-size: clamp(8px, .8vw, 11px); white-space: nowrap; }
+
+.search { position: absolute; right: 3%; top: 8%; width: 31%; background: #e8f0fc; padding: 2%; color: #004aad; opacity: var(--reach); transform: translateX(calc((1 - var(--reach)) * 90px)); z-index: 2; }
+.searchField { display: flex; justify-content: space-between; align-items: center; min-height: 30px; padding: 8px 10px; border: 2px solid #004aad; background: #fff; font-size: clamp(12px, 1.2vw, 18px); font-weight: 650; }
+.searchField i { position: relative; display: block; width: 13px; height: 13px; border: 2px solid #004aad; border-radius: 50%; margin-right: 4px; }
+.searchField i::after { content: ""; position: absolute; height: 2px; width: 7px; right: -6px; bottom: -3px; background: #004aad; transform: rotate(45deg); }
+.searchResults { display: grid; gap: 12px; margin-top: 14px; }
+.searchResult { display: flex; gap: 10px; align-items: center; transform: translateY(calc((1 - var(--reach)) * var(--result) * 22px)); }
+.resultMark { display: block; width: 20px; height: 26px; border: 2px solid #004aad; flex-shrink: 0; background: #fff; }
+.searchResult > div { flex: 1; }
+.searchResult strong { font-size: clamp(10px, 1vw, 14px); font-weight: 650; }
+.searchResult i { display: block; height: 3px; width: 88%; background: #b0c6e3; margin-top: 6px; }
+.searchResult i:last-child { width: 65%; }
+
+.practicePages { position: absolute; bottom: 0; inset-inline: 4%; height: 24%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6%; }
+.practice { position: relative; background: #fff; color: #004aad; padding: 8px 7% 7px; opacity: var(--expand); transform: translateY(calc((1 - var(--expand)) * (68px + var(--practice) * 18px))) rotate(calc((1 - var(--expand)) * (var(--practice) - 1) * 9deg)); box-shadow: 6px 6px 0 #00357e; }
+.practiceTab { display: flex; gap: 4px; border-bottom: 1px solid #c9d8eb; padding-bottom: 6px; margin-bottom: 6px; }
+.practiceTab span { width: 3px; height: 3px; border-radius: 50%; background: #87a7d1; }
+.practice strong { display: block; font-size: clamp(16px, 1.8vw, 27px); line-height: 1.15; font-weight: 700; letter-spacing: -.04em; }
+.practiceContent { display: flex; gap: 5%; margin-top: 8px; }
+.practiceContent i { display: block; width: 25%; height: 4px; background: #bdd0e9; }
+.practiceFooter { display: block; margin-top: 6px; font-size: clamp(7px, .8vw, 10px); white-space: nowrap; }
+.caption { padding-top: 13px; border-top: 1px solid #ffffff50; font-size: 10px; }
+.caption > span:last-child { font-size: 12px; letter-spacing: -.02em; }
+
+@media (max-width: 767px) {
+    :global(html.mt-js) .track { height: 130svh; }
+    .track { margin-bottom: 34px; }
+    .frame { height: min(610px, calc(100svh - 140px)); min-height: 380px; padding: 18px 14px; }
+    :global(html.mt-js) .frame { top: 84px; }
+    .topline { font-size: 8px; padding-bottom: 18px; gap: 10px; }
+    .stages { gap: 11px; }
+    .stage { padding-top: 11px; }
+    .stageName { font-size: clamp(21px, 6.4vw, 39px); }
+    .stageTitle { margin-top: 9px; font-size: 10px; word-break: keep-all; }
+    .diagram { margin-block: 22px 18px; }
+    .website { left: 0; top: 7%; width: 57%; height: 48%; box-shadow: 5px 5px 0 #00357e; transform: translateX(calc((1 - var(--reach)) * 33%)) scale(calc(1 + (1 - var(--reach)) * .13)); }
+    .browserBar { gap: 3px; }
+    .browserBar > span { width: 3px; height: 3px; }
+    .websiteBody { gap: 6%; }
+    .postGrid { gap: 7%; }
+    .post strong { font-size: 9px; }
+    .channelStrip { gap: 7px; padding-top: 4px; font-size: 7px; }
+    .post > i { height: 2px; }
+    .search { right: 0; top: 12%; width: 34%; padding: 7px; }
+    .searchField { min-height: 25px; padding: 5px; font-size: 12px; }
+    .searchField i { width: 10px; height: 10px; }
+    .searchResults { gap: 11px; margin-top: 12px; }
+    .searchResult { gap: 5px; }
+    .resultMark { width: 11px; height: 17px; border-width: 1px; }
+    .searchResult strong { font-size: 9px; }
+    .searchResult i { height: 2px; margin-top: 5px; }
+    .connections path { stroke-width: 2; }
+    .practicePages { inset-inline: 0; gap: 9px; height: 26%; }
+    .practice { padding: 7px; box-shadow: 3px 3px 0 #00357e; }
+    .practice strong { font-size: clamp(13px, 3.5vw, 19px); }
+    .practiceTab { padding-bottom: 5px; margin-bottom: 6px; }
+    .practiceContent { margin-top: 7px; }
+    .practiceContent i { height: 3px; }
+    .practiceFooter { font-size: 6.5px; letter-spacing: -.025em; }
+    .caption { gap: 8px; font-size: 7px; }
+    .caption > span:last-child { font-size: 9px; }
+}
+
+@media (max-height: 680px) {
+    :global(html.mt-js) .track { height: auto; --section-progress: 1 !important; }
+    :global(html.mt-js) .frame { position: relative; top: auto; }
+    .frame { height: 480px; min-height: 0; }
+}
+
+@media (max-height: 590px) {
+    .frame { min-height: 0; grid-template-rows: auto minmax(0,1fr); }
+    .stageTitle, .topline, .caption, .channelStrip { display: none; }
+    .stageName { font-size: 24px; }
+    .diagram { margin-block: 16px 4px; }
+    .practiceFooter { display: none; }
+}
+
+/* Static, complete structure is the server render, the pause frame and the
+   reduced-motion result; no case text or result depends on this graphic. */
+:global([data-home-motion-root]:is([data-motion-paused="true"], [data-reduced-motion="true"])) .track {
+    --section-progress: 1 !important;
+    height: auto !important;
+}
+:global([data-home-motion-root]:is([data-motion-paused="true"], [data-reduced-motion="true"])) .frame { position: relative; top: auto; }
+@media (prefers-reduced-motion: reduce) {
+    :global(html.mt-js) .track, .track { --section-progress: 1 !important; height: auto; }
+    :global(html.mt-js) .frame, .frame { position: relative; top: auto; }
+}

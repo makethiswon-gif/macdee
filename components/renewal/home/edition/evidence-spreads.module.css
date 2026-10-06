@@ -1,0 +1,828 @@
+.section {
+    --blue: #004aad;
+    --navy: #081d39;
+    --rule: rgba(8, 29, 57, .2);
+    overflow-x: clip;
+    color: var(--navy);
+    background: #fff;
+    font-family: "Renewal Study", "Pretendard", sans-serif;
+    padding: clamp(76px, 9vw, 144px) 0;
+}
+
+.inner {
+    width: min(100% - clamp(40px, 8vw, 128px), 1480px);
+    margin-inline: auto;
+}
+
+.label {
+    font-size: 12px;
+    line-height: 1.5;
+    font-weight: 600;
+    letter-spacing: .06em;
+}
+
+.sectionHeading {
+    margin-bottom: clamp(36px, 5vw, 76px);
+}
+
+.sectionHeading > .label {
+    color: var(--blue);
+    margin-bottom: 24px;
+}
+
+.sectionHeading h2 {
+    max-width: 1100px;
+    font-size: clamp(36px, 5.7vw, 84px);
+    font-weight: 650;
+    letter-spacing: -.07em;
+    line-height: 1.15;
+    word-break: keep-all;
+    text-wrap: balance;
+}
+
+.sectionLead {
+    margin-top: 28px;
+    font-size: clamp(16px, 1.7vw, 22px);
+    line-height: 1.6;
+    letter-spacing: -.035em;
+    word-break: keep-all;
+}
+
+.roster,
+.caseSpread,
+.growthStep,
+.member,
+.founderSpread {
+    --ep: 1;
+}
+
+.partners {
+    padding-bottom: clamp(88px, 11vw, 168px);
+}
+
+.roster {
+    transform: translateY(calc((1 - var(--ep)) * 100px)) rotate(calc((1 - var(--ep)) * -2deg));
+    transform-origin: 10% 100%;
+    border-top: 3px solid var(--blue);
+    border-bottom: 3px solid var(--blue);
+}
+
+.rosterHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding-block: 26px 42px;
+    color: var(--blue);
+}
+
+.rosterHeader h2 {
+    font-size: clamp(62px, 12.4vw, 180px);
+    font-weight: 650;
+    line-height: .88;
+    letter-spacing: -.075em;
+}
+
+.rosterMark {
+    align-self: flex-end;
+    padding-right: 2vw;
+    font-size: clamp(90px, 20vw, 290px);
+    line-height: .85;
+    font-weight: 300;
+}
+
+.legalRoster {
+    padding-top: 20px;
+    border-top: 1px solid var(--blue);
+}
+
+.legalRoster > .label,
+.corporateRoster > .label {
+    margin-bottom: 26px;
+    color: var(--blue);
+}
+
+.partnerNames {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: clamp(20px, 4vw, 60px);
+}
+
+.partnerNames li {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    padding: 21px 0;
+    border-bottom: 1px solid var(--rule);
+    font-size: clamp(17px, 1.7vw, 26px);
+    line-height: 1.25;
+    font-weight: 550;
+    letter-spacing: -.045em;
+    word-break: keep-all;
+}
+
+.index {
+    flex: 0 0 auto;
+    color: var(--blue);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+.corporateRoster {
+    padding-top: 40px;
+}
+
+.corporateRoster ul {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 40px;
+    padding-bottom: 34px;
+}
+
+.corporateRoster li {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    font-size: clamp(27px, 4.9vw, 72px);
+    font-weight: 550;
+    letter-spacing: -.06em;
+    line-height: 1.1;
+}
+
+.cases {
+    background: #f1f4f8;
+}
+
+.caseCollection {
+    display: grid;
+    gap: clamp(66px, 8vw, 116px);
+}
+
+.caseDocument {
+    min-width: 0;
+}
+
+.caseSpread {
+    position: relative;
+    isolation: isolate;
+    perspective: 2200px;
+}
+
+.casePaper {
+    min-width: 0;
+    padding: clamp(26px, 4vw, 60px);
+    background: #fff;
+    border-top: 3px solid var(--blue);
+    transform: translateY(calc((1 - var(--ep)) * 60px));
+}
+
+.featuredCase .casePaper {
+    min-height: 580px;
+    transform: none;
+}
+
+.caseHeading {
+    display: grid;
+    grid-template-columns: minmax(100px, .7fr) 2fr;
+    align-items: baseline;
+    gap: 20px;
+    padding-bottom: clamp(30px, 4vw, 54px);
+    border-bottom: 1px solid var(--rule);
+}
+
+.caseLabel {
+    color: var(--blue);
+    font-size: clamp(16px, 2vw, 28px);
+    font-weight: 600;
+    letter-spacing: -.04em;
+}
+
+.caseHeading h3 {
+    font-size: clamp(24px, 3.4vw, 48px);
+    font-weight: 600;
+    letter-spacing: -.055em;
+    line-height: 1.15;
+    word-break: keep-all;
+}
+
+.caseColumns {
+    display: grid;
+    grid-template-columns: 1fr 1.15fr 1fr;
+    gap: clamp(24px, 3vw, 46px);
+    padding-top: clamp(30px, 3vw, 44px);
+}
+
+.caseColumn {
+    min-width: 0;
+}
+
+.caseColumn > .label {
+    color: var(--blue);
+    margin-bottom: 24px;
+    font-size: 13px;
+}
+
+.caseList {
+    display: grid;
+    gap: 14px;
+    font-size: clamp(14px, 1.1vw, 16px);
+    line-height: 1.75;
+    letter-spacing: -.025em;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+}
+
+.caseList li {
+    padding-left: 13px;
+    border-left: 1px solid var(--rule);
+}
+
+.results dl {
+    display: grid;
+    gap: 22px;
+}
+
+.results dt {
+    font-size: 12px;
+    line-height: 1.5;
+    margin-bottom: 5px;
+}
+
+.results dd {
+    color: var(--blue);
+    font-size: clamp(19px, 1.9vw, 27px);
+    font-weight: 650;
+    line-height: 1.3;
+    letter-spacing: -.06em;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+}
+
+.gatefold {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    perspective: 2200px;
+    perspective-origin: 50% 0;
+    --open: clamp(0, calc((var(--ep) - .08) * 1.45), 1);
+}
+
+.coverLeaf {
+    position: absolute;
+    inset-block: 0;
+    width: 50%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: clamp(25px, 4vw, 60px);
+    background: var(--blue);
+    color: white;
+    backface-visibility: hidden;
+    transform-style: preserve-3d;
+}
+
+.coverLeft {
+    left: 0;
+    transform-origin: left center;
+    transform: rotateY(calc(var(--open) * -105deg));
+    border-right: 1px solid rgba(255, 255, 255, .3);
+    box-shadow: inset -25px 0 42px -38px #000;
+}
+
+.coverRight {
+    right: 0;
+    transform-origin: right center;
+    transform: rotateY(calc(var(--open) * 105deg));
+    box-shadow: inset 25px 0 42px -38px #000;
+}
+
+.coverSmall,
+.coverBottom {
+    font-size: 12px;
+    line-height: 1.5;
+    font-weight: 500;
+    letter-spacing: .04em;
+}
+
+.coverCase {
+    max-width: 4ch;
+    font-size: clamp(80px, 12vw, 180px);
+    line-height: .9;
+    font-weight: 650;
+    letter-spacing: -.07em;
+}
+
+.coverTitle {
+    font-size: clamp(34px, 5.5vw, 80px);
+    line-height: 1.16;
+    font-weight: 600;
+    letter-spacing: -.07em;
+    word-break: keep-all;
+}
+
+.caseNote {
+    max-width: 1050px;
+    padding-top: 23px;
+    font-size: 13px;
+    line-height: 1.85;
+    letter-spacing: -.02em;
+    color: #46576d;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+}
+
+.growthAccount {
+    margin-top: clamp(42px, 5vw, 72px);
+}
+
+.growthAccount > .label {
+    color: var(--blue);
+    padding-bottom: 24px;
+}
+
+.growthStep {
+    display: grid;
+    grid-template-columns: .35fr 1fr 1.65fr;
+    gap: clamp(20px, 3vw, 44px);
+    padding-block: 30px;
+    border-top: 1px solid var(--rule);
+    transform: translateX(calc((1 - var(--ep)) * 45px));
+}
+
+.growthNumber {
+    color: var(--blue);
+    font-size: clamp(40px, 5vw, 70px);
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: -.08em;
+}
+
+.growthHeading .label {
+    color: var(--blue);
+    margin-bottom: 14px;
+}
+
+.growthHeading h5 {
+    font-size: clamp(19px, 2vw, 26px);
+    font-weight: 600;
+    line-height: 1.45;
+    letter-spacing: -.045em;
+    word-break: keep-all;
+}
+
+.growthCopy {
+    max-width: 64ch;
+    font-size: 15px;
+    line-height: 1.85;
+    letter-spacing: -.025em;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+}
+
+.sampleNote {
+    padding: 20px 24px;
+    margin-bottom: 32px;
+    border: 1px solid #9b762b;
+    color: #664700;
+    background: #fff8e7;
+    font-size: 14px;
+    line-height: 1.7;
+}
+
+.editorialLink {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    border-top: 1px solid var(--rule);
+    margin-top: clamp(44px, 5vw, 72px);
+    padding-top: 26px;
+    color: var(--blue);
+    font-size: clamp(18px, 2.5vw, 32px);
+    line-height: 1.4;
+    font-weight: 550;
+    letter-spacing: -.05em;
+}
+
+.editorialLink > span {
+    font-size: 1.6em;
+    line-height: 1;
+    transition: transform 180ms ease;
+}
+
+.editorialLink:hover > span {
+    transform: translate(4px, -4px);
+}
+
+.editorialLink:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 8px;
+}
+
+.teamMasthead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding-block: 25px 32px;
+    border-top: 3px solid var(--blue);
+    color: var(--blue);
+    font-size: clamp(56px, 10vw, 145px);
+    line-height: .9;
+    font-weight: 600;
+    letter-spacing: -.075em;
+}
+
+.contactSheet {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: clamp(20px, 3.2vw, 48px);
+    row-gap: clamp(44px, 6vw, 80px);
+}
+
+.member {
+    min-width: 0;
+}
+
+.portraitMount {
+    position: relative;
+    aspect-ratio: 1;
+    background: #eaf0f8;
+    overflow: hidden;
+}
+
+.portraitNumber {
+    position: absolute;
+    top: 15px;
+    left: 18px;
+    z-index: 1;
+    color: var(--blue);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+}
+
+.portraitMask {
+    height: 100%;
+    clip-path: inset(calc((1 - var(--ep)) * 32%) calc((1 - var(--ep)) * 13%) calc((1 - var(--ep)) * 13%) calc((1 - var(--ep)) * 13%));
+    transform: translateY(calc((1 - var(--ep)) * (36px + var(--portrait-offset) * 12px)));
+}
+
+.portraitMask img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.member figcaption {
+    padding-top: 22px;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 22px;
+}
+
+.memberRole {
+    color: var(--blue);
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.member h3 {
+    margin-top: 9px;
+    font-size: clamp(25px, 3vw, 40px);
+    line-height: 1.2;
+    font-weight: 600;
+    letter-spacing: -.055em;
+}
+
+.memberBackground {
+    margin-top: 15px;
+    min-height: 3.3em;
+    font-size: 13px;
+    line-height: 1.65;
+    color: #46576d;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+}
+
+.disciplines {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 24px;
+    margin-top: clamp(46px, 6vw, 88px);
+    padding-block: 24px;
+    border-block: 1px solid var(--rule);
+}
+
+.disciplines li {
+    display: grid;
+    align-content: start;
+    gap: 11px;
+    font-size: 13px;
+    line-height: 1.6;
+    word-break: keep-all;
+}
+
+.disciplines .label {
+    color: var(--blue);
+    font-size: 10px;
+}
+
+.founderSpread {
+    display: grid;
+    grid-template-columns: .95fr 1.15fr;
+    align-items: center;
+    margin-top: clamp(65px, 8vw, 116px);
+    background: var(--navy);
+    color: white;
+    overflow: hidden;
+}
+
+.founderPortrait {
+    min-width: 0;
+    clip-path: inset(0 calc((1 - var(--ep)) * 60%) 0 0);
+}
+
+.founderPortrait img {
+    width: 100%;
+    height: auto;
+    filter: grayscale(1);
+    transform: translateX(calc((1 - var(--ep)) * -55px));
+}
+
+.founderCopy {
+    min-width: 0;
+    padding: clamp(30px, 4.2vw, 62px);
+    transform: translateX(calc((1 - var(--ep)) * 60px));
+}
+
+.founderCopy > .label {
+    color: #c4d7f3;
+}
+
+.founderName {
+    display: flex;
+    align-items: baseline;
+    gap: 18px;
+    margin-top: 18px;
+}
+
+.founderName h3 {
+    font-size: clamp(34px, 4.5vw, 66px);
+    line-height: 1.15;
+    font-weight: 600;
+    letter-spacing: -.065em;
+}
+
+.founderName > span {
+    color: #c4d7f3;
+    font-size: 12px;
+}
+
+.founderLead {
+    margin-top: 28px;
+    max-width: 23ch;
+    font-size: clamp(21px, 2.25vw, 32px);
+    line-height: 1.5;
+    font-weight: 450;
+    letter-spacing: -.045em;
+    word-break: keep-all;
+}
+
+.founderCareer {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 24px;
+    padding-top: 27px;
+    margin-top: 32px;
+    border-top: 1px solid rgba(255, 255, 255, .28);
+}
+
+.founderCareer .label {
+    color: #c4d7f3;
+    font-size: 10px;
+    margin-bottom: 15px;
+}
+
+.founderCareer li {
+    margin-top: 7px;
+    font-size: 12px;
+    line-height: 1.7;
+    word-break: keep-all;
+}
+
+/* Every scene is complete without JS. The controller only supplies --ep;
+   no hidden content, fixed panels, or extra scroll distance is required. */
+:global([data-edition-root][data-motion-paused="true"]) .roster,
+:global([data-edition-root][data-motion-paused="true"]) .caseSpread,
+:global([data-edition-root][data-motion-paused="true"]) .growthStep,
+:global([data-edition-root][data-motion-paused="true"]) .member,
+:global([data-edition-root][data-motion-paused="true"]) .founderSpread,
+:global([data-edition-root][data-reduced-motion="true"]) .roster,
+:global([data-edition-root][data-reduced-motion="true"]) .caseSpread,
+:global([data-edition-root][data-reduced-motion="true"]) .growthStep,
+:global([data-edition-root][data-reduced-motion="true"]) .member,
+:global([data-edition-root][data-reduced-motion="true"]) .founderSpread {
+    --ep: 1 !important;
+}
+
+@media (max-width: 1000px) {
+    .partnerNames {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .caseColumns {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .results {
+        grid-column: 1 / -1;
+        padding-top: 24px;
+        border-top: 1px solid var(--rule);
+    }
+
+    .results dl {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .featuredCase .casePaper {
+        min-height: 0;
+    }
+
+    .growthStep {
+        grid-template-columns: 50px 1fr 1.5fr;
+    }
+
+    .founderCareer {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+}
+
+@media (max-width: 700px) {
+    .section {
+        padding-block: 70px;
+    }
+
+    .rosterHeader {
+        padding-bottom: 28px;
+    }
+
+    .rosterMark {
+        padding-right: 0;
+        font-size: 96px;
+    }
+
+    .partnerNames {
+        gap: 0 20px;
+    }
+
+    .partnerNames li {
+        font-size: 16px;
+        gap: 9px;
+        padding-block: 17px;
+        align-items: flex-start;
+    }
+
+    .partnerNames .index {
+        margin-top: 3px;
+    }
+
+    .corporateRoster {
+        padding-top: 28px;
+    }
+
+    .corporateRoster ul {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .corporateRoster li {
+        font-size: 36px;
+    }
+
+    .caseHeading {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        padding-bottom: 25px;
+    }
+
+    .casePaper {
+        padding: 25px 22px 28px;
+    }
+
+    .caseColumns {
+        grid-template-columns: 1fr;
+        gap: 28px;
+    }
+
+    .caseColumn > .label {
+        margin-bottom: 15px;
+    }
+
+    .results dl {
+        grid-template-columns: 1fr;
+        gap: 18px;
+    }
+
+    .results dl > div {
+        display: grid;
+        grid-template-columns: 65px 1fr;
+        align-items: baseline;
+        gap: 12px;
+    }
+
+    .results dd {
+        font-size: 22px;
+    }
+
+    .gatefold {
+        display: none;
+    }
+
+    .caseNote {
+        font-size: 12px;
+    }
+
+    .growthStep {
+        grid-template-columns: 38px 1fr;
+        gap: 18px;
+        padding-block: 26px;
+    }
+
+    .growthCopy {
+        grid-column: 2;
+        font-size: 14px;
+    }
+
+    .growthHeading .label {
+        margin-bottom: 8px;
+    }
+
+    .contactSheet {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 32px 20px;
+    }
+
+    .portraitNumber {
+        top: 9px;
+        left: 11px;
+        font-size: 10px;
+    }
+
+    .member figcaption {
+        padding-block: 15px 18px;
+    }
+
+    .memberRole {
+        font-size: 10px;
+    }
+
+    .memberBackground {
+        margin-top: 12px;
+        font-size: 11px;
+        min-height: 0;
+    }
+
+    .disciplines {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 22px 20px;
+    }
+
+    .founderSpread {
+        grid-template-columns: 1fr;
+    }
+
+    .founderCopy {
+        padding: 30px 25px 36px;
+    }
+
+    .founderCareer {
+        grid-template-columns: 1fr 1.2fr;
+        gap: 18px;
+    }
+
+    .founderLead {
+        max-width: none;
+    }
+}
+
+@media (max-height: 560px) and (orientation: landscape) {
+    .gatefold {
+        display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .roster,
+    .caseSpread,
+    .growthStep,
+    .member,
+    .founderSpread {
+        --ep: 1 !important;
+    }
+
+    .editorialLink > span {
+        transition: none;
+    }
+}

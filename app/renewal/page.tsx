@@ -1,17 +1,14 @@
 import type { Metadata } from "next";
-import { getInsightCatalogue, getRelatedInsights } from "@/lib/renewal/magazine";
+import { getInsightCatalogue } from "@/lib/renewal/magazine";
 
-import HeroSection from "@/components/renewal/home/HeroSection";
-import ClientJourney from "@/components/renewal/home/ClientJourney";
-import ProblemSection from "@/components/renewal/home/ProblemSection";
-import PartnerLogos from "@/components/renewal/home/PartnerLogos";
-import ServicesSection from "@/components/renewal/home/ServicesSection";
-import InvariantClause from "@/components/renewal/home/InvariantClause";
-import CaseStudies from "@/components/renewal/home/CaseStudies";
-import WhyMakethis1 from "@/components/renewal/home/WhyMakethis1";
-import InsightsPreview from "@/components/renewal/home/InsightsPreview";
-import PlansSection from "@/components/renewal/home/PlansSection";
-import FinalCTA from "@/components/renewal/home/FinalCTA";
+import HomeEditionHero from "@/components/renewal/home/edition/HomeEditionHero";
+import ServiceSpread from "@/components/renewal/home/edition/ServiceSpread";
+import JourneySpread from "@/components/renewal/home/edition/JourneySpread";
+import OperationsSpread from "@/components/renewal/home/edition/OperationsSpread";
+import { PartnerEdition, CaseEdition, TeamEdition } from "@/components/renewal/home/edition/EvidenceSpreads";
+import { ChannelEdition, InsightEdition, PlanEdition, ContactEdition } from "@/components/renewal/home/edition/ClosingSpreads";
+import EditionMotionController from "@/components/renewal/home/edition/EditionMotionController";
+import editionStyles from "@/components/renewal/home/edition/edition-home.module.css";
 
 import { CASES } from "@/data/renewal/cases";
 import { COMPANY, FOUNDER, absUrl, ogImage } from "@/data/renewal/site";
@@ -120,10 +117,10 @@ const jsonLd = {
 };
 
 export default async function RenewalHome() {
-    // 날짜만으로 고르지 않고, 기존 발행글 중 로펌 마케팅과 관련 있는 글을 연결한다.
-    const [catalogue, insights] = await Promise.all([
-        getInsightCatalogue().catch(() => []), getRelatedInsights("lawfirm-marketing", 3),
-    ]);
+    // Catalogue is already ordered by publication date (newest first).
+    // Homepage shows the latest three; service pages retain their related picks.
+    const catalogue = await getInsightCatalogue().catch(() => []);
+    const insights = catalogue.slice(0, 3);
 
     return (
         <>
@@ -139,18 +136,21 @@ export default async function RenewalHome() {
 
                 핵심 원칙: 첫 화면 5초 안에 "필요한 마케팅 전부를 한 팀이 운영해
                 간단해진다"가 읽혀야 한다. 효과 없이 읽어도 구조가 이해된다. */}
-            <HeroSection />
-            <ServicesSection />
-            <ClientJourney />
-            <ProblemSection />
-            <PartnerLogos />
+            <div data-edition-root className={editionStyles.root}>
+            <EditionMotionController />
+            <HomeEditionHero />
+            <ServiceSpread />
+            <JourneySpread />
+            <OperationsSpread />
+            <PartnerEdition />
             {/* 홈은 첫 사례만 Growth Path 를 펼친다 — 전체는 /work */}
-            <CaseStudies cases={CASES} growthLimit={1} />
-            <InvariantClause />
-            <WhyMakethis1 />
-            <InsightsPreview items={insights} total={catalogue.length} />
-            <PlansSection />
-            <FinalCTA />
+            <CaseEdition cases={CASES} growthLimit={1} />
+            <ChannelEdition />
+            <TeamEdition />
+            <InsightEdition items={insights} total={catalogue.length} />
+            <PlanEdition />
+            <ContactEdition />
+            </div>
         </>
     );
 }

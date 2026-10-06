@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
 import { postToThreads } from "@/lib/threads/post";
 import { generateThreadsCaption } from "@/lib/threads/caption";
+import { invalidateMagazineCache } from "@/lib/renewal/magazine-cache";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
 
@@ -95,6 +96,7 @@ export async function POST(request: Request) {
         // 발행 상태로 생성되면 스레드에도 자동 게시
         let threads = null;
         if (status === "published") {
+            invalidateMagazineCache();
             threads = await autoPostToThreads(data.slug, title, excerpt || content.substring(0, 160), content);
         }
 
@@ -140,6 +142,10 @@ export async function PATCH(request: Request) {
         const { error } = await supabase.from("magazines").update(updates).eq("id", id);
         if (error) return NextResponse.json({ error: "업데이트 실패" }, { status: 500 });
 
+        if (prior?.status === "published" || updates.status === "published") {
+            invalidateMagazineCache();
+        }
+
         // draft → published 로 처음 전환될 때만 스레드 자동 게시 (수정/재발행 중복 방지)
         let threads = null;
         if (updates.status === "published" && prior && prior.status !== "published") {
@@ -166,7 +172,9 @@ export async function DELETE(request: Request) {
     const id = url.searchParams.get("id");
     if (!id) return NextResponse.json({ error: "id가 필요합니다." }, { status: 400 });
 
-    await supabase.from("magazines").delete().eq("id", id);
+    const { error } = await supabase.from("magazines").delete().eq("id", id);
+    if (error) return NextResponse.json({ error: "삭제 실패" }, { status: 500 });
+    invalidateMagazineCache();
     return NextResponse.json({ success: true });
 }
 

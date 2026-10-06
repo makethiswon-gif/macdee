@@ -1,0 +1,229 @@
+.hero {
+    --ink: #004aad;
+    --paper: #f1f1ea;
+    --gutter: clamp(28px, 5.2vw, 100px);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: max(780px, calc(100svh - 86px));
+    overflow: clip;
+    isolation: isolate;
+    color: var(--ink);
+    background: #fff;
+    font-family: "Renewal Study", Arial, sans-serif;
+}
+
+.hero *, .hero *::before, .hero *::after { box-sizing: border-box; }
+.hero p, .hero h1 { margin: 0; }
+.hero a { color: inherit; text-decoration: none; }
+.hero a:focus-visible { outline: 3px solid var(--ink); outline-offset: 6px; }
+.canvas { position: relative; flex: 1; min-height: 681px; }
+.masthead { position: absolute; z-index: -1; top: 24px; left: calc(var(--gutter) - 13px); font-family: Arial, sans-serif; font-size: clamp(194px, 18.7vw, 286px); font-weight: 900; line-height: .755; letter-spacing: -.09em; }
+.masthead > span { display: block; }
+.masthead > span + span { margin-top: 3px; }
+.mastheadDot { display: inline-block; margin-left: -.04em; }
+.copy { position: relative; z-index: 3; width: 49%; padding: clamp(390px, 32vw, 480px) 0 34px var(--gutter); pointer-events: none; }
+.overline { font-size: 10px; font-weight: 600; letter-spacing: .075em; line-height: 1.5; }
+.title { margin-top: 14px !important; font-size: clamp(29px, 2.72vw, 43px); font-weight: 600; line-height: 1.24; letter-spacing: -.065em; word-break: keep-all; }
+.title > span { display: block; max-width: 480px; }
+.title > strong { display: block; font-weight: 800; }
+.body { max-width: 425px; margin-top: 18px !important; color: #42536b; font-size: 14px; line-height: 1.8; letter-spacing: -.025em; word-break: keep-all; }
+.actions { display: flex; flex-wrap: wrap; gap: 12px 25px; margin-top: 24px; pointer-events: auto; }
+.actions a { min-height: 48px; display: inline-flex; align-items: center; justify-content: space-between; gap: 30px; font-size: 13px; font-weight: 650; }
+.actions .primary { padding: 0 21px; color: white; background: var(--ink); }
+.primary span { font-size: 20px; font-weight: 400; }
+.secondary { border-bottom: 1px solid var(--ink); }
+.secondary span { font-size: 17px; }
+.actions a:hover { text-decoration: underline; text-underline-offset: 4px; }
+
+/* The three irregular formats form one printed composition. */
+.artwork { position: absolute; z-index: 2; top: 38px; left: 44%; width: 55%; height: min(650px, 48vw); pointer-events: none; }
+.pressLabel { position: absolute; top: -10px; right: 6%; left: 23%; display: flex; justify-content: space-between; gap: 20px; font-size: 9px; font-weight: 600; letter-spacing: .09em; }
+.printStack { position: absolute; inset: 34px 0 0; perspective: 1600px; }
+.sheetMount { position: absolute; transform-origin: center; will-change: transform; transition: transform 450ms cubic-bezier(.21,.7,.23,1); }
+.sheetEntry, .sheet { width: 100%; height: 100%; }
+.sheet { position: relative; overflow: hidden; box-shadow: 1px 2px 1px #162c4520, 8px 15px 25px #162c4524, 25px 33px 54px #162c450d; }
+.sheet::after { position: absolute; inset: 0; z-index: 4; pointer-events: none; content: ""; background-image: repeating-linear-gradient(97deg, transparent 0 3px, #73807d05 3px 4px), repeating-linear-gradient(7deg, transparent 0 4px, #73807d05 4px 5px); }
+.contentMount { z-index: 1; top: 9%; left: 3%; width: 57%; aspect-ratio: .765; transform: translate3d(calc(var(--mx, 0) * -9px - var(--scroll, 0) * 32px), calc(var(--my, 0) * -6px), 0) rotate(calc(-11deg + var(--mx, 0) * -2deg - var(--scroll, 0) * 3deg)); }
+.contentPrint { padding: 5.2%; background: var(--paper); }
+.printTop, .printRule, .printBottom { display: flex; justify-content: space-between; gap: 12px; font-family: Arial, sans-serif; font-size: clamp(5px, .54vw, 8px); font-weight: 600; letter-spacing: .045em; }
+.printTop { padding-bottom: 8px; border-bottom: 1px solid; }
+.newspaperName { margin: 4px 0 2px; font-family: Georgia, "Times New Roman", serif; font-size: clamp(37px, 5.4vw, 82px); line-height: 1.05; font-weight: 700; letter-spacing: -.075em; }
+.printRule { padding: 5px 0; border-block: 1px solid; font-size: clamp(4px, .44vw, 7px); }
+.newspaperTitle { margin-top: 17px !important; font-size: clamp(19px, 2.6vw, 38px); font-weight: 800; line-height: 1.2; letter-spacing: -.07em; }
+.editorialColumns { display: grid; grid-template-columns: 1.05fr 1fr; gap: 5%; margin-top: 18px; }
+.columnOne { border-right: 1px solid #004aad44; padding-right: 10%; }
+.columnMark { width: 88%; display: block; height: clamp(110px, 11vw, 168px); }
+.caption { display: block; margin-top: 8px; font: 5px Arial, sans-serif; letter-spacing: .06em; }
+.editorialColumns p { margin-top: 10px; font-size: clamp(6px, .64vw, 10px); line-height: 1.75; letter-spacing: -.015em; word-break: keep-all; }
+.columnLabel { font: 600 clamp(5px, .52vw, 8px) Arial, sans-serif; letter-spacing: .04em; }
+.editorialColumns .columnHeading { margin-top: 8px; font-size: clamp(12px, 1.2vw, 19px); line-height: 1.35; font-weight: 700; letter-spacing: -.05em; }
+.columnDivider { height: 1px; background: #004aad55; margin-block: 12px; }
+.printBottom { position: absolute; bottom: 4%; left: 5.2%; right: 5.2%; border-top: 1px solid; padding-top: 6px; font-size: clamp(4px, .45vw, 7px); }
+
+.campaignMount { z-index: 2; top: 1%; left: 37%; width: 48%; aspect-ratio: .71; transform: translate3d(calc(var(--mx, 0) * 15px + var(--scroll, 0) * 120px), calc(var(--my, 0) * 12px + var(--scroll, 0) * 115px), 40px) rotate(calc(11deg + var(--mx, 0) * 3deg + var(--scroll, 0) * 14deg)); }
+.campaignPrint { color: #fff; background: var(--ink); padding: 6%; }
+.campaignTop { display: flex; justify-content: space-between; align-items: flex-start; font-family: Arial, sans-serif; }
+.campaignTop > span:first-child { font-size: clamp(11px, 1.3vw, 20px); font-weight: 800; line-height: .89; letter-spacing: -.055em; }
+.campaignTop > span:last-child { text-align: right; font-size: clamp(4px, .47vw, 7px); line-height: 1.4; letter-spacing: .075em; }
+.oneMark { display: block; width: 111%; max-width: none; height: 77%; margin: -2% 0 0 -6%; }
+.campaignStatement { position: absolute; bottom: 9%; left: 6%; font-size: clamp(14px, 1.8vw, 28px); font-family: Arial, sans-serif; font-weight: 800; letter-spacing: -.06em; line-height: 1; }
+.campaignStatement > span { font-weight: 400; }
+.campaignBottom { position: absolute; bottom: 3%; left: 6%; right: 6%; display: flex; justify-content: space-between; border-top: 1px solid #ffffff99; padding-top: 7px; font: clamp(4px, .45vw, 7px) Arial, sans-serif; letter-spacing: .07em; }
+
+.motionMount { z-index: 3; top: 69%; left: 37%; width: 52%; aspect-ratio: 1.46; transform: translate3d(calc(var(--mx, 0) * 24px - var(--scroll, 0) * 55px), calc(var(--my, 0) * 19px - var(--scroll, 0) * 32px), 65px) rotate(calc(-7deg + var(--mx, 0) * 2deg - var(--scroll, 0) * 7deg)); }
+.motionPrint { padding: 4% 4% 3%; background: #fff; }
+.filmPerforations { height: 8px; margin: -1% 1% 3%; background: repeating-linear-gradient(90deg, #004aad 0 7px, transparent 7px 15px); opacity: .6; }
+.motionFrame { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; background: var(--paper); }
+.motionStill { display: block; width: 100%; height: 100%; }
+.frameWord { position: absolute; top: 11%; left: 7%; font-family: Arial, sans-serif; font-size: clamp(10px, 1.7vw, 26px); line-height: .9; letter-spacing: -.06em; font-weight: 800; }
+.frameWord i { font-family: Georgia, "Times New Roman", serif; font-weight: 400; font-size: 1.05em; }
+.motionCaption { display: flex; justify-content: space-between; margin-top: 3%; font: 600 clamp(5px, .55vw, 8px) Arial, sans-serif; letter-spacing: .04em; }
+.artNote { position: absolute; bottom: -8px; left: 7%; font: 8px Arial, sans-serif; letter-spacing: .07em; transform: rotate(-90deg); transform-origin: left center; }
+
+.colophon { position: relative; z-index: 4; display: flex; align-items: center; gap: 25px; margin: 0 var(--gutter); padding: 19px 0 21px; border-top: 1px solid #004aad55; background: #fff; }
+.indexLabel { flex: 0 0 174px; display: flex; flex-direction: column; gap: 7px; }
+.indexLabel > span { font: 8px Arial, sans-serif; letter-spacing: .1em; }
+.indexLabel > strong { font-size: 12px; font-weight: 500; letter-spacing: -.035em; }
+.serviceNav { display: flex; flex: 1; align-items: center; justify-content: space-between; gap: 18px; }
+.serviceNav a { display: flex; align-items: flex-start; gap: 6px; min-height: 42px; padding-top: 13px; white-space: nowrap; font-size: 12px; font-weight: 550; }
+.serviceNav sup { font-family: Arial, sans-serif; font-size: 8px; line-height: 1; opacity: .65; }
+.serviceNav a:hover span { text-decoration: underline; text-underline-offset: 5px; }
+.scrollCue { margin-left: 8px; text-align: center; font: 7px Arial, sans-serif; letter-spacing: .08em; }
+.scrollCue > span { display: inline-block; font-size: 25px; margin-top: 4px; }
+
+/* The static server render is complete. The shared controller opts into a
+   single print arrival, and controls both paused playback and replay. */
+:global([data-design-scene][data-ready="true"]) .contentEntry { animation: contentLanding 1.8s cubic-bezier(.16,.74,.2,1) .15s both; }
+:global([data-design-scene][data-ready="true"]) .campaignEntry { animation: campaignLanding 2s cubic-bezier(.16,.74,.2,1) .7s both; }
+:global([data-design-scene][data-ready="true"]) .motionEntry { animation: motionLanding 1.9s cubic-bezier(.16,.74,.2,1) 1.7s both; }
+:global([data-design-scene][data-playing="false"]) .sheetEntry { animation-play-state: paused; }
+@keyframes contentLanding { 0% { opacity: 0; transform: translate3d(60px, -90px, 120px) rotate(-15deg); } 14% { opacity: 1; } 76% { transform: translate3d(-3px, 4px, 0) rotate(1deg); } 100% { opacity: 1; transform: translate3d(0, 0, 0) rotate(0); } }
+@keyframes campaignLanding { 0% { opacity: 0; transform: translate3d(170px, -160px, 200px) rotate(25deg); } 12% { opacity: 1; } 76% { transform: translate3d(-4px, 6px, 0) rotate(-1.5deg); } 100% { opacity: 1; transform: translate3d(0, 0, 0) rotate(0); } }
+@keyframes motionLanding { 0% { opacity: 0; transform: translate3d(180px, 130px, 120px) rotate(-20deg); } 12% { opacity: 1; } 78% { transform: translate3d(-5px, -2px, 0) rotate(.8deg); } 100% { opacity: 1; transform: translate3d(0, 0, 0) rotate(0); } }
+
+@media (min-width: 1600px) {
+    .hero { --gutter: 6.2vw; }
+    .canvas { min-height: 775px; }
+    .masthead { top: 35px; font-size: min(19.1vw, 355px); }
+    .copy { padding-top: 550px; }
+    .title { font-size: 38px; }
+    .title > span { max-width: none; }
+    .artwork { top: 65px; left: 47%; width: 49%; max-width: 880px; height: 700px; }
+    .motionMount { top: 65%; width: 48%; }
+}
+
+@media (max-width: 1199px) and (min-width: 801px) {
+    .hero { --gutter: 35px; min-height: 750px; }
+    .canvas { min-height: 655px; }
+    .masthead { top: 40px; font-size: 20.5vw; }
+    .copy { padding-top: 406px; width: 50%; }
+    .title { font-size: 30px; max-width: 420px; }
+    .body { max-width: 360px; font-size: 13px; }
+    .artwork { top: 91px; left: 46%; width: 56%; height: 500px; }
+    .contentMount { top: 8%; width: 59%; left: 0; }
+    .campaignMount { top: 0; left: 35%; width: 49%; }
+    .motionMount { top: 68%; left: 32%; width: 55%; }
+    .newspaperTitle { margin-top: 12px !important; }
+    .editorialColumns { margin-top: 12px; }
+    .columnMark { height: 110px; }
+    .colophon { flex-wrap: wrap; gap: 5px 20px; padding-top: 15px; }
+    .indexLabel { flex: 1 0 calc(100% - 60px); flex-direction: row; gap: 15px; align-items: center; }
+    .scrollCue { position: absolute; right: 0; top: 14px; }
+    .serviceNav { justify-content: flex-start; gap: 24px; }
+}
+
+@media (max-width: 800px) {
+    .hero { --gutter: 25px; min-height: 0; }
+    .canvas { min-height: 0; padding-bottom: 20px; }
+    .masthead { top: 25px; left: 15px; font-size: clamp(100px, 26vw, 205px); line-height: .74; letter-spacing: -.087em; }
+    .artwork { top: 48px; left: 20%; width: 79%; height: 410px; }
+    .printStack { top: 36px; }
+    .pressLabel { top: -28px; left: 16%; right: 1%; justify-content: flex-end; font-size: 6px; }
+    .pressLabel > span:last-child { display: none; }
+    .contentMount { top: 11%; left: 9%; width: 53%; }
+    .campaignMount { top: 0; left: 39%; width: 49%; }
+    .motionMount { top: 66%; left: 27%; width: 64%; }
+    .printTop { padding-bottom: 4px; font-size: 5px; }
+    .newspaperName { font-size: clamp(32px, 7vw, 57px); }
+    .printRule { font-size: 4px; padding: 3px 0; }
+    .newspaperTitle { margin-top: 10px !important; font-size: clamp(16px, 3.7vw, 28px); }
+    .editorialColumns { gap: 6%; margin-top: 9px; }
+    .columnMark { height: clamp(62px, 15vw, 110px); }
+    .editorialColumns p { font-size: 5px; line-height: 1.65; margin-top: 6px; }
+    .caption { font-size: 3px; margin-top: 4px; }
+    .columnLabel { font-size: 4px; }
+    .editorialColumns .columnHeading { font-size: 9px; margin-top: 4px; }
+    .columnDivider { margin-block: 7px; }
+    .printBottom { font-size: 3px; padding-top: 4px; }
+    .campaignTop > span:first-child { font-size: clamp(11px, 2.8vw, 21px); }
+    .campaignTop > span:last-child { font-size: 4px; }
+    .campaignStatement { font-size: clamp(12px, 2.8vw, 21px); }
+    .campaignBottom { font-size: 3px; padding-top: 5px; }
+    .filmPerforations { height: 5px; background-size: 12px 5px; }
+    .frameWord { font-size: clamp(13px, 3.8vw, 24px); }
+    .motionCaption { font-size: 4px; }
+    .artNote { display: none; }
+    .copy { width: auto; padding: calc(80px + 100vw) var(--gutter) 20px; }
+    .overline { font-size: 8px; letter-spacing: .045em; }
+    .title { font-size: clamp(27px, 5.9vw, 43px); line-height: 1.23; margin-top: 12px !important; letter-spacing: -.067em; }
+    .title > span { max-width: 540px; }
+    .title > strong { margin-top: 3px; }
+    .body { max-width: 420px; margin-top: 16px !important; font-size: 13px; }
+    .actions { gap: 12px 23px; margin-top: 21px; }
+    .actions a { min-height: 47px; font-size: 12px; gap: 25px; }
+    .actions .primary { padding-inline: 18px; }
+    .colophon { flex-wrap: wrap; padding: 18px 0 30px; gap: 7px; }
+    .indexLabel { flex: 1 0 100%; flex-direction: row; gap: 14px; align-items: baseline; }
+    .indexLabel > span { font-size: 7px; }
+    .indexLabel > strong { font-size: 11px; }
+    .serviceNav { justify-content: flex-start; flex-wrap: wrap; gap: 0 17px; }
+    .serviceNav a { min-height: 34px; padding-top: 12px; font-size: 11px; gap: 4px; }
+    .serviceNav sup { font-size: 6px; }
+    .scrollCue { display: none; }
+}
+
+@media (min-width: 521px) and (max-width: 800px) {
+    .artwork { top: 43px; left: 32%; width: 65%; height: 475px; }
+    .copy { padding-top: calc(345px + 37vw); }
+    .motionMount { top: 68%; width: 59%; }
+}
+
+@media (max-width: 400px) {
+    .hero { --gutter: 21px; }
+    .artwork { top: 54px; height: 345px; }
+    .copy { padding-top: 450px; }
+    .title { font-size: 27px; }
+    .title > span { max-width: 330px; }
+    .serviceNav { gap: 0 15px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sheetMount { transition: none; will-change: auto; }
+    .contentMount { transform: rotate(-11deg); }
+    .campaignMount { transform: rotate(11deg); }
+    .motionMount { transform: rotate(-7deg); }
+    :global([data-design-scene][data-ready="true"]) .sheetEntry { animation: none; }
+}
+
+/* The selected home has a stronger exit: the three prints open the next spread.
+   The study route keeps its original quieter comparison choreography. */
+.homeHero { --mx: 0; --my: 0; --scroll: 0; min-height: max(780px,calc(100svh - 84px)); }
+.homeHero .masthead { transform-origin: left top; transform: translateY(calc(var(--scroll) * -85px)) scale(calc(1 - var(--scroll) * .12)); }
+.homeHero .contentMount { transform: translate3d(calc(var(--mx) * -12px - var(--scroll) * 300px),calc(var(--my) * -8px + var(--scroll) * 50px),0) rotate(calc(-11deg - var(--mx) * 2deg - var(--scroll) * 18deg)); }
+.homeHero .campaignMount { transform: translate3d(calc(var(--mx) * 22px + var(--scroll) * 380px),calc(var(--my) * 16px - var(--scroll) * 60px),40px) rotate(calc(11deg + var(--mx) * 3deg + var(--scroll) * 23deg)); }
+.homeHero .motionMount { transform: translate3d(calc(var(--mx) * 30px + var(--scroll) * 230px),calc(var(--my) * 22px + var(--scroll) * 180px),65px) rotate(calc(-7deg + var(--mx) * 2deg - var(--scroll) * 21deg)); }
+.homeHero[data-playing="false"] .sheetEntry { animation-play-state: paused; }
+@media (max-width: 800px) {
+    .homeHero { min-height: 0; }
+    .homeHero .masthead { transform: translateY(calc(var(--scroll) * -30px)); }
+    .homeHero .contentMount { transform: translateX(calc(var(--scroll) * -100px)) rotate(calc(-11deg - var(--scroll) * 12deg)); }
+    .homeHero .campaignMount { transform: translateX(calc(var(--scroll) * 150px)) rotate(calc(11deg + var(--scroll) * 15deg)); }
+    .homeHero .motionMount { transform: translate(calc(var(--scroll) * 95px),calc(var(--scroll) * 70px)) rotate(calc(-7deg - var(--scroll) * 12deg)); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .homeHero .masthead { transform: none; }
+    .homeHero .contentMount { transform: rotate(-11deg); }
+    .homeHero .campaignMount { transform: rotate(11deg); }
+    .homeHero .motionMount { transform: rotate(-7deg); }
+}
