@@ -398,7 +398,7 @@ export default function BlogPublishPage() {
         try {
             if (valid && dirty) await persist(draft, savedId, op);
             setStep("writing"); setProgress(retry === "recover" ? "저장된 원고 응답 확인 중(추가 AI 호출 없음)…"
-                : `${rewrite ? "붙여넣은 글을 자료로 새 원고를 쓰는 중" : "원고 생성 중"}${subscription ? " — 클로드 구독(내 PC 작업기), 보통 2~4분" : ""}…`);
+                : `${rewrite ? "붙여넣은 글을 자료로 새 원고를 쓰는 중" : "원고 생성 중"}${subscription ? " — 클로드 구독(내 PC 작업기), 보통 3~8분" : " — 깊게 생각하며 쓰는 중, 보통 3~7분"}…`);
             let imagePreparationError = "";
             try {
                 if (retry !== "recover") await publishJson("/api/admin/blog-images/preflight", op.signal, { profileId, checkModel: true, basicProfile: true, topic: `${effectiveTopic.field} ${effectiveTopic.topic}` });

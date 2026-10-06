@@ -20,11 +20,12 @@ import { readManuscriptResponse } from "@/lib/blog-manuscript-response";
 import { claudeDispatch, engineOperationId, missingApiKey, parseClaudeEngine } from "@/lib/ai/claude-engine";
 import { assertSubscriptionReady, SubscriptionUnavailableError } from "@/lib/ai/subscription-relay";
 
-// Sonnet 5.5(2026-09-29 전환; 모델 ID·노력 단계는 lib/ai/models.ts). 노력 단계는 2026-09-29 대표 지시로 medium → high.
-// Sonnet 5 에서 high 는 원고 14건 중 3건이 max_tokens 20,000 에서 끊겼다(사고 1.5만~1.9만 토큰, 초당 약 85토큰). 5.5 는 단계가 재보정돼 같은 양이라고 볼 수 없으니
-// 전환 뒤 첫 원고들의 출력 토큰을 원고 비용 패널로 확인하고, 끊기면 WRITING_EFFORT 만 "medium" 으로 내린다. 유료 응답 ID(v16)는 그대로 둔다 — 저장된 응답을 다시 과금 없이 복구할 수 있다.
-// max_tokens 는 올리지 않는다: 285초 제한 안에 나오는 토큰이 약 2.4만이라 그 이상은 끊김이 아니라 시간 초과(응답 유실)가 된다.
-export const maxDuration = 300;
+// Sonnet 5.5(2026-09-29 전환; 모델 ID·노력 단계는 lib/ai/models.ts), 노력 단계 high — 2026-10-06 대표: "원고 품질이 중요, 토큰은 늘려도 된다".
+// 5.5 의 high 는 원고 한 편에 사고만 2만 토큰을 넘게 쓴다(10/6 두 건 모두 사고 20,000·본문 0자로 한도에서 끊김, 초당 약 124토큰).
+// 그래서 출력 한도를 64,000 으로, 함수 제한을 800초(Vercel Pro 최대)로 올리고 응답은 스트리밍으로 받는다(긴 무응답 연결이 중간에 끊기지 않게).
+// 64,000 을 다 써도 약 520초(초당 124토큰)라 760초 대기 안에 끝난다. 유료 응답 ID 를 v17 로 올려 같은 주제를 다시 눌러도 새 설정으로 쓴다
+// (v16 의 끊긴 응답을 다시 꺼내 쓰지 않는다).
+export const maxDuration = 800;
 
 // 본문 하단 '기준일' 표기용 (KST)
 function getKstDateLabel(): string {
@@ -265,17 +266,17 @@ ${trustBlock}
             : fieldLine ? `${fieldLine}[작성할 내용]\n${content}` : content;
 
         const attempt = paidAttempt(attemptId, confirmPaid);
-        const operationId = engineOperationId(paidId("blog-manuscript-v16", { content, source: rewrite ? sourceText : "", field, profileId, topic, attempt, cover: !!coverLayout }), engine);
+        const operationId = engineOperationId(paidId("blog-manuscript-v17", { content, source: rewrite ? sourceText : "", field, profileId, topic, attempt, cover: !!coverLayout }), engine);
         // 작업기가 꺼져 있으면 유료 작업 잠금을 걸기 전에 알린다. 복구는 저장 응답만 읽으므로 작업기가 필요 없다.
         if (engine === "subscription" && recoverOnly !== true) await assertSubscriptionReady();
         const { data, reused, elapsedMs } = await paidJsonRequest(operationId, "블로그 원고", BLOG_WRITING_MODEL, claudeDispatch(engine, {
             model: BLOG_WRITING_MODEL,
-            max_tokens: 20000,
+            max_tokens: 64000,
             thinking: { type: "adaptive" },
             output_config: { effort: WRITING_EFFORT },
             system: systemPrompt,
             messages: [{ role: "user", content: userMessage }],
-        }, { stage: "블로그 원고", timeoutMs: 285_000, operationId }), undefined, { recoverOnly: recoverOnly === true });
+        }, { stage: "블로그 원고", timeoutMs: 760_000, operationId, stream: true }), undefined, { recoverOnly: recoverOnly === true });
         const usage = usageFromProvider("manuscript", "블로그 원고", BLOG_WRITING_MODEL, data, { operationId, reused, elapsedMs, engine });
         responseUsage = usage;
         const parsed = readManuscriptResponse(data);

@@ -127,14 +127,14 @@ const post = async (route, payload) => {
     r = await post(write, input);
     assert.equal(r.status, 200, JSON.stringify(r.data)); worker.stop();
     const job = worker.seen[0];
-    assert.equal(job.stage, "블로그 원고"); assert.equal(job.request.model, "claude-sonnet-5-5"); assert.equal(job.request.effort, "high"); assert.equal(job.request.maxTokens, 20000);
+    assert.equal(job.stage, "블로그 원고"); assert.equal(job.request.model, "claude-sonnet-5-5"); assert.equal(job.request.effort, "high"); assert.equal(job.request.maxTokens, 64000);
     assert.match(job.request.system, /정확해야 합니다/); assert.match(job.request.user, /협의이혼 숙려기간/);
     assert.equal(job.operationId, r.data.operationId);
     assert.equal(r.data.usage.engine, "subscription"); assert.equal(r.data.usage.estimatedUsd, 0); assert.equal(r.data.usage.reused, false); assert.equal(r.data.usage.input, 9000);
     assert.match(r.data.body, /조건을 확인합니다/); assert.match(r.data.body, /tel:/); assert.deepEqual(r.data.factChecklist, ["숙려기간 1개월(자녀 있으면 3개월)"]);
     const apiInput = { ...input, engine: undefined };
     const crypto = require("node:crypto");
-    const apiId = crypto.createHash("sha256").update(JSON.stringify({ stage: "blog-manuscript-v16", input: { content: input.content, source: "", field: input.field, profileId: input.profileId, topic: input.topic, attempt: "", cover: true } })).digest("hex");
+    const apiId = crypto.createHash("sha256").update(JSON.stringify({ stage: "blog-manuscript-v17", input: { content: input.content, source: "", field: input.field, profileId: input.profileId, topic: input.topic, attempt: "", cover: true } })).digest("hex");
     assert.equal(r.data.operationId, engine.engineOperationId(apiId, "subscription"), "subscription ID is derived from the unchanged API ID");
     // 복구는 작업기 없이 보존 응답만 읽는다.
     objects.delete("claude-subscription/worker.json");

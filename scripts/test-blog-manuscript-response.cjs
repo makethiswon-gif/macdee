@@ -69,13 +69,13 @@ async function call(payload) { const res = await POST(request(payload)); return 
 
     result = await call(input);
     assert.equal(result.status, 200); assert.equal(calls, 1);
-    assert.equal(lastRequest.output_config.effort, "high"); assert.equal(lastRequest.max_tokens, 20000);
+    assert.equal(lastRequest.output_config.effort, "high"); assert.equal(lastRequest.max_tokens, 64000); assert.equal(lastRequest.stream, true, "긴 원고는 스트리밍으로 받는다");
     assert.match(lastRequest.system, /정확해야 합니다/); assert.match(lastRequest.system, /===COVER===/);
     assert.equal(result.data.coverBrief, null); assert.ok(result.data.editorialWarnings.some(w => /원고는 복구/.test(w)));
     assert.match(result.data.body, /조건을 확인합니다/); assert.ok(!result.data.body.includes("기획 중"));
     assert.match(result.data.body, /tel:/); assert.equal(result.data.usage.reused, false);
     const id = result.data.operationId;
-    assert.equal(id, crypto.createHash("sha256").update(JSON.stringify({ stage: "blog-manuscript-v16", input: { content: input.content, source: "", field: input.field, profileId: input.profileId, topic: input.topic, attempt: "", cover: true } })).digest("hex"), "Existing cache IDs must not change");
+    assert.equal(id, crypto.createHash("sha256").update(JSON.stringify({ stage: "blog-manuscript-v17", input: { content: input.content, source: "", field: input.field, profileId: input.profileId, topic: input.topic, attempt: "", cover: true } })).digest("hex"), "Existing cache IDs must not change");
     result = await call({ ...input, recoverOnly: true });
     assert.equal(result.status, 200); assert.equal(result.data.usage.reused, true); assert.equal(calls, 1);
 

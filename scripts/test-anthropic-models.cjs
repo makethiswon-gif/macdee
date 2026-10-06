@@ -82,8 +82,12 @@ for (const f of ["app/api/admin/claude-blog-write/route.ts", "app/api/admin/clau
 // 제한 시간은 직접 fetch 의 AbortSignal.timeout(...) 이거나, 실행 방식 선택(claudeDispatch) 뒤로는 timeoutMs: ... 로 넘긴다
 const durations = (f) => ({ max: Number(/maxDuration\s*=\s*(\d+)/.exec(src(f))[1]), timeout: Number(/(?:AbortSignal\.timeout\(|timeoutMs\s*:\s*)([\d_]+)/.exec(src(f))[1].replaceAll("_", "")) });
 const write = durations("app/api/admin/claude-blog-write/route.ts"), edit = durations("app/api/admin/claude-blog-edit/route.ts");
-assert.equal(write.max, 300); assert.equal(write.timeout, 285000); assert.match(src("app/api/admin/claude-blog-write/route.ts"), /max_tokens:\s*20000/, "원고 한도는 285초 안에 나오는 토큰(약 2.4만)을 넘지 않는다");
-assert.equal(edit.max, 180); assert.equal(edit.timeout, 160000); assert.match(src("app/api/admin/claude-blog-edit/route.ts"), /max_tokens:\s*12000/);
+// 2026-10-06: 5.5 의 high 가 사고만 2만 토큰을 넘게 써 원고가 본문 0자로 끊김 → 대표 "품질 우선, 토큰 늘려도 된다".
+// 한도·시간을 올리고 스트리밍으로 받는다. 64,000 토큰을 초당 약 124토큰으로 다 써도 약 520초라 760초 대기 안이다.
+assert.equal(write.max, 800, "Vercel Pro 최대"); assert.equal(write.timeout, 760000); assert.match(src("app/api/admin/claude-blog-write/route.ts"), /max_tokens:\s*64000/);
+assert.equal(edit.max, 600); assert.equal(edit.timeout, 570000); assert.match(src("app/api/admin/claude-blog-edit/route.ts"), /max_tokens:\s*32000/);
+for (const f of ["app/api/admin/claude-blog-write/route.ts", "app/api/admin/claude-blog-edit/route.ts"]) assert.match(src(f), /timeoutMs:\s*[\d_]+,\s*operationId,\s*stream:\s*true/, f + " 는 스트리밍으로 받는다");
+assert.match(src("app/api/admin/claude-blog-write/route.ts"), /paidId\("blog-manuscript-v17"/, "설정을 바꾸면 끊긴 옛 응답을 다시 쓰지 않도록 유료 응답 ID 를 올린다");
 assert.ok(write.timeout < write.max * 1000 && edit.timeout < edit.max * 1000, "AI 호출 제한 시간은 함수 제한보다 짧아야 응답이 유실되지 않는다");
 // 이미지 구성안 기획은 올리지 않았다(스키마에 묶인 JSON·거의 안 쓰는 대체 경로) — high 유지, 한도 1만.
 assert.match(src("lib/blog-images/visual-planner.ts"), /effort\s*:\s*"high"\s*,\s*format/);
