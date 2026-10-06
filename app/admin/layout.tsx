@@ -35,6 +35,7 @@ const ADMIN_NAV = [
     { href: "/admin/blog-images", label: "블로그 이미지", icon: ImageIcon },
     { href: "/admin/lawyer-studio", label: "변호사 스튜디오 사진 생성기", icon: Camera },
     { href: "/admin/migrate", label: "블로그→매거진", icon: ArrowRightLeft },
+    { href: "/admin/lawyer-migrate", label: "변호사 블로그 옮기기", icon: ArrowRightLeft },
     { href: "/admin/subscriptions", label: "구독/매출", icon: CreditCard },
     { href: "/admin/billing", label: "정기결제 관리", icon: CreditCard },
     { href: "/admin/payments", label: "결제·영수증", icon: Receipt },
