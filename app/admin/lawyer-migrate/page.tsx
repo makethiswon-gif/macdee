@@ -65,9 +65,10 @@ export default function LawyerMigratePage() {
     const targets = useMemo(() => posts.filter((p) => !excluded.has(p.categoryNo) && !migrated.has(p.logNo)), [posts, excluded, migrated]);
     const doneCount = posts.filter((p) => migrated.has(p.logNo)).length;
 
-    async function runBatch() {
+    // all: 남은 글을 끝까지 이어서 옮긴다(탭을 열어 두면 50편마다 멈추지 않는다). 중간에 멈추거나 끊겨도 다시 누르면 옮긴 글은 건너뛴다.
+    async function runBatch(all = false) {
         if (!lawyerId || !blogId) return;
-        const batch = targets.slice(0, BATCH);
+        const batch = all ? targets : targets.slice(0, BATCH);
         if (!batch.length) return;
         setRunning(true); setError(""); stopRef.current = false;
         try {
@@ -158,14 +159,18 @@ export default function LawyerMigratePage() {
                         바로 게시 (끄면 콘텐츠 관리에서 검토 후 게시)
                     </label>
                     <div className="mt-4 flex flex-wrap items-center gap-3">
-                        <button onClick={runBatch} disabled={running || !targets.length}
+                        <button onClick={() => runBatch(true)} disabled={running || !targets.length}
                             className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-40">
-                            {running ? <span className="flex items-center gap-2"><Loader2 size={15} className="animate-spin" />옮기는 중</span> : `다음 ${Math.min(BATCH, targets.length)}편 옮기기`}
+                            {running ? <span className="flex items-center gap-2"><Loader2 size={15} className="animate-spin" />옮기는 중</span> : `남은 ${targets.length}편 모두 옮기기`}
                         </button>
-                        {running && <button onClick={() => { stopRef.current = true; }} className="rounded-xl border border-white/[0.12] px-4 py-2.5 text-sm text-white/70">이번 묶음 뒤 멈추기</button>}
+                        <button onClick={() => runBatch(false)} disabled={running || !targets.length}
+                            className="rounded-xl border border-white/[0.12] px-4 py-2.5 text-sm text-white/70 disabled:opacity-40">
+                            {`${Math.min(BATCH, targets.length)}편만 옮기기`}
+                        </button>
+                        {running && <button onClick={() => { stopRef.current = true; }} className="rounded-xl border border-white/[0.12] px-4 py-2.5 text-sm text-white/70">지금 3편 뒤 멈추기</button>}
                         {current && <span className="text-xs text-white/50">{current}</span>}
                     </div>
-                    <p className="text-xs text-white/30 mt-2">한 번 누르면 50편을 3편씩 차례로 옮깁니다. 이미 옮긴 글은 건너뜁니다. 원래 글의 작성일이 그대로 붙습니다.</p>
+                    <p className="text-xs text-white/30 mt-2">「모두 옮기기」는 이 탭을 열어 두면 끝까지 이어서 옮깁니다(3편씩 차례로). 멈추거나 끊겨도 다시 누르면 이미 옮긴 글은 건너뜁니다. 원래 글의 작성일이 그대로 붙습니다.</p>
                 </section>
             )}
 
