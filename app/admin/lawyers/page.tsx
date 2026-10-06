@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Users, Search, Mail, MapPin, Briefcase, Trash2, ExternalLink } from "lucide-react";
+import { Users, Search, Mail, MapPin, Briefcase, Trash2, ExternalLink, UserPlus, X, ArrowRightLeft } from "lucide-react";
 import { toast } from "sonner";
 
 interface Lawyer {
@@ -42,6 +42,7 @@ export default function AdminLawyersPage() {
     const [search, setSearch] = useState("");
     const [updatingId, setUpdatingId] = useState<string | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [showCreate, setShowCreate] = useState(false);
 
     useEffect(() => {
         setLoading(true);
@@ -125,6 +126,13 @@ export default function AdminLawyersPage() {
                     </h1>
                     <p className="text-sm text-[#6B7280] mt-1">전체 {total}명</p>
                 </div>
+                <div className="flex items-center gap-2">
+                <button
+                    onClick={() => setShowCreate((v) => !v)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#3563AE] text-white text-sm font-medium hover:bg-[#2D5596]"
+                >
+                    <UserPlus size={15} /> 변호사 직접 등록
+                </button>
                 <div className="relative">
                     <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4B5563]" />
                     <input
@@ -135,7 +143,21 @@ export default function AdminLawyersPage() {
                         className="pl-9 pr-4 py-2 rounded-lg bg-[#1A1F2E] border border-[#2A3040] text-white text-sm placeholder-[#4B5563] focus:outline-none focus:border-[#3563AE] w-60"
                     />
                 </div>
+                </div>
             </div>
+
+            {showCreate && (
+                <CreateLawyerPanel
+                    onClose={() => setShowCreate(false)}
+                    onCreated={(l) => {
+                        setLawyers((prev) => [{
+                            id: l.id, name: l.name, email: l.email, phone: "", specialty: [], region: "", office_name: "", experience_years: 0,
+                            plan: "", slug: l.slug, created_at: new Date().toISOString(), uploads_count: 0, contents_count: 0, subscription: null,
+                        }, ...prev]);
+                        setTotal((t) => t + 1);
+                    }}
+                />
+            )}
 
             {loading ? (
                 <div className="flex items-center justify-center py-20">
@@ -267,6 +289,91 @@ export default function AdminLawyersPage() {
                     )}
                 </div>
             )}
+        </div>
+    );
+}
+
+const SPECIALTIES = ["이혼/가사", "형사", "민사", "부동산", "상속", "노동", "기업법무", "의료", "교통사고", "성범죄", "마약", "지식재산권", "기타"];
+const REGIONS = ["서울", "경기", "인천", "부산", "대구", "광주", "대전", "울산", "세종", "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주"];
+
+// 변호사 직접 등록 — 가입 페이지(로봇 확인)를 거치지 않고 관리자가 로그인 계정과 변호사 프로필을 만든다.
+function CreateLawyerPanel({ onClose, onCreated }: { onClose: () => void; onCreated: (l: { id: string; name: string; slug: string; email: string }) => void }) {
+    const empty = { name: "", email: "", password: "", region: "서울", phone: "", officeName: "", officeAddress: "", website: "", bio: "" };
+    const [form, setForm] = useState(empty);
+    const [specialty, setSpecialty] = useState<string[]>([]);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState("");
+    const [created, setCreated] = useState<{ id: string; name: string; slug: string; email: string } | null>(null);
+    const set = (key: keyof typeof empty) => (e: { target: { value: string } }) => setForm((f) => ({ ...f, [key]: e.target.value }));
+    const input = "w-full px-3 py-2 rounded-lg bg-[#1A1F2E] border border-[#2A3040] text-white text-sm placeholder-[#4B5563] focus:outline-none focus:border-[#3563AE]";
+
+    const submit = async () => {
+        setSaving(true); setError("");
+        try {
+            const res = await fetch("/api/admin/lawyers", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ...form, specialty }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || "등록하지 못했습니다.");
+            setCreated(data.lawyer); onCreated(data.lawyer);
+            setForm(empty); setSpecialty([]);
+            toast.success(`${data.lawyer.name} 변호사를 등록했습니다.`);
+        } catch (e) {
+            setError(e instanceof Error ? e.message : String(e));
+        } finally { setSaving(false); }
+    };
+
+    return (
+        <div className="mb-6 rounded-xl bg-[#111827] border border-[#1F2937] p-5">
+            <div className="flex items-center justify-between mb-4">
+                <div>
+                    <p className="text-white font-semibold">변호사 직접 등록</p>
+                    <p className="text-xs text-[#6B7280] mt-0.5">로그인 계정과 블로그가 바로 만들어집니다. 변호사는 이 이메일·비밀번호로 직접 로그인할 수 있습니다.</p>
+                </div>
+                <button onClick={onClose} className="text-[#6B7280] hover:text-white"><X size={18} /></button>
+            </div>
+            {created && (
+                <div className="mb-4 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-sm text-emerald-300 flex flex-wrap items-center gap-3">
+                    <span>{created.name} 변호사 등록 완료</span>
+                    <a href={`/blog/${created.slug}`} target="_blank" rel="noreferrer" className="underline flex items-center gap-1"><ExternalLink size={13} />/blog/{created.slug}</a>
+                    <a href={`/admin/lawyer-migrate?lawyerId=${created.id}`} className="underline flex items-center gap-1"><ArrowRightLeft size={13} />네이버 블로그 글 옮기기</a>
+                </div>
+            )}
+            {error && <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-sm text-red-400">{error}</div>}
+            <div className="grid gap-3 sm:grid-cols-3">
+                <input className={input} placeholder="이름 *" value={form.name} onChange={set("name")} />
+                <input className={input} placeholder="로그인 이메일 *" type="email" autoComplete="off" value={form.email} onChange={set("email")} />
+                <input className={input} placeholder="비밀번호 * (8자 이상)" type="password" autoComplete="new-password" value={form.password} onChange={set("password")} />
+                <select className={input} value={form.region} onChange={set("region")}>
+                    {REGIONS.map((r) => <option key={r} value={r}>{r}</option>)}
+                </select>
+                <input className={input} placeholder="전화번호" value={form.phone} onChange={set("phone")} />
+                <input className={input} placeholder="사무소명" value={form.officeName} onChange={set("officeName")} />
+                <input className={`${input} sm:col-span-2`} placeholder="사무소 주소" value={form.officeAddress} onChange={set("officeAddress")} />
+                <input className={input} placeholder="홈페이지 (https://…)" value={form.website} onChange={set("website")} />
+                <textarea className={`${input} sm:col-span-3 min-h-[64px]`} placeholder="소개 (블로그에 보이는 짧은 소개)" value={form.bio} onChange={set("bio")} />
+            </div>
+            <div className="mt-3">
+                <p className="text-xs text-[#6B7280] mb-2">분야 * (여러 개 선택)</p>
+                <div className="flex flex-wrap gap-2">
+                    {SPECIALTIES.map((s) => {
+                        const on = specialty.includes(s);
+                        return (
+                            <button key={s} onClick={() => setSpecialty((prev) => on ? prev.filter((x) => x !== s) : [...prev, s])}
+                                className={`px-3 py-1.5 rounded-full text-xs border ${on ? "bg-[#3563AE]/20 border-[#3563AE] text-white" : "border-[#2A3040] text-[#9CA3AF]"}`}>
+                                {s}
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+            <div className="mt-4 flex justify-end">
+                <button onClick={submit} disabled={saving || !form.name || !form.email || form.password.length < 8 || !specialty.length}
+                    className="px-4 py-2 rounded-lg bg-[#3563AE] text-white text-sm font-medium disabled:opacity-40">
+                    {saving ? "등록 중…" : "등록하기"}
+                </button>
+            </div>
         </div>
     );
 }

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/server";
+import { createAdminClient, createServiceClient } from "@/lib/supabase/server";
 import { createClient as createDirectClient } from "@supabase/supabase-js";
 import { verifyAdminToken } from "@/lib/admin-auth";
+import { AdminLawyerError, createLawyerAccount, validateNewLawyer } from "@/lib/admin-lawyer-create";
 
 // GET: List all lawyers
 export async function GET(request: Request) {
@@ -49,6 +50,25 @@ export async function GET(request: Request) {
 }
 
 // PATCH: Update lawyer plan (RLS 우회를 위해 직접 service role 클라이언트 사용)
+// POST: 관리자가 변호사를 직접 등록한다(2026-10-06) — 가입 페이지의 로봇 확인·체험 구독 없이, 로그인 계정 + 변호사 프로필.
+// 비밀번호는 저장·기록하지 않는다. 변호사는 나중에 이 이메일·비밀번호로 직접 로그인할 수 있다.
+export async function POST(request: Request) {
+    if (!verifyAdminToken(request)) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    try {
+        const raw = await request.json().catch(() => null);
+        if (!raw || typeof raw !== "object") return NextResponse.json({ error: "요청 형식을 확인해 주세요." }, { status: 400 });
+        const input = validateNewLawyer(raw as Record<string, unknown>);
+        const lawyer = await createLawyerAccount(createServiceClient(), input);
+        return NextResponse.json({ lawyer }, { status: 201 });
+    } catch (err) {
+        if (err instanceof AdminLawyerError) return NextResponse.json({ error: err.message }, { status: err.status });
+        console.error("[Admin] Lawyer create error:", err instanceof Error ? err.message : "unknown");
+        return NextResponse.json({ error: "서버 오류" }, { status: 500 });
+    }
+}
+
 export async function PATCH(request: Request) {
     if (!verifyAdminToken(request)) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

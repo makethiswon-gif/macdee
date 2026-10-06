@@ -32,7 +32,12 @@ export default function LawyerMigratePage() {
     const stopRef = useRef(false);
 
     useEffect(() => {
-        fetch("/api/admin/lawyer-migrate").then((r) => r.json()).then((d) => setLawyers(d.lawyers || [])).catch(() => setError("변호사 목록을 불러오지 못했습니다."));
+        fetch("/api/admin/lawyer-migrate").then((r) => r.json()).then((d) => {
+            setLawyers(d.lawyers || []);
+            // 변호사 관리의 "직접 등록" 뒤 넘어온 경우 그 변호사를 미리 고른다
+            const pre = new URLSearchParams(window.location.search).get("lawyerId");
+            if (pre && (d.lawyers || []).some((l: Lawyer) => l.id === pre)) setLawyerId(pre);
+        }).catch(() => setError("변호사 목록을 불러오지 못했습니다."));
     }, []);
     const lawyer = lawyers.find((l) => l.id === lawyerId);
 
