@@ -38,22 +38,35 @@ export async function resolveEditorialStudioPhoto(profileId: string, selections:
     if (!selections || selections.length !== 1) throw new StudioError("두 번째 이미지에 사용할 승인 사진 한 장을 확인해주세요.", 422);
     return (await resolveApprovedPhotos(profileId, selections))[0];
 }
+/**
+ * 승인 사진 가운데 몇 번째를 쓸지. 2026-10-07 대표 요청 "두번째 세번째 사진도 번갈아가며":
+ * 예전에는 변호사마다 고정된 열쇠(publicationEdition)만 써서 글이 달라도 2·3번 사진이 늘 같았다.
+ * 이제 원고(articleKey = sourceHash)를 열쇠에 넣어 글마다 다른 사진이 고르게 돌아간다. 같은 원고는 늘 같은 사진(기획·제작·재사용 지문이 일치).
+ * 3번(상담)은 2번(신뢰)과 사진 수의 절반만큼 떨어진 사진을 써서, 한 글 안에서 두 카드가 같은 사진이 되지 않는다(사진이 2장 이상일 때).
+ */
+export function pickEditorialStudioIndex(count: number, edition: string, role: "info" | "contact", articleKey?: string): number {
+    if (count < 1) return 0;
+    const seed = parseInt(digest(articleKey ? `${edition}:${articleKey}` : edition).slice(0, 8), 16);
+    const offset = role === "contact" ? Math.max(1, Math.floor(count / 2)) : 0;
+    return (seed + offset) % count;
+}
+
 /** 신뢰·상담 카드에 쓸 승인 사진을 고른다(바이트는 읽지 않는다). 재사용 카드의 지문 계산과 실제 제작이 같은 선택을 쓴다. */
-export async function editorialStudioSelection(profileId: string, edition: string, role: "info" | "contact" = "info") {
+export async function editorialStudioSelection(profileId: string, edition: string, role: "info" | "contact" = "info", articleKey?: string) {
     const library = await loadStudioLibrary(profileId);
     const approved = library.assets.filter(a => a.status === "approved").sort((a, b) => a.id.localeCompare(b.id));
     if (!library.blogEnabled || !approved.length) {
         if (role === "info") throw new StudioPhotoRequiredError(approved.length);
         return undefined;
     }
-    // Stable selection, with equal eligibility for grainy, soft and crisp approved photographs.
-    const selected = approved[(parseInt(digest(edition).slice(0, 8), 16) + (role === "contact" ? 1 : 0)) % approved.length];
+    // Stable per article, with equal eligibility for grainy, soft and crisp approved photographs.
+    const selected = approved[pickEditorialStudioIndex(approved.length, edition, role, articleKey)];
     const selections = [{ assetId: selected.id, version: selected.version }];
     const asset = await resolveEditorialStudioPhoto(profileId, selections);
     return { asset, selections };
 }
-export async function editorialStudioPhoto(profileId: string, edition: string, role: "info" | "contact" = "info") {
-    const chosen = await editorialStudioSelection(profileId, edition, role);
+export async function editorialStudioPhoto(profileId: string, edition: string, role: "info" | "contact" = "info", articleKey?: string) {
+    const chosen = await editorialStudioSelection(profileId, edition, role, articleKey);
     if (!chosen) return undefined;
     return { bytes: await readStudioBytes(chosen.asset.renderedPath), kind: "studio" as const, selections: chosen.selections };
 }

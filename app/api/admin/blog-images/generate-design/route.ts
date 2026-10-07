@@ -65,7 +65,7 @@ export async function POST(request: Request) {
             if (plan.publicationEdition !== `${EDITORIAL_SET_FORMAT}:${profile.id}`) throw new PlanValidationError("현재 변호사와 신뢰 지면의 소유자가 다릅니다.");
             verifyImageProof(plan.proofToken, plan.proofSelection, context.library, plan.sourceHash);
             if (type === "thumbnail" && !(await sharedPairReady(profile, plan, body.style))) await prepareEditorialThree(profile, plan.proofSelection!, body.title || "",
-                await editorialStudioPhoto(profile.id, plan.publicationEdition!), await editorialStudioPhoto(profile.id, plan.publicationEdition!, "contact"));
+                await editorialStudioPhoto(profile.id, plan.publicationEdition!, "info", plan.sourceHash), await editorialStudioPhoto(profile.id, plan.publicationEdition!, "contact", plan.sourceHash));
         }
         if (plan.setFormat === STUDIO_FORMAT) {
             await resolveStudioPhotos(profile.id, plan.studioPhotos);
@@ -109,13 +109,13 @@ export async function POST(request: Request) {
             return NextResponse.json({ card, usage: usageSink }, { headers: { "Cache-Control": "private, no-store" } });
         };
         if (isShareableCard(plan, type) && !attempt) {
-            const chosen = await editorialStudioSelection(profile.id, plan.publicationEdition!, type);
+            const chosen = await editorialStudioSelection(profile.id, plan.publicationEdition!, type, plan.sourceHash);
             sharedFingerprint = sharedCardFingerprint({ type, profile, plan, card: planned, style: body.style, selection: chosen?.selections || null });
             const shared = await findSharedCard(profile.id, sharedFingerprint, type);
             if (shared) return await sharedResponse(sharedCardForPost(shared, { profileId: profile.id, sourceHash: plan.sourceHash, setId, plan, planned, reused: true }), shared);
         }
         const editorialPhoto = plan.setFormat === EDITORIAL_SET_FORMAT && (type === "info" || type === "contact")
-            ? await editorialStudioPhoto(profile.id, plan.publicationEdition!, type) : undefined;
+            ? await editorialStudioPhoto(profile.id, plan.publicationEdition!, type, plan.sourceHash) : undefined;
         const productionId = digest(JSON.stringify({ version: 11, plan, profile, type, quality: body.quality || "high",
             photoSource: body.photoSource || "ai", style: body.style || identity.style, heading: body.headingOverride || "",
             renderOnly: !!body.renderOnly, reused: body.reuseProductionId || (body.reuseArt ? digest(String(body.reuseArt.dataUrl)) : ""), attemptId: body.attemptId || "", feedback,
@@ -229,7 +229,7 @@ async function sharedPairReady(profile: EditorialProfile, plan: ReturnType<typeo
         for (const type of ["info", "contact"] as const) {
             const planned = plan.cards.find((c) => c.type === type);
             if (!planned || !isShareableCard(plan, type)) return false;
-            const chosen = await editorialStudioSelection(profile.id, plan.publicationEdition!, type);
+            const chosen = await editorialStudioSelection(profile.id, plan.publicationEdition!, type, plan.sourceHash);
             const fingerprint = sharedCardFingerprint({ type, profile, plan, card: planned, style: typeof style === "string" ? style : undefined, selection: chosen?.selections || null });
             if (!(await findSharedCard(profile.id, fingerprint, type))) return false;
         }

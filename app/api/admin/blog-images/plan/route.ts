@@ -64,8 +64,9 @@ export async function POST(request: Request) {
         }
         // 2026-09-22: 신뢰 카드에 승인 경력을 싣는 기능을 뺐다. 항상 사진만(basic).
         const proof = selectImageProof(context.library, `${body.title || ""} ${body.content}`, planIdentity.source, true);
-        await prepareEditorialThree(context.profile, proof, body.title || "", await editorialStudioPhoto(context.profile.id, `${EDITORIAL_SET_FORMAT}:${context.profile.id}`),
-            await editorialStudioPhoto(context.profile.id, `${EDITORIAL_SET_FORMAT}:${context.profile.id}`, "contact"));
+        // 2·3번 사진은 원고마다 돌려 쓴다(제작 단계와 같은 열쇠: sourceHash).
+        await prepareEditorialThree(context.profile, proof, body.title || "", await editorialStudioPhoto(context.profile.id, `${EDITORIAL_SET_FORMAT}:${context.profile.id}`, "info", planIdentity.source),
+            await editorialStudioPhoto(context.profile.id, `${EDITORIAL_SET_FORMAT}:${context.profile.id}`, "contact", planIdentity.source));
         const cached = await cachedVisualPlan(cacheId) || oldCached;
         if (cached) {
             const plan = asEditorialThree(validateVisualPlan(cached, body.title || "", body.content), context.profile, proof, body.title || "", body.content);
