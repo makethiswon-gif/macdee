@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { refreshLawyerBlog } from "@/lib/lawyer-blog-cache";
 
 // POST: Lawyer creates a blog post directly
 export async function POST(request: Request) {
@@ -43,6 +44,8 @@ export async function POST(request: Request) {
             console.error("[Blog Write] Error:", error);
             return NextResponse.json({ error: "저장 실패" }, { status: 500 });
         }
+
+        if (status === "published") refreshLawyerBlog({ lawyerId: lawyer.id, postIds: [data.id] });
 
         return NextResponse.json({ content: data }, { status: 201 });
     } catch (err) {

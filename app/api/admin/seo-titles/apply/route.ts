@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { refreshLawyerBlog } from "@/lib/lawyer-blog-cache";
 import { createServiceClient } from "@/lib/supabase/server";
 import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
 import { makeSlug } from "@/lib/slug";
@@ -29,10 +30,12 @@ export async function POST(request: Request) {
         const ids = updates.map(u => u.id);
         const { data: existing } = await supabase
             .from("contents")
-            .select("id, title")
+            .select("id, title, lawyer_id")
             .in("id", ids);
 
         const backup = new Map((existing || []).map(e => [e.id as string, e.title as string]));
+        const lawyerOf = new Map((existing || []).map(e => [e.id as string, e.lawyer_id as string]));
+        const changed = new Map<string, string[]>();
 
         let updated = 0;
         const errors: { id: string; error: string }[] = [];
@@ -60,9 +63,14 @@ export async function POST(request: Request) {
                 errors.push({ id: u.id, error: "DB에 반영되지 않음" });
             } else {
                 updated++;
+                const lawyerId = lawyerOf.get(u.id);
+                if (lawyerId) changed.set(lawyerId, [...(changed.get(lawyerId) || []), u.id]);
                 console.log(`[SEO Titles Apply] OK ${u.id}: "${backup.get(u.id)}" → "${cleanTitle}"`);
             }
         }
+
+        // 제목·주소가 바뀐 글: 옛 주소는 404, 새 주소는 바로 보이게 캐시된 블로그 페이지를 비운다.
+        for (const [lawyerId, postIds] of changed) refreshLawyerBlog({ lawyerId, postIds });
 
         return NextResponse.json({
             updated,

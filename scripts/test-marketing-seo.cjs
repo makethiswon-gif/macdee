@@ -10,7 +10,7 @@ const audit = process.argv.includes('--audit');
 const canonicalOrigin = 'https://www.makethis1.com';
 const local = ['localhost', '127.0.0.1', '[::1]'].includes(new URL(origin).hostname);
 const canCheckArticles = local && process.env.RENEWAL_QA_READ_ONLY === '1';
-const routes = ['/', '/about', '/magazine', '/lawfirm-marketing', '/naver-ads', '/lawfirm-seo', '/geo', '/lawfirm-blog', '/lawfirm-website', '/conversion', '/work', '/contact', '/consult', '/upgrade'];
+const routes = ['/', '/about', '/magazine', '/blog', '/lawfirm-marketing', '/naver-ads', '/lawfirm-seo', '/geo', '/lawfirm-blog', '/lawfirm-website', '/conversion', '/work', '/contact', '/consult', '/upgrade'];
 const report = { origin, mode: audit ? 'audit' : 'assert', pages: [], sitemap: {}, pagination: {}, articles: [], failures: [] };
 
 function check(condition, description) {

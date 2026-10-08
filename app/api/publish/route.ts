@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { refreshLawyerBlog } from "@/lib/lawyer-blog-cache";
+import { PUBLIC_BLOG_CHANNELS } from "@/lib/public-content";
 
 // POST: Publish a content (mark as published + create publication record)
 export async function POST(request: Request) {
@@ -56,6 +58,10 @@ export async function POST(request: Request) {
         }
 
         console.log(`[Publish] Status updated to published for content ${content_id}`);
+        // 공개 블로그 글이면 캐시된 블로그 페이지(이 글 주소의 404 포함)를 바로 비운다.
+        if ((PUBLIC_BLOG_CHANNELS as readonly string[]).includes(content.channel)) {
+            refreshLawyerBlog({ lawyerId: content.lawyer_id, postIds: [content_id] });
+        }
 
         // Get lawyer slug for blog URL — prefer post slug (SEO URL), fall back to UUID
         let publishedUrl: string | null = null;

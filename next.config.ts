@@ -186,8 +186,7 @@ const nextConfig: NextConfig = {
       { source: "/history", destination: "/about", statusCode: 301 },
       { source: "/32", destination: "/magazine", statusCode: 301 },
       { source: "/feed", destination: "/rss.xml", statusCode: 301 },
-      // /blog/{변호사} 는 고객 블로그 호스팅이지만 /blog 자체에는 페이지가 없어 404 였다 → 매거진 목록으로.
-      { source: "/blog", destination: "/magazine", statusCode: 301 },
+      // /blog 는 2026-10-08 부터 변호사 블로그 목록 페이지다(app/(marketing)/blog). 예전 /blog → /magazine 301 은 지웠다.
       {
         // 옛 변호사 URL 구조 /lawyer/{slug} → 현재 /blog/{slug}
         source: "/lawyer/:slug",

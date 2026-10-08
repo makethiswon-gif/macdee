@@ -72,9 +72,10 @@ Module._extensions['.ts'] = (mod, file) => mod._compile(ts.transpileModule(fs.re
     const xml = await response.text();
     const $ = load(xml, { xmlMode: true });
     const entries = new Map($('url').toArray().map(node => [$(node).find('loc').text(), $(node).find('lastmod').text()]));
-    assert.equal(entries.size, 14 + 1 + 1204 + 96);
+    assert.equal(entries.size, 14 + 1 + 1 + 1204 + 96);
     assert.ok(requestedRanges.some(([table, from]) => table === 'contents' && from >= 1000));
     assert.ok(entries.has(`${origin}/blog/real-firm/post-1204`));
+    assert.equal(entries.get(`${origin}/blog`), published, '변호사 블로그 목록(/blog) — 가장 최근 블로그 글 날짜');
     assert.ok(!xml.includes('qa-hidden') && !xml.includes('empty-firm') && !xml.includes('/renewal') && !xml.includes('/admin'));
     assert.equal(entries.get(origin), '');
     assert.equal(entries.get(`${origin}/about`), '');

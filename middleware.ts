@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
+import { lawyerBlogPaging } from "@/lib/lawyer-blog-paging";
 
 // 비공개 앱 경로 — noindex, nofollow (X-Robots-Tag). 크롤은 허용해 봇이 noindex를 읽고 색인에서 제외.
 // /makethisone(공개 대행사 페이지)는 제외하고 /makethisone/subscribe만 매칭되도록 정확 prefix 검사.
@@ -29,12 +30,27 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(url, 301);
     }
 
+    // 변호사 블로그 ?page=N(2쪽부터)은 캐시되는 내부 경로로 넘긴다(lib/lawyer-blog-paging.ts).
+    const paging = lawyerBlogPaging(path, request.nextUrl.searchParams.get("page"));
+    if (paging && "redirect" in paging) {
+        return NextResponse.redirect(new URL(paging.redirect, request.url), 308);
+    }
+
     const res = await updateSession(request);
 
     // 비공개 페이지는 색인 금지 헤더 부여 (홈페이지 canonical 중복·로그인 화면 색인 방지)
     const isPrivate = PRIVATE_PREFIXES.some((p) => path === p || path.startsWith(p + "/"));
     if (isPrivate) {
         res.headers.set("X-Robots-Tag", "noindex, nofollow");
+    }
+
+    if (paging && !res.headers.has("location")) {
+        const url = request.nextUrl.clone();
+        url.pathname = paging.rewrite;
+        const rewritten = NextResponse.rewrite(url);
+        // 로그인 세션을 새로 고친 쿠키가 있으면 그대로 실어 보낸다.
+        for (const cookie of res.cookies.getAll()) rewritten.cookies.set(cookie);
+        return rewritten;
     }
 
     return res;

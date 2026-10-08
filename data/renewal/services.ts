@@ -32,6 +32,8 @@ export interface ServiceContent {
     faq: ServiceFaq[];
     /** 관련 서비스 slug */
     related: string[];
+    /** 서비스 소개 아래에 거는 실제 운영 결과물 링크(있을 때만) */
+    showcase?: { label: string; href: string };
 }
 
 export const SERVICES: ServiceContent[] = [
@@ -254,6 +256,7 @@ export const SERVICES: ServiceContent[] = [
             },
         ],
         related: ["lawfirm-seo", "geo"],
+        showcase: { label: "운영 중인 변호사 블로그 보기", href: "/blog" },
     },
 
     /* ─────────────────────────── WEBSITE ─────────────────────────── */

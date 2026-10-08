@@ -40,6 +40,8 @@ export default function BlogPageClient({ lawyer, posts, archivePosts, currentPag
         const date = new Date(d);
         return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")}`;
     };
+    // 쪽 링크는 블로그 주소 기준 절대 경로 — 1쪽은 ?page=1 이 아니라 블로그 홈(canonical 과 같은 주소).
+    const pageHref = (page: number) => `/blog/${lawyer.slug}${page > 1 ? `?page=${page}` : ""}`;
 
     const fadeUp = {
         hidden: { opacity: 0, y: 24 },
@@ -281,7 +283,7 @@ export default function BlogPageClient({ lawyer, posts, archivePosts, currentPag
                             <div className="mt-16 flex items-center justify-center gap-2">
                                 {Math.floor((currentPage - 1) / 10) > 0 && (
                                     <Link
-                                        href={`?page=${Math.floor((currentPage - 1) / 10) * 10}`}
+                                        href={pageHref(Math.floor((currentPage - 1) / 10) * 10)}
                                         className="w-10 h-10 flex items-center justify-center rounded-lg border border-white/10 text-white/50 hover:text-white hover:border-white/30 hover:bg-white/5 transition-all text-sm"
                                     >
                                         &lt;
@@ -293,7 +295,7 @@ export default function BlogPageClient({ lawyer, posts, archivePosts, currentPag
                                 ).map((p) => (
                                     <Link
                                         key={p}
-                                        href={`?page=${p}`}
+                                        href={pageHref(p)}
                                         className={`w-10 h-10 flex items-center justify-center rounded-lg border transition-all text-sm font-medium
                                             ${p === currentPage 
                                                 ? 'border-[lawyer.brand_color] bg-[lawyer.brand_color]/10 text-white' 
@@ -306,7 +308,7 @@ export default function BlogPageClient({ lawyer, posts, archivePosts, currentPag
                                 ))}
                                 {Math.floor((currentPage - 1) / 10) * 10 + 10 < totalPages && (
                                     <Link
-                                        href={`?page=${Math.floor((currentPage - 1) / 10) * 10 + 11}`}
+                                        href={pageHref(Math.floor((currentPage - 1) / 10) * 10 + 11)}
                                         className="w-10 h-10 flex items-center justify-center rounded-lg border border-white/10 text-white/50 hover:text-white hover:border-white/30 hover:bg-white/5 transition-all text-sm"
                                     >
                                         &gt;

@@ -57,6 +57,7 @@ export default function SiteFooter() {
                                 { label: "회사 소개", href: "/about" },
                                 { label: "운영 사례", href: "/work" },
                                 { label: "매거진", href: "/magazine" },
+                                { label: "변호사 블로그", href: "/blog" },
                                 { label: "마케팅 상담", href: "/diagnose" },
                                 { label: "기존 고객 전환 안내", href: "/upgrade" },
                                 { label: "문의", href: "/contact" },

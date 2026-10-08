@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { verifyAdminToken } from "@/lib/admin-auth";
+import { refreshLawyerBlog } from "@/lib/lawyer-blog-cache";
 
 export const maxDuration = 60;
 
@@ -43,6 +44,9 @@ export async function POST(req: Request) {
     if (updateError) {
         return NextResponse.json({ error: updateError.message }, { status: 500 });
     }
+
+    // 비공개로 돌린 글이 캐시된 블로그 페이지로 계속 나가지 않게 그 변호사의 블로그 전체를 비운다.
+    refreshLawyerBlog({ lawyerId: lawyer.id, whole: true });
 
     return NextResponse.json({
         message: `${lawyerSlug} 변호사의 ${updated?.length || 0}개 글이 비공개로 전환됨`,

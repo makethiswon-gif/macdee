@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { refreshLawyerBlog } from "@/lib/lawyer-blog-cache";
 import sharp from "sharp";
 
 // POST: Upload and normalize profile image to 400x400
@@ -71,6 +72,9 @@ export async function POST(request: Request) {
         if (updateError) {
             return NextResponse.json({ error: "프로필 이미지 저장 실패" }, { status: 500 });
         }
+
+        // 사진은 블로그의 모든 페이지에 보인다.
+        refreshLawyerBlog({ lawyerId: lawyer.id, whole: true });
 
         return NextResponse.json({ profile_image_url: imageUrl }, { status: 200 });
     } catch (err) {

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
 import { SITE_SYNC_CHANNEL } from "@/lib/public-content";
+import { refreshLawyerBlog } from "@/lib/lawyer-blog-cache";
 
 // 발행된 원고를 맥디 변호사 블로그(contents, /blog/[slug])에 반영한다.
 // 블로그 공장 4단계 자동화 — 수동 붙여넣기를 대체한다.
@@ -100,6 +101,9 @@ export async function POST(request: Request) {
             }
             contentId = data.id;
         }
+
+        // 바로 게시되는 글 — 캐시된 블로그 페이지(목록·이 글)를 비운다.
+        refreshLawyerBlog({ lawyerId: profile.lawyer_id, postIds: [contentId] });
 
         const syncedAt = new Date().toISOString();
         await supabase.from("blog_posts").update({ site_synced_at: syncedAt, updated_at: syncedAt }).eq("id", post.id);

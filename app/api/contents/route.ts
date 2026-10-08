@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { refreshLawyerBlog } from "@/lib/lawyer-blog-cache";
+import { PUBLIC_BLOG_CHANNELS } from "@/lib/public-content";
 
 // GET: List contents for current user
 export async function GET(request: Request) {
@@ -76,6 +78,11 @@ export async function PATCH(request: Request) {
 
         if (error || !data) return NextResponse.json({ error: "수정 실패 또는 권한이 없습니다." }, { status: 403 });
 
+        // 공개 블로그 글을 고치거나 내리면 캐시된 블로그 페이지를 바로 비운다.
+        if ((PUBLIC_BLOG_CHANNELS as readonly string[]).includes(data.channel)) {
+            refreshLawyerBlog({ lawyerId: lawyer.id, postIds: [id] });
+        }
+
         return NextResponse.json({ content: data });
     } catch {
         return NextResponse.json({ error: "서버 오류" }, { status: 500 });
@@ -118,6 +125,9 @@ export async function DELETE(request: Request) {
             console.error("[Contents DELETE]", error);
             return NextResponse.json({ error: "삭제 실패" }, { status: 500 });
         }
+
+        // 지운 글이 캐시된 블로그 페이지에 남지 않게 한다.
+        refreshLawyerBlog({ lawyerId: lawyer.id, postIds: [id] });
 
         return NextResponse.json({ success: true });
     } catch {

@@ -1,157 +1,106 @@
 import { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
-import { createServiceClient } from "@/lib/supabase/server";
 import { cleanBody, parseAiContent } from "@/lib/ai-content";
-import { compactSeoDescription, isPublicLawyerSlug, PUBLIC_BLOG_CHANNELS } from "@/lib/public-content";
+import { compactSeoDescription } from "@/lib/public-content";
+import { decodePathPart, getBlogLawyer, getBlogPost, getCardNews, getNeighbourPosts, isPostUuid, publicImageUrl, publicLawyerSlugFromPath } from "@/lib/lawyer-blog";
+import { lawyerBlogTags, tagLawyerBlogPage } from "@/lib/lawyer-blog-cache";
 import PostPageClient from "./PostPageClient";
 
-export const dynamic = "force-dynamic";
+// 변호사 블로그 글. 1시간 캐시(ISR)하고, 글을 고치거나 내리면 refreshLawyerBlog() 가 이 글의 태그로 바로 비운다.
+// 데이터베이스를 읽지 못하면 예외(5xx — 캐시되지 않고, 이미 만든 페이지는 계속 나간다). 정말 없는 글만 404.
+// 예전에는 force-dynamic 에, 메타데이터를 자기 사이트 API(/api/blog/...)를 한 번 더 불러 만들었다 — 이제 같은 조회를 함께 쓴다.
+export const revalidate = 3600;
+
+export function generateStaticParams(): { slug: string; postSlug: string }[] {
+    return [];
+}
 
 type Props = { params: Promise<{ slug: string; postSlug: string }> };
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** 주소 → 변호사·글. 정말 없으면 null. generateMetadata 와 페이지가 react cache() 로 같은 조회를 한 번만 한다. */
+async function loadPost(params: Props["params"]) {
+    const { slug: rawSlug, postSlug: rawPostSlug } = await params;
+    const slug = publicLawyerSlugFromPath(rawSlug);
+    const postSlug = decodePathPart(rawPostSlug);
+    if (!slug || !postSlug) return { slug, postSlug, lawyer: null, post: null };
+    const lawyer = await getBlogLawyer(slug);
+    if (!lawyer) return { slug, postSlug, lawyer, post: null };
+    return { slug, postSlug, lawyer, post: await getBlogPost(lawyer.id, postSlug) };
+}
+
+/** 저장된 원고(JSON 이나 마크다운)를 화면용 제목·본문·요약으로. */
+function readPost(post: { title: string; body: string | null; meta_description: string | null }) {
+    let title = post.title;
+    let body = post.body || "";
+    let meta = post.meta_description || "";
+    const parsed = parseAiContent(body);
+    if (parsed?.body) {
+        if (parsed.title) title = parsed.title;
+        body = cleanBody(body);
+        if (parsed.meta_description && !meta) meta = parsed.meta_description;
+    }
+    title = title.replace(/\s*-\s*(google|macdee|blog|instagram)\s*$/i, "").trim();
+    return { title, body, meta, keywords: parsed?.keywords };
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-    const { slug: rawSlug, postSlug: rawPostSlug } = await params;
-    const slug = decodeURIComponent(rawSlug);
-    const postSlug = decodeURIComponent(rawPostSlug);
-
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
-    if (!isPublicLawyerSlug(slug)) {
+    const { slug, lawyer, post } = await loadPost(params);
+    if (!slug || !lawyer || !post) {
         return { title: "포스트를 찾을 수 없습니다", robots: { index: false, follow: false } };
     }
 
-    try {
-        const apiRes = await fetch(`${baseUrl}/api/blog/${encodeURIComponent(slug)}/${encodeURIComponent(postSlug)}`, { next: { revalidate: 60 } });
-        if (!apiRes.ok) {
-            return { title: "포스트를 찾을 수 없습니다" };
-        }
-        const json = await apiRes.json();
-        const postData = json.post ?? null;
-        const lawyerName = json.lawyer?.name || "";
-        if (!postData) return { title: "포스트를 찾을 수 없습니다" };
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
+    const canonicalUrl = `${baseUrl}/blog/${slug}/${post.slug || post.id}`;
+    const { title, body, meta, keywords } = readPost(post);
 
-        const canonicalSlug = postData.slug || postData.id || postSlug;
-        const canonicalUrl = `${baseUrl}/blog/${slug}/${canonicalSlug}`;
+    // Generate SEO description from content if not set
+    const source = meta || body || title;
+    const description = compactSeoDescription(source
+        .replace(/#+\s/g, "") // Remove markdown headers
+        .replace(/\*\*|__/g, "") // Remove bold
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // Remove links, keep text
+        .replace(/\n+/g, " ") // Replace newlines with space
+        .trim());
 
-        // Generate SEO description from content if not set
-        const generateDescription = (): string => {
-            // Extract first 160 chars from body, removing markdown
-            const source = postData.meta_description || postData.body || postData.title;
-            const text = source
-                .replace(/#+\s/g, "") // Remove markdown headers
-                .replace(/\*\*|__/g, "") // Remove bold
-                .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // Remove links, keep text
-                .replace(/\n+/g, " ") // Replace newlines with space
-                .trim();
-            return compactSeoDescription(text);
-        };
-
-        const description = generateDescription();
-        const lawyerProfileImage = json.lawyer?.profile_image_url;
-        const ogImage = lawyerProfileImage || "/og-image.png";
-
-        return {
-            title: `${postData.title} | ${lawyerName} 변호사`,
+    return {
+        title: `${title} | ${lawyer.name} 변호사`,
+        description,
+        keywords: (post.tags || keywords || []).join(", "),
+        alternates: { canonical: canonicalUrl },
+        robots: { index: true, follow: true },
+        openGraph: {
+            title,
             description,
-            keywords: (postData.tags || []).join(", "),
-            alternates: { canonical: canonicalUrl },
-            robots: { index: true, follow: true },
-            openGraph: {
-                title: postData.title,
-                description,
-                type: "article",
-                url: canonicalUrl,
-                authors: [lawyerName],
-                images: [ogImage],
-            },
-        };
-    } catch {
-        return { title: "포스트를 찾을 수 없습니다" };
-    }
-
-    // unreachable
+            type: "article",
+            url: canonicalUrl,
+            authors: [lawyer.name],
+            images: [publicImageUrl(lawyer.profile_image_url) || "/og-image.png"],
+        },
+    };
 }
 
 export default async function PostPage({ params }: Props) {
-    const { slug: rawSlug, postSlug: rawPostSlug } = await params;
-    const slug = decodeURIComponent(rawSlug);
-    const postSlug = decodeURIComponent(rawPostSlug);
-    if (!isPublicLawyerSlug(slug)) {
+    // 읽지 못하면 여기서 예외(5xx). null 은 정말 없는 것이다.
+    const { slug, postSlug, lawyer, post } = await loadPost(params);
+    if (!slug || !postSlug || !lawyer) {
+        await tagLawyerBlogPage();
         notFound();
     }
-
-    // 순수 service role 클라이언트 — 브라우저의 anon 쿠키가 RLS를 트리거해 published 글을
-    // 못 찾는 문제 방지 (createAdminClient는 SSR 쿠키 기반이라 쿠키가 service role을 덮어씀)
-    const supabase = createServiceClient();
-
-    const { data: lawyer } = await supabase
-        .from("lawyers")
-        .select("id, name, slug, specialty, region, bio, brand_color, office_name, experience_years, profile_image_url, phone")
-        .eq("slug", slug).single();
-
-    if (!lawyer) {
+    if (!post) {
+        // 아직 발행 전인 글 주소도 404 로 캐시된다 — 그 변호사의 글이 발행되면 list 태그로 함께 비운다.
+        await tagLawyerBlogPage(lawyerBlogTags.lawyer(lawyer.id), lawyerBlogTags.list(lawyer.id));
         notFound();
     }
+    await tagLawyerBlogPage(lawyerBlogTags.lawyer(lawyer.id), lawyerBlogTags.post(post.id));
 
     // UUID URL → slug URL: 301 redirect to canonical slug URL when slug exists
-    const isUuid = UUID_RE.test(postSlug);
-    const postQuery = isUuid
-        ? supabase.from("contents").select("*").eq("lawyer_id", lawyer.id).eq("id", postSlug).eq("status", "published").in("channel", [...PUBLIC_BLOG_CHANNELS])
-        : supabase.from("contents").select("*").eq("lawyer_id", lawyer.id).eq("slug", postSlug).eq("status", "published").in("channel", [...PUBLIC_BLOG_CHANNELS]);
-    const { data: post } = await postQuery.maybeSingle();
-
     // slug에 한글이 포함되면 Location 헤더(ASCII 전용)에 그대로 넣을 수 없어 인코딩 필수
-    if (isUuid && post?.slug) permanentRedirect(`/blog/${slug}/${encodeURIComponent(post.slug)}`);
+    if (isPostUuid(postSlug) && post.slug) permanentRedirect(`/blog/${slug}/${encodeURIComponent(post.slug)}`);
 
-    if (!post) {
-        notFound();
-    }
+    // 앞뒤 글(내부 링크)과 같은 원고의 카드뉴스 — 못 읽어도 본문은 낸다.
+    const [relatedPostsData, cardNews] = await Promise.all([getNeighbourPosts(post), getCardNews(post.upload_id)]);
 
-    // Recent posts by same lawyer for internal linking
-    const { data: relatedPostsData } = await supabase
-        .from("contents")
-        .select("id, title, slug, created_at")
-        .eq("lawyer_id", lawyer.id)
-        .in("channel", [...PUBLIC_BLOG_CHANNELS])
-        .eq("status", "published")
-        .neq("id", post.id)
-        .order("created_at", { ascending: false })
-        .limit(4);
-
-    // Related instagram card news (same upload_id)
-    let cardNewsSlides: { slide: number; text: string }[] = [];
-    let cardNewsCoverImage: string | null = null;
-    if (post.upload_id) {
-        const { data: instagramContent } = await supabase
-            .from("contents")
-            .select("body, card_news_data")
-            .eq("upload_id", post.upload_id)
-            .eq("channel", "instagram")
-            .single();
-
-        if (instagramContent?.body) {
-            try {
-                const parsed = JSON.parse(instagramContent.body);
-                cardNewsSlides = Array.isArray(parsed) ? parsed : [];
-            } catch { /* ignore */ }
-        }
-        if (instagramContent?.card_news_data?.coverImageUrl) {
-            cardNewsCoverImage = instagramContent.card_news_data.coverImageUrl;
-        }
-    }
-
-    // Parse JSON body if stored raw from AI (견고한 파서 + 안전망)
-    let parsedTitle = post.title;
-    let parsedBody = post.body || "";
-    let parsedMeta = post.meta_description || "";
-    const parsed = parseAiContent(parsedBody);
-    if (parsed?.body) {
-        if (parsed.title) parsedTitle = parsed.title;
-        parsedBody = cleanBody(parsedBody);
-        if (parsed.meta_description && !parsedMeta) parsedMeta = parsed.meta_description;
-    }
-    parsedTitle = parsedTitle.replace(/\s*-\s*(google|macdee|blog|instagram)\s*$/i, "").trim();
+    const { title: parsedTitle, body: parsedBody, meta: parsedMeta } = readPost(post);
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.makethis1.com";
     const canonicalPostSlug = post.slug || post.id;
@@ -164,6 +113,7 @@ export default async function PostPage({ params }: Props) {
         .replace(/\s+/g, " ")
         .trim();
     const wordCount = plainText.split(/\s+/).filter(Boolean).length;
+    const authorImage = publicImageUrl(lawyer.profile_image_url);
 
     const articleJsonLd = {
         "@context": "https://schema.org",
@@ -189,7 +139,7 @@ export default async function PostPage({ params }: Props) {
             "@id": canonicalUrl,
         },
         keywords: (post.tags || []).join(", "),
-        ...(lawyer.profile_image_url ? { image: lawyer.profile_image_url } : {}),
+        ...(authorImage ? { image: authorImage } : {}),
     };
 
     const breadcrumbJsonLd = {
@@ -202,7 +152,7 @@ export default async function PostPage({ params }: Props) {
         ],
     };
 
-    const relatedPosts = (relatedPostsData || []).map(p => ({
+    const relatedPosts = relatedPostsData.map(p => ({
         id: p.id,
         title: p.title,
         slug: p.slug || p.id,
@@ -255,8 +205,9 @@ export default async function PostPage({ params }: Props) {
                 />
             )}
             <PostPageClient
-                lawyer={{ id: lawyer.id, name: lawyer.name, slug: lawyer.slug, specialty: lawyer.specialty || [], region: lawyer.region || "", bio: lawyer.bio || "", brand_color: lawyer.brand_color || "#3563AE", office_name: lawyer.office_name || "", experience_years: lawyer.experience_years || 0, profile_image_url: lawyer.profile_image_url || "", phone: lawyer.phone || null, website_url: (lawyer as Record<string, unknown>).website_url as string || null }}
-                post={{ id: post.id, title: parsedTitle, slug: post.slug || post.id, body: parsedBody, meta_description: parsedMeta, tags: post.tags || [], schema_markup: post.schema_markup, created_at: post.published_at || post.created_at, card_news_slides: cardNewsSlides.length > 0 ? cardNewsSlides : undefined, card_news_cover_image: cardNewsCoverImage }}
+                // website_url: 글 페이지는 지금까지 홈페이지 열을 읽지 않아 늘 null 이었다. 화면을 바꾸지 않으려 그대로 둔다.
+                lawyer={{ id: lawyer.id, name: lawyer.name, slug: lawyer.slug, specialty: lawyer.specialty || [], region: lawyer.region || "", bio: lawyer.bio || "", brand_color: lawyer.brand_color || "#3563AE", office_name: lawyer.office_name || "", experience_years: lawyer.experience_years || 0, profile_image_url: lawyer.profile_image_url || "", phone: lawyer.phone || null, website_url: null }}
+                post={{ id: post.id, title: parsedTitle, slug: post.slug || post.id, body: parsedBody, meta_description: parsedMeta, tags: post.tags || [], schema_markup: post.schema_markup, created_at: post.published_at || post.created_at, card_news_slides: cardNews.slides.length > 0 ? cardNews.slides : undefined, card_news_cover_image: cardNews.coverImage }}
                 relatedPosts={relatedPosts}
             />
         </>

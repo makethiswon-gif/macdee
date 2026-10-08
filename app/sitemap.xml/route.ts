@@ -44,9 +44,11 @@ export async function GET() {
             add(`${SITE_BASE}/makethisone`);
         }
 
-        for (const post of blogPosts) {
-            const lawyer = post.lawyers as unknown as { slug: string } | null;
-            if (!isPublicLawyerSlug(lawyer?.slug)) continue;
+        const publicBlogPosts = blogPosts.filter((post) => isPublicLawyerSlug((post.lawyers as unknown as { slug: string } | null)?.slug));
+        // 변호사 블로그 목록(/blog, 2026-10-08) — 공개 블로그 글이 있을 때만. 날짜는 가장 최근 블로그 글.
+        if (publicBlogPosts.length) add(`${SITE_BASE}/blog`, latestDate(publicBlogPosts.flatMap((post) => [post.updated_at, post.created_at])));
+        for (const post of publicBlogPosts) {
+            const lawyer = post.lawyers as unknown as { slug: string };
             const blogUrl = `${SITE_BASE}/blog/${encodeURIComponent(lawyer.slug)}`;
             const modified = latestDate([post.updated_at, post.created_at]);
             add(blogUrl, modified);

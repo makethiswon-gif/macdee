@@ -3,6 +3,7 @@ import { createAdminClient, createServiceClient } from "@/lib/supabase/server";
 import { createClient as createDirectClient } from "@supabase/supabase-js";
 import { verifyAdminToken } from "@/lib/admin-auth";
 import { AdminLawyerError, createLawyerAccount, validateNewLawyer } from "@/lib/admin-lawyer-create";
+import { refreshLawyerBlog } from "@/lib/lawyer-blog-cache";
 
 // GET: List all lawyers
 export async function GET(request: Request) {
@@ -174,6 +175,9 @@ export async function DELETE(request: Request) {
                 return NextResponse.json({ error: "변호사 삭제에 실패했습니다." }, { status: 500 });
             }
         }
+
+        // 지운 변호사의 블로그가 캐시로 계속 나가지 않게 한다.
+        refreshLawyerBlog({ lawyerId: lawyer.id, whole: true });
 
         return NextResponse.json({ success: true });
     } catch (err) {

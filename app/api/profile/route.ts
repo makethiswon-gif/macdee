@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { refreshLawyerBlog } from "@/lib/lawyer-blog-cache";
 
 // GET: Fetch current user's profile
 export async function GET() {
@@ -50,6 +51,9 @@ export async function PATCH(request: Request) {
             .single();
 
         if (error) return NextResponse.json({ error: "프로필 수정 실패" }, { status: 500 });
+
+        // 이름·소개·분야는 블로그의 모든 페이지에 보인다 — 그 변호사의 블로그 전체를 비운다.
+        refreshLawyerBlog({ lawyerId: data?.id, whole: true });
 
         return NextResponse.json({ lawyer: data });
     } catch {

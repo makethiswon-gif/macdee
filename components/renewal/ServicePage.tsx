@@ -66,6 +66,11 @@ export default function ServicePage({ service }: { service: ServiceContent }) {
                                     서비스 소개
                                 </p>
                                 <p className="mt-body-lg">{service.definition}</p>
+                                {service.showcase && (
+                                    <div className="mt-8">
+                                        <ArrowLink href={path(service.showcase.href)}>{service.showcase.label}</ArrowLink>
+                                    </div>
+                                )}
                             </div>
                         </Reveal>
 

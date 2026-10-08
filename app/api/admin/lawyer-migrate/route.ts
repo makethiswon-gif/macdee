@@ -3,6 +3,7 @@ import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
 import { createServiceClient } from "@/lib/supabase/server";
 import { listNaverPosts, parseBlogId } from "@/lib/naver-blog";
 import { migrateNaverPost, type MigrateMode } from "@/lib/naver-migrate";
+import { refreshLawyerBlog } from "@/lib/lawyer-blog-cache";
 
 // 관리자 "변호사 블로그 옮기기"(2026-10-06): 변호사를 골라 그 변호사로 로그인하지 않고 네이버 블로그 글을 옮긴다.
 //   GET                      → 변호사 목록(가벼운 열만)
@@ -66,5 +67,8 @@ export async function POST(request: Request) {
             results.push({ logNo, ok: false, error: err instanceof Error ? err.message : "옮기지 못했습니다." });
         }
     }
+    // 바로 게시한 글이 블로그 목록·/blog·사이트맵에 바로 보이게 캐시를 비운다.
+    const published = body.publish !== false ? results.flatMap((r) => ("contentId" in r && r.contentId ? [r.contentId] : [])) : [];
+    if (published.length) refreshLawyerBlog({ lawyerId: lawyer.id, postIds: published });
     return NextResponse.json({ results, lawyerSlug: lawyer.slug }, { headers });
 }

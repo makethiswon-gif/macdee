@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { verifyAdminToken } from "@/lib/admin-auth";
 import { generateAiSearchContent } from "@/lib/ai/content-generate";
 import { parseAiContent } from "@/lib/ai-content";
+import { refreshLawyerBlog } from "@/lib/lawyer-blog-cache";
 
 export const maxDuration = 300;
 
@@ -130,6 +131,12 @@ export async function POST(req: Request) {
     }
 
     const successful = results.filter((r) => r.success).length;
+    // 다시 쓴 글이 캐시된 블로그 페이지에 바로 반영되게 한다.
+    const rewritten = new Set(results.filter((r) => r.success).map((r) => r.id));
+    for (const lawyerId of new Set(aiSearchPosts.map((p) => p.lawyer_id))) {
+        const postIds = aiSearchPosts.filter((p) => p.lawyer_id === lawyerId && rewritten.has(p.id)).map((p) => p.id);
+        if (postIds.length) refreshLawyerBlog({ lawyerId, postIds });
+    }
     return NextResponse.json({
         message: `Backfill completed: ${successful}/${results.length} posts updated`,
         total: results.length,
