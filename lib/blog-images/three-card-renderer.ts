@@ -16,6 +16,7 @@ import { posterContactHeading } from "./poster-layout";
 import { StudioPhotoRequiredError } from "../lawyer-studio/types";
 import { resolveLogoTypography } from "./logo-color";
 import { paintPhotoText } from "./text-contrast";
+import { BAND_TOP, drawThumbnailCover, gradeCoverArt, thumbnailStyle } from "./thumbnail-cover";
 
 // Design-space units, rasterized at 2000px. Photo scale is measured in output pixels.
 const W = 1200, H = 1200, P = 72, SCALE = EDITORIAL_IMAGE_SIZE / W;
@@ -132,12 +133,14 @@ export async function renderEditorialThree(opts: BriefRenderOptions): Promise<Bl
     const recipe = plan.layoutRecipe || "photo-open";
     if (card.type === "thumbnail") {
         if (!opts.art) throw new Error("표지 원본을 확인해주세요.");
-        const art: Photo = { image: await loadImage(opts.art), kind: "art" };
+        // 2026-10-08 대표 결정: 변호사별 A(사진 위 + 짙은 띠)/B(전면 사진 + 위쪽 그라데이션) 조판.
+        // 제목은 흰색·왼쪽 정렬로 고정하고(로고 색 제목이 어두운 사진에 묻히던 문제), 사진은 같은 색 보정으로 톤을 맞춘다.
+        const style = thumbnailStyle(profile);
+        const art: Photo = { image: await loadImage(await gradeCoverArt(opts.art)), kind: "art" };
         const heading = opts.headingOverride || card.headlineLines?.join("\n") || card.heading;
-        photo(art, 0, 0, W, H, "cover");
-        const poster = drawPhotoPoster(c, { heading, kicker: card.kicker, emphasis: card.emphasis, brand, brandColor: accent, recipe, repair: opts.repairLayout, forceLight: opts.style === "contrast" });
-        protectedRuns += poster.protectedRuns;
-        boxes.push(...poster.boxes); issues.push(...poster.issues);
+        photo(art, 0, 0, W, style === "band" ? BAND_TOP : H, "cover");
+        const cover = drawThumbnailCover(c, { style, heading, kicker: card.kicker, brand, accent: edition?.accent || accent });
+        boxes.push(...cover.boxes); issues.push(...cover.issues);
         if (photoChecks && photoChecks.areaRatio < 0.36) issues.push("표지 사진의 실제 면적이 너무 작습니다. 원본과 문구를 확인해주세요.");
     } else if (card.type === "info") {
         if (!plan.proofSelection || plan.proofSelection.profileId !== profile.id) throw new Error("현재 변호사의 승인된 신뢰 자료가 필요합니다.");

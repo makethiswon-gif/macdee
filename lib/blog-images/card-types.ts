@@ -11,7 +11,7 @@ export type BlogImageQuality = "medium" | "high" | "xhigh";
 export type BlogPhotoSource = "ai" | "office";
 // Layout upgrades reuse the paid production checkpoint and original artwork.
 export const BLOG_LAYOUT_REVISION = 13;
-export const EDITORIAL_LAYOUT_REVISION = 24;
+export const EDITORIAL_LAYOUT_REVISION = 25; // 25: 썸네일 A/B 조판(2026-10-08)
 export const EDITORIAL_IMAGE_SIZE = 2000;
 
 export interface BlogImageCard {

@@ -13,6 +13,7 @@ import { createHash } from "node:crypto";
 import { usageFromProvider } from "@/lib/blog-usage";
 import { coverBriefInstruction, parseCoverBrief, type CoverBrief } from "@/lib/blog-cover-brief";
 import { editorialCoverLayout } from "@/lib/blog-images/three-card-policy";
+import { thumbnailStyle, type ThumbnailStyle } from "@/lib/blog-images/thumbnail-cover";
 import { ImageProductionError, recentVisualHistory } from "@/lib/blog-images/production-store";
 import type { EditorialProfile } from "@/lib/blog-images/card-types";
 import type { LayoutRecipe } from "@/lib/blog-images/layout-recipes";
@@ -69,6 +70,7 @@ export async function POST(request: Request) {
         // 표지 브리프: 원고 응답 끝에 표지 기획 12줄을 함께 받는다(별도 유료 기획 호출 대체). BLOG_COVER_SOURCE=planner 면 예전 방식.
         const coverEnabled = process.env.BLOG_COVER_SOURCE !== "planner";
         let coverLayout: LayoutRecipe | null = null;
+        let coverStyle: ThumbnailStyle | undefined;
         let recentSubjects: string[] = [];
         if (profileId) {
             if (!validProfileId(profileId)) {
@@ -130,6 +132,7 @@ ${specialty.length ? `- 취급 분야(전문등록 자격 표기가 아님): ${s
                             phone: (profile.phone as string) || "", website: (profile.website as string) || "", brandColor: (profile.brand_color as string) || "",
                             dnaSalt: (profile.dna_salt as string) || "", specialty, profileImages: [], officeImages: [], logoImage: "" };
                         coverLayout = editorialCoverLayout(editorialProfile);
+                        coverStyle = thumbnailStyle(editorialProfile);
                         try { recentSubjects = (await recentVisualHistory(profile.id as string)).flatMap((h) => h.cards.map((c) => c.subject || "")).filter(Boolean).slice(0, 8); }
                         catch { /* 이력을 못 읽어도 브리프는 만든다 */ }
                     }
@@ -258,7 +261,7 @@ ${trustBlock}
 ===BODY===
 (마크다운 본문. 첫 줄은 문단으로 시작. 기준일·작성 줄·전화번호는 쓰지 않습니다)
 ===FACTS===
-(본문에 쓴 사실 주장 가운데 사람이 확인해야 할 것을 한 줄에 하나씩, "- "로 시작해 적습니다: 조문 번호와 그 내용, 기한과 기산점, 금액·비율·점수 등 수치, 개정·결정의 시점. 본문 문장을 그대로 옮기지 말고 확인 가능한 명제로 짧게. 이 블록은 독자에게 보이지 않고 검수자에게만 보입니다)${coverLayout ? `\n${coverBriefInstruction(coverLayout, recentSubjects)}` : ""}`;
+(본문에 쓴 사실 주장 가운데 사람이 확인해야 할 것을 한 줄에 하나씩, "- "로 시작해 적습니다: 조문 번호와 그 내용, 기한과 기산점, 금액·비율·점수 등 수치, 개정·결정의 시점. 본문 문장을 그대로 옮기지 말고 확인 가능한 명제로 짧게. 이 블록은 독자에게 보이지 않고 검수자에게만 보입니다)${coverLayout ? `\n${coverBriefInstruction(coverLayout, recentSubjects, coverStyle)}` : ""}`;
 
         const fieldLine = field && field.trim() ? `[분야/사건 유형] ${field.trim()}\n\n` : "";
         const userMessage = rewrite

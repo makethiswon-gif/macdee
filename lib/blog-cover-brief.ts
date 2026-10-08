@@ -5,6 +5,7 @@
 // 브리프가 깨져도 원고는 그대로 쓰고, 이미지 단계가 예전 유료 기획으로 대신한다(독립 검증·독립 보존).
 import { isLayoutRecipe, type LayoutRecipe } from "@/lib/blog-images/layout-recipes";
 import { posterFamily, posterFrame, type PosterFrame } from "@/lib/blog-images/poster-layout";
+import { COVER_HEADING_RULE, coverBriefGuide, type ThumbnailStyle } from "@/lib/blog-images/thumbnail-copy";
 
 export const COVER_MARKER = "===COVER===";
 export const ALWAYS_AVOID = ["법봉", "저울", "법원 기둥", "빈 상담실", "회색 3D 정물"];
@@ -32,20 +33,23 @@ const FRAME_GUIDE: Record<PosterFrame, string> = {
     "poster-right": "오른쪽 2/3는 고요한 사진 면으로 비워 두고, 피사체는 왼쪽 아래에 잘리지 않게.",
 };
 
-/** 원고 프롬프트에 붙이는 표지 브리프 출력 지시. 기획 라우트의 규칙을 12줄로 압축했다. */
-export function coverBriefInstruction(layoutRecipe: LayoutRecipe, recentSubjects: string[] = []): string {
+/**
+ * 원고 프롬프트에 붙이는 표지 브리프 출력 지시. 기획 라우트의 규칙을 12줄로 압축했다.
+ * style(2026-10-08): 변호사별 썸네일 조판 A/B. 주면 제목 규칙과 사진 구도를 그 조판에 맞추고, 빛 연출은 서버가 글마다 정한다고 알린다.
+ */
+export function coverBriefInstruction(layoutRecipe: LayoutRecipe, recentSubjects: string[] = [], style?: ThumbnailStyle): string {
     const family = posterFamily(layoutRecipe);
-    const headingRule = family === "campaign"
+    const headingRule = style ? COVER_HEADING_RULE : family === "campaign"
         ? "총 6~14자, 각 행 2~7자. 예: '절차의 / 갈림길.'"
         : "8~24자, 두 행이면 각 행 9자 이내. 복잡한 쟁점은 질문형으로. 예: '카톡만으로 / 증거가 될까?'";
     const recent = recentSubjects.filter(Boolean).slice(0, 8);
     return `${COVER_MARKER}
-(표지 한 장의 기획. 아래 키만, 한 줄에 하나씩 "키: 값" 형식으로. 표지는 사진 한 장 위에 제목을 직접 조판한 정사각 포스터입니다. 이번 지면은 ${family} 계열입니다.)
+(표지 한 장의 기획. 아래 키만, 한 줄에 하나씩 "키: 값" 형식으로. ${style ? coverBriefGuide(style) : `표지는 사진 한 장 위에 제목을 직접 조판한 정사각 포스터입니다. 이번 지면은 ${family} 계열입니다.`})
 heading: 표지 제목. ${headingRule} 두 행은 " / "로 나눕니다. 키워드 나열이 아니라 읽을 이유가 생기는 쟁점·질문. 분야명은 kicker에 있으니 반복하지 않고, 조건을 지운 단정("무조건", "~가 아니라 ~")은 쓰지 않습니다.
 kicker: 4~14자의 실제 분야·핵심 검색어. 예: 상간소송 · 카톡 캡처
 emphasis: heading에 그대로 들어 있는 핵심 단어 하나(14자 이내). 불필요하면 비워 둡니다.
 subject: 사진의 피사체 한 줄 — 주제와 연결된 생활 장면, 의미 있는 사물 하나, 또는 익명 인물의 작은 전신. 한국의 현실적인 공간.
-scene: 2~4문장. 피사체 배치, 촬영 거리, 행동, 빛의 방향과 재질. ${FRAME_GUIDE[posterFrame(layoutRecipe)]} 글자·문서·로고·실제 인물·사건 재현은 없습니다. 인물은 머리부터 발까지 온전히, 상반신만 떠 있거나 몸이 배경에 녹는 구도는 금지.
+scene: 2~4문장. 피사체 배치, 촬영 거리, 행동${style ? ", 재질. 빛과 시간대는 서버가 글마다 정하니 해 질 녘 낮은 햇빛·긴 그림자를 쓰지 않습니다." : ", 빛의 방향과 재질."} ${style ? "" : FRAME_GUIDE[posterFrame(layoutRecipe)]} 글자·문서·로고·실제 인물·사건 재현은 없습니다. 인물은 머리부터 발까지 온전히, 상반신만 떠 있거나 몸이 배경에 녹는 구도는 금지.
 message: 이 장면이 전달할 의미 한 문장
 avoid: 이 글에서 쓰지 말 소재 2~4개, 쉼표로 구분 (${ALWAYS_AVOID.join("·")}은 항상 제외)
 alternate: 실질적으로 다른 대안 장면 한 줄 (시점·매체·주요 대상이 달라야 합니다)

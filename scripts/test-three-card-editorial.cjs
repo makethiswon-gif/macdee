@@ -100,10 +100,21 @@ const library = { profileId: profile.id, firmId: "fixture-firm", lawyerId: profi
         assert.equal(paperResult.layoutRecipe, recipe, "Paper only changes tone, never saved geometry");
         assert.equal(result.layoutRecipe, recipe, "Default paper style must not replace saved geometry");
         assert.ok(result.layoutChecks.passed, result.layoutChecks.issues.join());
-        assert.equal(result.photoChecks.areaRatio, 1, "Poster artwork fills the entire square");
+        // 2026-10-08: 썸네일은 변호사별 A(사진 64% + 띠)/B(전면 사진). 저장된 레시피는 표지 모양을 바꾸지 않는다.
+        const coverStyle = require("../lib/blog-images/thumbnail-cover.ts").thumbnailStyle(p);
+        assert.equal(result.photoChecks.areaRatio, coverStyle === "band" ? 0.64 : 1, "A shows the photo above the band, B fills the square");
         hashes.add(crypto.createHash('sha256').update(result.imageDataUrl).digest('hex'));
     }
-    assert.equal(hashes.size, 6, "All six saved recipes produce genuinely different default pixels");
+    assert.equal(hashes.size, 1, "The lawyer's fixed A/B cover style, not the saved recipe, decides the thumbnail");
+    {
+        const { thumbnailStyle } = require("../lib/blog-images/thumbnail-cover.ts");
+        let other = null;
+        for (let i = 0; i < 50 && !other; i++) if (thumbnailStyle({ ...p, id: `cover-style-${i}` }) !== thumbnailStyle(p)) other = { ...p, id: `cover-style-${i}` };
+        const input = { profile: other, plan: { ...plan, layoutRecipe: "photo-open" }, card: { ...plan.cards[0], heading: "자료를 확인하는 기준", headlineLines: undefined }, art };
+        const otherCover = await renderEditorialThree(input);
+        assert.ok(otherCover.layoutChecks.passed, otherCover.layoutChecks.issues.join());
+        assert.ok(!hashes.has(crypto.createHash('sha256').update(otherCover.imageDataUrl).digest('hex')), "A and B produce different covers");
+    }
     for (const family of ["ledger", "column", "journal", "poster", "dossier", "gallery"]) {
         const first = editorialCoverLayout({ ...p, designFamily: family }, []);
         assert.equal(editorialCoverLayout({ ...p, designFamily: family }, [{ layoutRecipe: first }]), first, 'Per-lawyer editions do not rotate per article');
