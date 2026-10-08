@@ -69,7 +69,8 @@ export async function POST(request: Request) {
             }
         }
 
-        // 제목·주소가 바뀐 글: 옛 주소는 404, 새 주소는 바로 보이게 캐시된 블로그 페이지를 비운다.
+        // 제목·주소가 바뀐 글: 새 주소가 바로 보이게 캐시된 블로그 페이지를 비운다.
+        // 옛 주소는 글 페이지가 주소 끝 6자(글 ID 앞 6자)로 이 글을 찾아 새 주소로 영구 이동시킨다(getMovedBlogPost).
         for (const [lawyerId, postIds] of changed) refreshLawyerBlog({ lawyerId, postIds });
 
         return NextResponse.json({

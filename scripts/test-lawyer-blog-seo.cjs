@@ -30,12 +30,13 @@ const db = { failures: { lawyers: 0, contents: 0 }, calls: { lawyers: 0, content
 function builder(table) {
     let rows = [...tables[table]];
     let from = 0, to = Infinity, wantCount = false;
+    const ranges = []; // gte·lte 로 건 열 — 특정 조회만 실패시키는 시험용
     const b = {
         select(fields, options) { wantCount = options?.count === 'exact'; return b; },
         eq(key, value) { rows = rows.filter((r) => r[key] === value); return b; },
         in(key, values) { rows = rows.filter((r) => values.includes(r[key])); return b; },
-        gte(key, value) { rows = rows.filter((r) => r[key] >= value); return b; },
-        lte(key, value) { rows = rows.filter((r) => r[key] <= value); return b; },
+        gte(key, value) { ranges.push(key); rows = rows.filter((r) => r[key] >= value); return b; },
+        lte(key, value) { ranges.push(key); rows = rows.filter((r) => r[key] <= value); return b; },
         order(key, options = {}) { rows.sort((a, c) => String(a[key]).localeCompare(String(c[key])) * (options.ascending === false ? -1 : 1)); return b; },
         range(a, z) { from = a; to = z; return b; },
         limit(n) { to = from + n - 1; return b; },
@@ -43,6 +44,7 @@ function builder(table) {
         result() {
             db.calls[table]++;
             if (db.failures[table] > 0) { db.failures[table]--; return { data: null, count: null, error: { message: 'upstream request timeout' } }; }
+            if (db.failRanges && ranges.includes(db.failRanges)) return { data: null, count: null, error: { message: 'upstream request timeout' } };
             const total = rows.length;
             if (wantCount && from > 0 && from >= total) return { data: null, count: null, error: { code: 'PGRST103', message: 'Requested range not satisfiable' } };
             return { data: rows.slice(from, to + 1), count: wantCount ? total : null, error: null };
@@ -90,7 +92,7 @@ console.error = () => {};
 const { resetReadPause, PublicReadError } = require('../lib/public-read.ts');
 const isNotFound = (e) => e instanceof NotFound;
 const unavailable = (e) => !isNotFound(e) && e instanceof PublicReadError;
-const reset = () => { resetReadPause(); Object.assign(db, { failures: { lawyers: 0, contents: 0 }, calls: { lawyers: 0, contents: 0 }, signals: 0, tags: new Set(), revalidated: [] }); };
+const reset = () => { resetReadPause(); Object.assign(db, { failures: { lawyers: 0, contents: 0 }, failRanges: null, calls: { lawyers: 0, contents: 0 }, signals: 0, tags: new Set(), revalidated: [] }); };
 const find = (element, predicate) => {
     // 렌더 결과(React 요소 트리)에서 조건에 맞는 요소의 props 를 찾는다.
     const stack = [element];
@@ -173,6 +175,47 @@ const clientProps = (element) => find(element, (node) => typeof node.type === 'f
     // UUID 옛 주소 → slug 주소로 영구 이동
     reset();
     await assert.rejects(postPage.default(postParams('ddrzzangna-xb35', uuid(3))), (e) => e instanceof Redirect && e.url === `/blog/ddrzzangna-xb35/${encodeURIComponent('민사-칼럼-3')}`);
+
+    // 제목이 바뀌어 slug 가 달라진 옛 주소 → 주소 끝 6자(글 ID 앞 6자)로 지금 글을 찾아 영구 이동
+    const { postIdPrefixFromSlug } = require('../lib/lawyer-blog.ts');
+    assert.equal(postIdPrefixFromSlug('이혼소송-위자료-a1b2c3'), 'a1b2c3');
+    assert.equal(postIdPrefixFromSlug('a1b2c3'), 'a1b2c3', '제목 없이 6자만 있는 slug');
+    assert.equal(postIdPrefixFromSlug('이혼-A1B2C3'), 'a1b2c3');
+    for (const none of ['민사-칼럼-25', '이혼-a1b2c', '이혼-a1b2c3d', '이혼-a1b2cg', '이혼a1b2c3', uuid(3)]) assert.equal(postIdPrefixFromSlug(none), null, `${none}: 끝 6자 접미사가 아니다`);
+    const renamed = { ...posts[0], id: 'c0ffee12-0000-4000-8000-000000000001', title: '새 제목', slug: '새-제목-c0ffee', created_at: day(50) };
+    const extras = [
+        renamed,
+        { ...posts[0], id: 'dddddd12-0000-4000-8000-000000000001', slug: '검토중-새-제목-dddddd', status: 'review' }, // 미발행
+        { ...posts[0], id: 'eeeeee12-0000-4000-8000-000000000001', slug: '인스타-새-제목-eeeeee', channel: 'instagram' }, // 비공개 채널
+        { ...posts[0], id: 'abcdef12-0000-4000-8000-000000000001', lawyer_id: L4.id, slug: '다른-변호사-abcdef' }, // 다른 변호사
+    ];
+    tables.contents = [...posts, ...extras];
+    const movedUrl = `/blog/ddrzzangna-xb35/${encodeURIComponent('새-제목-c0ffee')}`;
+    for (const old of ['옛-제목-c0ffee', 'SEO-옛-제목-C0FFEE', 'c0ffee']) {
+        reset();
+        await assert.rejects(postPage.default(postParams('ddrzzangna-xb35', encodeURIComponent(old))), (e) => e instanceof Redirect && e.url === movedUrl, `${old}: 새 주소로 영구 이동`);
+        assert.ok(db.tags.has(`lawyer-blog-post:${renamed.id}`) && db.tags.has(`lawyer-blog:${L1.id}`), `${old}: 이동도 캐시되므로 그 글이 바뀌면 비워진다`);
+        assert.ok(!db.tags.has(`lawyer-blog-list:${L1.id}`), `${old}: 새 글이 생길 때마다 이동을 다시 만들지 않는다`);
+        reset();
+        await assert.rejects(postPage.generateMetadata(postParams('ddrzzangna-xb35', encodeURIComponent(old))), (e) => e instanceof Redirect && e.url === movedUrl, `${old}: 메타데이터도 같은 규칙`);
+        assert.ok(db.tags.has(`lawyer-blog-post:${renamed.id}`), `${old}: 메타데이터가 먼저 이동시켜도 태그는 달린다`);
+    }
+    // 접미사가 겹치면(이 시험의 기본 글은 ID 가 모두 bbbbbb 로 시작) · 없으면 · 미발행·비공개 채널·다른 변호사 글이면 → 지금처럼 404
+    for (const [old, why] of [['옛-제목-bbbbbb', '접미사 겹침'], ['옛-제목-123abc', '접미사에 맞는 글 없음'], ['옛-제목-dddddd', '미발행'], ['옛-제목-eeeeee', '인스타그램'], ['옛-제목-abcdef', '다른 변호사의 글']]) {
+        reset();
+        await assert.rejects(postPage.default(postParams('ddrzzangna-xb35', encodeURIComponent(old))), isNotFound, `${old}: ${why} → 404`);
+        assert.ok(db.tags.has(`lawyer-blog-list:${L1.id}`), `${old}: 404 는 그 변호사 글이 바뀌면 비워진다`);
+        assert.equal((await postPage.generateMetadata(postParams('ddrzzangna-xb35', encodeURIComponent(old)))).robots.index, false, `${old}: 메타데이터도 없는 글`);
+    }
+    reset();
+    await assert.rejects(postPage.default(postParams('seoul-firm', encodeURIComponent('옛-제목-c0ffee'))), isNotFound, '다른 변호사 주소로는 찾지 않는다');
+    // 옛 주소 조회를 읽지 못하면 404 로 굳히지 않는다
+    reset(); db.failRanges = 'id';
+    await assert.rejects(postPage.default(postParams('ddrzzangna-xb35', encodeURIComponent('옛-제목-c0ffee'))), unavailable, '옛 주소 조회 실패는 404 가 아니다');
+    await assert.rejects(postPage.generateMetadata(postParams('ddrzzangna-xb35', encodeURIComponent('옛-제목-c0ffee'))), unavailable, '메타데이터도');
+    reset(); db.failRanges = 'id';
+    assert.ok(clientProps(await postPage.default(p25)), 'slug 로 찾은 글은 옛 주소 조회를 하지 않는다');
+    tables.contents = posts;
 
     // 핵심: 데이터베이스가 응답하지 않으면 404 가 아니라 오류 — ISR 이 404 를 굳히지 않고 검색 로봇은 나중에 다시 온다
     reset(); db.failures.lawyers = 99;
@@ -322,5 +365,5 @@ const clientProps = (element) => find(element, (node) => typeof node.type === 'f
     assert.match(read('app/sitemap.xml/route.ts'), /add\(`\$\{SITE_BASE\}\/blog`/, '사이트맵에 /blog');
 
     console.error = originalError;
-    console.log('PASS: lawyer blog 404 only when truly missing (DB failure throws, never cached as 404) with retry/pause/timeouts; ISR 1h with ID tags (post/list/lawyer/hub) and immediate refresh from every writer; ?page=N rewritten to a cached path with self canonical; neighbour links; /blog hub lists public lawyers with posts by region/field; sitemap/footer/lawfirm-blog links');
+    console.log('PASS: lawyer blog 404 only when truly missing (DB failure throws, never cached as 404) with retry/pause/timeouts; ISR 1h with ID tags (post/list/lawyer/hub) and immediate refresh from every writer; ?page=N rewritten to a cached path with self canonical; old slugs (title changed) 301 to the current slug by the 6-char ID suffix (overlap/none/unpublished/other lawyer → 404, lookup failure throws); neighbour links; /blog hub lists public lawyers with posts by region/field; sitemap/footer/lawfirm-blog links');
 })().catch((error) => { console.error = originalError; console.error(error); process.exit(1); });

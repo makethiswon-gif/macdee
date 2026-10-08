@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import { cleanBody, parseAiContent } from "@/lib/ai-content";
 import { compactSeoDescription } from "@/lib/public-content";
-import { decodePathPart, getBlogLawyer, getBlogPost, getCardNews, getNeighbourPosts, isPostUuid, publicImageUrl, publicLawyerSlugFromPath } from "@/lib/lawyer-blog";
+import { decodePathPart, getBlogLawyer, getBlogPost, getCardNews, getMovedBlogPost, getNeighbourPosts, isPostUuid, publicImageUrl, publicLawyerSlugFromPath } from "@/lib/lawyer-blog";
 import { lawyerBlogTags, tagLawyerBlogPage } from "@/lib/lawyer-blog-cache";
 import PostPageClient from "./PostPageClient";
 
@@ -17,15 +17,25 @@ export function generateStaticParams(): { slug: string; postSlug: string }[] {
 
 type Props = { params: Promise<{ slug: string; postSlug: string }> };
 
-/** 주소 → 변호사·글. 정말 없으면 null. generateMetadata 와 페이지가 react cache() 로 같은 조회를 한 번만 한다. */
+/**
+ * 주소 → 변호사·글. 정말 없으면 null. generateMetadata 와 페이지가 react cache() 로 같은 조회를 한 번만 한다.
+ * moved: slug 로 못 찾았지만 주소 끝 6자(글 ID 앞 6자)로 찾은 글 — 제목이 바뀌어 slug 가 달라진 옛 주소다.
+ */
 async function loadPost(params: Props["params"]) {
     const { slug: rawSlug, postSlug: rawPostSlug } = await params;
     const slug = publicLawyerSlugFromPath(rawSlug);
     const postSlug = decodePathPart(rawPostSlug);
-    if (!slug || !postSlug) return { slug, postSlug, lawyer: null, post: null };
+    if (!slug || !postSlug) return { slug, postSlug, lawyer: null, post: null, moved: null };
     const lawyer = await getBlogLawyer(slug);
-    if (!lawyer) return { slug, postSlug, lawyer, post: null };
-    return { slug, postSlug, lawyer, post: await getBlogPost(lawyer.id, postSlug) };
+    if (!lawyer) return { slug, postSlug, lawyer, post: null, moved: null };
+    const post = await getBlogPost(lawyer.id, postSlug);
+    return { slug, postSlug, lawyer, post, moved: post ? null : await getMovedBlogPost(lawyer.id, postSlug) };
+}
+
+/** 옛 주소 → 지금 주소로 영구 이동. 이동도 1시간 캐시되므로 그 글의 태그를 달아, 글 slug 가 또 바뀌거나 내려가면 바로 비운다. */
+async function redirectMoved(slug: string, lawyerId: string, moved: { id: string; slug: string | null }): Promise<never> {
+    await tagLawyerBlogPage(lawyerBlogTags.lawyer(lawyerId), lawyerBlogTags.post(moved.id));
+    permanentRedirect(`/blog/${encodeURIComponent(slug)}/${encodeURIComponent(moved.slug || moved.id)}`);
 }
 
 /** 저장된 원고(JSON 이나 마크다운)를 화면용 제목·본문·요약으로. */
@@ -44,7 +54,8 @@ function readPost(post: { title: string; body: string | null; meta_description: 
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-    const { slug, lawyer, post } = await loadPost(params);
+    const { slug, lawyer, post, moved } = await loadPost(params);
+    if (slug && lawyer && moved) await redirectMoved(slug, lawyer.id, moved);
     if (!slug || !lawyer || !post) {
         return { title: "포스트를 찾을 수 없습니다", robots: { index: false, follow: false } };
     }
@@ -81,12 +92,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function PostPage({ params }: Props) {
     // 읽지 못하면 여기서 예외(5xx). null 은 정말 없는 것이다.
-    const { slug, postSlug, lawyer, post } = await loadPost(params);
+    const { slug, postSlug, lawyer, post, moved } = await loadPost(params);
     if (!slug || !postSlug || !lawyer) {
         await tagLawyerBlogPage();
         notFound();
     }
     if (!post) {
+        // 제목이 바뀌어 slug 가 달라진 옛 주소 → 지금 주소로 영구 이동(구글이 색인을 새 주소로 옮긴다).
+        if (moved) await redirectMoved(slug, lawyer.id, moved);
         // 아직 발행 전인 글 주소도 404 로 캐시된다 — 그 변호사의 글이 발행되면 list 태그로 함께 비운다.
         await tagLawyerBlogPage(lawyerBlogTags.lawyer(lawyer.id), lawyerBlogTags.list(lawyer.id));
         notFound();

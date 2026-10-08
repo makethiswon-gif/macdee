@@ -140,6 +140,29 @@ export const getBlogPost = cache(async (lawyerId: string, postSlug: string): Pro
         .abortSignal(queryDeadline())
         .maybeSingle()));
 
+/** 글 주소 끝 6자 = 글 ID(하이픈 뺀) 앞 6자(lib/slug.ts makeSlug). 제목이 바뀌어 slug 가 새로 만들어져도 이 6자는 그대로다. */
+export function postIdPrefixFromSlug(postSlug: string): string | null {
+    return /(?:^|-)([0-9a-f]{6})$/i.exec(postSlug)?.[1].toLowerCase() ?? null;
+}
+
+/**
+ * slug 로 못 찾은 옛 글 주소 → 지금 글(2026-10-08).
+ * SEO 제목 적용(app/api/admin/seo-titles/apply)이 제목과 함께 slug 도 새로 만들어, 이미 색인된 옛 주소가 404 가 됐다.
+ * 같은 변호사의 발행된 공개 글 중 ID 가 주소 끝 6자로 시작하는 글이 정확히 1편이면 그 글, 0편·2편 이상이면 null(404).
+ * uuid 열은 like 가 안 되므로 ID 범위로 찾는다(앞 6자는 ID 첫 묶음 8자 안에 있다).
+ */
+export const getMovedBlogPost = cache(async (lawyerId: string, postSlug: string): Promise<Pick<BlogPost, "id" | "slug"> | null> => {
+    const prefix = postIdPrefixFromSlug(postSlug);
+    if (!prefix) return null;
+    const rows = await readPublished<Pick<BlogPost, "id" | "slug">[]>("변호사 블로그: 옛 글 주소", () => publicPosts("id, slug")
+        .eq("lawyer_id", lawyerId)
+        .gte("id", `${prefix}00-0000-0000-0000-000000000000`)
+        .lte("id", `${prefix}ff-ffff-ffff-ffff-ffffffffffff`)
+        .limit(2)
+        .abortSignal(queryDeadline()));
+    return rows?.length === 1 ? rows[0] : null;
+});
+
 /**
  * 글 아래 "○○ 변호사의 다른 글" 4편 — 이 글 바로 앞뒤에 쓴 글(새 글 2편 + 이전 글로 채움).
  * 예전에는 모든 글이 같은 최신 4편만 가리켜 오래된 글로 가는 링크가 없었다. 앞뒤 글을 이으면 글에서 글로 전체 글을 다 거쳐 갈 수 있다.
