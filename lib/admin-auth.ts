@@ -5,6 +5,11 @@ const TOKEN_SECRET = process.env.ADMIN_TOKEN_SECRET ?? "";
 
 export function verifyAdminToken(request: Request): boolean {
     const token = request.headers.get("cookie")?.match(/admin_token=([^;]+)/)?.[1];
+    return !!token && verifyAdminTokenValue(token);
+}
+
+/** admin_token 쿠키 값 자체를 검사한다(요청 객체가 없는 서버 컴포넌트용). */
+export function verifyAdminTokenValue(token: string): boolean {
     if (!token || !TOKEN_SECRET) return false;
     try {
         const decoded = Buffer.from(token, "base64url").toString();
