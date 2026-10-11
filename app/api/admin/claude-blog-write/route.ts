@@ -88,9 +88,6 @@ export async function POST(request: Request) {
         let dnaInfo: { voice: string; heading: string; structure: string; imageCount: number } | null = null;
         // 발행 화면이 공백 제외로 표시하므로 같은 단위로 지시한다.
         let lengthRule = "본문은 공백 제외 2,700~3,100자입니다. 소제목(##) 6~7개, 소제목마다 문단 4~5개, 문단은 3~4문장, 전체 문장 70개 안팎으로 설계하면 이 분량이 됩니다.";
-        let emphasisRule = `  · ==형광펜== : 이 글의 결론, 결론이 갈리는 경계선. 글 전체에서 **2~3곳만**. 가장 아껴 쓰는 강조입니다.
-  · __밑줄__ : 판단의 근거가 되는 법조문·기준. 글 전체에서 **5~7곳**.
-  · **굵게** : 수치·기한·금액 등 눈으로 집어야 할 값. 글 전체에서 **10곳 이내**.`;
 
         if (profileId) {
             try {
@@ -137,9 +134,6 @@ ${specialty.length ? `- 취급 분야(전문등록 자격 표기가 아님): ${s
                         catch { /* 이력을 못 읽어도 브리프는 만든다 */ }
                     }
                     lengthRule = `본문은 공백 제외 ${dna.targetNoSpace - 150}~${dna.targetNoSpace + 150}자입니다. 아래 [분량 설계]의 구조로 맞춥니다.`;
-                    emphasisRule = `  · ==형광펜== : 이 글의 결론, 결론이 갈리는 경계선. 글 전체에서 **${dna.emphasis.highlight[0]}~${dna.emphasis.highlight[1]}곳만**.
-  · __밑줄__ : 판단의 근거가 되는 법조문·기준. 글 전체에서 **${dna.emphasis.underline[0]}~${dna.emphasis.underline[1]}곳**.
-  · **굵게** : 수치·기한·금액 등 눈으로 집어야 할 값. 글 전체에서 **${dna.emphasis.bold}곳 이내**.`;
                     console.log(`[Blog Write] DNA ${profileId}: ${dna.voice.name} / ${dna.heading.name} / ${dna.structure.name} / ${dna.closing.name} / 공백 제외 ${dna.targetNoSpace}자`);
                 }
             } catch (e) {
@@ -215,10 +209,9 @@ ${profileId ? "- 상담용 전화번호와 tel: 링크는 서버가 등록된 �
 - 각 ## 소제목은 그 아래 문단이 답하는 질문에 대응합니다. 소제목만 읽어도 글의 논지가 보이게.
 - 떼어내서 그대로 인용해도 뜻이 통하는 '독립된 덩어리'를 최소 1개 포함합니다: 핵심 개념을 규정하는 정의 문단, A와 B를 나란히 놓는 대조, 또는 단계별 절차.
 
-[강조]
-네이버 블로그에서 각각 형광펜·밑줄·굵게로 바뀝니다. 아래 개수를 넘기지 마세요. 과한 강조는 신뢰를 떨어뜨립니다.
-${emphasisRule}
-- 한 문단에 강조가 두 종류 넘게 들어가지 않게 하세요. 강조가 없는 문단이 있어도 괜찮습니다. 한 구절에 강조를 중첩하거나 소제목·문단 전체를 형광펜 처리하지 않습니다.
+[강조 표시 없음]
+- 형광펜·밑줄·굵게 같은 강조 표시(==, __, **)를 쓰지 않습니다. 네이버에 올릴 때 편집기에서 직접 꾸밉니다(2026-10-12 대표 지시).
+- 소제목(##), 문단, 꼭 필요한 목록만 씁니다. 강조하고 싶은 결론은 문장 자체로 또렷하게 씁니다.
 
 [마무리]
 - 아래 DNA의 [마무리 방식]이 있으면 그 방식으로, 없으면 독자가 지금 앉은 자리에서 할 수 있는 가벼운 행동 하나로 닫습니다.
