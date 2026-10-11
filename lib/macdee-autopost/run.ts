@@ -17,7 +17,7 @@ import sharp from "sharp";
 import { createServiceClient } from "@/lib/supabase/server";
 import { claudeDispatch } from "@/lib/ai/claude-engine";
 import { extractClaudeText } from "@/lib/ai/claude-text";
-import { BLOG_WRITING_MODEL, WRITING_EFFORT } from "@/lib/ai/models";
+import { SONNET_MODEL, WRITING_EFFORT } from "@/lib/ai/models";
 import { estimateUsd } from "@/lib/ai/pricing";
 import { makeSlug } from "@/lib/slug";
 import { refreshLawyerBlog } from "@/lib/lawyer-blog-cache";
@@ -62,6 +62,12 @@ const QUIET_START = 22 * 60, QUIET_END = 8 * 60;
 const WRITER_TIMEOUT_MS = 700_000;
 const REVIEWER_TIMEOUT_MS = 300_000;
 const MIN_BODY_CHARS = 1_500;
+
+/**
+ * 자동 발행은 Sonnet 5.5(원고 high·검수 medium). 화면의 블로그 발행(Opus 5.5 xhigh)과 따로 둔다:
+ * 하루 12편이라 비용이 절반이고, 원고가 함수 한도(800초) 안에 여유 있게 끝난다. 시험 원고(이혼 증거)로 품질을 확인했다.
+ */
+const AUTOPOST_MODEL = SONNET_MODEL;
 
 const KST_MS = 9 * 3_600_000;
 
@@ -308,7 +314,7 @@ interface Usage { stage: string; input: number; output: number; usd: number | nu
 
 async function askJson<T>(deps: AutopostDeps, stage: string, system: string, user: string, schema: object, effort: string, maxTokens: number, timeoutMs: number): Promise<{ data: T; usage: Usage }> {
     const response = await deps.claude(stage, {
-        model: BLOG_WRITING_MODEL,
+        model: AUTOPOST_MODEL,
         max_tokens: maxTokens,
         system,
         messages: [{ role: "user", content: user }],
@@ -323,7 +329,7 @@ async function askJson<T>(deps: AutopostDeps, stage: string, system: string, use
         stage,
         input: (u.input_tokens || 0) + (u.cache_read_input_tokens || 0) + (u.cache_creation_input_tokens || 0),
         output: u.output_tokens || 0,
-        usd: estimateUsd(BLOG_WRITING_MODEL, { input: u.input_tokens || 0, cacheRead: u.cache_read_input_tokens || 0, cacheWrite: u.cache_creation_input_tokens || 0, output: u.output_tokens || 0 }),
+        usd: estimateUsd(AUTOPOST_MODEL, { input: u.input_tokens || 0, cacheRead: u.cache_read_input_tokens || 0, cacheWrite: u.cache_creation_input_tokens || 0, output: u.output_tokens || 0 }),
     };
     const text = extractClaudeText(json as Parameters<typeof extractClaudeText>[0]).trim();
     try {

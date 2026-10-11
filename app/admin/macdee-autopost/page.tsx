@@ -61,7 +61,7 @@ export default function MacdeeAutopostPage() {
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                     <h1 className="flex items-center gap-2 text-[19px] font-semibold text-white"><Bot size={18} />맥디 자동 발행</h1>
-                    <p className="mt-1 text-xs text-white/40">6곳 × 하루 2편 · 원고(Sonnet 5.5) → 자동 검수(광고 규정·사실 위험) → 생성 표지 → 공개 · 오전 09:00~12:20 / 오후 15:00~18:20 사이 변호사별로 40분 간격</p>
+                    <p className="mt-1 text-xs text-white/40">6곳 × 하루 2편 · 원고(Sonnet 5.5 high) → 자동 검수(광고 규정·사실 위험) → 생성 표지 → 공개 · 오전 09:00~12:20 / 오후 15:00~18:20 사이 변호사별로 40분 간격</p>
                 </div>
                 <button onClick={() => void load()} disabled={loading} className="inline-flex items-center gap-1.5 rounded-lg bg-[#1A2035] px-3 py-2 text-[13px] text-[#D1D5DE] disabled:opacity-40">
                     {loading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}새로고침
