@@ -15,7 +15,8 @@ import { usageFromProvider, type UsageEntry } from "@/lib/blog-usage";
 import type { ProofSelection } from "./visual-plan-types";
 import { claudeDispatch, engineOperationId, type ClaudeEngine } from "@/lib/ai/claude-engine";
 
-// 2026-09-22 대표 지시: 표지 한 장 구성안(JSON)은 Sonnet 5 로 충분하다. 운영 로그상 Opus 는 편당 입력 1.1만·출력 3천 토큰을 썼다.
+// 표지 한 장 구성안(JSON). 2026-09-22 에는 Sonnet 5 로 충분하다고 내렸고(운영 로그상 Opus 는 편당 입력 1.1만·출력 3천 토큰),
+// 2026-10-11 대표 지시로 블로그 발행의 모든 Claude 호출을 Opus 5.5 로 되돌렸다. 노력 단계는 high 그대로(거의 안 쓰는 대체 경로).
 export const PLANNING_MODEL = BLOG_WRITING_MODEL;
 export const PLAN_VERSION = "visual-plan-v11";
 export class PlanValidationError extends Error { constructor(message: string) { super(message); this.name = "PlanValidationError"; } }
@@ -44,7 +45,7 @@ export async function requestEditorialJson(system: string, user: unknown, operat
     const started = Date.now();
     try {
         const id = engineOperationId(operationId || paidId("visual-plan-v12", { system, user }), engine);
-        const { data, reused, elapsedMs } = await paidJsonRequest(id, stage, model, claudeDispatch(engine, { model, max_tokens: 10000,
+        const { data, reused, elapsedMs } = await paidJsonRequest(id, stage, model, claudeDispatch(engine, { model, max_tokens: 16000,
             thinking: { type: "adaptive" }, output_config: { effort: "high", format: { type: "json_schema", schema } },
             system, messages: [{ role: "user", content: content as { type: string; text: string }[] }] }, { stage, timeoutMs: 240_000, operationId: id }), undefined, { recoverOnly });
         usageSink?.push(usageFromProvider("cover-plan", stage, model, data, { operationId: id, reused, elapsedMs, engine }));
@@ -168,7 +169,7 @@ export function validateVisualPlan(value: unknown, title: string, content: strin
             publicationEdition: string(raw.publicationEdition, "변호사 전용 지면", 100) } : {}),
         ...(studioSet ? { setFormat: STUDIO_FORMAT, studioPhotos, publicationEdition: string(raw.publicationEdition, "변호사 전용 지면", 100) } : {}),
         ...(direction ? { direction } : {}), ...(raw.planningRevision === 12 ? { planningRevision: 12 } : {}), ...(!checkHash ? { planningModel: PLANNING_MODEL }
-            : typeof raw.planningModel === "string" && ["claude-opus-5", "claude-fable-5-1", "claude-sonnet-5", "claude-sonnet-5-5"].includes(raw.planningModel) ? { planningModel: raw.planningModel } : {}) };
+            : typeof raw.planningModel === "string" && ["claude-opus-5", "claude-opus-5-5", "claude-fable-5-1", "claude-sonnet-5", "claude-sonnet-5-5"].includes(raw.planningModel) ? { planningModel: raw.planningModel } : {}) };
 }
 
 /** One paid cover brief. The profile and contact cards are deterministic assets. */

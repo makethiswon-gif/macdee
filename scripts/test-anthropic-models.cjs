@@ -6,22 +6,32 @@ const resolve = Module._resolveFilename;
 Module._resolveFilename = function (name, ...args) { return resolve.call(this, name.startsWith("@/") ? path.join(root, name.slice(2)) : name, ...args); };
 Module._extensions[".ts"] = (m, f) => m._compile(ts.transpileModule(fs.readFileSync(f, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText, f);
 
-const { SONNET_MODEL, BLOG_WRITING_MODEL, WRITING_EFFORT, minimalThinking } = require("../lib/ai/models.ts");
+const { SONNET_MODEL, OPUS_MODEL, BLOG_WRITING_MODEL, WRITING_EFFORT, BLOG_EFFORT, minimalThinking, lightCall } = require("../lib/ai/models.ts");
 const { TOKEN_PRICES, estimateUsd } = require("../lib/ai/pricing.ts");
 const { supportsSamplingParams } = require("../lib/ai/claude-text.ts");
 const { usageFromProvider } = require("../lib/blog-usage.ts");
 
 // 1) 모델 ID 와 짝을 이루는 사고 끄기 값
-assert.equal(SONNET_MODEL, "claude-sonnet-5-5"); assert.equal(BLOG_WRITING_MODEL, SONNET_MODEL);
+// 2026-10-11 대표 지시: 블로그 발행의 Claude 호출은 모두 Opus 5.5, 나머지(요약·SEO 제목·매거진 등)는 Sonnet 5.5 그대로.
+assert.equal(SONNET_MODEL, "claude-sonnet-5-5"); assert.equal(OPUS_MODEL, "claude-opus-5-5"); assert.equal(BLOG_WRITING_MODEL, OPUS_MODEL);
 assert.deepEqual(minimalThinking("claude-sonnet-5-5"), { type: "between_tools" });
 assert.deepEqual(minimalThinking("claude-sonnet-5"), { type: "disabled" }, "되돌리면 예전 값으로 자동 복귀");
 assert.deepEqual(minimalThinking("claude-opus-5"), { type: "disabled" });
 assert.deepEqual(minimalThinking("claude-haiku-4-5-20251001"), { type: "disabled" });
+// Opus 5.5 는 사고를 끌 수 없다(disabled·between_tools 모두 400 — 2026-10-11 실제 호출로 확인): 가볍게 부르는 호출은 thinking 을 빼고 effort low
+assert.deepEqual(lightCall("claude-opus-5-5"), { output_config: { effort: "low" } });
+assert.ok(!("thinking" in lightCall("claude-opus-5-5")), "Opus 5.5 요청에 thinking 을 넣지 않는다");
+assert.deepEqual(lightCall("claude-sonnet-5-5"), { thinking: { type: "between_tools" } });
+assert.deepEqual(lightCall("claude-sonnet-5"), { thinking: { type: "disabled" } });
 
 // 2) 단가표: 공식 가격(2026-09-29 확인) — Sonnet 5.5 는 Sonnet 5 와 같다
 assert.deepEqual(TOKEN_PRICES["claude-sonnet-5-5"], { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 2.5 });
 assert.deepEqual(TOKEN_PRICES["claude-sonnet-5-5"], TOKEN_PRICES["claude-sonnet-5"]);
 assert.equal(estimateUsd("claude-sonnet-5-5", { input: 10000, cacheRead: 0, cacheWrite: 0, output: 6000 }), 0.08);
+// Opus 5.5: 입력 $4·출력 $20·캐시 읽기 $0.2·캐시 쓰기 $5 (2026-10-11 공식 가격표) — Sonnet 5.5 의 정확히 2배(캐시 쓰기 2배)
+assert.deepEqual(TOKEN_PRICES["claude-opus-5-5"], { input: 4, output: 20, cacheRead: 0.2, cacheWrite: 5 });
+assert.equal(estimateUsd("claude-opus-5-5", { input: 10000, cacheRead: 0, cacheWrite: 0, output: 6000 }), 0.16);
+assert.equal(estimateUsd("claude-opus-5-5", { input: 0, cacheRead: 1_000_000, cacheWrite: 0, output: 0 }), 0.2);
 assert.equal(estimateUsd("claude-sonnet-5-5", { input: 0, cacheRead: 1_000_000, cacheWrite: 0, output: 0 }), 0.2);
 assert.equal(estimateUsd("gpt-image-2.5", { input: 1, cacheRead: 0, cacheWrite: 0, output: 1 }), null, "단가 모르는 모델은 금액 없음");
 
@@ -53,10 +63,11 @@ for (const f of files) {
 }
 assert.deepEqual(badLiteral, [], "claude-sonnet-5 리터럴은 lib/ai/models.ts 상수로: " + badLiteral.join(", "));
 assert.deepEqual(badDisabled, [], "thinking disabled 직접 지정 금지(minimalThinking 사용): " + badDisabled.join(", "));
-// 사고 최소 설정이 필요한 두 주제 추천 라우트가 실제로 짝 함수를 쓴다
+// 가볍게 부르는 두 주제 추천 라우트가 모델에 맞는 짝 함수(lightCall)를 쓴다 — Opus 5.5 에 thinking disabled/between_tools 를 보내면 400
 for (const f of ["app/api/admin/blog-posts/topics/route.ts", "app/api/admin/claude-blog-write/topics/route.ts"]) {
     const src = fs.readFileSync(path.join(root, f), "utf8");
-    assert.match(src, /thinking\s*:\s*minimalThinking\(BLOG_WRITING_MODEL\)/, f); assert.match(src, /model\s*:\s*BLOG_WRITING_MODEL/, f);
+    assert.match(src, /\.\.\.lightCall\(BLOG_WRITING_MODEL\)/, f); assert.match(src, /model\s*:\s*BLOG_WRITING_MODEL/, f);
+    assert.doesNotMatch(src, /minimalThinking\(/, f + ": Opus 에는 minimalThinking 을 쓰지 않는다"); assert.match(src, /max_tokens:\s*8000/, f);
 }
 // 저장된 이미지 구성안에 찍힌 기획 모델 허용 목록에 5.5 가 있다
 assert.match(fs.readFileSync(path.join(root, "lib/blog-images/visual-planner.ts"), "utf8"), /"claude-sonnet-5-5"\]\.includes\(raw\.planningModel\)/);
@@ -64,33 +75,40 @@ assert.match(fs.readFileSync(path.join(root, "lib/blog-images/visual-planner.ts"
 const forced = files.filter((f) => /tool_choice\s*:\s*\{\s*type\s*:\s*["'](any|tool)["']/.test(fs.readFileSync(f, "utf8"))).map(rel);
 assert.deepEqual(forced, [], "강제 도구 호출 사용: " + forced.join(", "));
 
-// 6) 2026-09-29 대표 지시: Opus·Haiku 는 모두 Sonnet 5.5 로. 앱 코드에 Opus/Haiku 모델 ID 리터럴이 다시 생기지 않게 —
-//    단가표(옛 응답의 비용 계산)와 저장된 구성안이 기록한 기획 모델 허용 목록만 예외.
-const oldFamilyAllowed = new Set(["lib/ai/pricing.ts", "lib/blog-images/visual-planner.ts"]);
+// 6) 2026-09-29 대표 지시로 Opus·Haiku 를 Sonnet 5.5 로 모았다가, 2026-10-11 대표 지시로 블로그 발행만 Opus 5.5 로 올렸다.
+//    Opus·Haiku 모델 ID 리터럴은 상수 파일(lib/ai/models.ts)·단가표(옛 응답의 비용 계산)·저장된 구성안이 기록한 기획 모델 허용 목록에만 있다.
+const oldFamilyAllowed = new Set(["lib/ai/models.ts", "lib/ai/pricing.ts", "lib/blog-images/visual-planner.ts"]);
 const oldFamily = files.filter((f) => !oldFamilyAllowed.has(rel(f)) && /["'`]claude-(opus|haiku)[a-z0-9.-]*["'`]/.test(fs.readFileSync(f, "utf8"))).map(rel);
-assert.deepEqual(oldFamily, [], "Opus/Haiku 모델 ID 는 Sonnet 5.5(lib/ai/models.ts)로: " + oldFamily.join(", "));
+assert.deepEqual(oldFamily, [], "Opus/Haiku 모델 ID 는 lib/ai/models.ts 상수로: " + oldFamily.join(", "));
 assert.equal(require("../lib/firm-research.ts").FIRM_RESEARCH_MODEL, SONNET_MODEL);
+// Opus 는 블로그 발행에만 — BLOG_WRITING_MODEL 을 쓰는 파일이 정해진 다섯 곳뿐이다(요약·SEO 제목·매거진 등 다른 기능은 Sonnet 5.5).
+const blogUsers = files.filter((f) => rel(f) !== "lib/ai/models.ts" && /\bBLOG_WRITING_MODEL\b/.test(fs.readFileSync(f, "utf8"))).map(rel).sort();
+assert.deepEqual(blogUsers, ["app/api/admin/blog-posts/topics/route.ts", "app/api/admin/claude-blog-edit/route.ts", "app/api/admin/claude-blog-write/route.ts", "app/api/admin/claude-blog-write/topics/route.ts", "lib/blog-images/visual-planner.ts"], "Opus 를 쓰는 곳: " + blogUsers.join(", "));
+// 표지 사진은 그대로 OpenAI(gpt-image-2.5) — 사진 모델은 이번 전환과 무관하다
+assert.match(fs.readFileSync(path.join(root, "lib/blog-images/photo-generator.ts"), "utf8"), /BLOG_PHOTO_MODEL = process\.env\.BLOG_IMAGE_MODEL \|\| "gpt-image-2\.5-sunburst-2026-09-08"/);
 
-// 7) 글쓰기 계열의 노력 단계: 원고·부분 수정·로펌 리서치는 WRITING_EFFORT(high) — medium 으로 조용히 되돌아가지 않게.
-//    끊김 위험(Sonnet 5 high 는 14건 중 3건이 20,000 토큰에서 끊김) 때문에 원고 max_tokens/시간 제한은 짝으로 고정한다.
-assert.equal(WRITING_EFFORT, "high");
+// 7) 글쓰기 계열의 노력 단계: 원고·부분 수정은 BLOG_EFFORT(xhigh, 2026-10-11 대표 지시), 로펌 리서치는 WRITING_EFFORT(high) — medium 으로 조용히 되돌아가지 않게.
+//    끊김 위험(Sonnet 5 high 는 14건 중 3건이 20,000 토큰에서 끊김; xhigh 는 더 오래 생각) 때문에 원고 max_tokens/시간 제한은 짝으로 고정한다.
+assert.equal(WRITING_EFFORT, "high"); assert.equal(BLOG_EFFORT, "xhigh");
 const src = (f) => fs.readFileSync(path.join(root, f), "utf8");
-for (const f of ["app/api/admin/claude-blog-write/route.ts", "app/api/admin/claude-blog-edit/route.ts", "lib/firm-research.ts"]) {
-    assert.match(src(f), /output_config\s*:\s*\{\s*effort\s*:\s*WRITING_EFFORT\s*\}/, f + " 은 WRITING_EFFORT 를 쓴다");
+for (const [f, constant] of [["app/api/admin/claude-blog-write/route.ts", "BLOG_EFFORT"], ["app/api/admin/claude-blog-edit/route.ts", "BLOG_EFFORT"], ["lib/firm-research.ts", "WRITING_EFFORT"]]) {
+    assert.match(src(f), new RegExp("output_config\\s*:\\s*\\{\\s*effort\\s*:\\s*" + constant + "\\s*\\}"), f + " 은 " + constant + " 를 쓴다");
     assert.doesNotMatch(src(f), /effort\s*:\s*["']medium["']/, f + " 에 medium 리터럴 금지");
 }
 // 제한 시간은 직접 fetch 의 AbortSignal.timeout(...) 이거나, 실행 방식 선택(claudeDispatch) 뒤로는 timeoutMs: ... 로 넘긴다
 const durations = (f) => ({ max: Number(/maxDuration\s*=\s*(\d+)/.exec(src(f))[1]), timeout: Number(/(?:AbortSignal\.timeout\(|timeoutMs\s*:\s*)([\d_]+)/.exec(src(f))[1].replaceAll("_", "")) });
 const write = durations("app/api/admin/claude-blog-write/route.ts"), edit = durations("app/api/admin/claude-blog-edit/route.ts");
 // 2026-10-06: 5.5 의 high 가 사고만 2만 토큰을 넘게 써 원고가 본문 0자로 끊김 → 대표 "품질 우선, 토큰 늘려도 된다".
-// 한도·시간을 올리고 스트리밍으로 받는다. 64,000 토큰을 초당 약 124토큰으로 다 써도 약 520초라 760초 대기 안이다.
-assert.equal(write.max, 800, "Vercel Pro 최대"); assert.equal(write.timeout, 760000); assert.match(src("app/api/admin/claude-blog-write/route.ts"), /max_tokens:\s*64000/);
-assert.equal(edit.max, 600); assert.equal(edit.timeout, 570000); assert.match(src("app/api/admin/claude-blog-edit/route.ts"), /max_tokens:\s*32000/);
+// 2026-10-11: Opus 5.5 + xhigh 로 올리며 원고 한도를 96,000(모델 상한 128,000), 부분 수정을 48,000 으로. 실제로 막는 것은 시간(760초/570초)이다.
+assert.equal(write.max, 800, "Vercel Pro 최대"); assert.equal(write.timeout, 760000); assert.match(src("app/api/admin/claude-blog-write/route.ts"), /max_tokens:\s*96000/);
+assert.equal(edit.max, 600); assert.equal(edit.timeout, 570000); assert.match(src("app/api/admin/claude-blog-edit/route.ts"), /max_tokens:\s*48000/);
 for (const f of ["app/api/admin/claude-blog-write/route.ts", "app/api/admin/claude-blog-edit/route.ts"]) assert.match(src(f), /timeoutMs:\s*[\d_]+,\s*operationId,\s*stream:\s*true/, f + " 는 스트리밍으로 받는다");
-assert.match(src("app/api/admin/claude-blog-write/route.ts"), /paidId\("blog-manuscript-v17"/, "설정을 바꾸면 끊긴 옛 응답을 다시 쓰지 않도록 유료 응답 ID 를 올린다");
+assert.match(src("app/api/admin/claude-blog-write/route.ts"), /paidId\("blog-manuscript-v18"/, "설정을 바꾸면 끊긴 옛 응답을 다시 쓰지 않도록 유료 응답 ID 를 올린다");
+assert.match(src("app/api/admin/claude-blog-edit/route.ts"), /paidId\("blog-edit-v2"/, "모델을 바꾸면 Sonnet 으로 저장된 응답이 Opus 요청을 가로채지 않도록 부분 수정 ID 도 올린다");
 assert.ok(write.timeout < write.max * 1000 && edit.timeout < edit.max * 1000, "AI 호출 제한 시간은 함수 제한보다 짧아야 응답이 유실되지 않는다");
-// 이미지 구성안 기획은 올리지 않았다(스키마에 묶인 JSON·거의 안 쓰는 대체 경로) — high 유지, 한도 1만.
+// 이미지 구성안 기획은 모델만 Opus 5.5 로 따라가고 노력 단계는 올리지 않았다(스키마에 묶인 JSON·거의 안 쓰는 대체 경로) — high 유지, 한도 1.6만.
 assert.match(src("lib/blog-images/visual-planner.ts"), /effort\s*:\s*"high"\s*,\s*format/);
+assert.match(src("lib/blog-images/visual-planner.ts"), /max_tokens:\s*16000/);
 
 // 8) 예전 Haiku 자리: 짧은 정형 출력은 사고 최소(사고가 max_tokens 를 먹지 않게), 5 세대에 없는 temperature 는 없고, text 블록만 읽는다.
 const haikuSeats = { "app/api/admin/blog-summary/route.ts": 1, "app/api/admin/seo-titles/analyze/route.ts": 1, "app/api/consulting/route.ts": 1, "lib/threads/caption.ts": 1, "lib/ai/image-generate.ts": 2 };
@@ -128,5 +146,5 @@ assert.doesNotMatch(src("app/api/migrate/process/route.ts"), /(?:60000|120000),\
         await new ClaudeProvider().generate(messages);
         assert.ok(!("thinking" in sent));
     } finally { global.fetch = realFetch; }
-    console.log(`PASS: Sonnet 5.5 model/thinking pairing, pricing (2/10/0.2/2.5), sampling-param guard, actual-model usage records, no stale model literals or thinking-disabled or forced tool_choice in ${files.length} app/lib files; no Opus/Haiku ids left, writing effort=${WRITING_EFFORT} (manuscript/edit/firm research), Haiku seats use minimal thinking without temperature`);
+    console.log(`PASS: blog publishing on Opus 5.5 (${BLOG_EFFORT}; light calls use effort low), others on Sonnet 5.5, pricing (4/20/0.2/5 and 2/10/0.2/2.5), sampling-param guard, actual-model usage records, no stale model literals or thinking-disabled or forced tool_choice in ${files.length} app/lib files; Opus only in the five blog-publishing files, firm research effort=${WRITING_EFFORT}, Haiku seats use minimal thinking without temperature`);
 })().catch((e) => { console.error(e); process.exit(1); });

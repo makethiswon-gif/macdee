@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
 import { extractClaudeText } from "@/lib/ai/claude-text";
-import { BLOG_WRITING_MODEL, minimalThinking } from "@/lib/ai/models";
+import { BLOG_WRITING_MODEL, lightCall } from "@/lib/ai/models";
 import { claudeDispatch, parseClaudeEngine } from "@/lib/ai/claude-engine";
 import { assertSubscriptionReady, SubscriptionUnavailableError } from "@/lib/ai/subscription-relay";
 
@@ -230,10 +230,10 @@ JSON만 반환하세요.`;
             if (engine === "api" && !process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is unavailable");
             const res = await claudeDispatch(engine, {
                 model: BLOG_WRITING_MODEL,
-                max_tokens: 4000,
-                // 정형 JSON 출력이라 thinking이 필요 없다. 켜두면 max_tokens를 먹고 JSON이 잘린다.
-                // Sonnet 5.5 에서는 {type:"disabled"} 가 400 이라 모델에 맞는 최소 사고 값을 쓴다(lib/ai/models.ts).
-                thinking: minimalThinking(BLOG_WRITING_MODEL),
+                max_tokens: 8000,
+                // 정형 JSON 출력이라 깊은 사고가 필요 없다. Opus 5.5 는 사고를 끌 수 없어(disabled·between_tools 400) effort low 로 대신하고,
+                // 남는 사고가 max_tokens 를 먹어 JSON 이 잘리지 않게 한도를 넉넉히 둔다(lib/ai/models.ts lightCall).
+                ...lightCall(BLOG_WRITING_MODEL),
                 system,
                 messages: [{ role: "user", content: user }],
             }, { stage: "주제 추천", timeoutMs: engine === "subscription" ? 100_000 : 45_000 })();

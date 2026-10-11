@@ -8,7 +8,7 @@ import { StrengthStoreError } from "@/lib/blog-strengths-store";
 import { reviewBlogEditorial } from "@/lib/blog-editorial-review";
 import { repetitionAvoidDirective } from "@/lib/blog-repetition";
 import { paidAttempt, paidId, paidJsonRequest, PaidOperationError } from "@/lib/blog-images/paid-operation";
-import { BLOG_WRITING_MODEL, WRITING_EFFORT } from "@/lib/ai/models";
+import { BLOG_WRITING_MODEL, BLOG_EFFORT } from "@/lib/ai/models";
 import { createHash } from "node:crypto";
 import { usageFromProvider } from "@/lib/blog-usage";
 import { coverBriefInstruction, parseCoverBrief, type CoverBrief } from "@/lib/blog-cover-brief";
@@ -21,10 +21,10 @@ import { readManuscriptResponse } from "@/lib/blog-manuscript-response";
 import { claudeDispatch, engineOperationId, missingApiKey, parseClaudeEngine } from "@/lib/ai/claude-engine";
 import { assertSubscriptionReady, SubscriptionUnavailableError } from "@/lib/ai/subscription-relay";
 
-// Sonnet 5.5(2026-09-29 전환; 모델 ID·노력 단계는 lib/ai/models.ts), 노력 단계 high — 2026-10-06 대표: "원고 품질이 중요, 토큰은 늘려도 된다".
-// 5.5 의 high 는 원고 한 편에 사고만 2만 토큰을 넘게 쓴다(10/6 두 건 모두 사고 20,000·본문 0자로 한도에서 끊김, 초당 약 124토큰).
-// 그래서 출력 한도를 64,000 으로, 함수 제한을 800초(Vercel Pro 최대)로 올리고 응답은 스트리밍으로 받는다(긴 무응답 연결이 중간에 끊기지 않게).
-// 64,000 을 다 써도 약 520초(초당 124토큰)라 760초 대기 안에 끝난다. 유료 응답 ID 를 v17 로 올려 같은 주제를 다시 눌러도 새 설정으로 쓴다
+// Opus 5.5 + 노력 단계 xhigh — 2026-10-11 대표 지시(모델 ID·노력 단계는 lib/ai/models.ts). 그 전에는 Sonnet 5.5 high 였다(2026-10-06 대표: "원고 품질이 중요, 토큰은 늘려도 된다").
+// Sonnet 5.5 의 high 는 원고 한 편에 사고만 2만 토큰을 넘게 썼다(10/6 두 건 모두 사고 20,000·본문 0자로 한도에서 끊김, 초당 약 124토큰). xhigh 는 더 오래 생각하므로
+// 출력 한도를 96,000 으로(모델 상한 128,000), 함수 제한은 800초(Vercel Pro 최대)로 두고 응답은 스트리밍으로 받는다(긴 무응답 연결이 중간에 끊기지 않게).
+// 실제로 막는 것은 시간이다: 대기 760초 안에 못 끝나면 시간 초과로 멈춘다(자동 재요청 없음). 유료 응답 ID 를 v18 로 올려 같은 주제를 다시 눌러도 Opus 로 새로 쓴다
 // (v16 의 끊긴 응답을 다시 꺼내 쓰지 않는다).
 export const maxDuration = 800;
 
@@ -269,21 +269,21 @@ ${trustBlock}
             : fieldLine ? `${fieldLine}[작성할 내용]\n${content}` : content;
 
         const attempt = paidAttempt(attemptId, confirmPaid);
-        const operationId = engineOperationId(paidId("blog-manuscript-v17", { content, source: rewrite ? sourceText : "", field, profileId, topic, attempt, cover: !!coverLayout }), engine);
+        const operationId = engineOperationId(paidId("blog-manuscript-v18", { content, source: rewrite ? sourceText : "", field, profileId, topic, attempt, cover: !!coverLayout }), engine);
         // 작업기가 꺼져 있으면 유료 작업 잠금을 걸기 전에 알린다. 복구는 저장 응답만 읽으므로 작업기가 필요 없다.
         if (engine === "subscription" && recoverOnly !== true) await assertSubscriptionReady();
         const { data, reused, elapsedMs } = await paidJsonRequest(operationId, "블로그 원고", BLOG_WRITING_MODEL, claudeDispatch(engine, {
             model: BLOG_WRITING_MODEL,
-            max_tokens: 64000,
+            max_tokens: 96000,
             thinking: { type: "adaptive" },
-            output_config: { effort: WRITING_EFFORT },
+            output_config: { effort: BLOG_EFFORT },
             system: systemPrompt,
             messages: [{ role: "user", content: userMessage }],
         }, { stage: "블로그 원고", timeoutMs: 760_000, operationId, stream: true }), undefined, { recoverOnly: recoverOnly === true });
         const usage = usageFromProvider("manuscript", "블로그 원고", BLOG_WRITING_MODEL, data, { operationId, reused, elapsedMs, engine });
         responseUsage = usage;
         const parsed = readManuscriptResponse(data);
-        // Sonnet 5.5 는 안전 분류(거절) 범주가 Sonnet 5 보다 늘었다. 성범죄·스토킹·가정폭력처럼 민감한 법률 주제는 드물게 걸릴 수 있으니,
+        // Opus 5.5·Sonnet 5.5 는 안전 분류(거절) 범주가 Sonnet 5 보다 늘었다. 성범죄·스토킹·가정폭력처럼 민감한 법률 주제는 드물게 걸릴 수 있으니,
         // 미완성 원고로 뭉뚱그리지 않고 원인을 알려 준다. 응답은 유료 응답 저장소에 보존되며 자동으로 다시 쓰지 않는다.
         if (parsed.refusal) throw new PaidOperationError(`모델의 안전 장치가 이 원고 작성을 거절했습니다${parsed.refusal.category ? ` (범주: ${parsed.refusal.category})` : ""}. 응답은 보존했고 자동으로 다시 쓰지 않았습니다. 사건 묘사나 표현을 바꿔 '새 원고 생성 (유료)'으로 다시 시도해주세요. 거절된 요청의 과금 여부는 범주에 따라 달라 청구 내역에서 확인할 수 있습니다.`, operationId, "refused", 422);
         console.info("[BlogManuscriptResponse]", { operationId, stopReason: data.stop_reason, complete: parsed.complete, recoveredBody: parsed.complete && parsed.truncated, textCharacters: parsed.raw.length });

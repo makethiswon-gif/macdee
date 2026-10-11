@@ -7,12 +7,12 @@ import { paidAttempt, paidId, paidJsonRequest, PaidOperationError } from "@/lib/
 import { usageFromProvider } from "@/lib/blog-usage";
 import { appendUsage } from "@/lib/blog-post-state";
 import { resolveEditScope, applyEdit, type EditScope } from "@/lib/blog-edit-scope";
-import { BLOG_WRITING_MODEL, WRITING_EFFORT } from "@/lib/ai/models";
+import { BLOG_WRITING_MODEL, BLOG_EFFORT } from "@/lib/ai/models";
 import { claudeDispatch, engineOperationId, missingApiKey, parseClaudeEngine } from "@/lib/ai/claude-engine";
 import { assertSubscriptionReady, SubscriptionUnavailableError } from "@/lib/ai/subscription-relay";
 
 // 부분 수정 — 원고 전체를 다시 쓰지 않고 지정한 구간만 고친다(2026-09-22 재설계 §4).
-// 모델에는 고칠 구간 + 앞뒤 문맥 + 문체 요약만 보낸다(입력 1~2천 토큰). 노력 단계는 WRITING_EFFORT(high). 5.5 의 high 는 사고가 커서(원고에서 2만 토큰 초과 실측) 사고가 한도를 다 먹지 않게 32,000·600초·스트리밍(2026-10-06).
+// 모델에는 고칠 구간 + 앞뒤 문맥 + 문체 요약만 보낸다(입력 1~2천 토큰). 모델은 Opus 5.5, 노력 단계는 BLOG_EFFORT(xhigh, 2026-10-11 대표 지시). 사고가 한도를 다 먹지 않게 48,000·600초·스트리밍(2026-10-06 Sonnet 5.5 high 에서 원고 사고 2만 토큰 초과 실측 뒤 정함).
 export const maxDuration = 600;
 const KINDS = ["title", "intro", "section", "paragraph", "closing"];
 
@@ -53,10 +53,10 @@ ${styleLine ? `[문체]\n${styleLine}\n` : ""}[출력 형식] 아래 구분자 �
 ===END===`;
         const user = `[제목] ${title}\n\n[지시]\n${instruction}\n\n[수정할 범위: ${target.label}]\n${target.target}${target.before ? `\n\n[앞 문맥 — 출력하지 않음]\n${target.before}` : ""}${target.after ? `\n\n[뒤 문맥 — 출력하지 않음]\n${target.after}` : ""}`;
         const attempt = paidAttempt(body.attemptId, body.confirmPaid);
-        const operationId = engineOperationId(paidId("blog-edit-v1", { title, target: target.target, instruction, scope, attempt }), engine);
+        const operationId = engineOperationId(paidId("blog-edit-v2", { title, target: target.target, instruction, scope, attempt }), engine);
         if (engine === "subscription") await assertSubscriptionReady();
         const { data, reused, elapsedMs } = await paidJsonRequest(operationId, "부분 수정", BLOG_WRITING_MODEL, claudeDispatch(engine,
-            { model: BLOG_WRITING_MODEL, max_tokens: 32000, thinking: { type: "adaptive" }, output_config: { effort: WRITING_EFFORT }, system, messages: [{ role: "user", content: user }] },
+            { model: BLOG_WRITING_MODEL, max_tokens: 48000, thinking: { type: "adaptive" }, output_config: { effort: BLOG_EFFORT }, system, messages: [{ role: "user", content: user }] },
             { stage: "부분 수정", timeoutMs: 570_000, operationId, stream: true }));
         const usage = usageFromProvider("edit", "부분 수정", BLOG_WRITING_MODEL, data, { operationId, reused, elapsedMs, engine });
         await appendUsage(body.postId, [usage]);

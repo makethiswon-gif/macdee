@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
-import { BLOG_WRITING_MODEL, minimalThinking } from "@/lib/ai/models";
+import { BLOG_WRITING_MODEL, lightCall } from "@/lib/ai/models";
 
 export const maxDuration = 120;
 
@@ -221,10 +221,9 @@ ${newsBrief}
         const res = await fetch("https://api.anthropic.com/v1/messages", {
             method: "POST",
             headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
-            // Sonnet 은 adaptive thinking이 기본 ON이라 thinking이 max_tokens를 먹고 JSON이 잘린다.
-            // 정형 JSON 출력이라 thinking 불필요 — 끄면 응답이 절반 시간에 끝난다.
-            // Sonnet 5.5 에서는 {type:"disabled"} 가 400 이라 모델에 맞는 최소 사고 값을 쓴다(lib/ai/models.ts).
-            body: JSON.stringify({ model: BLOG_WRITING_MODEL, max_tokens: 3000, thinking: minimalThinking(BLOG_WRITING_MODEL), system, messages: [{ role: "user", content: user }] }),
+            // 정형 JSON 출력이라 깊은 사고가 필요 없다. Opus 5.5 는 사고를 끌 수 없어(disabled·between_tools 400) effort low 로 대신하고,
+            // 남는 사고가 max_tokens 를 먹어 JSON 이 잘리지 않게 한도를 넉넉히 둔다(lib/ai/models.ts lightCall).
+            body: JSON.stringify({ model: BLOG_WRITING_MODEL, max_tokens: 8000, ...lightCall(BLOG_WRITING_MODEL), system, messages: [{ role: "user", content: user }] }),
         });
         if (!res.ok) throw new Error(await res.text());
         const data = await res.json();
