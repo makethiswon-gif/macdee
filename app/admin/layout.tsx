@@ -24,6 +24,7 @@ import {
     Search,
     PenLine,
     Stethoscope,
+    Bot,
 } from "lucide-react";
 
 const ADMIN_NAV = [
@@ -43,6 +44,7 @@ const ADMIN_NAV = [
     { href: "/admin/blog-polish", label: "블로그 윤문", icon: Sparkles },
     { href: "/admin/claude-blog-write", label: "클로드 블로그 글쓰기", icon: PenLine },
     { href: "/admin/blog-publish", label: "블로그 발행", icon: Send },
+    { href: "/admin/macdee-autopost", label: "맥디 자동 발행", icon: Bot },
     { href: "/admin/blog-settings", label: "블로그 발행 설정", icon: Settings },
     { href: "/admin/diagnose-leads", label: "무료 진단 리드", icon: Stethoscope },
     { href: "/admin/seo-titles", label: "SEO 제목 일괄수정", icon: Search },

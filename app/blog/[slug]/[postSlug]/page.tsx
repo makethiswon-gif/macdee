@@ -53,6 +53,12 @@ function readPost(post: { title: string; body: string | null; meta_description: 
     return { title, body, meta, keywords: parsed?.keywords };
 }
 
+/** 글 표지 사진(자동 발행 글의 생성 이미지 등). 공개 http(s) 주소일 때만. */
+function coverOf(post: { card_news_data?: { coverImageUrl?: string; coverAlt?: string } | null }) {
+    const url = publicImageUrl(post.card_news_data?.coverImageUrl);
+    return url ? { url, alt: post.card_news_data?.coverAlt || "" } : null;
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { slug, lawyer, post, moved } = await loadPost(params);
     if (slug && lawyer && moved) await redirectMoved(slug, lawyer.id, moved);
@@ -85,7 +91,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
             type: "article",
             url: canonicalUrl,
             authors: [lawyer.name],
-            images: [publicImageUrl(lawyer.profile_image_url) || "/og-image.png"],
+            images: [coverOf(post)?.url || publicImageUrl(lawyer.profile_image_url) || "/og-image.png"],
         },
     };
 }
@@ -127,6 +133,7 @@ export default async function PostPage({ params }: Props) {
         .trim();
     const wordCount = plainText.split(/\s+/).filter(Boolean).length;
     const authorImage = publicImageUrl(lawyer.profile_image_url);
+    const cover = coverOf(post);
 
     const articleJsonLd = {
         "@context": "https://schema.org",
@@ -152,7 +159,7 @@ export default async function PostPage({ params }: Props) {
             "@id": canonicalUrl,
         },
         keywords: (post.tags || []).join(", "),
-        ...(authorImage ? { image: authorImage } : {}),
+        ...(cover ? { image: cover.url } : authorImage ? { image: authorImage } : {}),
     };
 
     const breadcrumbJsonLd = {
@@ -220,7 +227,7 @@ export default async function PostPage({ params }: Props) {
             <PostPageClient
                 // website_url: 글 페이지는 지금까지 홈페이지 열을 읽지 않아 늘 null 이었다. 화면을 바꾸지 않으려 그대로 둔다.
                 lawyer={{ id: lawyer.id, name: lawyer.name, slug: lawyer.slug, specialty: lawyer.specialty || [], region: lawyer.region || "", bio: lawyer.bio || "", brand_color: lawyer.brand_color || "#3563AE", office_name: lawyer.office_name || "", experience_years: lawyer.experience_years || 0, profile_image_url: lawyer.profile_image_url || "", phone: lawyer.phone || null, website_url: null }}
-                post={{ id: post.id, title: parsedTitle, slug: post.slug || post.id, body: parsedBody, meta_description: parsedMeta, tags: post.tags || [], schema_markup: post.schema_markup, created_at: post.published_at || post.created_at, card_news_slides: cardNews.slides.length > 0 ? cardNews.slides : undefined, card_news_cover_image: cardNews.coverImage }}
+                post={{ id: post.id, title: parsedTitle, slug: post.slug || post.id, body: parsedBody, meta_description: parsedMeta, tags: post.tags || [], schema_markup: post.schema_markup, created_at: post.published_at || post.created_at, cover_image: cover?.url || null, cover_alt: cover?.alt || "", card_news_slides: cardNews.slides.length > 0 ? cardNews.slides : undefined, card_news_cover_image: cardNews.coverImage }}
                 relatedPosts={relatedPosts}
             />
         </>

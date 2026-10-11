@@ -62,6 +62,8 @@ export interface BlogPost {
     meta_description: string | null;
     tags: string[] | null;
     schema_markup: Record<string, unknown> | null;
+    /** 표지 사진(coverImageUrl) 등. 자동 발행 글(lib/macdee-autopost)이 생성 이미지 주소를 여기에 둔다. */
+    card_news_data?: { coverImageUrl?: string; coverAlt?: string } | null;
     status: string;
     slug: string | null;
     created_at: string;

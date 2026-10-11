@@ -34,6 +34,9 @@ interface PostData {
     created_at: string;
     card_news_slides?: { slide: number; text: string }[];
     card_news_cover_image?: string | null;
+    /** 글 표지 사진(자동 발행 글의 생성 이미지). */
+    cover_image?: string | null;
+    cover_alt?: string;
 }
 
 interface RelatedPost {
@@ -368,6 +371,21 @@ export default function PostPageClient({ lawyer, post, relatedPosts = [] }: { la
                         </div>
                     )}
                 </motion.div>
+
+                {/* Cover — 첫 화면에 보이는 큰 이미지라 지연 로딩하지 않는다 */}
+                {post.cover_image && (
+                    <figure className="max-w-[720px] mx-auto px-6 pb-12">
+                        <img
+                            src={post.cover_image}
+                            alt={post.cover_alt || post.title}
+                            width={1200}
+                            height={800}
+                            fetchPriority="high"
+                            decoding="async"
+                            className="w-full h-auto aspect-[3/2] object-cover rounded-xl border border-white/[0.06]"
+                        />
+                    </figure>
+                )}
 
                 {/* Divider */}
                 <div className="max-w-[720px] mx-auto px-6">
