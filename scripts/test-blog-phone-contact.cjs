@@ -102,7 +102,7 @@ const assertLink = (body, href, count = 1) => {
         assertLink(data.body, expected); assertLink(data.draftBody, expected);
         // 2026-09-17: 기준일·작성 줄은 모델 출력이 아니라 서버가 프로필 값으로 조립한다.
         const kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
-        const serverFooter = `---\n**기준일** ${kst.getUTCFullYear()}년 ${kst.getUTCMonth() + 1}월 ${kst.getUTCDate()}일 작성 · 이후 법령이 개정되면 이 글을 갱신합니다.\n**작성** 검수 변호사`;
+        const serverFooter = `---\n**기준일** ${kst.getUTCFullYear()}년 ${kst.getUTCMonth() + 1}월 ${kst.getUTCDate()}일 작성\n**작성** 검수 변호사`; // 2026-10-12: '법령이 개정되면 갱신' 문구 삭제(대표 지시)
         const assembled = `${fixtureBody.split("\n---\n")[0].trimEnd()}\n\n${serverFooter}`;
         assert.equal(data.body, appendBlogPhoneContact(assembled, blogPhoneContact(phone)));
         assert.equal(data.body, data.draftBody); assert.equal(data.polished, false); assert.equal(data.polishModel, null);

@@ -290,7 +290,8 @@ ${trustBlock}
 
         // 기준일·작성 줄은 서버가 조립한다. 모델이 습관적으로 붙인 꼬리는 걷어낸다.
         const manuscript = rawDraftBody.replace(/\n---+[ \t]*\r?\n[ \t]*\*\*기준일\*\*[\s\S]*$/, "").trimEnd();
-        const footer = `---\n**기준일** ${todayLabel} 작성 · 이후 법령이 개정되면 이 글을 갱신합니다.${authorLine ? `\n${authorLine}` : ""}`;
+        // 2026-10-12 대표 지시: "원고 마지막의 정보를 갱신한다는 문구는 빼 줘" — 기준일(작성일)·작성 줄만 남긴다.
+        const footer = `---\n**기준일** ${todayLabel} 작성${authorLine ? `\n${authorLine}` : ""}`;
         // Keep Claude's final wording and append only the registered contact details.
         const body = appendBlogPhoneContact(`${manuscript}\n\n${footer}`, phoneContact);
         const draftBody = body;
