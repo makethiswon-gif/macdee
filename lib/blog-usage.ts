@@ -32,7 +32,7 @@ const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0
 
 /** Anthropic(messages)과 OpenAI(images) 응답의 usage 를 한 형태로. */
 export function usageFromProvider(kind: UsageKind, stage: string, model: string, data: unknown,
-    meta: { operationId?: string; reused: boolean; elapsedMs?: number; status?: number; note?: string; engine?: "api" | "subscription" }): UsageEntry {
+    meta: { operationId?: string; reused: boolean; elapsedMs?: number; status?: number; note?: string; engine?: "api" | "subscription"; batch?: boolean }): UsageEntry {
     const u = (data && typeof data === "object" ? (data as { usage?: Record<string, unknown> }).usage : undefined) || {};
     // 요청한 모델이 아니라 응답이 알려 주는 실제 모델을 쓴다: 모델을 바꾼 뒤 저장된 옛 응답을 재사용해도 기록이 맞다.
     // (OpenAI 이미지 응답에는 model 필드가 없어 전달받은 값을 그대로 쓴다.)
@@ -47,6 +47,11 @@ export function usageFromProvider(kind: UsageKind, stage: string, model: string,
         ...(meta.engine === "subscription" ? { engine: "subscription" as const } : {}),
     };
     entry.estimatedUsd = meta.reused || entry.engine === "subscription" ? 0 : estimateUsd(model, entry);
+    // Message Batches 는 모든 토큰이 반값이다(lib/blog-images/paid-operation.ts paidBatchRequest).
+    if (meta.batch && entry.estimatedUsd) {
+        entry.estimatedUsd = Math.round(entry.estimatedUsd * 0.5 * 1e6) / 1e6;
+        entry.note = entry.note ? `${entry.note} · Batch(반값)` : "Batch(반값)";
+    }
     return entry;
 }
 

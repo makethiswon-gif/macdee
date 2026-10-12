@@ -378,6 +378,25 @@ export default function BlogPublishPage() {
     const guidanceText = () => [guide.question && `[핵심 질문] ${guide.question.trim()}`, guide.condition && `[결론을 가르는 조건] ${guide.condition.trim()}`,
         guide.viewpoint && `[변호사의 관점] ${guide.viewpoint.trim()}`, detail.trim() && `[사건 내용]\n${detail.trim()}`].filter(Boolean).join("\n");
 
+    // 원고는 Message Batches 로 맡긴다(2026-10-12, 함수 한도 800초에서 xhigh 원고가 끊기던 문제). 서버가 'batch_pending'을 돌려주면
+    // 30초마다 recoverOnly(추가 과금 없음)로 결과를 확인한다. 화면을 닫아도 '저장된 원고 응답 복구 (무료)'로 같은 결과를 이어 받는다.
+    const requestManuscript = async (req: WriteRequest, recover: boolean, op: AbortController): Promise<WriteResponse> => {
+        const started = Date.now();
+        for (let first = true; ; first = false) {
+            try {
+                return await publishJson<WriteResponse>("/api/admin/claude-blog-write", op.signal, { ...req, async: true, recoverOnly: first ? recover : true });
+            } catch (e) {
+                if (!(e instanceof PublishRequestError && e.code === "batch_pending")) throw e;
+                if (Date.now() - started > 3 * 3_600_000) throw new PublishRequestError("원고가 3시간 넘게 처리 중입니다. 나중에 '저장된 원고 응답 복구 (무료)'로 이어 받아 주세요.", "batch_pending", e.operationId);
+                if (current(op)) setProgress(`${e.message} — 이 화면을 닫아도 나중에 '저장된 원고 응답 복구 (무료)'로 이어 받을 수 있습니다.`);
+            }
+            await new Promise<void>((resolve, reject) => {
+                const timer = setTimeout(resolve, 30_000);
+                op.signal.addEventListener("abort", () => { clearTimeout(timer); reject(op.signal.reason); }, { once: true });
+            });
+        }
+    };
+
     const write = async (topic: TopicCandidate | null, source = "", retry?: "recover" | "regenerate") => {
         const failed = retry ? writeFailure : null;
         if (!profileId || (!topic && !source.trim()) || (retry && (!failed || failed.request.profileId !== profileId)) || active.current) return;
@@ -398,7 +417,7 @@ export default function BlogPublishPage() {
         try {
             if (valid && dirty) await persist(draft, savedId, op);
             setStep("writing"); setProgress(retry === "recover" ? "저장된 원고 응답 확인 중(추가 AI 호출 없음)…"
-                : `${rewrite ? "붙여넣은 글을 자료로 새 원고를 쓰는 중" : "원고 생성 중"}${subscription ? " — 클로드 구독(내 PC 작업기), 5~15분 걸릴 수 있습니다" : " — Opus 5.5 최고 노력으로 깊게 생각하며 쓰는 중, 5~12분 걸릴 수 있습니다"}…`);
+                : `${rewrite ? "붙여넣은 글을 자료로 새 원고를 쓰는 중" : "원고 생성 중"}${subscription ? " — 클로드 구독(내 PC 작업기), 5~15분 걸릴 수 있습니다" : " — Opus 5.5 최고 노력(엑스트라하이)으로 Anthropic 에 맡겨 쓰는 중, 보통 10분~1시간 걸립니다"}…`);
             let imagePreparationError = "";
             try {
                 if (retry !== "recover") await publishJson("/api/admin/blog-images/preflight", op.signal, { profileId, checkModel: true, basicProfile: true, topic: `${effectiveTopic.field} ${effectiveTopic.topic}` });
@@ -414,7 +433,7 @@ export default function BlogPublishPage() {
                 ...(retry === "regenerate" ? { attemptId: writingAttempt.current, confirmPaid: true, engine } : {}) }
                 : { content, ...(rewrite ? { source: sourceInput.trim() } : {}), field: effectiveTopic.field, profileId, topic: effectiveTopic.topic,
                     attemptId: writingAttempt.current || undefined, confirmPaid: !!writingAttempt.current, engine };
-            const data = await publishJson<WriteResponse>("/api/admin/claude-blog-write", op.signal, { ...pendingRequest, recoverOnly: retry === "recover" });
+            const data = await requestManuscript(pendingRequest, retry === "recover", op);
             if (!data.title?.trim() || !data.body?.trim()) throw new Error("생성된 원고가 비어 있습니다.");
             receivedManuscript = true;
             if (!current(op)) return;

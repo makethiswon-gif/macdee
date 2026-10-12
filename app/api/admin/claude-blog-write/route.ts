@@ -7,7 +7,7 @@ import { validProfileId } from "@/lib/blog-strengths";
 import { StrengthStoreError } from "@/lib/blog-strengths-store";
 import { reviewBlogEditorial } from "@/lib/blog-editorial-review";
 import { repetitionAvoidDirective } from "@/lib/blog-repetition";
-import { paidAttempt, paidId, paidJsonRequest, PaidOperationError } from "@/lib/blog-images/paid-operation";
+import { paidAttempt, paidBatchRequest, paidId, paidJsonRequest, PaidOperationError } from "@/lib/blog-images/paid-operation";
 import { BLOG_WRITING_MODEL, BLOG_EFFORT } from "@/lib/ai/models";
 import { createHash } from "node:crypto";
 import { usageFromProvider } from "@/lib/blog-usage";
@@ -39,7 +39,7 @@ export async function POST(request: Request) {
     if (!verifyAdmin(request)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     let responseUsage: ReturnType<typeof usageFromProvider> | undefined;
     try {
-        const { content: contentInput, source, field, profileId, topic, attemptId, confirmPaid, recoverOnly, engine: engineInput } = await request.json();
+        const { content: contentInput, source, field, profileId, topic, attemptId, confirmPaid, recoverOnly, engine: engineInput, async: asyncRequest } = await request.json();
         // 2026-09-29: engine=subscription 이면 API 대신 대표 PC 의 클로드 구독 작업기로 보낸다(lib/ai/subscription-relay.ts).
         const engine = parseClaudeEngine(engineInput);
         if (recoverOnly != null && typeof recoverOnly !== "boolean") return NextResponse.json({ error: "복구 요청 형식을 확인해주세요." }, { status: 400 });
@@ -265,15 +265,22 @@ ${trustBlock}
         const operationId = engineOperationId(paidId("blog-manuscript-v18", { content, source: rewrite ? sourceText : "", field, profileId, topic, attempt, cover: !!coverLayout }), engine);
         // 작업기가 꺼져 있으면 유료 작업 잠금을 걸기 전에 알린다. 복구는 저장 응답만 읽으므로 작업기가 필요 없다.
         if (engine === "subscription" && recoverOnly !== true) await assertSubscriptionReady();
-        const { data, reused, elapsedMs } = await paidJsonRequest(operationId, "블로그 원고", BLOG_WRITING_MODEL, claudeDispatch(engine, {
+        const params = {
             model: BLOG_WRITING_MODEL,
             max_tokens: 96000,
-            thinking: { type: "adaptive" },
+            thinking: { type: "adaptive" as const },
             output_config: { effort: BLOG_EFFORT },
             system: systemPrompt,
-            messages: [{ role: "user", content: userMessage }],
-        }, { stage: "블로그 원고", timeoutMs: 760_000, operationId, stream: true }), undefined, { recoverOnly: recoverOnly === true });
-        const usage = usageFromProvider("manuscript", "블로그 원고", BLOG_WRITING_MODEL, data, { operationId, reused, elapsedMs, engine });
+            messages: [{ role: "user" as const, content: userMessage }],
+        };
+        // 블로그 발행 화면(async:true)의 API 경로는 Message Batches 로 맡긴다 — 12~13분 걸리는 xhigh 원고가 함수 한도(800초)에서 끊기지 않게.
+        // 처음 요청은 바로 '처리 중'(code batch_pending, 202)을 돌려주고, 화면이 recoverOnly 로 다시 물어 결과를 받는다. 다른 화면·구독 경로는 예전 그대로.
+        const batch = asyncRequest === true && engine === "api";
+        const { data, reused, elapsedMs } = batch
+            ? await paidBatchRequest(operationId, "블로그 원고", BLOG_WRITING_MODEL, params, { recoverOnly: recoverOnly === true })
+            : await paidJsonRequest(operationId, "블로그 원고", BLOG_WRITING_MODEL, claudeDispatch(engine, params,
+                { stage: "블로그 원고", timeoutMs: 760_000, operationId, stream: true }), undefined, { recoverOnly: recoverOnly === true });
+        const usage = usageFromProvider("manuscript", "블로그 원고", BLOG_WRITING_MODEL, data, { operationId, reused, elapsedMs, engine, batch });
         responseUsage = usage;
         const parsed = readManuscriptResponse(data);
         // Opus 5.5·Sonnet 5.5 는 안전 분류(거절) 범주가 Sonnet 5 보다 늘었다. 성범죄·스토킹·가정폭력처럼 민감한 법률 주제는 드물게 걸릴 수 있으니,
