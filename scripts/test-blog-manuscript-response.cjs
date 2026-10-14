@@ -71,6 +71,10 @@ async function call(payload) { const res = await POST(request(payload)); return 
     assert.equal(result.status, 200); assert.equal(calls, 1);
     assert.equal(lastRequest.model, "claude-opus-5-5"); assert.equal(lastRequest.output_config.effort, "xhigh"); assert.equal(lastRequest.max_tokens, 96000); assert.equal(lastRequest.stream, true, "긴 원고는 스트리밍으로 받는다");
     assert.match(lastRequest.system, /정확해야 합니다/); assert.match(lastRequest.system, /===COVER===/);
+    // 2026-10-14: 상담 권유 마무리 금지 — 규칙은 있고, 상담을 시키던 옛 문구와 따라 쓸 예문은 없다.
+    assert.match(lastRequest.system, /\[상담 권유 없음 — 마지막 문단과 본문 모두\]/); assert.match(lastRequest.system, /독자가 스스로 확인할 일 하나로 닫습니다/);
+    assert.match(lastRequest.system, /어떤 마무리 방식이든 상담·통화·연락을 권하거나/, "DNA 마무리 지시에도 들어간다");
+    for (const old of [/상담은 시작된다/, /자료 없이 시작/, /첫 통화에서 변호사가 묻는/, /전화로 이어집니다/, /여쭙니다|함께 정합니다|연락 주시면/]) assert.doesNotMatch(lastRequest.system, old);
     assert.equal(result.data.coverBrief, null); assert.ok(result.data.editorialWarnings.some(w => /원고는 복구/.test(w)));
     assert.match(result.data.body, /조건을 확인합니다/); assert.ok(!result.data.body.includes("기획 중"));
     assert.match(result.data.body, /tel:/); assert.equal(result.data.usage.reused, false);

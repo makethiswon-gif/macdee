@@ -26,6 +26,10 @@ export function reviewBlogEditorial(title: string, body: string, recentBodies: s
         if (/상담\s*(?:전|때|갈|오실)|준비물|챙겨|준비할/.test(lastHeading) || (docWords >= 2 && listLines >= 2)) warnings.push("마지막 구간이 상담 준비 서류 목록으로 끝납니다. 서류가 많아 보이면 독자가 상담을 미룹니다. 가벼운 한 걸음으로 닫아주세요.");
     }
 
+    // 2026-10-14: 마지막 문단이 상담·연락을 권하면 알린다(10편 중 3편이 그렇게 끝나 손으로 고쳤다).
+    const closingParagraph = core.split(/\n\s*\n/).map((p) => p.trim()).filter((p) => p && !p.startsWith("#")).pop() || "";
+    if (/상담|첫\s*통화|전화\s*(?:주시|하시|드리)|연락\s*(?:주시|하시|드리|해\s*주)|여쭙|함께\s*정(?:합|하|해)/.test(closingParagraph)) warnings.push("마지막 문단이 상담·연락을 권합니다. 독자가 스스로 확인할 날짜·서류·조건으로 닫아주세요.");
+
     const found = FINGERPRINT_PHRASES.filter((p) => p.pattern.test(core)).map((p) => p.label);
     if (found.length) warnings.push(`여러 블로그에 반복되던 상투 구절이 있습니다: ${found.join(", ")}. 다른 말로 바꿔주세요.`);
 
