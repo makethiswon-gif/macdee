@@ -3,7 +3,8 @@ import type { ArticleVisualPlan } from "./blog-images/visual-plan-types";
 import type { UsageEntry } from "./blog-usage";
 
 export class PublishRequestError extends Error {
-    constructor(message: string, public code?: string, public operationId?: string, public usage?: UsageEntry) {
+    /** retryUsage: 출력 한도에서 끊겨 버리고 다시 쓴 앞선 원고 시도의 비용(claude-blog-write Batch 경로). */
+    constructor(message: string, public code?: string, public operationId?: string, public usage?: UsageEntry, public retryUsage?: UsageEntry[]) {
         super(message);
         this.name = "PublishRequestError";
     }
@@ -41,13 +42,13 @@ export async function publishJson<T>(url: string, signal: AbortSignal, payload?:
         credentials: "include", signal,
         ...(payload === undefined ? {} : { headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }),
     });
-    let data: T & { error?: string; code?: string; operationId?: string; usage?: UsageEntry };
+    let data: T & { error?: string; code?: string; operationId?: string; usage?: UsageEntry; retryUsage?: UsageEntry[] };
     try { data = await res.json(); } catch {
         signal.throwIfAborted();
         throw new Error(res.status === 413 ? "이미지 용량이 서버 요청 한도를 초과했습니다 (413)." : `서버 응답을 읽지 못했습니다 (${res.status}).`);
     }
     signal.throwIfAborted();
-    if (!res.ok || data.error) throw new PublishRequestError(data.error || `요청에 실패했습니다 (${res.status}).`, data.code, data.operationId, data.usage);
+    if (!res.ok || data.error) throw new PublishRequestError(data.error || `요청에 실패했습니다 (${res.status}).`, data.code, data.operationId, data.usage, data.retryUsage);
     return data;
 }
 

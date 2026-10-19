@@ -100,7 +100,7 @@ const durations = (f) => ({ max: Number(/maxDuration\s*=\s*(\d+)/.exec(src(f))[1
 const write = durations("app/api/admin/claude-blog-write/route.ts"), edit = durations("app/api/admin/claude-blog-edit/route.ts");
 // 2026-10-06: 5.5 의 high 가 사고만 2만 토큰을 넘게 써 원고가 본문 0자로 끊김 → 대표 "품질 우선, 토큰 늘려도 된다".
 // 2026-10-11: Opus 5.5 + xhigh 로 올리며 원고 한도를 96,000(모델 상한 128,000), 부분 수정을 48,000 으로. 실제로 막는 것은 시간(760초/570초)이다.
-assert.equal(write.max, 800, "Vercel Pro 최대"); assert.equal(write.timeout, 760000); assert.match(src("app/api/admin/claude-blog-write/route.ts"), /max_tokens:\s*96000/);
+assert.equal(write.max, 800, "Vercel Pro 최대"); assert.equal(write.timeout, 760000); assert.match(src("app/api/admin/claude-blog-write/route.ts"), /max_tokens: batch \? BATCH_MANUSCRIPT_MAX_TOKENS : 96000/, "Batch 128,000(2026-10-19), 스트리밍·구독 96,000");
 assert.equal(edit.max, 600); assert.equal(edit.timeout, 570000); assert.match(src("app/api/admin/claude-blog-edit/route.ts"), /max_tokens:\s*48000/);
 for (const f of ["app/api/admin/claude-blog-write/route.ts", "app/api/admin/claude-blog-edit/route.ts"]) assert.match(src(f), /timeoutMs:\s*[\d_]+,\s*operationId,\s*stream:\s*true/, f + " 는 스트리밍으로 받는다");
 assert.match(src("app/api/admin/claude-blog-write/route.ts"), /paidId\("blog-manuscript-v18"/, "설정을 바꾸면 끊긴 옛 응답을 다시 쓰지 않도록 유료 응답 ID 를 올린다");

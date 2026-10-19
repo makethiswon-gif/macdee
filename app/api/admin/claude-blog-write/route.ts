@@ -7,8 +7,8 @@ import { validProfileId } from "@/lib/blog-strengths";
 import { StrengthStoreError } from "@/lib/blog-strengths-store";
 import { reviewBlogEditorial } from "@/lib/blog-editorial-review";
 import { repetitionAvoidDirective } from "@/lib/blog-repetition";
-import { paidAttempt, paidBatchRequest, paidId, paidJsonRequest, PaidOperationError } from "@/lib/blog-images/paid-operation";
-import { BLOG_WRITING_MODEL, BLOG_EFFORT } from "@/lib/ai/models";
+import { paidAttempt, paidBatchRequest, paidId, paidJsonRequest, PaidOperationError, type SupersededAttempt } from "@/lib/blog-images/paid-operation";
+import { BLOG_WRITING_MODEL, BLOG_EFFORT, lowerEffort } from "@/lib/ai/models";
 import { createHash } from "node:crypto";
 import { usageFromProvider } from "@/lib/blog-usage";
 import { coverBriefInstruction, parseCoverBrief, type CoverBrief } from "@/lib/blog-cover-brief";
@@ -26,7 +26,13 @@ import { assertSubscriptionReady, SubscriptionUnavailableError } from "@/lib/ai/
 // 출력 한도를 96,000 으로(모델 상한 128,000), 함수 제한은 800초(Vercel Pro 최대)로 두고 응답은 스트리밍으로 받는다(긴 무응답 연결이 중간에 끊기지 않게).
 // 실제로 막는 것은 시간이다: 대기 760초 안에 못 끝나면 시간 초과로 멈춘다(자동 재요청 없음). 유료 응답 ID 를 v18 로 올려 같은 주제를 다시 눌러도 Opus 로 새로 쓴다
 // (v16 의 끊긴 응답을 다시 꺼내 쓰지 않는다).
+// 2026-10-19 Batch 경로 한도 96,000 → 128,000(Opus 5.5 의 표준 최대, 베타 없이): 10/13~19 운영 배치 33건 실측에서 끝까지 쓴 원고는
+// 출력 3.7만~9.1만 토큰(평균 약 6.8만, 본문은 그중 5천 토큰 안팎이고 나머지는 사고)이었고 3건이 96,000 에서 본문 0자로 끊겼다.
+// Opus 5.5 는 사고를 끌 수도 예산(budget_tokens)을 줄 수도 없어(400) 사고량은 effort 로만 조절된다. 그래서 한도를 상한까지 열고,
+// 그래도 끊기면 한 단계 낮은 노력(xhigh → high)으로 한 번만 자동으로 다시 쓴다(lib/blog-images/paid-operation.ts paidBatchRequest).
+// 구독·스트리밍 경로는 예전 한도(96,000) 그대로다.
 export const maxDuration = 800;
+const BATCH_MANUSCRIPT_MAX_TOKENS = 128_000;
 
 // 본문 하단 '기준일' 표기용 (KST)
 function getKstDateLabel(): string {
@@ -38,6 +44,7 @@ function getKstDateLabel(): string {
 export async function POST(request: Request) {
     if (!verifyAdmin(request)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     let responseUsage: ReturnType<typeof usageFromProvider> | undefined;
+    let retryUsage: ReturnType<typeof usageFromProvider>[] = [];
     try {
         const { content: contentInput, source, field, profileId, topic, attemptId, confirmPaid, recoverOnly, engine: engineInput, async: asyncRequest } = await request.json();
         // 2026-09-29: engine=subscription 이면 API 대신 대표 PC 의 클로드 구독 작업기로 보낸다(lib/ai/subscription-relay.ts).
@@ -274,21 +281,27 @@ ${trustBlock}
         const operationId = engineOperationId(paidId("blog-manuscript-v18", { content, source: rewrite ? sourceText : "", field, profileId, topic, attempt, cover: !!coverLayout }), engine);
         // 작업기가 꺼져 있으면 유료 작업 잠금을 걸기 전에 알린다. 복구는 저장 응답만 읽으므로 작업기가 필요 없다.
         if (engine === "subscription" && recoverOnly !== true) await assertSubscriptionReady();
+        // 블로그 발행 화면(async:true)의 API 경로는 Message Batches 로 맡긴다 — 12~13분 걸리는 xhigh 원고가 함수 한도(800초)에서 끊기지 않게.
+        // 처음 요청은 바로 '처리 중'(code batch_pending, 202)을 돌려주고, 화면이 recoverOnly 로 다시 물어 결과를 받는다. 다른 화면·구독 경로는 예전 그대로.
+        const batch = asyncRequest === true && engine === "api";
         const params = {
             model: BLOG_WRITING_MODEL,
-            max_tokens: 96000,
+            max_tokens: batch ? BATCH_MANUSCRIPT_MAX_TOKENS : 96000,
             thinking: { type: "adaptive" as const },
             output_config: { effort: BLOG_EFFORT },
             system: systemPrompt,
             messages: [{ role: "user" as const, content: userMessage }],
         };
-        // 블로그 발행 화면(async:true)의 API 경로는 Message Batches 로 맡긴다 — 12~13분 걸리는 xhigh 원고가 함수 한도(800초)에서 끊기지 않게.
-        // 처음 요청은 바로 '처리 중'(code batch_pending, 202)을 돌려주고, 화면이 recoverOnly 로 다시 물어 결과를 받는다. 다른 화면·구독 경로는 예전 그대로.
-        const batch = asyncRequest === true && engine === "api";
+        // Batch 는 45분 넘게 멈추면 취소 후 새로 맡기고(과금 없음), 본문이 출력 한도에서 끊기면 한 단계 낮은 노력으로 한 번 다시 쓴다(과금됨).
+        // 끊김 판단은 아래 완성 판정과 같다: 본문이 닫히지 않은 채 max_tokens 로 멈춘 응답. 거절(refusal)은 다시 쓰지 않는다.
+        const retry = { cutRetryEffort: lowerEffort(BLOG_EFFORT),
+            isCut: (message: unknown) => { const p = readManuscriptResponse(message as Parameters<typeof readManuscriptResponse>[0]); return p.truncated && !p.complete && !p.refusal; } };
+        let superseded: SupersededAttempt[] = [];
         const { data, reused, elapsedMs } = batch
-            ? await paidBatchRequest(operationId, "블로그 원고", BLOG_WRITING_MODEL, params, { recoverOnly: recoverOnly === true })
+            ? await paidBatchRequest(operationId, "블로그 원고", BLOG_WRITING_MODEL, params, { recoverOnly: recoverOnly === true, retry }).then((r) => { superseded = r.superseded; return r; })
             : await paidJsonRequest(operationId, "블로그 원고", BLOG_WRITING_MODEL, claudeDispatch(engine, params,
                 { stage: "블로그 원고", timeoutMs: 760_000, operationId, stream: true }), undefined, { recoverOnly: recoverOnly === true });
+        retryUsage = cutUsage(superseded, operationId);
         const usage = usageFromProvider("manuscript", "블로그 원고", BLOG_WRITING_MODEL, data, { operationId, reused, elapsedMs, engine, batch });
         responseUsage = usage;
         const parsed = readManuscriptResponse(data);
@@ -326,7 +339,7 @@ ${trustBlock}
                 ...(coverWarning ? [coverWarning] : [])],
             factChecklist: parsed.facts,     // 검수자 확인용 사실 목록 (본문에는 포함되지 않는다)
             mode: rewrite ? "rewrite" : "topic",
-            usage, operationId, coverBrief,
+            usage, retryUsage, operationId, coverBrief,
             question: coverBrief?.question || "", thesis: coverBrief?.thesis || "",
             bodyHash: createHash("sha256").update(body).digest("hex"),
             title,
@@ -342,13 +355,20 @@ ${trustBlock}
                 : null,
         });
     } catch (err) {
-        if (err instanceof PaidOperationError) return NextResponse.json({ error: err.message, operationId: err.operationId, code: err.code, usage: responseUsage }, { status: err.status });
+        if (err instanceof PaidOperationError) return NextResponse.json({ error: err.message, operationId: err.operationId, code: err.code, usage: responseUsage,
+            retryUsage: err.superseded ? cutUsage(err.superseded, err.operationId) : retryUsage }, { status: err.status });
         if (err instanceof SubscriptionUnavailableError) return NextResponse.json({ error: err.message, code: "subscription_offline" }, { status: err.status });
         if (err instanceof ImageProductionError) return NextResponse.json({ error: err.message }, { status: err.status });
         if (err instanceof StrengthStoreError) return NextResponse.json({ error: err.message }, { status: err.status });
         console.error("[Claude Blog Write] Error:", err instanceof Error ? err.name : "UnknownError");
         return NextResponse.json({ error: "서버 오류" }, { status: 500 });
     }
+}
+
+/** 출력 한도에서 끊겨 버리고 다시 쓴 앞선 시도의 비용(Batch 반값). 마지막 결과가 처음 보존될 때 한 번만 온다. */
+function cutUsage(superseded: SupersededAttempt[], operationId: string) {
+    return superseded.map((s) => usageFromProvider("manuscript", "블로그 원고(한도에서 끊김)", BLOG_WRITING_MODEL, s.data,
+        { operationId, reused: false, elapsedMs: s.elapsedMs, engine: "api", batch: true, note: `${s.attempt}번째 시도가 출력 한도에서 끊겨 낮은 노력으로 다시 씀` }));
 }
 
 /** 재창작 원문의 문장이 본문에 거의 그대로 들어갔는지 — 20자 이상 문장의 정규화 부분 일치. 표절이 아니라 '베끼기' 경고용. */

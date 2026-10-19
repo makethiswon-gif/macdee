@@ -45,6 +45,13 @@ export const WRITING_EFFORT = "high" as const;
  */
 export const BLOG_EFFORT = "xhigh" as const;
 
+const EFFORT_LEVELS = ["low", "medium", "high", "xhigh", "max"] as const;
+/** 한 단계 낮은 노력 단계(low 는 더 내릴 곳이 없어 null). 블로그 원고가 출력 한도에서 끊겼을 때 한 번 다시 쓰는 단계다(xhigh → high). */
+export function lowerEffort(effort: string): string | null {
+    const i = EFFORT_LEVELS.indexOf(effort as (typeof EFFORT_LEVELS)[number]);
+    return i > 0 ? EFFORT_LEVELS[i - 1] : null;
+}
+
 /**
  * 짧은 정형 JSON 호출(주제 추천)에 섞어 보내는 '가볍게' 요청 필드. 모델마다 사고를 줄이는 방법이 다르다.
  *  - Opus 5.5: 사고를 끌 수 없으므로 thinking 을 빼고 effort low 로 대신한다.

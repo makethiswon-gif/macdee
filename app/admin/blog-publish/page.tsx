@@ -33,9 +33,9 @@ interface BlogSetting {
 }
 interface TopicCandidate { topic: string; field: string; angle: string; titleIdea: string; reason: string }
 interface SavedPost { id: string; profile_id?: string; title: string; body: string; field: string | null; topic: string | null; card_images?: { type: string; url: string }[] }
-interface WriteResponse { title: string; body: string; contactWarning?: string | null; editorialWarnings?: string[]; factChecklist?: string[]; usage?: UsageEntry; coverBrief?: CoverBrief | null; question?: string; thesis?: string; mode?: "topic" | "rewrite"; bodyHash?: string }
+interface WriteResponse { title: string; body: string; contactWarning?: string | null; editorialWarnings?: string[]; factChecklist?: string[]; usage?: UsageEntry; retryUsage?: UsageEntry[]; coverBrief?: CoverBrief | null; question?: string; thesis?: string; mode?: "topic" | "rewrite"; bodyHash?: string }
 interface WriteRequest { content: string; source?: string; field: string; profileId: string; topic: string; attemptId?: string; confirmPaid: boolean; engine: ClaudeEngine }
-interface WriteFailure { request: WriteRequest; topic: TopicCandidate; usage?: UsageEntry }
+interface WriteFailure { request: WriteRequest; topic: TopicCandidate; usage?: UsageEntry; retryUsage?: UsageEntry[] }
 interface EditResponse { replacement: string; label: string; target: string; title: string; body: string; warnings: string[]; usage?: UsageEntry }
 type Step = "idle" | "topics" | "writing" | "saving" | "cards" | "editing";
 const message = (e: unknown) => e instanceof Error ? e.message : "요청 처리에 실패했습니다.";
@@ -380,6 +380,7 @@ export default function BlogPublishPage() {
 
     // 원고는 Message Batches 로 맡긴다(2026-10-12, 함수 한도 800초에서 xhigh 원고가 끊기던 문제). 서버가 'batch_pending'을 돌려주면
     // 30초마다 recoverOnly(추가 과금 없음)로 결과를 확인한다. 화면을 닫아도 '저장된 원고 응답 복구 (무료)'로 같은 결과를 이어 받는다.
+    // 2026-10-19: 서버가 45분 넘게 멈춘 배치를 취소하고 새로 맡기며(과금 없음), 본문이 한도에서 끊기면 high 로 한 번 다시 쓴다 — 이 확인 호출이 그 일을 진행시킨다.
     const requestManuscript = async (req: WriteRequest, recover: boolean, op: AbortController): Promise<WriteResponse> => {
         const started = Date.now();
         for (let first = true; ; first = false) {
@@ -417,7 +418,7 @@ export default function BlogPublishPage() {
         try {
             if (valid && dirty) await persist(draft, savedId, op);
             setStep("writing"); setProgress(retry === "recover" ? "저장된 원고 응답 확인 중(추가 AI 호출 없음)…"
-                : `${rewrite ? "붙여넣은 글을 자료로 새 원고를 쓰는 중" : "원고 생성 중"}${subscription ? " — 클로드 구독(내 PC 작업기), 5~15분 걸릴 수 있습니다" : " — Opus 5.5 최고 노력(엑스트라하이)으로 Anthropic 에 맡겨 쓰는 중, 보통 10분~1시간 걸립니다"}…`);
+                : `${rewrite ? "붙여넣은 글을 자료로 새 원고를 쓰는 중" : "원고 생성 중"}${subscription ? " — 클로드 구독(내 PC 작업기), 5~15분 걸릴 수 있습니다" : " — Opus 5.5 최고 노력(엑스트라하이)으로 Anthropic 에 맡겨 쓰는 중, 보통 10분~1시간 걸립니다. 45분 넘게 멈추면 자동으로 새로 맡기고, 본문이 한도에서 끊기면 한 단계 낮은 노력으로 한 번 다시 씁니다(그때만 추가 비용)"}…`);
             let imagePreparationError = "";
             try {
                 if (retry !== "recover") await publishJson("/api/admin/blog-images/preflight", op.signal, { profileId, checkModel: true, basicProfile: true, topic: `${effectiveTopic.field} ${effectiveTopic.topic}` });
@@ -447,9 +448,10 @@ export default function BlogPublishPage() {
             setFactChecks(checks);
             setQuestionThesis({ question: data.question || "", thesis: data.thesis || "" });
             coverBrief.current = data.coverBrief || null;
-            setAiUsage(data.usage ? [data.usage] : []);
+            const writeUsage = [...(data.retryUsage || []), ...(data.usage ? [data.usage] : [])];
+            setAiUsage(writeUsage);
             const id = await persist(snapshot, null, op);
-            await patchState({ stage: "review", ...(data.usage ? { appendUsage: [data.usage] } : {}), factChecks: checks, coverBrief: data.coverBrief || null, coverBriefBodyHash: data.bodyHash || "",
+            await patchState({ stage: "review", ...(writeUsage.length ? { appendUsage: writeUsage } : {}), factChecks: checks, coverBrief: data.coverBrief || null, coverBriefBodyHash: data.bodyHash || "",
                 source: { kind: rewrite ? "rewrite" : "topic", label: effectiveTopic.topic }, question: data.question || "", thesis: data.thesis || "" }, id);
             if (current(op)) {
                 setPlanOpen(false);
@@ -459,7 +461,8 @@ export default function BlogPublishPage() {
             if (current(op)) {
                 setError(message(e));
                 if (pendingRequest && !receivedManuscript) setWriteFailure({ request: pendingRequest, topic: effectiveTopic,
-                    usage: e instanceof PublishRequestError && e.usage && !e.usage.reused ? e.usage : failed?.usage });
+                    usage: e instanceof PublishRequestError && e.usage && !e.usage.reused ? e.usage : failed?.usage,
+                    retryUsage: e instanceof PublishRequestError && e.retryUsage?.length ? e.retryUsage : failed?.retryUsage });
             }
         }
         finally { finish(op); }
@@ -652,7 +655,8 @@ export default function BlogPublishPage() {
                 {writeFailure && <div className="mt-3 flex flex-wrap gap-3">
                     <button disabled={busy} className="inline-flex items-center gap-1 underline disabled:opacity-40" onClick={() => void write(writeFailure.topic, writeFailure.request.source || "", "recover")}><RefreshCw size={14} />저장된 원고 응답 복구 (무료)</button>
                     <button disabled={busy} className="inline-flex items-center gap-1 underline disabled:opacity-40" onClick={() => void write(writeFailure.topic, writeFailure.request.source || "", "regenerate")}><PenLine size={14} />새 원고 생성 ({claudeCost})</button>
-                    {writeFailure.usage && <span className="w-full text-xs">이전 요청 비용: {usd(writeFailure.usage.estimatedUsd)}</span>}
+                    {writeFailure.usage || writeFailure.retryUsage?.length ? <span className="w-full text-xs">이전 요청 비용: {usd([...(writeFailure.retryUsage || []), ...(writeFailure.usage ? [writeFailure.usage] : [])]
+                        .reduce<number | null>((sum, u) => sum == null || u.estimatedUsd == null ? null : sum + u.estimatedUsd, 0))}{writeFailure.retryUsage?.length ? ` (한도에서 끊긴 앞선 시도 ${writeFailure.retryUsage.length}회 포함)` : ""}</span> : null}
                 </div>}
                 {studioRecovery && <a href={studioLibraryUrl(profileId)} target="_blank" rel="noopener noreferrer" className="mt-3 block underline">{studioRecovery}</a>}
                 {valid && !batch.current && stage === 3 && <div className="mt-3 flex flex-wrap gap-3">
@@ -697,7 +701,7 @@ export default function BlogPublishPage() {
                         <button onClick={writeFromSource} disabled={!profileId || !sourceText.trim() || busy} className={primary}>
                             {step === "writing" ? <Loader2 size={14} className="animate-spin" /> : <PenLine size={14} />}{rewriteMode ? "이 글로 원고 재창작" : "바로 원고 생성"}
                         </button>
-                        <span className="text-xs text-[#9CA3B0]">{rewriteMode ? `재창작 모드 · ${sourceText.trim().length.toLocaleString()}자` : "주제 모드"} · {subscription ? "클로드 구독 · API 비용 0원" : "원고 1편 약 $0.13(추정)"}</span>
+                        <span className="text-xs text-[#9CA3B0]">{rewriteMode ? `재창작 모드 · ${sourceText.trim().length.toLocaleString()}자` : "주제 모드"} · {subscription ? "클로드 구독 · API 비용 0원" : "원고 1편 약 $0.70(10월 실측 평균, Batch 반값 포함)"}</span>
                     </div>
                     <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
                         <span className="text-xs text-[#9CA3B0]">추천 주제</span>
