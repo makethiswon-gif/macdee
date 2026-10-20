@@ -30,6 +30,12 @@ delete process.env.BLOG_COVER_SOURCE;
 let anthropicCalls = 0;
 global.fetch = async (url) => { anthropicCalls++; throw new Error(`Unexpected network request: ${url}`); };
 
+// 실제 작업기의 형식 검사(validJob)를 원문 그대로 꺼내 쓴다. 작업기 파일은 불러오는 순간 저장소에 붙어 돌기 시작하므로 함수 부분만 실행한다.
+const workerSource = fs.readFileSync(path.join(root, "scripts/claude-subscription-worker.mjs"), "utf8");
+const pick = (re) => { const m = workerSource.match(re); assert.ok(m, `작업기 원문에서 ${re} 를 찾지 못했습니다`); return m[0]; };
+const realWorker = new Function(`${pick(/^const EFFORTS = .*$/m)}\n${pick(/^const MAX_OUTPUT_TOKENS = .*$/m)}\n${pick(/^function validJob\(job\) \{[\s\S]*?^\}/m)}\nreturn { validJob, MAX_OUTPUT_TOKENS };`)();
+const invalidJob = { status: 400, payload: { type: "error", error: { type: "invalid_job", message: "작업 형식이 올바르지 않습니다." } } };
+
 const relay = require("../lib/ai/subscription-relay.ts");
 const engine = require("../lib/ai/claude-engine.ts");
 const { usageFromProvider, summarizeUsage } = require("../lib/blog-usage.ts");
@@ -38,7 +44,7 @@ const beat = (ageMs = 0) => objects.set("claude-subscription/worker.json", JSON.
 const manuscript = "===TITLE===\n협의이혼 숙려기간은 언제부터 셀까요\n===BODY===\n도입 문단입니다.\n\n## 판단 기준\n\n조건을 확인합니다.\n===FACTS===\n- 숙려기간 1개월(자녀 있으면 3개월)\n===COVER===\nheading: 기획 중";
 const message = (text, stop = "end_turn") => ({ id: "msg_subscription_x", type: "message", role: "assistant", model: "claude-sonnet-5", content: [{ type: "text", text }], stop_reason: stop, usage: { input_tokens: 9000, output_tokens: 7000, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 } });
 
-/** 실제 작업기(scripts/claude-subscription-worker.mjs)가 하는 저장소 동작을 흉내 낸다. */
+/** 실제 작업기(scripts/claude-subscription-worker.mjs)가 하는 저장소 동작을 흉내 낸다. 형식 검사는 실제 작업기 것을 쓴다. */
 function fakeWorker(handler, { claim = true, finish = true } = {}) {
     const seen = [];
     let stopped = false;
@@ -50,7 +56,7 @@ function fakeWorker(handler, { claim = true, finish = true } = {}) {
                 const runKey = key.replace("/jobs/", "/running/"); objects.set(runKey, body);
                 const job = JSON.parse(body); seen.push(job);
                 if (!finish) continue;
-                const { status, payload } = handler(job);
+                const { status, payload } = realWorker.validJob(job) ? handler(job) : invalidJob;
                 const text = JSON.stringify(payload);
                 objects.set(`claude-subscription/results/${job.id}.json`, JSON.stringify({ status, text, jobId: job.id, elapsedMs: 1 }));
                 if (job.operationId && !objects.has(`blog-paid-operations/${job.operationId}/response.json`)) objects.set(`blog-paid-operations/${job.operationId}/response.json`, JSON.stringify({ status, text, requestId: `subscription:${job.id}`, elapsedMs: 1 }));
@@ -76,6 +82,13 @@ const post = async (route, payload) => {
     const structured = relay.toRelayRequest({ ...base, messages: [{ role: "user", content: [{ type: "text", text: "A" }, { type: "text", text: "B" }] }], output_config: { effort: "high", format: { type: "json_schema", schema } } });
     assert.equal(structured.user, "A\n\nB"); assert.equal(structured.effort, "high"); assert.deepEqual(structured.jsonSchema, schema);
     assert.throws(() => relay.toRelayRequest({ ...base, messages: [{ role: "user", content: "a" }, { role: "assistant", content: "b" }] }));
+    // 출력 한도: 서버 상한 = 실제 작업기 상한, 넘는 값은 서버가 잘라 보낸다(2026-10-20: 원고 96,000 이 예전 작업기 상한 64,000 에 걸려 거절되던 문제).
+    assert.equal(relay.RELAY_MAX_TOKENS, realWorker.MAX_OUTPUT_TOKENS, "서버 상한과 작업기 상한이 같아야 한다");
+    assert.equal(relay.toRelayRequest({ ...base, max_tokens: 300000 }).maxTokens, relay.RELAY_MAX_TOKENS, "상한을 넘으면 잘라 보낸다");
+    const relayJob = (request) => ({ version: 1, id: "0f8fad5b-d9cb-469f-a165-70867728950e", stage: "fixture", request });
+    assert.equal(realWorker.validJob(relayJob(relay.toRelayRequest({ ...base, max_tokens: 96000 }))), true, "원고 한도 96,000 은 작업기가 받는다");
+    assert.equal(realWorker.validJob(relayJob(relay.toRelayRequest({ ...base, max_tokens: 300000 }))), true, "잘라 보낸 값도 작업기가 받는다");
+    assert.equal(realWorker.validJob(relayJob({ ...relay.toRelayRequest(base), maxTokens: realWorker.MAX_OUTPUT_TOKENS + 1 })), false, "작업기 상한을 넘으면 거절");
 
     // 2. 작업 ID: API 는 그대로, 구독은 분리
     const id = "a".repeat(64);
@@ -128,6 +141,7 @@ const post = async (route, payload) => {
     assert.equal(r.status, 200, JSON.stringify(r.data)); worker.stop();
     const job = worker.seen[0];
     assert.equal(job.stage, "블로그 원고"); assert.equal(job.request.model, "claude-opus-5-5"); assert.equal(job.request.effort, "xhigh"); assert.equal(job.request.maxTokens, 96000);
+    assert.equal(realWorker.validJob(job), true, "원고 작업이 실제 작업기 형식 검사를 통과한다");
     assert.match(job.request.system, /정확해야 합니다/); assert.match(job.request.user, /협의이혼 숙려기간/);
     assert.equal(job.operationId, r.data.operationId);
     assert.equal(r.data.usage.engine, "subscription"); assert.equal(r.data.usage.estimatedUsd, 0); assert.equal(r.data.usage.reused, false); assert.equal(r.data.usage.input, 9000);
@@ -179,5 +193,5 @@ const post = async (route, payload) => {
     assert.equal(sub.estimatedUsd, 0); assert.ok(api.estimatedUsd > 0); assert.equal(api.engine, undefined);
     const sum = summarizeUsage([sub, api]);
     assert.equal(sum.paidCount, 1); assert.equal(sum.subscriptionCount, 1); assert.equal(sum.estimatedUsd, api.estimatedUsd);
-    console.log("PASS: relay round trip, unclaimed 504 + removal, claimed timeout, offline 503 without lock, subscription IDs, recover without worker, limit message, edit, topics, usage 0원");
+    console.log("PASS: real worker validJob (manuscript 96,000 accepted, cap 128,000 shared), relay round trip, unclaimed 504 + removal, claimed timeout, offline 503 without lock, subscription IDs, recover without worker, limit message, edit, topics, usage 0원");
 })().catch((e) => { console.error(e); process.exitCode = 1; });

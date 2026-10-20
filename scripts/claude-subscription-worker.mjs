@@ -19,7 +19,7 @@ import { hostname, homedir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const WORKER_VERSION = "1.0.0";
+const WORKER_VERSION = "1.1.0";
 const BUCKET = "owner-briefings";
 const PREFIX = "claude-subscription";
 const POLL_MS = 2_000;
@@ -27,6 +27,10 @@ const BEAT_MS = 15_000;
 const JOB_HARD_LIMIT_MS = 12 * 60_000;
 const STALE_JOB_MS = 15 * 60_000;
 const EFFORTS = new Set(["low", "medium", "high", "xhigh", "max"]);
+// 받는 출력 한도 상한(2026-10-20 64,000 → 128,000). 원고는 2026-10-11 부터 96,000 을 보내는데 예전 상한 64,000 에 걸려 '형식이 맞지 않는 작업'으로 거절될 뻔했다.
+// 128,000 은 Opus 5.5 의 최대 출력(베타 없이)이자 Claude Code 가 CLAUDE_CODE_MAX_OUTPUT_TOKENS 로 받는 상한이다(더 큰 값은 Claude Code 가 깎는다).
+// 서버 쪽 lib/ai/subscription-relay.ts RELAY_MAX_TOKENS 와 같은 값이어야 한다(scripts/test-claude-subscription.cjs 가 확인).
+const MAX_OUTPUT_TOKENS = 128_000;
 
 // ── 설정 ─────────────────────────────────────────────
 const argv = process.argv.slice(2);
@@ -185,7 +189,7 @@ function validJob(job) {
     return job?.version === 1 && typeof job.id === "string" && /^[a-f0-9-]{36}$/.test(job.id) && r
         && typeof r.model === "string" && /^claude-[a-z0-9.-]+$/.test(r.model) && EFFORTS.has(r.effort)
         && typeof r.system === "string" && typeof r.user === "string" && r.user.length > 0 && r.user.length < 200_000 && r.system.length < 200_000
-        && Number.isInteger(r.maxTokens) && r.maxTokens > 0 && r.maxTokens <= 64_000
+        && Number.isInteger(r.maxTokens) && r.maxTokens > 0 && r.maxTokens <= MAX_OUTPUT_TOKENS
         && (r.jsonSchema == null || (typeof r.jsonSchema === "object" && JSON.stringify(r.jsonSchema).length < 25_000));
 }
 
@@ -309,7 +313,7 @@ function takeLock() {
 }
 
 async function main() {
-    console.log("클로드 구독 작업기 — makethis1 블로그 발행");
+    console.log(`클로드 구독 작업기 ${WORKER_VERSION} — makethis1 블로그 발행`);
     if (!SUPABASE_URL || !SERVICE_KEY) { console.error(`Supabase 설정을 찾지 못했습니다. --env 로 macdee .env.local 경로를 지정해 주세요. (읽은 파일: ${envFile})`); process.exit(1); }
     if (!CLAUDE || (CLAUDE !== "claude" && !existsSync(CLAUDE))) { console.error("Claude Code(claude.exe)를 찾지 못했습니다. --claude 로 경로를 지정해 주세요."); process.exit(1); }
     if (!takeLock()) { console.error("이 PC 에서 작업기가 이미 실행 중입니다. 이 창은 닫아도 됩니다."); process.exit(0); }

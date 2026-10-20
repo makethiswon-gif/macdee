@@ -18,6 +18,11 @@ const BUCKET = "owner-briefings";
 export const RELAY_PREFIX = "claude-subscription";
 /** 생존 신호가 이보다 오래되면 작업기가 꺼진 것으로 본다. 작업기는 15초마다 신호를 남긴다. */
 export const WORKER_STALE_MS = 45_000;
+/**
+ * 작업기가 받는 출력 한도 상한(scripts/claude-subscription-worker.mjs MAX_OUTPUT_TOKENS 와 같은 값). 넘는 값을 보내면 작업기가 형식 오류로 거절하므로
+ * 여기서 잘라 보낸다. 2026-10-20: 원고(96,000)가 예전 작업기 상한 64,000 에 걸리던 것을 작업기 상한을 128,000 으로 올려 고쳤다.
+ */
+export const RELAY_MAX_TOKENS = 128_000;
 const POLL_MS = 1_500;
 
 export class SubscriptionUnavailableError extends Error {
@@ -72,7 +77,7 @@ export function toRelayRequest(body: MessagesBody): RelayRequest {
     const minimalThinking = body.thinking?.type === "disabled" || body.thinking?.type === "between_tools";
     const effort = (EFFORTS as readonly string[]).includes(requested || "") ? requested as RelayRequest["effort"] : minimalThinking ? "low" : "medium";
     const schema = body.output_config?.format?.type === "json_schema" ? body.output_config.format.schema : undefined;
-    return { model: body.model, system: body.system, user, effort, maxTokens: body.max_tokens, ...(schema ? { jsonSchema: schema } : {}) };
+    return { model: body.model, system: body.system, user, effort, maxTokens: Math.min(body.max_tokens, RELAY_MAX_TOKENS), ...(schema ? { jsonSchema: schema } : {}) };
 }
 
 export async function workerStatus(now = Date.now()): Promise<WorkerStatus> {
