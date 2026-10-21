@@ -25,9 +25,17 @@ import {
     ArrowRightLeft,
     Globe,
     Briefcase,
+    Building2,
 } from "lucide-react";
 
 const NAV_GROUPS = [
+    // 2026-10-21 대표: 변호사들이 클라이언트 포털(/portal, 접속 코드 로그인)을 못 찾아 메뉴 맨 위에 둔다
+    {
+        title: "클라이언트",
+        items: [
+            { href: "/portal", label: "클라이언트 포털", icon: Building2 },
+        ]
+    },
     {
         title: "대시보드",
         items: [
