@@ -20,7 +20,7 @@ export async function POST(request: Request) {
         // orderId 형식: otp_{packId}_{timestamp}_{rand}
         const packId = String(orderId).split("_")[1] || "";
         const pack = getCreditPack(packId);
-        if (!pack) {
+        if (!pack || pack.hidden) {
             return NextResponse.json({ error: "유효하지 않은 상품입니다." }, { status: 400 });
         }
 

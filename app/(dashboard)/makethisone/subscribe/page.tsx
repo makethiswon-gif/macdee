@@ -5,7 +5,7 @@ import { Check, X, CreditCard, Sparkles, CheckCircle2, FileText, ArrowRight, Loa
 import Image from "next/image";
 import { loadTossPayments } from "@tosspayments/payment-sdk";
 import { toast } from "sonner";
-import { CREDIT_PACKS } from "@/lib/billing/one-time";
+import { getCreditPack, visibleCreditPacks } from "@/lib/billing/one-time";
 
 // 요금제 데이터
 const PRICING_PLANS = [
@@ -135,8 +135,8 @@ export default function MakeThisOnePage() {
             toast.error("결제 모듈을 불러오는 중입니다. 잠시 후 다시 시도해주세요.");
             return;
         }
-        const pack = CREDIT_PACKS[packId as keyof typeof CREDIT_PACKS];
-        if (!pack) return;
+        const pack = getCreditPack(packId);
+        if (!pack || pack.hidden) return;
         setSelectedCredit(packId);
         setSelectedPlan(null);
         setIsModalOpen(true);
@@ -147,8 +147,8 @@ export default function MakeThisOnePage() {
     // 계약 동의 후 단건 결제 실행
     const handleBuyCreditWithToss = async () => {
         if (!agreed || !selectedCredit) return;
-        const pack = CREDIT_PACKS[selectedCredit as keyof typeof CREDIT_PACKS];
-        if (!pack) return;
+        const pack = getCreditPack(selectedCredit);
+        if (!pack || pack.hidden) return;
         if (!tossPaymentsSDK) {
             toast.error("결제 모듈을 불러오는 중입니다. 잠시 후 다시 시도해주세요.");
             return;
@@ -169,7 +169,7 @@ export default function MakeThisOnePage() {
     };
 
     const plan = PRICING_PLANS.find(p => p.id === selectedPlan);
-    const creditPack = selectedCredit ? CREDIT_PACKS[selectedCredit as keyof typeof CREDIT_PACKS] : null;
+    const creditPack = selectedCredit ? getCreditPack(selectedCredit) : null;
     const isCredit = !!creditPack;
     const purchaseName = plan?.name || creditPack?.name || "";
 
@@ -265,18 +265,21 @@ export default function MakeThisOnePage() {
                         One-time
                     </div>
                     <h2 className="text-2xl font-bold text-white mb-3">구독 없이, 필요한 만큼만</h2>
-                    <p className="text-[#9CA3B0] text-sm">정기 결제가 부담된다면 콘텐츠 건수를 한 번만 결제해서 사용할 수 있습니다.</p>
+                    <p className="text-[#9CA3B0] text-sm">정기 결제 대신 콘텐츠 건수나 6개월 계약을 한 번에 결제해서 이용할 수 있습니다.</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {Object.values(CREDIT_PACKS).map((pack) => (
+                    {visibleCreditPacks().map((pack) => (
                         <div key={pack.id} className="flex flex-col p-7 rounded-3xl border border-white/[0.06] bg-[#11131A] hover:border-white/20 transition-all">
                             <h3 className="text-lg font-bold text-white mb-1">{pack.name}</h3>
-                            <p className="text-sm text-[#9CA3B0] mb-6">콘텐츠 {pack.credits}건 단건 이용권</p>
-                            <div className="mb-8 flex items-end gap-1">
+                            <p className="text-sm text-[#9CA3B0] mb-6">{pack.months ? `월 ${Math.round(pack.credits / pack.months)}회 · ${pack.months}개월 · 총 ${pack.credits}회` : `콘텐츠 ${pack.credits}건 단건 이용권`}</p>
+                            <div className={`${pack.months ? "mb-2" : "mb-8"} flex items-end gap-1`}>
                                 <span className="text-3xl font-extrabold text-white">{pack.price.toLocaleString()}</span>
-                                <span className="text-sm font-medium text-[#9CA3B0] mb-1">원</span>
+                                <span className="text-sm font-medium text-[#9CA3B0] mb-1">원{pack.vatIncluded ? " (부가세 포함)" : ""}</span>
                             </div>
+                            {pack.months && pack.monthlyPrice ? (
+                                <p className="text-xs text-[#9CA3B0] mb-8">월 {pack.monthlyPrice.toLocaleString()}원 × {pack.months}개월, 한 번에 결제</p>
+                            ) : null}
                             <button
                                 onClick={() => handleBuyCredit(pack.id)}
                                 className="mt-auto w-full py-3.5 rounded-xl text-sm font-bold bg-white/[0.06] text-white hover:bg-white/[0.1] transition-all"
@@ -330,8 +333,12 @@ export default function MakeThisOnePage() {
                                         <p>제 1 조 (목적)<br/>본 계약은 "갑(이용자)"이 "을(메이크디스원)"에게 마케팅 및 콘텐츠 제작 대행 업무를 위탁함에 있어 양 당사자의 권리와 의무를 명확히 하는 데 목적이 있습니다.</p>
                                         {isCredit ? (
                                             <>
-                                                <p>제 2 조 (결제 및 환불)<br/>1. 본 결제는 1회성 단건 결제이며 자동 갱신되지 않습니다. 결제하신 콘텐츠 건수는 소진 시까지 유효합니다.<br/>2. 서비스 착수 전 취소 시 전액 환불되며, 착수 후에는 이미 진행된 건수를 제외한 잔여분이 환불됩니다.</p>
-                                                <p>제 3 조 (서비스 내용)<br/>결제하신 {creditPack?.name}({creditPack?.credits}건)만큼의 콘텐츠 기획 및 제작을 이행합니다.</p>
+                                                {creditPack?.months ? (
+                                                    <p>제 2 조 (계약 기간·결제 및 환불)<br/>1. 본 계약의 기간은 결제일부터 {creditPack.months}개월이며, 계약 대금 {creditPack.price.toLocaleString()}원(월 {creditPack.monthlyPrice?.toLocaleString()}원 × {creditPack.months}개월, 부가세 포함)을 결제일에 한 번에 결제합니다. 자동 갱신되지 않습니다.<br/>2. 서비스 착수 전 취소 시 전액 환불되며, 착수 후에는 이미 진행된 건수를 제외한 잔여분이 환불됩니다.</p>
+                                                ) : (
+                                                    <p>제 2 조 (결제 및 환불)<br/>1. 본 결제는 1회성 단건 결제이며 자동 갱신되지 않습니다. 결제하신 콘텐츠 건수는 소진 시까지 유효합니다.<br/>2. 서비스 착수 전 취소 시 전액 환불되며, 착수 후에는 이미 진행된 건수를 제외한 잔여분이 환불됩니다.</p>
+                                                )}
+                                                <p>제 3 조 (서비스 내용)<br/>{creditPack?.months ? `계약 기간 동안 월 ${Math.round((creditPack?.credits || 0) / creditPack.months)}회씩, 총 ${creditPack?.credits}회의 콘텐츠 기획 및 제작을 이행합니다.` : `결제하신 ${creditPack?.name}(${creditPack?.credits}건)만큼의 콘텐츠 기획 및 제작을 이행합니다.`}</p>
                                             </>
                                         ) : (
                                             <>
