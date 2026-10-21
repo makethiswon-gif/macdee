@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { TOSS_API_URL, getTossAuthHeader } from "@/lib/billing/config";
 import { getCreditPack } from "@/lib/billing/one-time";
+import { finalizeContract, loadContract } from "@/lib/makethisone/contract-server";
 import nodemailer from "nodemailer";
 
 // POST: 일회성(단건) 결제 승인 + 기록 (수동 처리용 — 자동 크레딧 반영 없음)
@@ -12,7 +13,7 @@ export async function POST(request: Request) {
         const supabase = await createClient();
         const { data: { user } } = await supabase.auth.getUser();
 
-        const { paymentKey, orderId, amount } = await request.json();
+        const { paymentKey, orderId, amount, contractId } = await request.json();
         if (!paymentKey || !orderId) {
             return NextResponse.json({ error: "필수 파라미터가 누락되었습니다." }, { status: 400 });
         }
@@ -56,6 +57,9 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: tossData.message || "결제 승인 실패" }, { status: 400 });
         }
 
+        // 전자계약(결제 전 동의)에 적은 광고주 정보 — 로그인하지 않은 결제자의 이름·이메일로 쓴다
+        const contract = contractId ? await loadContract(String(contractId)).catch(() => null) : null;
+
         // 기록 (수동 처리 → fulfilled=false)
         const admin = await createAdminClient();
         const { error: insErr } = await admin.from("payments").insert({
@@ -66,8 +70,8 @@ export async function POST(request: Request) {
             amount: expectedAmount,
             credits: pack.credits,
             order_name: pack.name,
-            customer_email: user?.email || null,
-            customer_name: lawyer?.name || null,
+            customer_email: user?.email || contract?.party.email || null,
+            customer_name: lawyer?.name || contract?.party.name || null,
             payment_type: "credit",
             receipt_url: tossData.receipt?.url || null,
             status: tossData.status || "DONE",
@@ -84,7 +88,11 @@ export async function POST(request: Request) {
             console.error("[Payments] notify error:", e),
         );
 
-        return NextResponse.json({ success: true, pack: pack.name, credits: pack.credits });
+        // 계약서 PDF 를 결제자 이메일로(실패해도 결제는 완료 — 결과만 알려 준다)
+        const contractMail = await finalizeContract(contractId ? String(contractId) : null, { kind: "pack", productId: pack.id, orderId, amount: expectedAmount, paidAt: tossData.approvedAt || null });
+        if (contractId && !contractMail.ok) console.error("[Payments] contract mail:", contractMail.reason);
+
+        return NextResponse.json({ success: true, pack: pack.name, credits: pack.credits, months: pack.months || null, contractEmail: contractMail.ok ? contractMail.email : null });
     } catch (err) {
         console.error("[Payments] Unexpected error:", err);
         return NextResponse.json({ error: "서버 오류" }, { status: 500 });
@@ -108,10 +116,10 @@ async function notify(
         subject: `[단건결제] ${pack.name} (${Number(amount).toLocaleString()}원)`,
         html: `<div style="font-family:sans-serif">
             <h2 style="color:#3563AE">일회성 결제가 접수되었습니다 — 수동 처리 필요</h2>
-            <p><strong>상품:</strong> ${pack.name} (콘텐츠 ${pack.credits}건)</p>
+            <p><strong>상품:</strong> ${pack.name} (콘텐츠 ${pack.credits}회)</p>
             <p><strong>금액:</strong> ${Number(amount).toLocaleString()}원</p>
             <p><strong>구매자:</strong> ${lawyerName || "(이름없음)"} / ${email}</p>
-            <p style="color:#666;font-size:12px">결제 기록만 저장됨(자동 크레딧 반영 없음). 계정에 ${pack.credits}건을 수동으로 추가해 주세요.</p>
+            <p style="color:#666;font-size:12px">결제 기록만 저장됨(자동 크레딧 반영 없음). 계정에 ${pack.credits}회를 수동으로 추가해 주세요.</p>
         </div>`,
     });
 }

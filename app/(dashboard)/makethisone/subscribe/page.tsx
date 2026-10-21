@@ -6,55 +6,8 @@ import Image from "next/image";
 import { loadTossPayments } from "@tosspayments/payment-sdk";
 import { toast } from "sonner";
 import { getCreditPack, visibleCreditPacks } from "@/lib/billing/one-time";
-
-// 요금제 데이터
-const PRICING_PLANS = [
-    {
-        id: "basic",
-        name: "베이직",
-        desc: "월 12회 관리",
-        price: 1200000,
-        features: [
-            "월 12회 블로그 원고 기획 및 작성",
-            "AI 맥디 무제한 이용가능",
-            "기본 키워드 분석 및 매칭",
-            "월간 성과 리포트 제공",
-            "전담 매니저 배정"
-        ],
-        popular: false,
-    },
-    {
-        id: "standard",
-        name: "스탠다드",
-        desc: "월 20회 관리",
-        price: 2000000,
-        features: [
-            "월 20회 블로그 원고 기획 및 작성",
-            "AI 맥디 무제한 이용가능",
-            "심화 키워드 확장 및 경쟁사 분석",
-            "블로그 스킨 및 프로필 디자인 1회",
-            "월간 성과 리포트 및 화상 미팅",
-            "전담 디렉터 배정"
-        ],
-        popular: true,
-    },
-    {
-        id: "premium",
-        name: "프리미엄",
-        desc: "월 30회 관리",
-        price: 4000000,
-        features: [
-            "월 30회 블로그 원고 기획 및 작성",
-            "파워플랜 · 파워링크(검색광고) 관리 프로그램 포함 (월 100만원)",
-            "인스타그램 릴스/피드 맞춤 기획",
-            "프리미엄 로컬 SEO 및 노출 최적화",
-            "브랜드 블로그 전면 리뉴얼 (연 1회)",
-            "주간 성과 점검 및 밀착 컨설팅",
-            "수석 디렉터 배정 및 우선 대응"
-        ],
-        popular: false,
-    }
-];
+import { PRICING_PLANS } from "@/lib/makethisone/products";
+import { buildContract, isValidEmail, resolveProduct } from "@/lib/makethisone/contract";
 
 export default function MakeThisOnePage() {
     const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
@@ -67,6 +20,10 @@ export default function MakeThisOnePage() {
     const [cvc, setCvc] = useState("");
     const [isProcessing, setIsProcessing] = useState(false);
     const [tossPaymentsSDK, setTossPaymentsSDK] = useState<any>(null);
+    // 전자계약 광고주 정보 — 결제가 끝나면 계약서 PDF 를 이 이메일로 보낸다
+    const [buyerName, setBuyerName] = useState("");
+    const [buyerEmail, setBuyerEmail] = useState("");
+    const [buyerPhone, setBuyerPhone] = useState("");
 
     // Preload Toss Payments SDK to prevent popup blockers
     useState(() => {
@@ -95,8 +52,28 @@ export default function MakeThisOnePage() {
         }, 300);
     };
 
+    // 결제 전에 계약 동의를 서버에 남긴다(결제 승인 뒤 이 번호로 PDF 를 만들어 메일로 보냄)
+    const saveContract = async (kind: "plan" | "pack", productId: string): Promise<string | null> => {
+        try {
+            const res = await fetch("/api/makethisone/contract", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ kind, productId, name: buyerName, email: buyerEmail, phone: buyerPhone }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data.contractId) {
+                toast.error(data.error || "계약을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+                return null;
+            }
+            return String(data.contractId);
+        } catch {
+            toast.error("계약을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+            return null;
+        }
+    };
+
     const handleSubscribeWithToss = async () => {
-        if (!agreed) return;
+        if (!canSign || !selectedPlan) return;
         setIsProcessing(true);
         try {
             if (!tossPaymentsSDK) {
@@ -105,11 +82,17 @@ export default function MakeThisOnePage() {
                 return;
             }
 
+            const contractId = await saveContract("plan", selectedPlan);
+            if (!contractId) {
+                setIsProcessing(false);
+                return;
+            }
+
             const customerKey = `mto_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
             tossPaymentsSDK.requestBillingAuth("카드", {
                 customerKey,
-                successUrl: `${window.location.origin}/makethisone/subscribe/success?plan=${selectedPlan}&customerKey=${customerKey}`,
+                successUrl: `${window.location.origin}/makethisone/subscribe/success?plan=${selectedPlan}&customerKey=${customerKey}&contract=${contractId}`,
                 failUrl: `${window.location.origin}/makethisone/subscribe/fail`,
             }).catch((err: any) => {
                 setIsProcessing(false);
@@ -146,7 +129,7 @@ export default function MakeThisOnePage() {
 
     // 계약 동의 후 단건 결제 실행
     const handleBuyCreditWithToss = async () => {
-        if (!agreed || !selectedCredit) return;
+        if (!canSign || !selectedCredit) return;
         const pack = getCreditPack(selectedCredit);
         if (!pack || pack.hidden) return;
         if (!tossPaymentsSDK) {
@@ -154,12 +137,17 @@ export default function MakeThisOnePage() {
             return;
         }
         setIsProcessing(true);
+        const contractId = await saveContract("pack", pack.id);
+        if (!contractId) {
+            setIsProcessing(false);
+            return;
+        }
         const orderId = `otp_${pack.id}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
         tossPaymentsSDK.requestPayment("카드", {
             amount: pack.price,
             orderId,
             orderName: pack.name,
-            successUrl: `${window.location.origin}/makethisone/purchase/success`,
+            successUrl: `${window.location.origin}/makethisone/purchase/success?contract=${contractId}`,
             failUrl: `${window.location.origin}/billing/fail`,
         }).catch((err: any) => {
             setIsProcessing(false);
@@ -172,6 +160,12 @@ export default function MakeThisOnePage() {
     const creditPack = selectedCredit ? getCreditPack(selectedCredit) : null;
     const isCredit = !!creditPack;
     const purchaseName = plan?.name || creditPack?.name || "";
+    const contractProduct = isCredit ? resolveProduct("pack", selectedCredit || "") : resolveProduct("plan", selectedPlan || "");
+    const paper = contractProduct
+        ? buildContract({ product: contractProduct, party: { name: buyerName.trim(), email: buyerEmail.trim(), ...(buyerPhone.trim() ? { phone: buyerPhone.trim() } : {}) }, agreedAt: new Date() })
+        : null;
+    const emailOk = isValidEmail(buyerEmail);
+    const canSign = agreed && buyerName.trim().length >= 2 && emailOk;
 
     return (
         <div className="max-w-6xl mx-auto pb-20">
@@ -230,10 +224,11 @@ export default function MakeThisOnePage() {
                             <p className="text-sm text-[#9CA3B0] font-medium">{p.desc}</p>
                         </div>
                         
-                        <div className="mb-8 flex items-end gap-1">
-                            <span className="text-3xl font-extrabold text-white">{p.price.toLocaleString()}</span>
-                            <span className="text-sm font-medium text-[#9CA3B0] mb-1">원 / 월</span>
+                        <div className="mb-2 flex items-end gap-1">
+                            <span className="text-3xl font-extrabold text-white">{p.supplyPrice.toLocaleString()}</span>
+                            <span className="text-sm font-medium text-[#9CA3B0] mb-1 whitespace-nowrap">원 / 월</span>
                         </div>
+                        <p className="text-xs text-[#9CA3B0] leading-relaxed mb-8">부가세 별도<br />카드 결제 월 {p.price.toLocaleString()}원 (부가세 포함)</p>
                         
                         <ul className="space-y-4 mb-8 flex-1">
                             {p.features.map((feature, idx) => (
@@ -265,21 +260,24 @@ export default function MakeThisOnePage() {
                         One-time
                     </div>
                     <h2 className="text-2xl font-bold text-white mb-3">구독 없이, 필요한 만큼만</h2>
-                    <p className="text-[#9CA3B0] text-sm">정기 결제 대신 콘텐츠 건수나 6개월 계약을 한 번에 결제해서 이용할 수 있습니다.</p>
+                    <p className="text-[#9CA3B0] text-sm">정기 결제 대신 콘텐츠 횟수나 6개월 계약을 한 번에 결제해서 이용할 수 있습니다.</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {visibleCreditPacks().map((pack) => (
                         <div key={pack.id} className="flex flex-col p-7 rounded-3xl border border-white/[0.06] bg-[#11131A] hover:border-white/20 transition-all">
                             <h3 className="text-lg font-bold text-white mb-1">{pack.name}</h3>
-                            <p className="text-sm text-[#9CA3B0] mb-6">{pack.months ? `월 ${Math.round(pack.credits / pack.months)}회 · ${pack.months}개월 · 총 ${pack.credits}회` : `콘텐츠 ${pack.credits}건 단건 이용권`}</p>
-                            <div className={`${pack.months ? "mb-2" : "mb-8"} flex items-end gap-1`}>
-                                <span className="text-3xl font-extrabold text-white">{pack.price.toLocaleString()}</span>
-                                <span className="text-sm font-medium text-[#9CA3B0] mb-1">원{pack.vatIncluded ? " (부가세 포함)" : ""}</span>
+                            <p className="text-sm text-[#9CA3B0] mb-6">{pack.months ? `${pack.months}개월 계약 · 월 ${Math.round(pack.credits / pack.months)}회` : `콘텐츠 ${pack.credits}회 단건 이용권`}</p>
+                            <div className="mb-2 flex items-end gap-1">
+                                <span className="text-3xl font-extrabold text-white">{(pack.supplyPrice ?? pack.price).toLocaleString()}</span>
+                                <span className="text-sm font-medium text-[#9CA3B0] mb-1 whitespace-nowrap">원</span>
                             </div>
-                            {pack.months && pack.monthlyPrice ? (
-                                <p className="text-xs text-[#9CA3B0] mb-8">월 {pack.monthlyPrice.toLocaleString()}원 × {pack.months}개월, 한 번에 결제</p>
-                            ) : null}
+                            <p className="text-xs text-[#9CA3B0] leading-relaxed mb-8">
+                                {pack.vat ? "부가세 별도" : ""}
+                                {pack.months && pack.monthlyPrice ? `${pack.vat ? " · " : ""}월 ${pack.monthlyPrice.toLocaleString()}원 × ${pack.months}개월` : ""}
+                                <br />
+                                {pack.vat ? `카드 결제 ${pack.price.toLocaleString()}원 (부가세 포함), 한 번에 결제` : "한 번에 결제"}
+                            </p>
                             <button
                                 onClick={() => handleBuyCredit(pack.id)}
                                 className="mt-auto w-full py-3.5 rounded-xl text-sm font-bold bg-white/[0.06] text-white hover:bg-white/[0.1] transition-all"
@@ -290,7 +288,7 @@ export default function MakeThisOnePage() {
                     ))}
                 </div>
                 <p className="text-center text-xs text-[#6B7280] mt-6">
-                    단건 결제는 자동 갱신되지 않습니다. 결제 후 콘텐츠 건수는 영업일 기준 빠르게 계정에 반영됩니다.
+                    단건 결제는 자동 갱신되지 않습니다. 결제 후 콘텐츠 횟수는 영업일 기준 빠르게 계정에 반영됩니다.
                 </p>
             </div>
 
@@ -326,28 +324,45 @@ export default function MakeThisOnePage() {
                             {/* Step 1: Contract */}
                             <div className="space-y-6">
                                 <div className="bg-[#161B26] border border-white/[0.06] rounded-2xl p-6">
-                                    <h3 className="text-lg font-bold text-white mb-1">메이크디스원 마케팅 대행 계약서</h3>
-                                    <p className="text-sm text-[#9CA3B0] mb-6">선택하신 <strong className="text-[#6B94E0]">{purchaseName}</strong> {isCredit ? '단건 결제' : '플랜'}에 대한 서비스 이용 약관입니다.</p>
+                                    <h3 className="text-lg font-bold text-white mb-1">광고업무대행계약서</h3>
+                                    <p className="text-sm text-[#9CA3B0] mb-5">선택하신 <strong className="text-[#6B94E0]">{purchaseName}</strong> {isCredit ? "결제" : "플랜"}에 대한 계약서입니다. 결제가 끝나면 계약서를 PDF로 아래 이메일에 보내 드립니다.</p>
 
-                                    <div className="bg-[#0A0B10] border border-white/[0.04] rounded-xl p-5 h-48 overflow-y-auto text-xs text-[#9CA3B0] leading-relaxed space-y-4 scrollbar-thin scrollbar-thumb-white/10">
-                                        <p>제 1 조 (목적)<br/>본 계약은 "갑(이용자)"이 "을(메이크디스원)"에게 마케팅 및 콘텐츠 제작 대행 업무를 위탁함에 있어 양 당사자의 권리와 의무를 명확히 하는 데 목적이 있습니다.</p>
-                                        {isCredit ? (
-                                            <>
-                                                {creditPack?.months ? (
-                                                    <p>제 2 조 (계약 기간·결제 및 환불)<br/>1. 본 계약의 기간은 결제일부터 {creditPack.months}개월이며, 계약 대금 {creditPack.price.toLocaleString()}원(월 {creditPack.monthlyPrice?.toLocaleString()}원 × {creditPack.months}개월, 부가세 포함)을 결제일에 한 번에 결제합니다. 자동 갱신되지 않습니다.<br/>2. 서비스 착수 전 취소 시 전액 환불되며, 착수 후에는 이미 진행된 건수를 제외한 잔여분이 환불됩니다.</p>
-                                                ) : (
-                                                    <p>제 2 조 (결제 및 환불)<br/>1. 본 결제는 1회성 단건 결제이며 자동 갱신되지 않습니다. 결제하신 콘텐츠 건수는 소진 시까지 유효합니다.<br/>2. 서비스 착수 전 취소 시 전액 환불되며, 착수 후에는 이미 진행된 건수를 제외한 잔여분이 환불됩니다.</p>
-                                                )}
-                                                <p>제 3 조 (서비스 내용)<br/>{creditPack?.months ? `계약 기간 동안 월 ${Math.round((creditPack?.credits || 0) / creditPack.months)}회씩, 총 ${creditPack?.credits}회의 콘텐츠 기획 및 제작을 이행합니다.` : `결제하신 ${creditPack?.name}(${creditPack?.credits}건)만큼의 콘텐츠 기획 및 제작을 이행합니다.`}</p>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <p>제 2 조 (계약 기간 및 해지)<br/>1. 본 계약은 결제일로부터 1개월 단위로 자동 갱신되며, 해지 시 결제일 기준 7일 전 통보해야 합니다.<br/>2. 중도 해지 시 실제 서비스 진행 일수에 비례하여 차감된 금액이 환불됩니다.</p>
-                                                <p>제 3 조 (서비스 내용)<br/>선택한 플랜({plan?.name})에 명시된 횟수({plan?.desc})만큼의 콘텐츠 기획 및 제작을 이행합니다.</p>
-                                            </>
-                                        )}
-                                        <p>제 4 조 (비밀유지)<br/>"을"은 본 계약과 관련하여 취득한 "갑"의 모든 업무상 비밀 및 개인정보를 제3자에게 누설해서는 안 됩니다.</p>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+                                        <label className="block sm:col-span-2">
+                                            <span className="block text-xs font-semibold text-white/80 mb-1.5">광고주 (사무소명 또는 성명) <span className="text-[#6B94E0]">*</span></span>
+                                            <input value={buyerName} onChange={(e) => setBuyerName(e.target.value)} maxLength={80} placeholder="예: 법무법인 OO / 홍길동 변호사" className="w-full px-3.5 py-2.5 rounded-xl bg-[#0A0B10] border border-white/[0.08] text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-[#3563AE]" />
+                                        </label>
+                                        <label className="block">
+                                            <span className="block text-xs font-semibold text-white/80 mb-1.5">계약서를 받을 이메일 <span className="text-[#6B94E0]">*</span></span>
+                                            <input type="email" inputMode="email" autoComplete="email" value={buyerEmail} onChange={(e) => setBuyerEmail(e.target.value)} maxLength={120} placeholder="name@example.com" className="w-full px-3.5 py-2.5 rounded-xl bg-[#0A0B10] border border-white/[0.08] text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-[#3563AE]" />
+                                            {buyerEmail.trim() && !emailOk && <span className="block text-[11px] text-red-400 mt-1">이메일 주소를 다시 확인해 주세요.</span>}
+                                        </label>
+                                        <label className="block">
+                                            <span className="block text-xs font-semibold text-white/80 mb-1.5">연락처 (선택)</span>
+                                            <input type="tel" inputMode="tel" autoComplete="tel" value={buyerPhone} onChange={(e) => setBuyerPhone(e.target.value)} maxLength={20} placeholder="010-0000-0000" className="w-full px-3.5 py-2.5 rounded-xl bg-[#0A0B10] border border-white/[0.08] text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-[#3563AE]" />
+                                        </label>
                                     </div>
+
+                                    {paper && (
+                                        <div className="bg-[#0A0B10] border border-white/[0.04] rounded-xl p-5 h-64 overflow-y-auto text-xs text-[#9CA3B0] leading-relaxed space-y-4 scrollbar-thin scrollbar-thumb-white/10">
+                                            <p className="text-white/80">{paper.preamble}</p>
+                                            {paper.articles.map((art) => (
+                                                <div key={art.heading}>
+                                                    <p className="font-semibold text-white/80 mb-1">{art.heading}</p>
+                                                    {art.lines.length === 1 ? (
+                                                        <p>{art.lines[0]}</p>
+                                                    ) : (
+                                                        <ol className="space-y-1">
+                                                            {art.lines.map((line, i) => (
+                                                                <li key={i} className="flex gap-1.5"><span className="flex-shrink-0">{i + 1}.</span><span>{line}</span></li>
+                                                            ))}
+                                                        </ol>
+                                                    )}
+                                                </div>
+                                            ))}
+                                            <p className="pt-2 border-t border-white/[0.06]">{paper.dateLine}</p>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div 
@@ -375,7 +390,7 @@ export default function MakeThisOnePage() {
                             </button>
                             <button
                                 onClick={isCredit ? handleBuyCreditWithToss : handleSubscribeWithToss}
-                                disabled={!agreed || isProcessing}
+                                disabled={!canSign || isProcessing}
                                 className="px-6 py-2.5 rounded-xl text-sm font-bold bg-[#3563AE] text-white hover:bg-[#2A4F8A] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
                             >
                                 {isProcessing ? (

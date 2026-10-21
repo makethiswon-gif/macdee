@@ -10,11 +10,13 @@ function SuccessContent() {
     const router = useRouter();
     const [status, setStatus] = useState<"processing" | "success" | "error">("processing");
     const [errorMsg, setErrorMsg] = useState("");
+    const [contractEmail, setContractEmail] = useState<string | null>(null);
 
     useEffect(() => {
         const authKey = searchParams.get("authKey");
         const customerKey = searchParams.get("customerKey");
         const plan = searchParams.get("plan");
+        const contractId = searchParams.get("contract");
 
         if (!authKey || !customerKey || !plan) {
             setStatus("error");
@@ -27,14 +29,15 @@ function SuccessContent() {
                 const res = await fetch("/api/makethisone/issue", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ authKey, customerKey, plan }),
+                    body: JSON.stringify({ authKey, customerKey, plan, contractId }),
                 });
                 const data = await res.json();
 
                 if (res.ok) {
                     setStatus("success");
+                    setContractEmail(data.contractEmail || null);
                     toast.success("결제가 성공적으로 완료되었습니다!");
-                    setTimeout(() => router.push("/dashboard"), 3000);
+                    setTimeout(() => router.push("/dashboard"), 5000);
                 } else {
                     setStatus("error");
                     setErrorMsg(data.error || "결제 처리 중 오류가 발생했습니다.");
@@ -67,6 +70,7 @@ function SuccessContent() {
                     <h2 className="text-2xl font-bold text-white mb-3">구독 결제 완료!</h2>
                     <p className="text-[#9CA3B0] mb-8 leading-relaxed">
                         메이크디스원 마케팅 대행 서비스 결제가 완료되었습니다. <br/>
+                        {contractEmail && <>계약서를 {contractEmail}로 보냈습니다. <br/></>}
                         잠시 후 대시보드로 이동합니다.
                     </p>
                 </>

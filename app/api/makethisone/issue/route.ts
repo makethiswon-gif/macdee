@@ -2,22 +2,19 @@ import { NextResponse } from "next/server";
 import { getTossAuthHeader, TOSS_API_URL } from "@/lib/billing/config";
 import { createServiceClient } from "@/lib/supabase/server";
 import { addOneMonth } from "@/lib/billing/charge";
-
-const MTO_PLANS = {
-    basic: { name: "메이크디스원 베이직", price: 1200000 },
-    standard: { name: "메이크디스원 스탠다드", price: 2000000 },
-    premium: { name: "메이크디스원 프리미엄", price: 4000000 },
-};
+import { getPlan } from "@/lib/makethisone/products";
+import { finalizeContract, loadContract } from "@/lib/makethisone/contract-server";
 
 export async function POST(request: Request) {
     try {
-        const { authKey, customerKey, plan } = await request.json();
+        const { authKey, customerKey, plan, contractId } = await request.json();
         
         if (!authKey || !customerKey || !plan) {
             return NextResponse.json({ error: "필수 파라미터가 누락되었습니다." }, { status: 400 });
         }
 
-        const planInfo = MTO_PLANS[plan as keyof typeof MTO_PLANS];
+        const found = getPlan(String(plan));
+        const planInfo = found ? { name: `메이크디스원 ${found.name}`, price: found.price } : null;
         if (!planInfo) {
             return NextResponse.json({ error: "유효하지 않은 요금제입니다." }, { status: 400 });
         }
@@ -39,6 +36,8 @@ export async function POST(request: Request) {
         }
 
         const billingKey = issueData.billingKey;
+        // 결제 전 전자계약에 적은 광고주 정보(이름·이메일)
+        const contract = contractId ? await loadContract(String(contractId)).catch(() => null) : null;
 
         // 2. 첫 결제 바로 승인
         const orderId = `mto_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
@@ -53,7 +52,7 @@ export async function POST(request: Request) {
                 amount: planInfo.price,
                 orderId,
                 orderName: planInfo.name,
-                customerEmail: "contact@makethis1.com", // 임시 이메일
+                customerEmail: contract?.party.email || "contact@makethis1.com",
             }),
         });
 
@@ -68,8 +67,8 @@ export async function POST(request: Request) {
             const supabase = createServiceClient();
             const today = new Date().toISOString().slice(0, 10);
             await supabase.from("recurring_billing").insert({
-                customer_name: planInfo.name,
-                customer_email: null,
+                customer_name: contract?.party.name || planInfo.name,
+                customer_email: contract?.party.email || null,
                 plan: planInfo.name,
                 billing_key: billingKey,
                 customer_key: customerKey,
@@ -92,7 +91,11 @@ export async function POST(request: Request) {
             console.error("[MakeThisOne] recurring_billing/payments save error:", e);
         }
 
-        return NextResponse.json({ success: true, payment: chargeData }, { status: 200 });
+        // 계약서 PDF 를 결제자 이메일로(실패해도 결제는 완료)
+        const contractMail = await finalizeContract(contractId ? String(contractId) : null, { kind: "plan", productId: String(plan), orderId, amount: planInfo.price, paidAt: chargeData.approvedAt || null });
+        if (contractId && !contractMail.ok) console.error("[MakeThisOne] contract mail:", contractMail.reason);
+
+        return NextResponse.json({ success: true, payment: chargeData, contractEmail: contractMail.ok ? contractMail.email : null }, { status: 200 });
 
     } catch (err) {
         console.error("[MakeThisOne] API error:", err);

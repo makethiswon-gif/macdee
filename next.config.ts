@@ -10,6 +10,9 @@ const nextConfig: NextConfig = {
     "/api/admin/blog-images/plan": ["./public/fonts/noto-*-kr-korean-*-normal.woff2"],
     "/api/admin/blog-images/generate-design": ["./public/fonts/noto-*-kr-korean-*-normal.woff2"],
     "/api/admin/blog-images/preflight": ["./public/fonts/noto-*-kr-korean-*-normal.woff2"],
+    // 전자계약서 PDF 글꼴(결제 승인 때 만든다)
+    "/api/payments/confirm": ["./lib/makethisone/fonts/*.ttf"],
+    "/api/makethisone/issue": ["./lib/makethisone/fonts/*.ttf"],
   },
   async headers() {
     return [

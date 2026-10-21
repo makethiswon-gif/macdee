@@ -14,6 +14,7 @@ export default function OneTimePurchaseSuccess() {
         const paymentKey = params.get("paymentKey");
         const orderId = params.get("orderId");
         const amount = params.get("amount");
+        const contractId = params.get("contract");
 
         if (!paymentKey || !orderId || !amount) {
             setState("error");
@@ -24,13 +25,13 @@ export default function OneTimePurchaseSuccess() {
         fetch("/api/payments/confirm", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ paymentKey, orderId, amount: Number(amount) }),
+            body: JSON.stringify({ paymentKey, orderId, amount: Number(amount), contractId }),
         })
             .then(async (res) => {
                 const data = await res.json();
                 if (res.ok) {
                     setState("ok");
-                    setMessage(`${data.pack} 결제가 완료되었습니다. 콘텐츠 ${data.credits}건이 곧 계정에 반영됩니다.`);
+                    setMessage(`${data.pack} 결제가 완료되었습니다. 콘텐츠 ${data.credits}회가 곧 계정에 반영됩니다.${data.contractEmail ? ` 계약서를 ${data.contractEmail}로 보냈습니다.` : ""}`);
                 } else {
                     setState("error");
                     setMessage(data.error || "결제 승인에 실패했습니다.");
