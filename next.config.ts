@@ -13,6 +13,7 @@ const nextConfig: NextConfig = {
     // 전자계약서 PDF 글꼴(결제 승인 때 만든다)
     "/api/payments/confirm": ["./lib/makethisone/fonts/*.ttf"],
     "/api/makethisone/issue": ["./lib/makethisone/fonts/*.ttf"],
+    "/api/makethisone/contract/preview": ["./lib/makethisone/fonts/*.ttf"],
   },
   async headers() {
     return [

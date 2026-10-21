@@ -94,7 +94,8 @@ function wrap(text: string, font: PDFFont, size: number, width: number): string[
     return out;
 }
 
-export async function renderContractPdf(rec: ContractRecord): Promise<Uint8Array> {
+/** preview: 결제 전 미리보기(동의·결제 전) — 제목 아래 안내, 전자서명 칸은 "동의 전", 끝 문구도 미리보기용. */
+export async function renderContractPdf(rec: ContractRecord, opts: { preview?: boolean } = {}): Promise<Uint8Array> {
     const paper = buildContract({
         product: rec.product, party: rec.party, agreedAt: new Date(rec.agreedAt),
         payment: rec.payment ? { orderId: rec.payment.orderId, amount: rec.payment.amount, paidAt: new Date(rec.payment.paidAt) } : null,
@@ -125,6 +126,12 @@ export async function renderContractPdf(rec: ContractRecord): Promise<Uint8Array
     const tw = bold.widthOfTextAtSize(paper.title, titleSize);
     page.drawText(paper.title, { x: (A4.w - tw) / 2, y: y - titleSize, size: titleSize, font: bold, color: ink });
     y -= titleSize * 2.2;
+    if (opts.preview) {
+        const note = "결제 전 미리보기 — 결제를 마치면 계약이 성립합니다";
+        page.drawText(note, { x: (A4.w - regular.widthOfTextAtSize(note, 9)) / 2, y: y + 6, size: 9, font: regular, color: gray });
+        y -= 10;
+        paper.gap = paper.gap.map(([k, v]): [string, string] => (k === "전자서명" ? [k, "결제 전 미리보기(아직 동의 전)"] : [k, v]));
+    }
     write(paper.preamble, { gap: 10 });
     const center = "다      음";
     page.drawText(center, { x: (A4.w - regular.widthOfTextAtSize(center, 10)) / 2, y: y - 10, size: 10, font: regular, color: ink });
@@ -158,7 +165,9 @@ export async function renderContractPdf(rec: ContractRecord): Promise<Uint8Array
     table("결제 내역", paper.payment);
 
     need(30);
-    write(`본 계약서는 ${kstDate(new Date())} ${rec.party.email} 로 발송된 전자계약서입니다. 계약 번호 ${rec.id}`, { size: 8, color: gray });
+    write(opts.preview
+        ? `본 문서는 ${kstDate(new Date())} 결제 화면에서 내려받은 계약서 미리보기입니다. 결제를 마치면 동의 시각과 결제 내역이 들어간 계약서를 입력한 이메일로 보내 드립니다.`
+        : `본 계약서는 ${kstDate(new Date())} ${rec.party.email} 로 발송된 전자계약서입니다. 계약 번호 ${rec.id}`, { size: 8, color: gray });
     return doc.save();
 }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, X, CreditCard, Sparkles, CheckCircle2, FileText, ArrowRight, Loader2 } from "lucide-react";
+import { Check, X, CreditCard, Sparkles, CheckCircle2, FileText, ArrowRight, Loader2, Download } from "lucide-react";
 import Image from "next/image";
 import { loadTossPayments } from "@tosspayments/payment-sdk";
 import { toast } from "sonner";
@@ -69,6 +69,39 @@ export default function MakeThisOnePage() {
         } catch {
             toast.error("계약을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.");
             return null;
+        }
+    };
+
+    // 결제 전에 계약서를 PDF 로 내려받는다(저장·메일 없음, 입력한 광고주 정보가 들어간 미리보기)
+    const [isDownloading, setIsDownloading] = useState(false);
+    const downloadContractPdf = async () => {
+        const kind = selectedCredit ? "pack" : "plan";
+        const productId = selectedCredit || selectedPlan;
+        if (!productId) return;
+        setIsDownloading(true);
+        try {
+            const res = await fetch("/api/makethisone/contract/preview", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ kind, productId, name: buyerName, email: buyerEmail, phone: buyerPhone }),
+            });
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                toast.error(data.error || "계약서 PDF 를 만들지 못했습니다.");
+                return;
+            }
+            const url = URL.createObjectURL(await res.blob());
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "광고업무대행계약서_미리보기.pdf";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 10_000);
+        } catch {
+            toast.error("계약서 PDF 를 내려받지 못했습니다.");
+        } finally {
+            setIsDownloading(false);
         }
     };
 
@@ -363,6 +396,17 @@ export default function MakeThisOnePage() {
                                             <p className="pt-2 border-t border-white/[0.06]">{paper.dateLine}</p>
                                         </div>
                                     )}
+
+                                    <button
+                                        type="button"
+                                        onClick={downloadContractPdf}
+                                        disabled={isDownloading || !paper}
+                                        className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white/80 bg-white/[0.06] hover:bg-white/[0.1] disabled:opacity-50 transition-colors"
+                                    >
+                                        {isDownloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                                        계약서 PDF 미리 받기
+                                    </button>
+                                    <p className="text-[11px] text-[#6B7280] mt-1.5">결제 전에 계약서를 PDF로 내려받아 확인할 수 있습니다. 결제를 마치면 동의 시각과 결제 내역이 들어간 계약서를 이메일로 보내 드립니다.</p>
                                 </div>
 
                                 <div 
