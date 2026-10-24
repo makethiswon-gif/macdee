@@ -9,7 +9,8 @@ export function readManuscriptResponse(data: Message) {
     const ordered = markers.map((marker) => marker[1]);
     const closedBody = ordered[0] === "TITLE" && ordered[1] === "BODY" && ordered[2] === "FACTS";
     const truncated = data.stop_reason === "max_tokens";
-    const text = raw.split(COVER_MARKER)[0];
+    // 표지(===COVER===)·핵심 정리(===INFO===) 브리프는 사실 목록에 섞이지 않게 잘라 낸다.
+    const text = raw.split(COVER_MARKER)[0].split("===INFO===")[0];
     const titleMarker = "===TITLE===", bodyMarker = "===BODY===", factsMarker = "===FACTS===";
     const factsIdx = text.indexOf(factsMarker);
     const factsComplete = !truncated || ordered[3] === "COVER";

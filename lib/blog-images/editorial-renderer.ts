@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import sharp from "sharp";
 import { safeBrandColor } from "../brand-visual";
-import type { Infographic } from "./infographic";
+import { infographicRows, type Infographic } from "./infographic";
 import { CARD_LABELS, CARD_PLACEMENTS, type BlogCardType, type BlogImageCard, type EditorialCopy, type EditorialProfile } from "./card-types";
 
 // No browser CSS, remote fonts, screenshots, randomized image bans or generated HTML.
@@ -152,6 +152,7 @@ function infoRows(info: Infographic) {
         case "checklist": return info.items.map((s, i) => ({ key: String(i + 1).padStart(2, "0"), title: s.label, note: s.note || "" }));
         case "tiers": return info.tiers.map((s) => ({ key: s.range, title: s.label, note: "" }));
         case "compare": return [];
+        case "numbers": case "statement": return infographicRows(info).map((r) => ({ key: r.key, title: r.label, note: r.note || "" }));
     }
 }
 

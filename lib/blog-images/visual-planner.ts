@@ -3,6 +3,7 @@ import { extractClaudeText } from "@/lib/ai/claude-text";
 import { BLOG_WRITING_MODEL } from "@/lib/ai/models";
 import { BLOG_CARD_TYPES, PROFILE_CARD_TYPES, PROFILE_SET_FORMAT, EDITORIAL_SET_FORMAT, type EditorialProfile, type BlogCardType } from "./card-types";
 import { parseInfographicResult } from "./infographic";
+import { infoBriefIssues } from "./info-brief";
 import { articleParagraphs, type ArtDirection, type ArticleVisualPlan, type PlannedCard, type SourceEvidence, type VisualBrief } from "./visual-plan-types";
 import { identityDirective, lockDirection, type MagazineIdentity } from "./magazine-identity";
 import { paidJsonRequest, paidId } from "./paid-operation";
@@ -99,6 +100,18 @@ export function validateVisualPlan(value: unknown, title: string, content: strin
         seen.add(type);
         if (studioSet && ["illustration", "info"].includes(type)) return { type, heading: type === "illustration" ? "스튜디오 사진 1" : "스튜디오 사진 2", deck: "", points: [], evidence: [], purpose: "승인된 AI 연출 초상 사진",
             afterParagraphId: paragraphs[Math.min(paragraphs.length - 1, Math.floor(paragraphs.length * (type === "illustration" ? 0.35 : 0.7)))].id };
+        if (editorialSet && type === "info" && c.infographic) {
+            // 2026-10-24: 2번은 글 내용을 정리한 '핵심 정리' 카드. 데이터는 원고 응답(===INFO===)이나 추출 호출에서 오고, 같은 검사를 다시 지난다.
+            const parsed = parseInfographicResult(JSON.stringify(c.infographic));
+            if (!parsed.ok) throw new PlanValidationError(`핵심 정리 이미지: ${parsed.reason}`);
+            const issues = infoBriefIssues(parsed.data, typeof c.kicker === "string" ? c.kicker : "", typeof c.deck === "string" ? c.deck : "");
+            if (issues.length) throw new PlanValidationError(`핵심 정리 이미지: ${issues.join(", ")}`);
+            const anchor = typeof c.afterParagraphId === "string" && paragraphs.some((p) => p.id === c.afterParagraphId) ? c.afterParagraphId
+                : paragraphs[Math.max(0, Math.min(paragraphs.length - 2, Math.floor(paragraphs.length * 0.6)))].id;
+            return { type, heading: parsed.data.heading, deck: string(c.deck, "핵심 정리 메모", 140, true), points: [], evidence: [], purpose: "본문 핵심 정리",
+                afterParagraphId: anchor, infographic: parsed.data, ...(c.kicker ? { kicker: string(c.kicker, "분야 표제", 18) } : {}),
+                ...(typeof c.afterHeading === "string" && c.afterHeading.trim() ? { afterHeading: string(c.afterHeading, "넣을 소제목", 120) } : {}) };
+        }
         if ((profileSet || editorialSet) && type === "info") {
             // Credentials come from the server's lawyer edition, never from this article/model.
             return { type, heading: editorialSet ? "변호사·로펌 소개" : "주요 경력", deck: "", points: [], evidence: [], purpose: editorialSet ? "변호사·로펌 승인 경력 소개" : "변호사·로펌 고정 경력 소개",

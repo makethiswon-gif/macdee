@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { verifyAdminToken } from "@/lib/admin-auth";
 import { PlanValidationError, validateVisualPlan, sourceHash, PLAN_VERSION } from "@/lib/blog-images/visual-planner";
 import { EDITORIAL_SET_FORMAT } from "@/lib/blog-images/card-types";
-import { asEditorialThree, planEditorialThree, planEditorialThreeFromBrief } from "@/lib/blog-images/three-card-plan";
+import { asEditorialThree, planEditorialThree, planEditorialThreeFromBrief, withInfoCard } from "@/lib/blog-images/three-card-plan";
+import { infoBriefFromWire } from "@/lib/blog-images/info-brief";
+import { extractInfoBrief } from "@/lib/blog-images/info-extract";
+import type { ArticleVisualPlan } from "@/lib/blog-images/visual-plan-types";
 import { coverBriefFromWire } from "@/lib/blog-cover-brief";
 import { appendUsage } from "@/lib/blog-post-state";
 import type { UsageEntry } from "@/lib/blog-usage";
@@ -64,16 +67,34 @@ export async function POST(request: Request) {
         }
         // 2026-09-22: 신뢰 카드에 승인 경력을 싣는 기능을 뺐다. 항상 사진만(basic).
         const proof = selectImageProof(context.library, `${body.title || ""} ${body.content}`, planIdentity.source, true);
-        // 2·3번 사진은 원고마다 돌려 쓴다(제작 단계와 같은 열쇠: sourceHash).
-        await prepareEditorialThree(context.profile, proof, body.title || "", await editorialStudioPhoto(context.profile.id, `${EDITORIAL_SET_FORMAT}:${context.profile.id}`, "info", planIdentity.source),
+        // 3번 상담 사진은 원고마다 돌려 쓴다(제작 단계와 같은 열쇠: sourceHash). 2번은 2026-10-24부터 글 내용 카드라 미리 그려 볼 사진이 없다.
+        await prepareEditorialThree(context.profile, proof, body.title || "", undefined,
             await editorialStudioPhoto(context.profile.id, `${EDITORIAL_SET_FORMAT}:${context.profile.id}`, "contact", planIdentity.source));
+        // 2번 '핵심 정리' 데이터: 원고 응답의 브리프 → 없으면 작은 추출 호출 → 그것도 안 되면 예전 사진 카드.
+        const engine = parseClaudeEngine(body.engine);
+        const usageSink: UsageEntry[] = [];
+        const wireInfo = infoBriefFromWire(body.infoBrief);
+        const withInfo = async (plan: ArticleVisualPlan): Promise<{ plan: ArticleVisualPlan; note?: string }> => {
+            if (plan.setFormat !== EDITORIAL_SET_FORMAT || plan.cards.find((c) => c.type === "info")?.infographic) return { plan };
+            let info = wireInfo, note = "";
+            if (!info && body.recoverOnly !== true) {
+                try {
+                    const r = await extractInfoBrief(body.title || "", body.content, { usageSink, engine });
+                    info = r.brief;
+                    if (!info) note = `2번 핵심 정리 데이터를 뽑지 못해(${r.issues.join(", ")}) 이번 글의 2번은 예전 변호사 사진으로 만듭니다.`;
+                } catch (e) { note = `2번 핵심 정리 추출에 실패해(${e instanceof Error ? e.message.slice(0, 120) : "알 수 없는 오류"}) 이번 글의 2번은 예전 변호사 사진으로 만듭니다.`; }
+            }
+            return info ? { plan: withInfoCard(plan, info, body.title || "", body.content) } : { plan, note };
+        };
         const cached = await cachedVisualPlan(cacheId) || oldCached;
         if (cached) {
-            const plan = asEditorialThree(validateVisualPlan(cached, body.title || "", body.content), context.profile, proof, body.title || "", body.content);
+            const info = await withInfo(asEditorialThree(validateVisualPlan(cached, body.title || "", body.content), context.profile, proof, body.title || "", body.content));
+            const plan = info.plan;
             plan.strengthToken = context.token; plan.strengthSelection = context.selection;
-            plan.productionNotes = cached.setFormat === EDITORIAL_SET_FORMAT ? cached.productionNotes : ["이전 표지 기획·원본을 재사용해 3장으로 편집합니다. 기존 4장 파일은 보존됩니다."];
+            plan.productionNotes = [...(cached.setFormat === EDITORIAL_SET_FORMAT ? cached.productionNotes || [] : ["이전 표지 기획·원본을 재사용해 3장으로 편집합니다. 기존 4장 파일은 보존됩니다."]), ...(info.note ? [info.note] : [])];
             await saveVisualPlan(cacheId, plan);
-            return NextResponse.json({ plan }, { headers: { "Cache-Control": "private, no-store" } });
+            await appendUsage(body.postId, usageSink);
+            return NextResponse.json({ plan, usage: usageSink }, { headers: { "Cache-Control": "private, no-store" } });
         }
         let recent: Awaited<ReturnType<typeof recentVisualHistory>> = [];
         const notes: string[] = [];
@@ -81,15 +102,16 @@ export async function POST(request: Request) {
         catch { notes.push("최근 구성 이력을 읽지 못해 이번 기획은 원고 근거로만 설계했습니다."); }
         // 2026-09-22 재설계 §3: 원고 응답에 딸려 온 표지 브리프가 있으면 모델 호출 없이 구성안을 조립한다.
         // 새 유료 기획을 명시적으로 요청했거나(forceReplan) 저장 응답 복구(recoverOnly)면 예전 경로.
-        const usageSink: UsageEntry[] = [];
         const brief = body.forceReplan === true || body.recoverOnly === true ? null : coverBriefFromWire(body.coverBrief);
         // 2026-09-29: 모델 기획이 필요할 때만 실행 방식(API/클로드 구독)이 의미가 있다. 브리프 조립은 AI 호출이 없다.
-        const engine = parseClaudeEngine(body.engine);
         if (!brief && engine === "subscription" && body.recoverOnly !== true) await assertSubscriptionReady();
         // Keep the original paid-operation ID: a saved provider response is not billed again.
-        const plan = brief
-            ? planEditorialThreeFromBrief(body.title || "", body.content, context.profile, proof, brief, recent)
+        const built = brief
+            ? planEditorialThreeFromBrief(body.title || "", body.content, context.profile, proof, brief, recent, wireInfo)
             : await planEditorialThree(body.title || "", body.content, context.profile, proof, oldCacheId, recent, body.recoverOnly === true, usageSink, engine);
+        const info = await withInfo(built);
+        const plan = info.plan;
+        if (info.note) notes.push(info.note);
         if (context) { plan.strengthToken = context.token; plan.strengthSelection = context.selection; }
         if (context) try { await recordVisualPlan(context.profile.id, plan); }
         catch { notes.push("이번 기획의 구성 이력을 저장하지 못했습니다."); }

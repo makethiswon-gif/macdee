@@ -12,6 +12,7 @@ import { BLOG_WRITING_MODEL, BLOG_EFFORT, lowerEffort } from "@/lib/ai/models";
 import { createHash } from "node:crypto";
 import { usageFromProvider } from "@/lib/blog-usage";
 import { coverBriefInstruction, parseCoverBrief, type CoverBrief } from "@/lib/blog-cover-brief";
+import { infoBriefInstruction, parseInfoBrief, type InfoBrief } from "@/lib/blog-images/info-brief";
 import { editorialCoverLayout } from "@/lib/blog-images/three-card-policy";
 import { thumbnailStyle, type ThumbnailStyle } from "@/lib/blog-images/thumbnail-cover";
 import { ImageProductionError, recentVisualHistory } from "@/lib/blog-images/production-store";
@@ -270,7 +271,7 @@ ${trustBlock}
 ===BODY===
 (마크다운 본문. 첫 줄은 문단으로 시작. 기준일·작성 줄·전화번호는 쓰지 않습니다)
 ===FACTS===
-(본문에 쓴 사실 주장 가운데 사람이 확인해야 할 것을 한 줄에 하나씩, "- "로 시작해 적습니다: 조문 번호와 그 내용, 기한과 기산점, 금액·비율·점수 등 수치, 개정·결정의 시점. 본문 문장을 그대로 옮기지 말고 확인 가능한 명제로 짧게. 이 블록은 독자에게 보이지 않고 검수자에게만 보입니다)${coverLayout ? `\n${coverBriefInstruction(coverLayout, recentSubjects, coverStyle)}` : ""}`;
+(본문에 쓴 사실 주장 가운데 사람이 확인해야 할 것을 한 줄에 하나씩, "- "로 시작해 적습니다: 조문 번호와 그 내용, 기한과 기산점, 금액·비율·점수 등 수치, 개정·결정의 시점. 본문 문장을 그대로 옮기지 말고 확인 가능한 명제로 짧게. 이 블록은 독자에게 보이지 않고 검수자에게만 보입니다)${coverLayout ? `\n${coverBriefInstruction(coverLayout, recentSubjects, coverStyle)}\n${infoBriefInstruction()}` : ""}`;
 
         const fieldLine = field && field.trim() ? `[분야/사건 유형] ${field.trim()}\n\n` : "";
         const userMessage = rewrite
@@ -332,14 +333,21 @@ ${trustBlock}
             coverBrief = cover.brief;
             if (!coverBrief) coverWarning = `표지 브리프를 읽지 못했습니다(${cover.issues.join(", ")}). 이미지 단계에서 별도 기획(유료)으로 대신합니다.`;
         }
+        // 2번 '핵심 정리' 데이터(2026-10-24). 깨져도 원고는 그대로 쓰고, 이미지 단계가 작은 추출 호출로 대신한다.
+        let infoBrief: InfoBrief | null = null, infoWarning = "";
+        if (coverLayout && !parsed.truncated) {
+            const info = parseInfoBrief(rawContent);
+            infoBrief = info.brief;
+            if (!infoBrief) infoWarning = `2번 핵심 정리 데이터를 읽지 못했습니다(${info.issues.join(", ")}). 이미지 단계에서 작은 추출 호출(약 1~2센트)로 대신합니다.`;
+        }
         const verbatim = rewrite ? verbatimSentences(sourceText, body) : [];
         return NextResponse.json({
             editorialWarnings: [...reviewBlogEditorial(title, body, recentBodies, recentTitles),
                 ...(verbatim.length ? [`재창작: 원문 문장 ${verbatim.length}개가 거의 그대로 들어갔습니다. 표현을 바꿔 주세요. 예: "${verbatim[0].slice(0, 40)}…"`] : []),
-                ...(coverWarning ? [coverWarning] : [])],
+                ...(coverWarning ? [coverWarning] : []), ...(infoWarning ? [infoWarning] : [])],
             factChecklist: parsed.facts,     // 검수자 확인용 사실 목록 (본문에는 포함되지 않는다)
             mode: rewrite ? "rewrite" : "topic",
-            usage, retryUsage, operationId, coverBrief,
+            usage, retryUsage, operationId, coverBrief, infoBrief,
             question: coverBrief?.question || "", thesis: coverBrief?.thesis || "",
             bodyHash: createHash("sha256").update(body).digest("hex"),
             title,

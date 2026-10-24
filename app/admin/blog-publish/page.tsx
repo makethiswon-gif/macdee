@@ -13,6 +13,7 @@ import { studioLibraryUrl, studioRecoveryAction } from "@/lib/lawyer-studio/type
 import { summarizeUsage, USAGE_KIND_LABELS, type UsageEntry } from "@/lib/blog-usage";
 import type { FactCheck, PostState, BodyVersion } from "@/lib/blog-post-state";
 import { coverStillMatches, type CoverBrief } from "@/lib/blog-cover-brief";
+import type { InfoBrief } from "@/lib/blog-images/info-brief";
 import { editScopeOptions, type EditScope } from "@/lib/blog-edit-scope";
 import { contactActions } from "@/lib/blog-images/contact-details";
 import { PRICING_UPDATED } from "@/lib/ai/pricing";
@@ -33,7 +34,7 @@ interface BlogSetting {
 }
 interface TopicCandidate { topic: string; field: string; angle: string; titleIdea: string; reason: string }
 interface SavedPost { id: string; profile_id?: string; title: string; body: string; field: string | null; topic: string | null; card_images?: { type: string; url: string }[] }
-interface WriteResponse { title: string; body: string; contactWarning?: string | null; editorialWarnings?: string[]; factChecklist?: string[]; usage?: UsageEntry; retryUsage?: UsageEntry[]; coverBrief?: CoverBrief | null; question?: string; thesis?: string; mode?: "topic" | "rewrite"; bodyHash?: string }
+interface WriteResponse { title: string; body: string; contactWarning?: string | null; editorialWarnings?: string[]; factChecklist?: string[]; usage?: UsageEntry; retryUsage?: UsageEntry[]; coverBrief?: CoverBrief | null; infoBrief?: InfoBrief | null; question?: string; thesis?: string; mode?: "topic" | "rewrite"; bodyHash?: string }
 interface WriteRequest { content: string; source?: string; field: string; profileId: string; topic: string; attemptId?: string; confirmPaid: boolean; engine: ClaudeEngine }
 interface WriteFailure { request: WriteRequest; topic: TopicCandidate; usage?: UsageEntry; retryUsage?: UsageEntry[] }
 interface EditResponse { replacement: string; label: string; target: string; title: string; body: string; warnings: string[]; usage?: UsageEntry }
@@ -97,6 +98,7 @@ export default function BlogPublishPage() {
     const active = useRef<AbortController | null>(null);
     const batch = useRef<PublishBatch | null>(null);
     const coverBrief = useRef<CoverBrief | null>(null);
+    const infoBrief = useRef<InfoBrief | null>(null); // 2번 '핵심 정리' 카드 데이터(2026-10-24)
     const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const exportingRef = useRef(false);
@@ -231,7 +233,7 @@ export default function BlogPublishPage() {
     };
     const reset = () => {
         setWriteFailure(null);
-        planningAttempt.current = ""; writingAttempt.current = ""; editAttempt.current = ""; coverBrief.current = null;
+        planningAttempt.current = ""; writingAttempt.current = ""; editAttempt.current = ""; coverBrief.current = null; infoBrief.current = null;
         active.current?.abort(); active.current = null;
         if (copyTimer.current) clearTimeout(copyTimer.current);
         clearImages(); setTopics([]); setTopicNotice(""); setPicked(null); setDraftTopic(null); setSourceText(""); setDetail(""); setGuide({ question: "", condition: "", viewpoint: "" });
@@ -281,6 +283,7 @@ export default function BlogPublishPage() {
             setFactChecks(s.factChecks || []); setAiUsage(s.aiUsage || []); setBodyVersions(s.bodyVersions || []);
             setQuestionThesis({ question: s.question || "", thesis: s.thesis || "" });
             coverBrief.current = s.coverBrief || null;
+            infoBrief.current = s.infoBrief || null;
             setConfirmed(["confirmed", "images", "done"].includes(s.stage));
         } catch (e) { if (mounted.current) setError(`작업 상태를 읽지 못했습니다(원고는 열었습니다): ${message(e)}`); }
     };
@@ -365,7 +368,7 @@ export default function BlogPublishPage() {
         const brief = coverBrief.current;
         setProgress(brief && !planningAttempt.current ? "원고 응답의 표지 브리프로 구성안 조립 중(추가 AI 호출 없음)…" : "원고 전체를 읽고 이미지 구성 기획 중…");
         const planned = await publishJson<{ plan: ArticleVisualPlan; usage?: UsageEntry[] }>("/api/admin/blog-images/plan", op.signal,
-            { title: snapshot.title, content: snapshot.body, profile: { id: data.profile.id }, basicProfile: true, postId, engine, ...(brief ? { coverBrief: brief } : {}),
+            { title: snapshot.title, content: snapshot.body, profile: { id: data.profile.id }, basicProfile: true, postId, engine, ...(brief ? { coverBrief: brief } : {}), ...(infoBrief.current ? { infoBrief: infoBrief.current } : {}),
                 attemptId: planningAttempt.current || undefined, confirmPaid: !!planningAttempt.current, forceReplan: !recoverPlanOnly && !!planningAttempt.current, recoverOnly: recoverPlanOnly });
         if (!planned.plan) throw new Error("이미지 구성안을 받지 못했습니다.");
         if (!current(op)) return;
@@ -448,10 +451,11 @@ export default function BlogPublishPage() {
             setFactChecks(checks);
             setQuestionThesis({ question: data.question || "", thesis: data.thesis || "" });
             coverBrief.current = data.coverBrief || null;
+            infoBrief.current = data.infoBrief || null;
             const writeUsage = [...(data.retryUsage || []), ...(data.usage ? [data.usage] : [])];
             setAiUsage(writeUsage);
             const id = await persist(snapshot, null, op);
-            await patchState({ stage: "review", ...(writeUsage.length ? { appendUsage: writeUsage } : {}), factChecks: checks, coverBrief: data.coverBrief || null, coverBriefBodyHash: data.bodyHash || "",
+            await patchState({ stage: "review", ...(writeUsage.length ? { appendUsage: writeUsage } : {}), factChecks: checks, coverBrief: data.coverBrief || null, infoBrief: data.infoBrief || null, coverBriefBodyHash: data.bodyHash || "",
                 source: { kind: rewrite ? "rewrite" : "topic", label: effectiveTopic.topic }, question: data.question || "", thesis: data.thesis || "" }, id);
             if (current(op)) {
                 setPlanOpen(false);

@@ -28,9 +28,9 @@ export async function POST(request: Request) {
         const db = createServiceClient();
         const { data, error } = await db.storage.getBucket("owner-briefings");
         if (error || !data || data.public) throw new Error("이미지 비공개 저장소를 확인해주세요. 유료 생성을 시작하지 않았습니다.");
-        const photo = await editorialStudioPhoto(context.profile.id, `${EDITORIAL_SET_FORMAT}:${context.profile.id}`);
+        // 2026-10-24: 2번은 글 내용으로 그리는 '핵심 정리' 카드라 미리 확인할 사진이 없다. 3번 상담 카드만 확인한다.
         const contactPhoto = await editorialStudioPhoto(context.profile.id, `${EDITORIAL_SET_FORMAT}:${context.profile.id}`, "contact");
-        const dimensions = await prepareEditorialThree(context.profile, proof, topic.slice(0, 180), photo, contactPhoto);
+        const dimensions = await prepareEditorialThree(context.profile, proof, topic.slice(0, 180), undefined, contactPhoto);
         if (body.checkModel === true) await verifyPhotoModel();
         return NextResponse.json({ ok: true, model: BLOG_PHOTO_MODEL, setFormat: EDITORIAL_SET_FORMAT, count: 3,
             dimensions, proof: proof.claims, basicProfile: proof.mode === "basic" }, { headers: { "Cache-Control": "private, no-store" } });

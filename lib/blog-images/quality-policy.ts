@@ -2,7 +2,8 @@ import { cardTypesFor, EDITORIAL_SET_FORMAT, type BlogImageCard } from "./card-t
 import { STUDIO_INFO_REQUIRED_MESSAGE } from "../lawyer-studio/types";
 
 export function editorialStudioPhotoMissing(card: BlogImageCard): boolean {
-    return card.setFormat === EDITORIAL_SET_FORMAT && card.type === "info"
+    // 2026-10-24: 2번 '핵심 정리' 카드(infoKind)는 사진이 없는 글 내용 카드다.
+    return card.setFormat === EDITORIAL_SET_FORMAT && card.type === "info" && !card.infoKind
         && (card.studioPhotos?.length !== 1 || card.photoChecks?.source !== "studio");
 }
 

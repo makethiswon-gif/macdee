@@ -44,13 +44,28 @@ export interface Tier {
     range: string;
     label: string;
 }
+/** 숫자로 보기(2026-10-24): 글의 핵심이 수치 1~3개일 때. value 는 숫자 부분, unit 은 단위(년·일·만 원). */
+export interface Figure {
+    value: string;
+    unit: string;
+    label: string;
+    note?: string;
+}
+/** 핵심 정리(2026-10-24): 도표 구조가 없을 때의 갈래 2~3개. when 은 그 갈래가 쓰이는 상황, how 는 한 줄 방법. */
+export interface Branch {
+    label: string;
+    when: string;
+    how?: string;
+}
 
 export type Infographic =
     | { kind: "flow"; heading: string; steps: FlowStep[] }
     | { kind: "timeline"; heading: string; events: TimelineEvent[] }
     | { kind: "checklist"; heading: string; items: CheckItem[] }
     | { kind: "compare"; heading: string; leftLabel: string; rightLabel: string; rows: CompareRow[] }
-    | { kind: "tiers"; heading: string; tiers: Tier[] };
+    | { kind: "tiers"; heading: string; tiers: Tier[] }
+    | { kind: "numbers"; heading: string; figures: Figure[] }
+    | { kind: "statement"; heading: string; lead: string; branches: Branch[] };
 
 /* ═══════════════ 추출 지시 ═══════════════ */
 
@@ -145,7 +160,7 @@ export function parseInfographicResult(raw: string): ParseResult {
     if (!heading) return { ok: false, reason: `heading 이 없거나 ${LIM.heading}자 초과` };
 
     let bad = "";
-    const many = <T>(v: unknown, field: string, map: (row: Record<string, unknown>) => T | null): T[] | null => {
+    const many = <T>(v: unknown, field: string, map: (row: Record<string, unknown>) => T | null, min = MIN_ROWS, max = MAX_ROWS): T[] | null => {
         if (!Array.isArray(v)) { bad = `${field} 가 배열이 아님`; return null; }
         const out: T[] = [];
         for (const row of v) {
@@ -158,8 +173,8 @@ export function parseInfographicResult(raw: string): ParseResult {
             if (!m) { bad = `${field} 항목의 글자수가 상한을 넘음`; return null; }
             out.push(m);
         }
-        if (out.length < MIN_ROWS) { bad = `${field} 항목이 ${out.length}개(최소 ${MIN_ROWS})`; return null; }
-        if (out.length > MAX_ROWS) { bad = `${field} 항목이 ${out.length}개(최대 ${MAX_ROWS})`; return null; }
+        if (out.length < min) { bad = `${field} 항목이 ${out.length}개(최소 ${min})`; return null; }
+        if (out.length > max) { bad = `${field} 항목이 ${out.length}개(최대 ${max})`; return null; }
         return out;
     };
 
@@ -210,6 +225,26 @@ export function parseInfographicResult(raw: string): ParseResult {
             return range && label ? { range, label } : null;
         });
         return tiers ? { ok: true, data: { kind: "tiers", heading, tiers } } : fail();
+    }
+
+    if (kind === "numbers") {
+        const figures = many<Figure>(obj.figures, "figures", (r) => {
+            const value = str(r.value, 12), unit = typeof r.unit === "string" ? r.unit.trim() : "";
+            const label = str(r.label, LIM.label);
+            // 숫자 자리에는 숫자가 있어야 한다(쉼표·소수점·'만' 정도까지). 문장을 크게 찍지 않는다.
+            return value && /\d/.test(value) && unit.length <= 8 && label ? { value, unit, label, note: str(r.note, LIM.note) || undefined } : null;
+        }, 1, 3);
+        return figures ? { ok: true, data: { kind: "numbers", heading, figures } } : fail();
+    }
+
+    if (kind === "statement") {
+        const lead = typeof obj.lead === "string" ? obj.lead.trim() : "";
+        if (lead.length > LIM.note) return { ok: false, reason: "statement 의 안내 문장이 너무 김" };
+        const branches = many<Branch>(obj.branches, "branches", (r) => {
+            const label = str(r.label, LIM.aspect), when = str(r.when, LIM.cell);
+            return label && when ? { label, when, how: str(r.how, LIM.cell) || undefined } : null;
+        }, 2, 3);
+        return branches ? { ok: true, data: { kind: "statement", heading, lead, branches } } : fail();
     }
 
     return { ok: false, reason: `알 수 없는 kind: ${String(kind).slice(0, 20)}` };
@@ -273,6 +308,8 @@ function rowCount(d: Infographic): number {
         case "checklist": return d.items.length;
         case "compare": return d.rows.length;
         case "tiers": return d.tiers.length;
+        case "numbers": return d.figures.length;
+        case "statement": return d.branches.length;
     }
 }
 
@@ -283,7 +320,22 @@ function kindLabel(kind: Infographic["kind"]): string {
         checklist: "준비할 것",
         compare: "비교",
         tiers: "구간",
+        numbers: "숫자로 보기",
+        statement: "핵심 정리",
     }[kind];
+}
+
+/** 숫자·갈래 형식을 표 행으로 펼친다 — 예전 렌더러(HTML·4장 세트)가 새 형식을 만나도 내용을 빠뜨리지 않게. */
+export function infographicRows(d: Infographic): { key: string; label: string; note?: string }[] {
+    switch (d.kind) {
+        case "flow": return d.steps.map((r, i) => ({ ...r, key: String(i + 1) }));
+        case "timeline": return d.events.map((r) => ({ ...r, key: r.when }));
+        case "checklist": return d.items.map((r, i) => ({ ...r, key: String(i + 1) }));
+        case "tiers": return d.tiers.map((r) => ({ label: r.label, key: r.range }));
+        case "numbers": return d.figures.map((r) => ({ key: `${r.value}${r.unit}`, label: r.label, note: r.note }));
+        case "statement": return d.branches.map((r) => ({ key: r.label, label: r.when, note: r.how }));
+        case "compare": return d.rows.map((r) => ({ key: r.aspect, label: `${d.leftLabel}: ${r.a}`, note: `${d.rightLabel}: ${r.b}` }));
+    }
 }
 
 interface Ctx {
@@ -355,8 +407,9 @@ function renderBody(d: Infographic, x: Ctx): string {
         return `<div>${head}<ul style="list-style:none;margin:0;padding:0;">${rows}</ul></div>`;
     }
 
-    // ── 구간 ──
-    const rows = d.tiers.map((t, i) => `<li style="display:grid;grid-template-columns:${px(210)}px 1fr;gap:${px(24)}px;padding:${px(22)}px 0;${i === 0 ? "" : `border-top:${line};`}align-items:baseline;">
+    // ── 숫자·갈래: 구간과 같은 2열로 ──
+    const tiers = d.kind === "tiers" ? d.tiers : infographicRows(d).map((r) => ({ range: r.key, label: r.note ? `${r.label} · ${r.note}` : r.label }));
+    const rows = tiers.map((t, i) => `<li style="display:grid;grid-template-columns:${px(210)}px 1fr;gap:${px(24)}px;padding:${px(22)}px 0;${i === 0 ? "" : `border-top:${line};`}align-items:baseline;">
       <span style="font-size:${fs(21)}px;font-weight:700;color:${brandColor};font-variant-numeric:tabular-nums;line-height:1.4;">${esc(t.range)}</span>
       <span style="font-size:${fs(22)}px;color:${c.fg};line-height:1.5;">${esc(t.label)}</span>
     </li>`).join("");

@@ -1,5 +1,6 @@
 import { EDITORIAL_SET_FORMAT, type EditorialProfile } from "./card-types";
-import type { ArticleVisualPlan, ProofSelection } from "./visual-plan-types";
+import type { ArticleVisualPlan, PlannedCard, ProofSelection } from "./visual-plan-types";
+import type { InfoBrief } from "./info-brief";
 import { articleParagraphs } from "./visual-plan-types";
 import { requestEditorialJson, validateVisualPlan, PlanValidationError } from "./visual-planner";
 import { VISUAL_PLAN_SCHEMA, normalizePlanWire } from "./plan-schema";
@@ -13,11 +14,42 @@ import type { CoverBrief } from "@/lib/blog-cover-brief";
 import type { ClaudeEngine } from "@/lib/ai/claude-engine";
 import { PLAN_VERSION } from "./visual-planner";
 
+const plainHeading = (s: string) => s.replace(/^#{1,6}\s*/, "").replace(/[*_=`]/g, "").normalize("NFKC").replace(/\s+/g, "");
+
+/**
+ * 2번 '핵심 정리' 카드 구성(2026-10-24). 브리프의 소제목이 원고에 있으면 그 절의 마지막 문단 뒤에, 없으면 본문 중반에 둔다.
+ * 소제목은 그대로 남겨 네이버 포스팅이 같은 자리를 찾게 한다.
+ */
+export function infoCardFromBrief(info: InfoBrief, content: string): PlannedCard {
+    const paragraphs = articleParagraphs(content);
+    const isHeading = (p: { text: string }) => /^#{1,6}\s/.test(p.text);
+    const at = info.afterHeading ? paragraphs.findIndex((p) => isHeading(p) && plainHeading(p.text) === plainHeading(info.afterHeading)) : -1;
+    let anchor = paragraphs[Math.max(0, Math.min(paragraphs.length - 2, Math.floor(paragraphs.length * 0.6)))]?.id || "p1";
+    if (at >= 0) {
+        const next = paragraphs.findIndex((p, i) => i > at && (isHeading(p) || /^-{3,}$/.test(p.text.trim())));
+        anchor = paragraphs[(next === -1 ? paragraphs.length : next) - 1].id;
+    }
+    return { type: "info", heading: info.infographic.heading, kicker: info.kicker || undefined, deck: info.note, purpose: "본문 핵심 정리", afterParagraphId: anchor,
+        evidence: [], infographic: info.infographic, ...(at >= 0 ? { afterHeading: info.afterHeading } : {}) };
+}
+
+/**
+ * 이미 3장 세트로 만든 구성안에 핵심 정리 데이터가 있으면 그대로 두고, 없으면 빈 2번 자리(데이터를 채우거나 예전 사진 카드).
+ * 예전 4장 구성안의 2번 도표는 옛 기획 규칙(문장형 제목 등)으로 만든 것이라 넘기지 않는다.
+ */
+const keptInfo = (plan: ArticleVisualPlan) => (plan.setFormat === EDITORIAL_SET_FORMAT && plan.cards.find((c) => c.type === "info" && c.infographic)) || { type: "info" };
+
 export function asEditorialThree(plan: ArticleVisualPlan, profile: EditorialProfile, proof: ProofSelection, title: string, content: string): ArticleVisualPlan {
     const cover = plan.cards.find(c => c.type === "thumbnail");
     if (!cover?.art) throw new PlanValidationError("재사용할 표지 기획을 확인해주세요. 기존 결과는 보존했습니다.");
     return validateVisualPlan({ ...plan, setFormat: EDITORIAL_SET_FORMAT, publicationEdition: `${EDITORIAL_SET_FORMAT}:${profile.id}`,
-        proofSelection: proof, proofToken: signImageProof(proof), cards: [cover, { type: "info" }, { type: "contact" }] }, title, content);
+        proofSelection: proof, proofToken: signImageProof(proof), cards: [cover, keptInfo(plan), { type: "contact" }] }, title, content);
+}
+
+/** 구성안의 2번 자리에 핵심 정리 데이터를 넣는다(브리프·추출 결과). 같은 검증을 다시 지난다. */
+export function withInfoCard(plan: ArticleVisualPlan, info: InfoBrief, title: string, content: string): ArticleVisualPlan {
+    const next = validateVisualPlan({ ...plan, cards: plan.cards.map((c) => c.type === "info" ? infoCardFromBrief(info, content) : c) }, title, content);
+    return { ...plan, cards: next.cards };
 }
 
 export async function planEditorialThree(title: string, content: string, profile: EditorialProfile, proof: ProofSelection, operationId: string, recent: VisualHistory[], recoverOnly = false, usageSink?: UsageEntry[], engine: ClaudeEngine = "api"): Promise<ArticleVisualPlan> {
@@ -49,7 +81,7 @@ evidence는 실제 문단 ID와 연속된 원문 구절을 그대로 복사한�
  * 브리프는 표지 한 장의 제목·표제·강조어·사진 장면만 정하고, 지면·색·서체·신뢰·연락 카드는 서버가 정한다.
  * 검증은 유료 기획과 같은 validateVisualPlan 을 지난다. 근거 인용은 첫 문단으로 채운다(3장 세트에서는 인쇄되지 않는다).
  */
-export function planEditorialThreeFromBrief(title: string, content: string, profile: EditorialProfile, proof: ProofSelection, brief: CoverBrief, recent: VisualHistory[]): ArticleVisualPlan {
+export function planEditorialThreeFromBrief(title: string, content: string, profile: EditorialProfile, proof: ProofSelection, brief: CoverBrief, recent: VisualHistory[], info?: InfoBrief | null): ArticleVisualPlan {
     const identity = getMagazineIdentity(profile), layoutRecipe = editorialCoverLayout(profile, recent);
     const paragraphs = articleParagraphs(content);
     const first = paragraphs.find((p) => p.text.replace(/[\s*_#=]/g, "").length >= 6) || paragraphs[0];
@@ -64,7 +96,7 @@ export function planEditorialThreeFromBrief(title: string, content: string, prof
             { type: "thumbnail", heading: brief.heading, kicker: brief.kicker, emphasis: brief.emphasis, deck: "", purpose: "검색자의 질문을 표현하는 메인 표지",
                 afterParagraphId: first.id, evidence: [{ paragraphId: first.id, quote: first.text.slice(0, 80) }], treatment: "feature", art,
                 ...(brief.alternateScene ? { alternateArt: { ...art, scene: brief.alternateScene } } : {}) },
-            { type: "info" }, { type: "contact" },
+            info ? infoCardFromBrief(info, content) : { type: "info" }, { type: "contact" },
         ],
         setFormat: EDITORIAL_SET_FORMAT, publicationEdition: `${EDITORIAL_SET_FORMAT}:${profile.id}`, layoutRecipe,
         proofSelection: proof, proofToken: signImageProof(proof),

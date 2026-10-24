@@ -17,6 +17,7 @@ import { StudioPhotoRequiredError } from "../lawyer-studio/types";
 import { resolveLogoTypography } from "./logo-color";
 import { paintPhotoText } from "./text-contrast";
 import { BAND_TOP, drawThumbnailCover, gradeCoverArt, thumbnailStyle } from "./thumbnail-cover";
+import { renderInfoCard } from "./info-card-renderer";
 
 // Design-space units, rasterized at 2000px. Photo scale is measured in output pixels.
 const W = 1200, H = 1200, P = 72, SCALE = EDITORIAL_IMAGE_SIZE / W;
@@ -57,12 +58,16 @@ export function editorialContactCopy(plan: Pick<BriefRenderOptions["plan"], "que
     return { heading, kicker: heading.split("\n")[0] + " 상담" };
 }
 
+/**
+ * 유료 표지 생성 전에 상담 카드가 그려지는지 미리 확인한다.
+ * 2026-10-24: 2번은 글마다 다른 '핵심 정리' 카드(코드 조판)라 미리 그려 볼 대상이 아니다. editorialPhoto 를 주면(예전 사진 2번) 예전처럼 함께 확인한다.
+ */
 export async function prepareEditorialThree(profile: EditorialProfile, proof: ProofSelection, title: string, editorialPhoto?: BriefRenderOptions["editorialPhoto"], contactPhoto = editorialPhoto) {
     if (!contactActions(profile).some(a => a.href.startsWith("tel:"))) throw new Error("상담 이미지에 사용할 대표 전화번호를 등록해주세요. 유료 생성은 시작하지 않았습니다.");
     const plan = { version: "visual-plan-v11" as const, sourceHash: proof.sourceHash, question: "", thesis: "", cards: [], paragraphs: [],
         setFormat: EDITORIAL_SET_FORMAT, proofSelection: proof, publicationEdition: `${EDITORIAL_SET_FORMAT}:${profile.id}` };
     const dimensions: { type: string; width: number; height: number }[] = [];
-    for (const type of ["info", "contact"] as const) {
+    for (const type of editorialPhoto ? ["info", "contact"] as const : ["contact"] as const) {
         const result = await renderEditorialThree({ profile, plan, card: { type, ...contactCopy(title), evidence: [], afterParagraphId: "", purpose: "" },
             editorialPhoto: type === "info" ? editorialPhoto : contactPhoto });
         if (!result.layoutChecks?.passed) throw new Error(`신뢰·연락 지면을 확인해주세요: ${result.layoutChecks?.issues.join(" ")}. 유료 생성은 시작하지 않았습니다.`);
@@ -72,6 +77,8 @@ export async function prepareEditorialThree(profile: EditorialProfile, proof: Pr
 }
 
 export async function renderEditorialThree(opts: BriefRenderOptions): Promise<BlogImageCard> {
+    // 2026-10-24: 2번은 글 내용을 정리한 카드. 데이터가 없는 예전 구성안만 스튜디오 사진 카드로 그린다.
+    if (opts.card.type === "info" && opts.card.infographic) return renderInfoCard(opts);
     if (opts.card.type === "info" && (opts.editorialPhoto?.kind !== "studio" || opts.editorialPhoto.selections.length !== 1)) throw new StudioPhotoRequiredError();
     magazineFonts();
     const { profile, card, plan } = opts;

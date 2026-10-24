@@ -44,7 +44,9 @@ const recordPath = (profileId: string, name: string) => {
 export const sharedPublicPath = (profileId: string, type: SharedCardType, pngHash: string) => `shared/${profileId}/${type}-${pngHash}.png`;
 
 /** 재사용 대상: 새 3장 세트의 신뢰·상담 카드, 승인 경력 문구가 없는(사진만) 구성. 경력 문구가 들어간 옛 구성은 원고마다 그린다. */
-export function isShareableCard(plan: Pick<ArticleVisualPlan, "setFormat" | "proofSelection">, type: BlogCardType): type is SharedCardType {
+export function isShareableCard(plan: Pick<ArticleVisualPlan, "setFormat" | "proofSelection"> & { cards?: Pick<PlannedCard, "type" | "infographic">[] }, type: BlogCardType): type is SharedCardType {
+    // 2026-10-24: 2번이 글마다 다른 '핵심 정리' 카드면 돌려 쓰지 않는다(상담 카드만 재사용).
+    if (type === "info" && plan.cards?.some((c) => c.type === "info" && c.infographic)) return false;
     return plan.setFormat === EDITORIAL_SET_FORMAT && (type === "info" || type === "contact")
         && plan.proofSelection?.mode === "basic" && !(plan.proofSelection?.claims?.length);
 }

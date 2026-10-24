@@ -193,9 +193,10 @@ async function main() {
         const articleLong = "문서 정리 설명. ".repeat(450) + "\n\n마지막 문단의 중요한 예외까지 포함합니다.";
         global.fetch = async (_url, init) => {
             const body = JSON.parse(init.body);
-            assert.equal(body.model, "claude-sonnet-5-5");
+            // 2026-10-12(42a4a3c): 블로그 발행의 기획 호출은 Opus 5.5, 출력 한도 16,000.
+            assert.equal(body.model, "claude-opus-5-5");
             assert.equal(body.output_config.effort, "high");
-            assert.equal(body.max_tokens, 10000);
+            assert.equal(body.max_tokens, 16000);
             const sent = body.messages[0].content[0].text;
             assert.ok(sent.includes("마지막 문단의 중요한 예외까지 포함합니다."), "Planner sees the complete article");
             return Response.json({ content: [{ type: "text", text: JSON.stringify(rawPlan()) }] });

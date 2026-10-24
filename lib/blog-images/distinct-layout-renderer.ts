@@ -8,6 +8,7 @@ import { BLOG_LAYOUT_REVISION, CARD_LABELS, type BlogImageCard } from "./card-ty
 import { contactActions, contactReadiness } from "./contact-details";
 import { ContactProfileError } from "./contact-renderer";
 import { cardPlacement } from "./visual-plan-types";
+import { infographicRows } from "./infographic";
 import type { BriefRenderOptions } from "./brief-renderer";
 import { informationLayout, portraitLayout } from "./layout-recipes";
 import { profileEdition } from "./profile-editions";
@@ -183,10 +184,7 @@ export async function renderDistinctCard(opts: BriefRenderOptions): Promise<Blog
                 y += Math.max(a, b) + 32;
             }
         } else {
-            const rows = info.kind === "flow" ? info.steps.map((r, i) => ({ ...r, key: String(i + 1) }))
-                : info.kind === "timeline" ? info.events.map((r) => ({ ...r, key: r.when }))
-                : info.kind === "checklist" ? info.items.map((r, i) => ({ ...r, key: String(i + 1) }))
-                : info.tiers.map((r) => ({ label: r.label, note: "", key: r.range }));
+            const rows = infographicRows(info);
             const grid = recipe ? (information === "grid" || information === "paired") && rows.length <= 6 && info.kind === "checklist"
                 : (family === "atlas" || family === "poster") && info.kind === "checklist" && !opts.repairLayout && card.treatment !== "guide";
             if (grid) {
@@ -205,7 +203,7 @@ export async function renderDistinctCard(opts: BriefRenderOptions): Promise<Blog
                 }
             } else if (information === "bands" || information === "grid" || information === "paired") {
                 for (const row of rows) {
-                    const heading = info.kind === "timeline" || info.kind === "tiers" ? `${row.key} · ${row.label}` : `${row.key.padStart(2, "0")}  ${row.label}`;
+                    const heading = ["timeline", "tiers", "numbers", "statement"].includes(info.kind) ? `${row.key} · ${row.label}` : `${row.key.padStart(2, "0")}  ${row.label}`;
                     const h = typeHeight(measure, heading, INNER - 48, 42, "label", 1.48) + 40;
                     block(P, y, INNER, h, dark ? "#FFFFFF18" : "#EFF2F3");
                     text(heading, P + 24, y + 20, INNER - 48, 42, p.ink, "label");
@@ -215,7 +213,7 @@ export async function renderDistinctCard(opts: BriefRenderOptions): Promise<Blog
                 }
             } else for (const row of rows) {
                 line(P, y, INNER); y += 30;
-                if (info.kind === "timeline" || info.kind === "tiers") {
+                if (["timeline", "tiers", "numbers", "statement"].includes(info.kind)) {
                     y += text(row.key, P, y, INNER, 32, p.muted, "label") + 12;
                     y += text(row.label, P, y, INNER, 44, p.ink, "label") + 14;
                     if (row.note) y += text(row.note, P, y, INNER, 38) + 12;

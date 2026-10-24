@@ -84,11 +84,14 @@ export async function POST(request: Request) {
         }
         // New editors transfer only IDs. Read already-paid, signed bytes on the server.
         // Large PNGs and portraits never travel back through a Vercel request body.
+        // 2번 '핵심 정리' 카드(2026-10-24)는 네이버 포스팅이 자리·'AI 활용' 표시를 정하도록 형식과 소제목을 함께 남긴다(서버 제작 기록에서 읽은 값만).
+        const infoMeta = new Map<IncomingImage, { infoKind: string; afterHeading?: string }>();
         for (const img of images) if (img.productionId && !sharedRecords.has(img)) {
             const saved = await loadImageProduction(img.productionId);
             if (!saved.card || saved.card.type !== img.type || saved.card.setId !== img.setId || saved.card.releaseToken !== img.releaseToken) {
                 return NextResponse.json({ error: "보존된 이미지와 저장 요청이 일치하지 않습니다." }, { status: 422 });
             }
+            if (saved.card.infoKind) infoMeta.set(img, { infoKind: saved.card.infoKind, ...(saved.card.afterHeading ? { afterHeading: saved.card.afterHeading } : {}) });
             if (editorialStudioPhotoMissing(saved.card)) throw new StudioPhotoRequiredError();
             if (saved.card.setFormat === STUDIO_FORMAT || saved.card.studioPhotos?.length === 2) await resolveStudioPhotos(saved.profileId, saved.card.studioPhotos);
             else if (saved.card.studioPhotos?.length) await resolveEditorialStudioPhoto(saved.profileId, saved.card.studioPhotos);
@@ -111,7 +114,7 @@ export async function POST(request: Request) {
             if (record.profileId !== row.profile_id) return NextResponse.json({ error: "다른 변호사의 이미지는 저장할 수 없습니다." }, { status: 422 });
             if (img.type === "info") await sharedStudioCheck(row.profile_id, record);
         }
-        const saved: { type: string; url: string; releaseToken?: string; pngHash?: string; setId?: string; productionId?: string; shared?: boolean }[] = [];
+        const saved: { type: string; url: string; releaseToken?: string; pngHash?: string; setId?: string; productionId?: string; shared?: boolean; infoKind?: string; afterHeading?: string }[] = [];
         const setId = images[0].setId;
         // Validate the whole incoming set before uploading any bytes.
         if (requiredTypes && images.some((img) => !verifyImageRelease(img.releaseToken, { profileId: row.profile_id, sourceHash: hashOfSource,
@@ -132,6 +135,7 @@ export async function POST(request: Request) {
             if (!prior.card || prior.card.type !== "info" || prior.profileId !== row.profile_id || prior.sourceHash !== hashOfSource
                 || prior.card.releaseToken !== img.releaseToken || prior.card.setFormat !== EDITORIAL_SET_FORMAT
                 || editorialStudioPhotoMissing(prior.card)) throw new StudioPhotoRequiredError();
+            if (prior.card.infoKind) continue; // 핵심 정리 카드는 사진 승인 확인이 필요 없다
             await resolveEditorialStudioPhoto(row.profile_id, prior.card.studioPhotos);
         }
 
@@ -164,7 +168,7 @@ export async function POST(request: Request) {
             }
 
             const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-            saved.push({ type: img.type, url: data.publicUrl, ...(requiredTypes ? { releaseToken: img.releaseToken, pngHash: digest(bytes), setId, productionId: img.productionId } : {}) });
+            saved.push({ type: img.type, url: data.publicUrl, ...(requiredTypes ? { releaseToken: img.releaseToken, pngHash: digest(bytes), setId, productionId: img.productionId } : {}), ...infoMeta.get(img) });
         }
 
         // 한 장씩 받을 때는 기존 목록과 병합한다. 덮어쓰면 앞 장이 사라진다.

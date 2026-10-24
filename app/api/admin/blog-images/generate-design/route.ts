@@ -64,8 +64,10 @@ export async function POST(request: Request) {
         if (plan.setFormat === EDITORIAL_SET_FORMAT) {
             if (plan.publicationEdition !== `${EDITORIAL_SET_FORMAT}:${profile.id}`) throw new PlanValidationError("현재 변호사와 신뢰 지면의 소유자가 다릅니다.");
             verifyImageProof(plan.proofToken, plan.proofSelection, context.library, plan.sourceHash);
+            // 2번이 '핵심 정리' 카드(2026-10-24)면 미리 그려 볼 사진이 없다 — 상담 카드만 확인한다.
+            const legacyInfo = !plan.cards.find((c) => c.type === "info")?.infographic;
             if (type === "thumbnail" && !(await sharedPairReady(profile, plan, body.style))) await prepareEditorialThree(profile, plan.proofSelection!, body.title || "",
-                await editorialStudioPhoto(profile.id, plan.publicationEdition!, "info", plan.sourceHash), await editorialStudioPhoto(profile.id, plan.publicationEdition!, "contact", plan.sourceHash));
+                legacyInfo ? await editorialStudioPhoto(profile.id, plan.publicationEdition!, "info", plan.sourceHash) : undefined, await editorialStudioPhoto(profile.id, plan.publicationEdition!, "contact", plan.sourceHash));
         }
         if (plan.setFormat === STUDIO_FORMAT) {
             await resolveStudioPhotos(profile.id, plan.studioPhotos);
@@ -114,7 +116,7 @@ export async function POST(request: Request) {
             const shared = await findSharedCard(profile.id, sharedFingerprint, type);
             if (shared) return await sharedResponse(sharedCardForPost(shared, { profileId: profile.id, sourceHash: plan.sourceHash, setId, plan, planned, reused: true }), shared);
         }
-        const editorialPhoto = plan.setFormat === EDITORIAL_SET_FORMAT && (type === "info" || type === "contact")
+        const editorialPhoto = plan.setFormat === EDITORIAL_SET_FORMAT && (type === "contact" || (type === "info" && !planned.infographic))
             ? await editorialStudioPhoto(profile.id, plan.publicationEdition!, type, plan.sourceHash) : undefined;
         const productionId = digest(JSON.stringify({ version: 11, plan, profile, type, quality: body.quality || "high",
             photoSource: body.photoSource || "ai", style: body.style || identity.style, heading: body.headingOverride || "",
@@ -228,7 +230,7 @@ export async function POST(request: Request) {
 /** 신뢰·상담 두 카드가 이번 구성 그대로 재사용 기록에 있으면, 표지 전에 하던 시험 렌더를 생략해도 된다. */
 async function sharedPairReady(profile: EditorialProfile, plan: ReturnType<typeof validateVisualPlan>, style: unknown): Promise<boolean> {
     try {
-        for (const type of ["info", "contact"] as const) {
+        for (const type of plan.cards.find((c) => c.type === "info")?.infographic ? ["contact"] as const : ["info", "contact"] as const) {
             const planned = plan.cards.find((c) => c.type === type);
             if (!planned || !isShareableCard(plan, type)) return false;
             const chosen = await editorialStudioSelection(profile.id, plan.publicationEdition!, type, plan.sourceHash);

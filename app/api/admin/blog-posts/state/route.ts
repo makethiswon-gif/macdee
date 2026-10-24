@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
 import { loadPostState, updatePostState, validPostId, type FactCheck, type PostStage, type PostState } from "@/lib/blog-post-state";
 import { coverBriefFromWire } from "@/lib/blog-cover-brief";
+import { infoBriefFromWire } from "@/lib/blog-images/info-brief";
 import { ImageProductionError } from "@/lib/blog-images/production-store";
 import type { UsageEntry } from "@/lib/blog-usage";
 
@@ -45,6 +46,7 @@ export async function PATCH(request: Request) {
             }
             if (body.popBodyVersion === true) s.bodyVersions.pop();
             if ("coverBrief" in body) { s.coverBrief = body.coverBrief === null ? null : coverBriefFromWire(body.coverBrief); if (typeof body.coverBriefBodyHash === "string") s.coverBriefBodyHash = clip(body.coverBriefBodyHash, 64); }
+            if ("infoBrief" in body) s.infoBrief = body.infoBrief === null ? null : infoBriefFromWire(body.infoBrief);
             if (body.source && typeof body.source === "object") { const v = body.source as Record<string, unknown>; if (v.kind === "topic" || v.kind === "rewrite") s.source = { kind: v.kind, label: clip(v.label, 160) }; }
             if (typeof body.question === "string") s.question = clip(body.question, 1000);
             if (typeof body.thesis === "string") s.thesis = clip(body.thesis, 4000);

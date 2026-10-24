@@ -5,6 +5,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { retryStorage, ImageProductionError } from "@/lib/blog-images/production-store";
 import type { UsageEntry } from "@/lib/blog-usage";
 import type { CoverBrief } from "@/lib/blog-cover-brief";
+import type { InfoBrief } from "@/lib/blog-images/info-brief";
 
 const BUCKET = "owner-briefings";
 export type PostStage = "draft" | "review" | "confirmed" | "images" | "done";
@@ -27,6 +28,8 @@ export interface PostState {
     factChecks: FactCheck[];
     bodyVersions: BodyVersion[];
     coverBrief?: CoverBrief | null;
+    /** 2번 '핵심 정리' 카드 데이터(원고 응답의 ===INFO===, 2026-10-24) */
+    infoBrief?: InfoBrief | null;
     /** 브리프를 만든 원고의 본문 해시(참고용). 브리프는 주제에 대한 것이라 본문이 조금 바뀌어도 쓴다. */
     coverBriefBodyHash?: string;
     /** 원고 출처: 추천 주제 / 붙여넣은 글의 재창작 */

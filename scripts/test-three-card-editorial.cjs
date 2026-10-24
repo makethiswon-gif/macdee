@@ -54,8 +54,13 @@ const library = { profileId: profile.id, firmId: "fixture-firm", lawyerId: profi
     const studio = { bytes: art, kind: "studio", selections: [{ assetId: "approved", version: 1 }] };
     await prepareEditorialThree(p, selected, title, studio);
     await assert.rejects(() => prepareEditorialThree({ ...p, phone: "" }, selected, title), /대표 전화번호/);
-    for (const input of [p, profile, { ...p, profileImages: [], officeImages: [] }, { ...p, profileImages: [], officeImages: p.profileImages }])
-        await assert.rejects(() => prepareEditorialThree(input, selected, title), /승인된 스튜디오 사진/);
+    // 2026-10-24: 2번은 글 내용 카드라 사진 없이 미리 확인하면 상담 카드만 본다. 예전 사진 2번을 넘기면 그 사진이 승인본인지 예전처럼 확인한다.
+    // 1×1 고정 사진(profile)·사진 없음은 상담 카드도 그릴 수 없다.
+    for (const [input, usable] of [[p, true], [profile, false], [{ ...p, profileImages: [], officeImages: [] }, false], [{ ...p, profileImages: [], officeImages: p.profileImages }, true]]) {
+        if (usable) assert.deepEqual((await prepareEditorialThree(input, selected, title)).map((d) => d.type), ["contact"]);
+        else await assert.rejects(() => prepareEditorialThree(input, selected, title), /사용 가능한 등록 사진/);
+        await assert.rejects(() => prepareEditorialThree(input, selected, title, { ...studio, kind: "profile" }), /승인된 스튜디오 사진/);
+    }
     await prepareEditorialThree({ ...p, profileImages: [], officeImages: p.profileImages }, selected, title, studio);
     const basicPlan = asEditorialThree(old, p, basic, title, article);
     assert.match(contactCopy("카톡 캡처로 상간자 소송이 되나요").heading, /상간 소송/);

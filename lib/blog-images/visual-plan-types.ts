@@ -47,6 +47,8 @@ export interface PlannedCard {
     points?: string[];
     skipReason?: string;
     treatment?: "feature" | "analysis" | "guide";
+    /** 3장 세트의 2번 '핵심 정리' 카드를 넣을 소제목(원고 글자 그대로). */
+    afterHeading?: string;
 }
 export interface ArticleVisualPlan {
     strengthToken?: string;

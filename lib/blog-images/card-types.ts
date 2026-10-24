@@ -56,6 +56,10 @@ export interface BlogImageCard {
     sourceParagraphId?: string;
     purpose?: string;
     layout?: "paper" | "contrast";
+    /** 2번 '핵심 정리' 카드(2026-10-24)의 형식. 있으면 스튜디오 사진이 아니라 글 내용 카드다. */
+    infoKind?: import("./infographic").Infographic["kind"];
+    /** 핵심 정리 카드를 넣을 자리: 원고 소제목 글자(네이버 포스팅이 이 소제목의 절 끝에 넣는다). */
+    afterHeading?: string;
 }
 
 export const CARD_LABELS: Record<BlogCardType, string> = {
