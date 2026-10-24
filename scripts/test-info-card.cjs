@@ -152,8 +152,18 @@ item: 민사소송 | 불송치·약식명령으로 재판이 열리지 않을 �
     }
     // 항목이 많아 넘치면 글자를 줄이고, 그래도 안 되면 검사 실패(글자를 잘라 저장하지 않는다)
     const long = withInfoCard(plan, brief("flow"), title, article);
-    const steps = Array.from({ length: 6 }, (_, i) => ({ label: `단계 ${i + 1} 이름이 조금 긴 경우`, note: "설명이 아주 길어서 두 줄 세 줄로 넘어가는 경우를 일부러 만들어 지면이 넘치는지 확인합니다. ".repeat(2).slice(0, 130) }));
-    const crowded = await renderEditorialThree({ plan: long, card: { ...long.cards[1], infographic: { kind: "flow", heading: "절차 6단계", steps } }, profile });
+    const steps = Array.from({ length: 6 }, (_, i) => ({ label: `단계 ${i + 1} 이름이 조금 긴 경우`, note: "설명이 아주 길어서 두 줄 세 줄로 넘어가는 경우를 일부러 만들어 지면이 넘치는지 확인합니다. ".repeat(4) }));
+    const crowded = await renderEditorialThree({ plan: long, card: { ...long.cards[1], infographic: { kind: "flow", heading: "고소부터 재판까지\n형사 절차 여섯 단계", steps } }, profile });
+    if (OUT) fs.writeFileSync(path.join(OUT, "info-flow-crowded.png"), Buffer.from(crowded.imageDataUrl.split(",")[1], "base64"));
     assert.equal(crowded.layoutChecks.passed, false, "넘치는 지면은 발행 서명을 받지 못한다");
+    // 2026-10-25 운영 첫 실패 재현: 명조 제목(카라) + 체크 5개 + 한 줄 설명 + 아래 메모. 글자만 줄이면 넘쳤다 → 행 간격도 함께 줄여 통과해야 한다.
+    const calla = { ...profile, id: "mmlk8qh6gqq9l", lawyerName: "유지은", officeName: "법률사무소 카라" };
+    const items5 = [["상속", "제1003조의 배우자가 아니어서 상속권 없음"], ["사망 시 재산분할", "사망으로 끝난 사실혼은 청구할 수 없음"], ["남편 이름 전·월세", "자녀가 함께 안 살았으면 보증금까지 승계"],
+        ["국민연금 유족연금", "제3조 제2항으로 배우자에 포함, 1순위 유족"], ["남편의 빚", "상속인이 아니어서 물려받지 않음"]].map(([label, note]) => ({ label, note }));
+    const five = await renderEditorialThree({ plan: long, card: { ...long.cards[1], deck: "남편에게 법률상 배우자가 따로 있으면 달라질 수 있습니다", infographic: { kind: "checklist", heading: "남편 사망 뒤\n사실혼 배우자의 몫", items: items5 } }, profile: calla });
+    assert.equal(five.layoutChecks.passed, true, `체크 5개(명조): ${five.layoutChecks.issues.join(" ")}`);
+    const six = await renderEditorialThree({ plan: long, card: { ...long.cards[1], deck: "아래 메모 한 줄", infographic: { kind: "checklist", heading: "남편 사망 뒤\n사실혼 배우자의 몫", items: [...items5, { label: "장례비", note: "실제로 낸 사람이 상속인에게 정산을 구할 수 있음" }] } }, profile: calla });
+    assert.equal(six.layoutChecks.passed, true, `체크 6개(명조): ${six.layoutChecks.issues.join(" ")}`);
+    if (OUT) for (const [n, card] of [["five", five], ["six", six]]) fs.writeFileSync(path.join(OUT, `info-checklist-${n}.png`), Buffer.from(card.imageDataUrl.split(",")[1], "base64"));
     console.log("test-info-card: 모두 통과");
 })().catch((e) => { console.error(e); process.exit(1); });

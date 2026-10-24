@@ -196,18 +196,19 @@ export async function renderInfoCard(opts: BriefRenderOptions): Promise<BlogImag
         return { top: y + 48, limit: noteTop - 48, boxes };
     };
 
-    // 1차: 측정. 넘치면 글자를 줄이고, 남으면 행 사이 여백을 키운다(최대 1.8배).
+    // 1차: 측정. 넘치면 글자와 행 사이 여백을 함께 줄이고(2026-10-25 실데이터: 체크 5개+명조 제목이 글자만 줄여서는 안 들어감),
+    // 남으면 행 사이 여백을 키운다(최대 1.8배).
     const frame = paint(false);
     let s = 1, g = 1, measured = layout(c, info, { s, g, draw: false, accent, accentText, top: frame.top });
-    for (const next of [0.94, 0.88, 0.82, 0.76]) {
+    for (const [ns, ng] of [[0.94, 0.85], [0.88, 0.7], [0.82, 0.6], [0.76, 0.5], [0.7, 0.42]]) {
         if (measured.end <= frame.limit) break;
-        s = next; measured = layout(c, info, { s, g, draw: false, accent, accentText, top: frame.top });
-        warnings.push("항목이 많아 글자를 조금 줄였습니다.");
+        s = ns; g = ng; measured = layout(c, info, { s, g, draw: false, accent, accentText, top: frame.top });
+        warnings.push("항목이 많아 글자와 행 간격을 조금 줄였습니다.");
     }
     if (measured.end <= frame.limit) {
-        // 본문 높이는 여백 배율 g 에 대해 직선이다 — g=2 로 한 번 더 재서 기울기를 구하고 남는 공간을 정확히 나눈다.
-        const slope = layout(c, info, { s, g: 2, draw: false, accent, accentText, top: frame.top }).end - measured.end;
-        g = slope > 0 ? Math.max(1, Math.min(1.8, 1 + (frame.limit - measured.end) / slope)) : 1;
+        // 본문 높이는 여백 배율 g 에 대해 직선이다 — g+1 로 한 번 더 재서 기울기를 구하고 남는 공간을 정확히 나눈다(줄인 g 보다 작아지지 않게).
+        const slope = layout(c, info, { s, g: g + 1, draw: false, accent, accentText, top: frame.top }).end - measured.end;
+        g = slope > 0 ? Math.max(g, Math.min(1.8, g + (frame.limit - measured.end) / slope)) : g;
     } else issues.push("핵심 정리 항목이 지면에 맞지 않습니다. 항목 수나 설명을 줄여주세요.");
 
     const drawn = paint(true);
