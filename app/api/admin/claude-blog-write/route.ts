@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
 import { createAdminClient } from "@/lib/supabase/server";
-import { getWritingDNA, dnaDirective } from "@/lib/blog-writing-dna";
+import { getWritingDNA, dnaDirective, HEADING_PLAIN_RULE } from "@/lib/blog-writing-dna";
 import { appendBlogPhoneContact, blogPhoneContact } from "@/lib/blog-contact";
 import { validProfileId } from "@/lib/blog-strengths";
 import { StrengthStoreError } from "@/lib/blog-strengths-store";
@@ -259,7 +259,7 @@ ${dnaBlock}
 - 위 변호사별 문체와 소제목 스타일은 유지하되, 각 소제목 아래 첫 문단은 그 구간의 답이나 판단 기준을 먼저 제시합니다. 제목을 본문 첫 줄에 다시 적지 않습니다.
 - 문단 사이와 소제목 앞뒤에는 빈 줄을 정확히 한 줄만 둡니다. 조건과 예외를 함께 읽어야 할 문장은 억지로 나누지 않습니다.
 - 글자 수에 맞춘 강제 줄바꿈, 문장 중간 개행, 연속 빈 줄, 공백 들여쓰기, HTML 태그는 사용하지 않습니다.
-- ## 는 주요 소제목, ### 는 같은 주제 안의 하위 항목에만 사용합니다. 소제목은 짧고 구체적으로, 키워드를 반복해 채우지 않습니다.
+- ## 는 주요 소제목, ### 는 같은 주제 안의 하위 항목에만 사용합니다. 소제목은 짧고 구체적으로, 키워드를 반복해 채우지 않습니다. ${HEADING_PLAIN_RULE}
 - 절차는 1. 2. 3. 번호목록으로 정리합니다. 목록 항목은 한두 문장, 항목 사이에 빈 줄을 넣지 않습니다. 비교는 짧은 대조 문단이나 목록으로 쓰고, 가로로 넓은 마크다운 표는 쓰지 않습니다. 목록은 글 전체에서 두 곳을 넘기지 않습니다. 설명은 문장으로 합니다.
 - 큰 키워드를 기계적으로 반복하거나 자극적·낚시성 문구를 쓰지 않습니다. 이미지가 없어도 글만으로 이해되게 씁니다.
 ${trustBlock}
