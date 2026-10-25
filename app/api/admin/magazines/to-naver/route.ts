@@ -5,7 +5,7 @@ import { extractClaudeText } from "@/lib/ai/claude-text";
 import { SONNET_MODEL } from "@/lib/ai/models";
 // 변호사용 글쓰기 DNA는 쓰지 않는다. 그 문체 카탈로그는 "변호사가 의뢰인에게"라
 // 광고회사인 맥디에는 맞지 않는다. 강조 밀도와 분량만 빌려 쓴다.
-import { getWritingDNA } from "@/lib/blog-writing-dna";
+import { getWritingDNA, HEADING_PLAIN_RULE } from "@/lib/blog-writing-dna";
 import { polishBlogBody } from "@/lib/ai/blog-polish";
 
 // 매거진 글을 네이버용 원고로 다시 쓴다.
@@ -115,7 +115,7 @@ export async function POST(request: Request) {
 
 [구성]
 - 첫 문단에서 이 글이 답하는 것을 먼저 제시합니다.
-- ## 소제목 3~5개. 명사구나 진술형으로 씁니다. 질문형 소제목은 쓰지 마세요.
+- ## 소제목 3~5개. 문장 어미 없이 명사로 끝나는 짧은 구로 씁니다. 질문형 소제목은 쓰지 마세요. ${HEADING_PLAIN_RULE}
 - 사실과 숫자는 원문에서 정확히 가져오되, 문장은 새로 씁니다.
 
 [강조 표기 — 네이버에서 형광펜·밑줄·굵게로 바뀝니다]

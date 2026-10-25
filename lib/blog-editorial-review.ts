@@ -1,5 +1,5 @@
 import { FINGERPRINT_PHRASES } from "./blog-repetition";
-import { ornateHeading } from "./blog-writing-dna";
+import { ornateHeading, politeEndingHeading } from "./blog-writing-dna";
 
 /** Editorial warnings, not a Naver ranking score or a legal accuracy guarantee. */
 export function reviewBlogEditorial(title: string, body: string, recentBodies: string[] = [], recentTitles: string[] = []): string[] {
@@ -15,8 +15,12 @@ export function reviewBlogEditorial(title: string, body: string, recentBodies: s
     const core = body.split(/\n---+[ \t]*\r?\n/)[0].replace(/^\[전화 상담[^\n]*$/gm, "").trimEnd();
 
     // 2026-10-25 대표 지시: "유족연금이라는 통로"처럼 비유·수사가 붙은 소제목은 AI 티 — 알려서 고치게 한다.
-    const ornate = [...core.matchAll(/^#{2,3}\s+(.+)$/gm)].map((m) => m[1].trim()).filter(ornateHeading);
+    const headings = [...core.matchAll(/^#{2,3}\s+(.+)$/gm)].map((m) => m[1].trim());
+    const ornate = headings.filter(ornateHeading);
     if (ornate.length) warnings.push(`꾸밈말이 붙은 소제목 ${ornate.length}개: ${ornate.slice(0, 3).map((h) => `"${h}"`).join(", ")}. 내용 그대로 짧게 바꿔주세요(예: "유족연금 청구 자격").`);
+    // 같은 날 대표 지시: "이혼 후 2년 안에 청구해야 합니다" → "이혼 후 2년 안에 청구". 소제목은 문장 어미 없이.
+    const polite = headings.filter(politeEndingHeading);
+    if (polite.length) warnings.push(`'~합니다'처럼 문장 어미로 끝나는 소제목 ${polite.length}개: ${polite.slice(0, 3).map((h) => `"${h}"`).join(", ")}. 어미를 빼고 명사로 끝내주세요(예: "이혼 후 2년 안에 청구").`);
     const chars = core.replace(/\s/g, "").length;
     if (chars >= 800 && chars < 2500) warnings.push(`본문이 공백 제외 ${chars.toLocaleString()}자입니다. 목표(2,700자 이상)보다 짧습니다. 빠진 논점이 없는지 확인해주세요.`);
 
