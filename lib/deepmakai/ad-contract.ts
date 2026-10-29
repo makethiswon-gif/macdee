@@ -20,13 +20,11 @@ export interface AdDeal {
     product: string;
     shootDate: string;
     release: string;
-    /** 광고비 합계(부가세 별도) = 회차 광고비 + 2차 활용 */
+    /** 광고비(부가세 별도) */
     supplyPrice: number;
-    /** 회차 광고비(특가)와 정가 */
-    adPrice?: number;
     listPrice?: number;
-    /** 2차 활용을 광고비에 포함한 경우 */
-    secondUse?: { price: number; months: number };
+    /** 광고비에 포함한 2차 활용: 기간·범위, 기간 뒤 연장 대가 */
+    secondUse?: { months: number; scope: string; extensionPrice: number };
 }
 
 const DEALS: AdDeal[] = [
@@ -41,10 +39,10 @@ const DEALS: AdDeal[] = [
         product: "헤임타 EMS 이지샷 스팟 마사지기, 헤임타 리커버리 마사지스틱(진행자 4인분 현물 제공)",
         shootDate: "2026년 10월 30일",
         release: "2026년 11월 첫째 주 공개 예정이며, 정확한 공개일은 을이 갑에게 미리 알린다.",
-        supplyPrice: 2_200_000,
-        adPrice: 1_700_000,
+        supplyPrice: 1_700_000,
         listPrice: 2_000_000,
-        secondUse: { price: 500_000, months: 3 },
+        // 2026-10-29 헤임타와 카톡 합의: 170만 원에 2차 활용 3개월 포함, 이후 연장 시 50만 원
+        secondUse: { months: 3, scope: "자사 상품 상세페이지와 SNS 광고(주 채널: 메타 — 페이스북·인스타그램)", extensionPrice: 500_000 },
     },
 ];
 
@@ -103,9 +101,7 @@ export function buildAdContract(deal: AdDeal, party: Partial<AdParty>, signedAt:
             `${갑}은 촬영 전까지 광고 제품과 광고 문구(제품 특징, 쓰면 안 되는 표현 등)를 ${을}에게 제공한다.`,
         ] },
         { heading: "제4조 (광고비와 지급)", lines: [
-            deal.secondUse && deal.adPrice
-                ? `광고비는 ${won(deal.supplyPrice)}(부가가치세 별도)으로 한다. 이는 회차 광고비 ${won(deal.adPrice)}${deal.listPrice ? `(정가 ${won(deal.listPrice)}에서 할인한 금액)` : ""}과 제9조의 2차 활용 대가 ${won(deal.secondUse.price)}을 더한 금액이다. 부가가치세 ${won(vat)}을 더한 합계는 ${won(total)}이다.`
-                : `광고비는 ${won(deal.supplyPrice)}(부가가치세 별도)${deal.listPrice ? `으로 한다(정가 ${won(deal.listPrice)}에서 할인한 금액)` : "으로 한다"}. 부가가치세 ${won(vat)}을 더한 합계는 ${won(total)}이다.`,
+            `광고비는 ${won(deal.supplyPrice)}(부가가치세 별도)${deal.listPrice ? `으로 한다(정가 ${won(deal.listPrice)}에서 할인한 금액)` : "으로 한다"}.${deal.secondUse ? ` 이 금액에는 제9조의 2차 활용(${deal.secondUse.months}개월)이 포함된다.` : ""} 부가가치세 ${won(vat)}을 더한 합계는 ${won(total)}이다.`,
             `${갑}은 계약 체결일부터 7일 안에 선금 ${won(half)}(합계의 50%)을, 영상 공개일부터 7일 안에 잔금 ${won(total - half)}을 ${account ? `아래 계좌(${account})` : `${을}이 지정한 계좌`}로 지급한다.`,
             `${을}은 각 금액에 대한 세금계산서를 발행한다.`,
         ] },
@@ -128,8 +124,9 @@ export function buildAdContract(deal: AdDeal, party: Partial<AdParty>, signedAt:
         ] },
         { heading: "제9조 (2차 활용)", lines: deal.secondUse
             ? [
-                `${갑}은 광고 부분 영상을 공개일부터 ${deal.secondUse.months}개월 동안 자사 채널·SNS·온라인 광고에 다시 쓸 수 있다. 그 대가 ${won(deal.secondUse.price)}(부가가치세 별도)은 제4조 광고비에 포함되어 있다.`,
-                `${갑}이 위 기간을 넘겨 쓰거나 광고 부분 외의 영상을 쓰려면 ${을}과 미리 협의한다.`,
+                `${갑}은 광고 부분 영상을 공개일부터 ${deal.secondUse.months}개월 동안 ${deal.secondUse.scope}에 활용할 수 있으며, 그 대가는 제4조 광고비에 포함된다.`,
+                `${deal.secondUse.months}개월이 지난 뒤에도 활용하려면 ${갑}은 ${을}에게 연장 대가 ${won(deal.secondUse.extensionPrice)}(부가가치세 별도)을 지급한다. 연장 기간 등 세부 조건은 양측이 협의하여 정한다.`,
+                `위 범위를 벗어나 활용하려면(다른 매체, 광고 부분 외의 영상 등) ${갑}은 ${을}과 미리 협의한다.`,
             ]
             : [`${갑}이 광고 영상을 자사 채널·SNS·광고에 다시 쓰려면 ${을}과 미리 협의하며, 3개월 기준 ${won(500_000)}(부가가치세 별도)을 따로 정한다.`] },
         { heading: "제10조 (계약 해지와 회차 변경)", lines: [
@@ -173,7 +170,7 @@ export function buildAdContract(deal: AdDeal, party: Partial<AdParty>, signedAt:
         ],
         money: [
             ["광고비", `${won(deal.supplyPrice)} (부가가치세 별도)`],
-            ...(deal.secondUse && deal.adPrice ? [["내역", `회차 광고 ${won(deal.adPrice)} + 2차 활용(${deal.secondUse.months}개월) ${won(deal.secondUse.price)}`] as [string, string]] : []),
+            ...(deal.secondUse ? [["2차 활용", `공개일부터 ${deal.secondUse.months}개월 포함, 이후 연장 시 ${won(deal.secondUse.extensionPrice)}(부가가치세 별도)`] as [string, string]] : []),
             ["부가가치세", won(vat)],
             ["합계", won(total)],
             ["선금", `${won(half)} — 계약 체결일부터 7일 안`],

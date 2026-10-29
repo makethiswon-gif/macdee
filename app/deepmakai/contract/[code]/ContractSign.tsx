@@ -145,7 +145,7 @@ export default function ContractSign({ deal, code, role, account, signed, eul }:
                     <section className="mb-6 grid gap-3 rounded-2xl border border-black/10 bg-white p-5 sm:grid-cols-3">
                         <div><p className="text-[12px] text-black/50">게재 콘텐츠</p><p className="mt-0.5 text-[14px] font-semibold leading-snug">{deal.episodeShort || deal.episode.replace(/^‘딥캐스트’ /, "딥캐스트 ")}</p></div>
                         <div><p className="text-[12px] text-black/50">일정</p><p className="mt-0.5 text-[14px] font-semibold leading-snug">{deal.shootDate} 촬영 · 11월 첫째 주 공개</p></div>
-                        <div><p className="text-[12px] text-black/50">광고비 (부가세 별도)</p><p className="mt-0.5 text-[14px] font-semibold leading-snug">{won(deal.supplyPrice)} <span className="font-normal text-black/50">· 합계 {won(total)}</span>{deal.secondUse && deal.adPrice && <span className="block text-[12px] font-normal text-black/50">회차 {won(deal.adPrice)} + 2차 활용 {won(deal.secondUse.price)}</span>}</p></div>
+                        <div><p className="text-[12px] text-black/50">광고비 (부가세 별도)</p><p className="mt-0.5 text-[14px] font-semibold leading-snug">{won(deal.supplyPrice)} <span className="font-normal text-black/50">· 합계 {won(total)}</span>{deal.secondUse && <span className="block text-[12px] font-normal text-black/50">2차 활용 {deal.secondUse.months}개월 포함</span>}</p></div>
                     </section>
 
                     <section className="mb-6 rounded-2xl border border-black/10 bg-white">
