@@ -45,7 +45,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
             party: { ...party, manager: party.manager || undefined, phone: party.phone || undefined },
             signature, ip, userAgent: request.headers.get("user-agent") || "",
         });
-        if (!out) return NextResponse.json({ error: "이미 서명이 끝난 계약입니다." }, { status: 409 });
+        if (out === "signed") return NextResponse.json({ error: "이미 서명이 끝난 계약입니다." }, { status: 409 });
+        if (out === "not-ready") return NextResponse.json({ error: "아직 계약서가 준비되지 않았습니다. 딥마카이 담당자에게 문의해 주세요." }, { status: 409 });
         return NextResponse.json({ ok: true, id: out.rec.id, email: out.rec.party.email, mailed: out.mailed, signedAt: out.rec.signedAt });
     } catch (e) {
         console.error("[AdContract] sign error:", e);

@@ -1,5 +1,6 @@
 // 딥마카이 광고 전자계약 저장·PDF·메일(서버 전용, 2026-10-29).
-// - 계약 건마다 한 번만 서명한다: 비공개 버킷에 <deal.id>.json(서명 기록)과 <deal.id>.pdf 를 남긴다.
+// - 을(딥마카이 사업자)이 관리자 로그인 상태로 먼저 서명한다: <deal.id>.eul.json. 광고주가 서명하기 전까지는 다시 할 수 있다.
+// - 광고주(갑)는 을 서명 뒤에만, 계약 건마다 한 번만 서명한다: <deal.id>.json(을 서명 사본 포함)과 <deal.id>.pdf.
 // - 서명 뒤 PDF 를 광고주가 입력한 이메일로 보내고 대표 메일을 숨은참조로 넣는다. 로컬(개발)에서는 AD_CONTRACT_MAIL=1 일 때만 보낸다.
 // 문구는 lib/deepmakai/ad-contract.ts, 글꼴은 맥디 결제 계약서와 같은 lib/makethisone/fonts(글자 빠짐 방지판)를 쓴다.
 import { randomUUID } from "node:crypto";
@@ -9,17 +10,28 @@ import nodemailer from "nodemailer";
 import { PDFDocument, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import { createServiceClient } from "@/lib/supabase/server";
-import { COMPANY, kstDate, won } from "@/lib/makethisone/contract";
-import { buildAdContract, vatOf, type AdDeal, type AdParty } from "@/lib/deepmakai/ad-contract";
+import { kstDate, won } from "@/lib/makethisone/contract";
+import { buildAdContract, vatOf, type AdDeal, type AdParty, type EulParty } from "@/lib/deepmakai/ad-contract";
 
 const BUCKET = "deepmakai-ad-contracts";
 const DIR = process.env.NODE_ENV === "production" ? "" : "dev/";
 const OWNER_EMAIL = "ceo@lawnald.com";
 
+export interface EulRecord {
+    party: EulParty;
+    /** data:image/png;base64,… */
+    signature: string;
+    signedAt: string;
+    ip: string;
+    userAgent: string;
+}
+
 export interface AdContractRecord {
     id: string;
     dealId: string;
     party: AdParty;
+    /** 갑이 서명할 때의 을 서명 사본 */
+    eul: EulRecord;
     /** data:image/png;base64,… */
     signature: string;
     signedAt: string;
@@ -51,6 +63,28 @@ export async function loadAdContract(deal: AdDeal): Promise<AdContractRecord | n
     return JSON.parse(await data.text()) as AdContractRecord;
 }
 
+export async function loadEul(deal: AdDeal): Promise<EulRecord | null> {
+    await ensureBucket();
+    const { data, error } = await createServiceClient().storage.from(BUCKET).download(`${DIR}${deal.id}.eul.json?t=${Date.now()}`);
+    if (error || !data) return null;
+    return JSON.parse(await data.text()) as EulRecord;
+}
+
+/** 을 서명 저장(광고주가 이미 서명했으면 false). */
+export async function saveEul(deal: AdDeal, eul: EulRecord): Promise<boolean> {
+    if (await loadAdContract(deal)) return false;
+    const { error } = await createServiceClient().storage.from(BUCKET).upload(`${DIR}${deal.id}.eul.json`, JSON.stringify(eul, null, 1), { contentType: "application/json", upsert: true, cacheControl: "0" });
+    if (error) throw new Error(`을 서명을 저장하지 못했습니다: ${error.message}`);
+    return true;
+}
+
+/** 을 서명 지우기(다시 서명하려고). 광고주가 이미 서명했으면 false. */
+export async function deleteEul(deal: AdDeal): Promise<boolean> {
+    if (await loadAdContract(deal)) return false;
+    await createServiceClient().storage.from(BUCKET).remove([`${DIR}${deal.id}.eul.json`]);
+    return true;
+}
+
 async function writeRecord(deal: AdDeal, rec: AdContractRecord) {
     const { error } = await createServiceClient().storage.from(BUCKET).upload(`${DIR}${deal.id}.json`, JSON.stringify(rec, null, 1), { contentType: "application/json", upsert: true, cacheControl: "0" });
     if (error) throw new Error(`계약을 저장하지 못했습니다: ${error.message}`);
@@ -63,11 +97,13 @@ export async function loadAdContractPdf(rec: AdContractRecord): Promise<Uint8Arr
     return new Uint8Array(await data.arrayBuffer());
 }
 
-/** 서명 기록 → PDF 저장 → 메일. 이미 서명된 건이면 null. */
-export async function signAdContract(deal: AdDeal, input: { party: AdParty; signature: string; ip: string; userAgent: string }): Promise<{ rec: AdContractRecord; mailed: boolean } | null> {
-    if (await loadAdContract(deal)) return null;
+/** 광고주 서명 기록 → PDF 저장 → 메일. 이미 서명된 건이면 "signed", 을 서명 전이면 "not-ready". */
+export async function signAdContract(deal: AdDeal, input: { party: AdParty; signature: string; ip: string; userAgent: string }): Promise<{ rec: AdContractRecord; mailed: boolean } | "signed" | "not-ready"> {
+    if (await loadAdContract(deal)) return "signed";
+    const eul = await loadEul(deal);
+    if (!eul) return "not-ready";
     const rec: AdContractRecord = {
-        id: randomUUID(), dealId: deal.id, party: input.party, signature: input.signature,
+        id: randomUUID(), dealId: deal.id, party: input.party, eul, signature: input.signature,
         signedAt: new Date().toISOString(), ip: input.ip, userAgent: input.userAgent.slice(0, 300),
     };
     const pdf = await renderAdContractPdf(deal, rec);
@@ -113,11 +149,11 @@ function wrap(text: string, font: PDFFont, size: number, width: number): string[
 }
 
 export async function renderAdContractPdf(deal: AdDeal, rec: AdContractRecord): Promise<Uint8Array> {
-    const paper = buildAdContract(deal, rec.party, new Date(rec.signedAt));
+    const paper = buildAdContract(deal, rec.party, new Date(rec.signedAt), { party: rec.eul.party, signedAt: new Date(rec.eul.signedAt) });
     const doc = await PDFDocument.create();
     doc.registerFontkit(fontkit);
     doc.setTitle(`${paper.title} - ${rec.party.company}`);
-    doc.setAuthor(COMPANY.name);
+    doc.setAuthor(rec.eul.party.company);
     const regular = await doc.embedFont(fs.readFileSync(path.join(FONT_DIR, "NotoSansKR-Regular.ttf")), { subset: true });
     const bold = await doc.embedFont(fs.readFileSync(path.join(FONT_DIR, "NotoSansKR-Bold.ttf")), { subset: true });
     const ink = rgb(0.1, 0.1, 0.12), gray = rgb(0.42, 0.42, 0.46);
@@ -167,11 +203,11 @@ export async function renderAdContractPdf(deal: AdDeal, rec: AdContractRecord): 
     table("광고비", paper.money);
     need(30 + paper.gap.length * 16 + 70); // 광고주 정보와 서명이 한 쪽에 같이 오게
     table("광고주(갑)", paper.gap);
-    // 갑의 손글씨 서명
-    const png = rec.signature.startsWith("data:image/png;base64,") ? Buffer.from(rec.signature.split(",")[1], "base64") : null;
-    if (png) {
+    // 손글씨 서명 그림
+    const drawSignature = async (dataUrl: string) => {
+        if (!dataUrl.startsWith("data:image/png;base64,")) return;
         try {
-            const img = await doc.embedPng(png);
+            const img = await doc.embedPng(Buffer.from(dataUrl.split(",")[1], "base64"));
             const h = 54, w = Math.min(200, (img.width / img.height) * h);
             need(h + 12);
             page.drawText("서명", { x: MARGIN + 8, y: y - 9.5, size: 9.5, font: regular, color: gray });
@@ -180,8 +216,11 @@ export async function renderAdContractPdf(deal: AdDeal, rec: AdContractRecord): 
         } catch (e) {
             console.error("[AdContract] signature embed error:", e);
         }
-    }
+    };
+    await drawSignature(rec.signature);
+    need(30 + paper.eul.length * 16 + 70); // 을 정보와 서명도 한 쪽에 같이
     table("광고 수행자(을)", paper.eul);
+    await drawSignature(rec.eul.signature);
 
     need(30);
     write(`본 계약서는 ${kstDate(new Date(rec.signedAt))} ${rec.party.email} 로 발송된 전자계약서입니다. 계약 번호 ${rec.id}`, { size: 8, color: gray });
@@ -197,16 +236,17 @@ async function sendAdContractMail(deal: AdDeal, rec: AdContractRecord, pdf: Uint
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) throw new Error("메일 발송 설정(EMAIL_USER/EMAIL_PASS)이 없습니다.");
     const transporter = nodemailer.createTransport({ service: "gmail", auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS } });
     const total = deal.supplyPrice + vatOf(deal.supplyPrice);
+    const eul = rec.eul.party;
     await transporter.sendMail({
-        from: `"${COMPANY.name}" <${process.env.EMAIL_USER}>`,
+        from: `"${eul.company}" <${process.env.EMAIL_USER}>`,
         to: rec.party.email,
-        bcc: OWNER_EMAIL,
+        bcc: [OWNER_EMAIL, ...(eul.email && eul.email !== OWNER_EMAIL ? [eul.email] : [])],
         subject: `[딥마카이] 유튜브 광고 계약서 — ${deal.brand}`,
         html: `<div style="font-family:sans-serif;line-height:1.7;color:#222">
             <p>${esc(rec.party.company)} ${esc(rec.party.signer)} 님, 딥마카이 유튜브 광고 계약에 서명해 주셔서 감사합니다.</p>
             <p>서명하신 계약서를 PDF로 첨부해 드립니다. 보관해 두세요.</p>
             <p style="color:#555;font-size:13px">게재 콘텐츠: ${esc(deal.episode)}<br/>광고비: ${won(deal.supplyPrice)} (부가세 별도, 합계 ${won(total)})<br/>계약 체결일: ${kstDate(new Date(rec.signedAt))}</p>
-            <p style="color:#888;font-size:12px">${COMPANY.name} · 대표자 ${COMPANY.ceo} · 사업자등록번호 ${COMPANY.bizNo}</p>
+            <p style="color:#888;font-size:12px">${esc(eul.company)} · 대표자 ${esc(eul.ceo)} · 사업자등록번호 ${esc(eul.bizNo)}</p>
         </div>`,
         attachments: [{ filename: `딥마카이_광고계약서_${rec.party.company.replace(/[\\/:*?"<>|]/g, "")}.pdf`, content: Buffer.from(pdf), contentType: "application/pdf" }],
     });

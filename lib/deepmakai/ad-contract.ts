@@ -1,7 +1,8 @@
 // 딥마카이 유튜브 광고(PPL) 전자계약서(2026-10-29 대표 지시: 헤임타 강경호 회차 170만 원 계약을 makethis1.com 에서 전자서명으로).
 // 계약 건(deal)은 코드에 둔다 — 광고주마다 조건이 달라 결제 상품처럼 고를 수 있게 하지 않는다. 주소의 code 를 아는 사람만 서명할 수 있다.
 // 계약 화면(미리보기)과 서버(PDF·메일)가 같은 문구를 쓴다. 서버 코드를 import 하지 않는다(브라우저에서도 쓴다).
-import { COMPANY, kstDate, kstDateTime, won } from "@/lib/makethisone/contract";
+// 을은 딥마카이 사업자(대표 지시 2026-10-29). 을이 관리자 로그인 상태로 먼저 사업자 정보를 넣고 서명해야 광고주(갑)가 서명할 수 있다.
+import { kstDate, kstDateTime, won } from "@/lib/makethisone/contract";
 
 export interface AdDeal {
     /** 주소 토큰: /deepmakai/contract/<code> */
@@ -11,6 +12,8 @@ export interface AdDeal {
     brand: string;
     /** 서명 화면에 미리 채우는 광고주 정보(서명자가 고칠 수 있다) */
     prefill: { company?: string; ceo?: string; address?: string; manager?: string; email?: string };
+    /** 을 서명 화면에 미리 채우는 값 */
+    eulPrefill: { company?: string; ceo?: string; address?: string; email?: string };
     episode: string;
     adFormat: string;
     product: string;
@@ -26,6 +29,7 @@ const DEALS: AdDeal[] = [
         id: "2026-10-heimta-kangkyungho",
         brand: "헤임타",
         prefill: { company: "주식회사 보딩패스", address: "서울특별시 동대문구 장한로 53, 제이빌딩 401호", manager: "권혜지", email: "khj@boardingpass.kr" },
+        eulPrefill: { company: "딥마카이", email: "ceo@lawnald.com" },
         episode: "‘딥캐스트’ UFC 출신 강경호 선수 출연 회차 1편",
         adFormat: "본편 중간 60~90초 미드롤 PPL — 진행자가 헤임타 제품을 직접 사용하며 소개하는 ‘근육통 상담’ 코너, 영상 설명란 구매 링크와 고정 댓글",
         product: "갑이 지정하는 헤임타 마사지기(진행자 4인분 현물 제공)",
@@ -52,6 +56,9 @@ export interface AdParty {
     signer: string;
 }
 
+/** 을(딥마카이 사업자) — 을 서명 때 입력한다. */
+export interface EulParty { company: string; ceo: string; bizNo: string; address: string; email?: string; signer: string }
+
 export interface AdArticle { heading: string; lines: string[] }
 export interface AdContractPaper {
     title: string;
@@ -65,7 +72,8 @@ export interface AdContractPaper {
 
 export const vatOf = (supply: number) => Math.round(supply * 0.1);
 
-export function buildAdContract(deal: AdDeal, party: Partial<AdParty>, signedAt: Date | null): AdContractPaper {
+export function buildAdContract(deal: AdDeal, party: Partial<AdParty>, signedAt: Date | null, eulIn?: { party: Partial<EulParty>; signedAt: Date | null } | null): AdContractPaper {
+    const eul = eulIn?.party || {}, eulAt = eulIn?.signedAt || null;
     const 갑 = "“갑”", 을 = "“을”";
     const vat = vatOf(deal.supplyPrice), total = deal.supplyPrice + vat;
     const half = Math.round(total / 2);
@@ -123,7 +131,7 @@ export function buildAdContract(deal: AdDeal, party: Partial<AdParty>, signedAt:
 
     return {
         title: "유튜브 광고(PPL) 계약서",
-        preamble: `광고주 ${company}(이하 ${갑}이라 한다)과 ${COMPANY.name}(이하 ${을}이라 한다)은 ${갑}의 브랜드 ‘${deal.brand}’ 광고를 유튜브 채널 ‘딥마카이’에 게재하는 일에 관하여 다음과 같이 계약을 체결한다.`,
+        preamble: `광고주 ${company}(이하 ${갑}이라 한다)과 ${eul.company?.trim() || "딥마카이"}(이하 ${을}이라 한다)은 ${갑}의 브랜드 ‘${deal.brand}’ 광고를 유튜브 채널 ‘딥마카이’에 게재하는 일에 관하여 다음과 같이 계약을 체결한다.`,
         articles,
         dateLine: `계약 체결일: ${kstDate(signedAt || new Date())}`,
         gap: [
@@ -138,11 +146,13 @@ export function buildAdContract(deal: AdDeal, party: Partial<AdParty>, signedAt:
             ["전자서명", signedAt ? `${kstDateTime(signedAt)} 계약 내용에 동의하고 서명` : "서명 전"],
         ],
         eul: [
-            ["상호", COMPANY.name],
-            ["대표자", COMPANY.ceo],
-            ["사업자등록번호", COMPANY.bizNo],
-            ["주소", COMPANY.address],
+            ["상호", eul.company || "-"],
+            ["대표자", eul.ceo || "-"],
+            ["사업자등록번호", eul.bizNo || "-"],
+            ["주소", eul.address || "-"],
             ["채널", "유튜브 ‘딥마카이(DEEP MAKAI)’"],
+            ["서명자", eul.signer || "-"],
+            ["전자서명", eulAt ? `${kstDateTime(eulAt)} 서명` : "서명 전"],
         ],
         money: [
             ["광고비", `${won(deal.supplyPrice)} (부가가치세 별도)`],
