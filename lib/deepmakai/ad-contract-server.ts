@@ -3,7 +3,7 @@
 // - 광고주(갑)는 을 서명 뒤에만, 계약 건마다 한 번만 서명한다: <deal.id>.json(을 서명 사본 포함)과 <deal.id>.pdf.
 // - 서명 뒤 PDF 를 광고주가 입력한 이메일로 보내고 대표 메일을 숨은참조로 넣는다. 로컬(개발)에서는 AD_CONTRACT_MAIL=1 일 때만 보낸다.
 // 문구는 lib/deepmakai/ad-contract.ts, 글꼴은 맥디 결제 계약서와 같은 lib/makethisone/fonts(글자 빠짐 방지판)를 쓴다.
-import { randomUUID } from "node:crypto";
+import { randomUUID, timingSafeEqual } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import nodemailer from "nodemailer";
@@ -266,4 +266,16 @@ async function sendAdContractMail(deal: AdDeal, rec: AdContractRecord, pdf: Uint
 
 function esc(s: string) {
     return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] as string);
+}
+
+// ── 로그인 없이 보는 링크 모음(/deepmakai/board/<토큰>) ─────────────
+/** 비공개 보관함 board-token.json 의 토큰과 맞는지. 파일이 없으면 항상 false. */
+export async function checkBoardToken(token: string): Promise<boolean> {
+    if (!/^[A-Za-z0-9]{24,64}$/.test(token || "")) return false;
+    await ensureBucket();
+    const { data, error } = await createServiceClient().storage.from(BUCKET).download(`${DIR}board-token.json?t=${Date.now()}`);
+    if (error || !data) return false;
+    let want = "";
+    try { want = String(JSON.parse(await data.text()).token || ""); } catch { return false; }
+    return want.length === token.length && timingSafeEqual(Buffer.from(want), Buffer.from(token));
 }
