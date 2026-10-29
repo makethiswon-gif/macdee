@@ -14,12 +14,19 @@ export interface AdDeal {
     /** 을 서명 화면에 미리 채우는 값 */
     eulPrefill: { company?: string; ceo?: string; bizNo?: string; address?: string; email?: string };
     episode: string;
+    /** 화면 요약 칸에 쓰는 짧은 이름 */
+    episodeShort?: string;
     adFormat: string;
     product: string;
     shootDate: string;
     release: string;
+    /** 광고비 합계(부가세 별도) = 회차 광고비 + 2차 활용 */
     supplyPrice: number;
+    /** 회차 광고비(특가)와 정가 */
+    adPrice?: number;
     listPrice?: number;
+    /** 2차 활용을 광고비에 포함한 경우 */
+    secondUse?: { price: number; months: number };
 }
 
 const DEALS: AdDeal[] = [
@@ -28,13 +35,16 @@ const DEALS: AdDeal[] = [
         brand: "헤임타",
         prefill: { company: "주식회사 보딩패스", address: "서울특별시 동대문구 장한로 53, 제이빌딩 401호", manager: "권혜지", email: "khj@boardingpass.kr" },
         eulPrefill: { company: COMPANY.name, ceo: COMPANY.ceo, bizNo: COMPANY.bizNo, address: COMPANY.address, email: "ceo@lawnald.com" },
-        episode: "‘딥캐스트’ UFC 출신 강경호 선수 출연 회차 1편",
-        adFormat: "본편 중간 60~90초 미드롤 PPL — 진행자가 헤임타 제품을 직접 사용하며 소개하는 ‘근육통 상담’ 코너, 영상 설명란 구매 링크와 고정 댓글",
-        product: "갑이 지정하는 헤임타 마사지기(진행자 4인분 현물 제공)",
+        episode: "‘딥캐스트’ UFC 출신 강경호 선수 출연 회차(1부·2부로 나누어 공개하며, 두 편 모두에 광고를 노출한다)",
+        episodeShort: "딥캐스트 강경호 선수 회차 1부·2부",
+        adFormat: "1부·2부 각 편 본편 중간 미드롤 PPL(60~90초) — 진행자가 헤임타 제품을 직접 사용하며 소개하는 ‘근육통 상담’ 코너, 각 편 설명란 구매 링크와 고정 댓글. 두 편 노출은 한 회차 가격에 포함한다",
+        product: "헤임타 EMS 이지샷 스팟 마사지기, 헤임타 리커버리 마사지스틱(진행자 4인분 현물 제공)",
         shootDate: "2026년 10월 30일",
         release: "2026년 11월 첫째 주 공개 예정이며, 정확한 공개일은 을이 갑에게 미리 알린다.",
-        supplyPrice: 1_700_000,
+        supplyPrice: 2_200_000,
+        adPrice: 1_700_000,
         listPrice: 2_000_000,
+        secondUse: { price: 500_000, months: 3 },
     },
 ];
 
@@ -93,7 +103,9 @@ export function buildAdContract(deal: AdDeal, party: Partial<AdParty>, signedAt:
             `${갑}은 촬영 전까지 광고 제품과 광고 문구(제품 특징, 쓰면 안 되는 표현 등)를 ${을}에게 제공한다.`,
         ] },
         { heading: "제4조 (광고비와 지급)", lines: [
-            `광고비는 ${won(deal.supplyPrice)}(부가가치세 별도)${deal.listPrice ? `으로 한다(정가 ${won(deal.listPrice)}에서 할인한 금액)` : "으로 한다"}. 부가가치세 ${won(vat)}을 더한 합계는 ${won(total)}이다.`,
+            deal.secondUse && deal.adPrice
+                ? `광고비는 ${won(deal.supplyPrice)}(부가가치세 별도)으로 한다. 이는 회차 광고비 ${won(deal.adPrice)}${deal.listPrice ? `(정가 ${won(deal.listPrice)}에서 할인한 금액)` : ""}과 제9조의 2차 활용 대가 ${won(deal.secondUse.price)}을 더한 금액이다. 부가가치세 ${won(vat)}을 더한 합계는 ${won(total)}이다.`
+                : `광고비는 ${won(deal.supplyPrice)}(부가가치세 별도)${deal.listPrice ? `으로 한다(정가 ${won(deal.listPrice)}에서 할인한 금액)` : "으로 한다"}. 부가가치세 ${won(vat)}을 더한 합계는 ${won(total)}이다.`,
             `${갑}은 계약 체결일부터 7일 안에 선금 ${won(half)}(합계의 50%)을, 영상 공개일부터 7일 안에 잔금 ${won(total - half)}을 ${account ? `아래 계좌(${account})` : `${을}이 지정한 계좌`}로 지급한다.`,
             `${을}은 각 금액에 대한 세금계산서를 발행한다.`,
         ] },
@@ -114,7 +126,12 @@ export function buildAdContract(deal: AdDeal, party: Partial<AdParty>, signedAt:
             "조회수·판매 같은 광고 성과는 보장하지 않는다.",
             `${을}은 공개일부터 2주 뒤 조회수와 설명란 링크 클릭 수를 ${갑}에게 알린다.`,
         ] },
-        { heading: "제9조 (2차 활용)", lines: [`${갑}이 광고 영상을 자사 채널·SNS·광고에 다시 쓰려면 ${을}과 미리 협의하며, 3개월 기준 ${won(500_000)}(부가가치세 별도)을 따로 정한다.`] },
+        { heading: "제9조 (2차 활용)", lines: deal.secondUse
+            ? [
+                `${갑}은 광고 부분 영상을 공개일부터 ${deal.secondUse.months}개월 동안 자사 채널·SNS·온라인 광고에 다시 쓸 수 있다. 그 대가 ${won(deal.secondUse.price)}(부가가치세 별도)은 제4조 광고비에 포함되어 있다.`,
+                `${갑}이 위 기간을 넘겨 쓰거나 광고 부분 외의 영상을 쓰려면 ${을}과 미리 협의한다.`,
+            ]
+            : [`${갑}이 광고 영상을 자사 채널·SNS·광고에 다시 쓰려면 ${을}과 미리 협의하며, 3개월 기준 ${won(500_000)}(부가가치세 별도)을 따로 정한다.`] },
         { heading: "제10조 (계약 해지와 회차 변경)", lines: [
             `촬영 전에 ${갑}이 계약을 해지하면 ${을}은 받은 금액을 모두 돌려준다.`,
             `촬영 뒤 ${갑}의 사정으로 해지하면 선금은 돌려주지 않는다.`,
@@ -156,6 +173,7 @@ export function buildAdContract(deal: AdDeal, party: Partial<AdParty>, signedAt:
         ],
         money: [
             ["광고비", `${won(deal.supplyPrice)} (부가가치세 별도)`],
+            ...(deal.secondUse && deal.adPrice ? [["내역", `회차 광고 ${won(deal.adPrice)} + 2차 활용(${deal.secondUse.months}개월) ${won(deal.secondUse.price)}`] as [string, string]] : []),
             ["부가가치세", won(vat)],
             ["합계", won(total)],
             ["선금", `${won(half)} — 계약 체결일부터 7일 안`],
