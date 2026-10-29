@@ -8,7 +8,7 @@ type Done = { id: string; email: string; mailed: boolean; signedAt: string };
 export type EulView = { party: EulParty; signedAt: string; signature: string };
 
 // 을 링크: 을 서명 → (서명 뒤) 을 서명 완료. 광고주 링크: 을 서명 전 '준비 중' → 광고주 서명 → 완료.
-export default function ContractSign({ deal, code, role, signed, eul }: { deal: AdDeal; code: string; role: "gap" | "eul"; signed: { at: string; company: string } | null; eul: EulView | null }) {
+export default function ContractSign({ deal, code, role, account, signed, eul }: { deal: AdDeal; code: string; role: "gap" | "eul"; account: string; signed: { at: string; company: string } | null; eul: EulView | null }) {
     const [done, setDone] = useState<Done | null>(null);
     const mode: "done" | "eul" | "eulDone" | "pending" | "gap" = signed || done ? "done" : role === "eul" ? (eul ? "eulDone" : "eul") : eul ? "gap" : "pending";
 
@@ -24,7 +24,7 @@ export default function ContractSign({ deal, code, role, signed, eul }: { deal: 
     const canvas = useRef<HTMLCanvasElement>(null);
 
     const paper = useMemo(() => buildAdContract(deal, g, null,
-        eul ? { party: eul.party, signedAt: new Date(eul.signedAt) } : mode === "eul" ? { party: e, signedAt: null } : null), [deal, g, e, eul, mode]);
+        eul ? { party: eul.party, signedAt: new Date(eul.signedAt) } : mode === "eul" ? { party: e, signedAt: null } : null, { account }), [deal, g, e, eul, mode, account]);
     const vat = vatOf(deal.supplyPrice), total = deal.supplyPrice + vat;
     const setGap = (k: keyof typeof g) => (ev: React.ChangeEvent<HTMLInputElement>) => setG((s) => ({ ...s, [k]: ev.target.value }));
     const setEul = (k: keyof typeof e) => (ev: React.ChangeEvent<HTMLInputElement>) => setE((s) => ({ ...s, [k]: ev.target.value }));

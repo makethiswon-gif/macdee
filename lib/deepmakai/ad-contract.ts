@@ -70,7 +70,9 @@ export interface AdContractPaper {
 
 export const vatOf = (supply: number) => Math.round(supply * 0.1);
 
-export function buildAdContract(deal: AdDeal, party: Partial<AdParty>, signedAt: Date | null, eulIn?: { party: Partial<EulParty>; signedAt: Date | null } | null): AdContractPaper {
+/** extra.account: 입금 계좌 — 공개 저장소에 두지 않고 비공개 보관함의 계약 건 설정(<deal.id>.config.json)에서 읽는다. */
+export function buildAdContract(deal: AdDeal, party: Partial<AdParty>, signedAt: Date | null, eulIn?: { party: Partial<EulParty>; signedAt: Date | null } | null, extra?: { account?: string }): AdContractPaper {
+    const account = extra?.account?.trim() || "";
     const eul = eulIn?.party || {}, eulAt = eulIn?.signedAt || null;
     const 갑 = "“갑”", 을 = "“을”";
     const vat = vatOf(deal.supplyPrice), total = deal.supplyPrice + vat;
@@ -92,7 +94,7 @@ export function buildAdContract(deal: AdDeal, party: Partial<AdParty>, signedAt:
         ] },
         { heading: "제4조 (광고비와 지급)", lines: [
             `광고비는 ${won(deal.supplyPrice)}(부가가치세 별도)${deal.listPrice ? `으로 한다(정가 ${won(deal.listPrice)}에서 할인한 금액)` : "으로 한다"}. 부가가치세 ${won(vat)}을 더한 합계는 ${won(total)}이다.`,
-            `${갑}은 계약 체결일부터 7일 안에 선금 ${won(half)}(합계의 50%)을, 영상 공개일부터 7일 안에 잔금 ${won(total - half)}을 ${을}이 지정한 계좌로 지급한다.`,
+            `${갑}은 계약 체결일부터 7일 안에 선금 ${won(half)}(합계의 50%)을, 영상 공개일부터 7일 안에 잔금 ${won(total - half)}을 ${account ? `아래 계좌(${account})` : `${을}이 지정한 계좌`}로 지급한다.`,
             `${을}은 각 금액에 대한 세금계산서를 발행한다.`,
         ] },
         { heading: "제5조 (기획과 검수)", lines: [
@@ -158,6 +160,7 @@ export function buildAdContract(deal: AdDeal, party: Partial<AdParty>, signedAt:
             ["합계", won(total)],
             ["선금", `${won(half)} — 계약 체결일부터 7일 안`],
             ["잔금", `${won(total - half)} — 영상 공개일부터 7일 안`],
+            ...(account ? [["입금 계좌", account] as [string, string]] : []),
         ],
     };
 }

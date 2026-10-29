@@ -32,6 +32,8 @@ export interface AdContractRecord {
     party: AdParty;
     /** 갑이 서명할 때의 을 서명 사본 */
     eul: EulRecord;
+    /** 갑이 서명할 때의 입금 계좌(계약 건 설정) */
+    account?: string;
     /** data:image/png;base64,… */
     signature: string;
     signedAt: string;
@@ -61,6 +63,14 @@ export async function loadAdContract(deal: AdDeal): Promise<AdContractRecord | n
     const { data, error } = await createServiceClient().storage.from(BUCKET).download(`${DIR}${deal.id}.json?t=${Date.now()}`);
     if (error || !data) return null;
     return JSON.parse(await data.text()) as AdContractRecord;
+}
+
+/** 계약 건 설정(비공개): 입금 계좌 등 공개 저장소에 두면 안 되는 값. */
+export async function loadDealConfig(deal: AdDeal): Promise<{ account?: string }> {
+    await ensureBucket();
+    const { data, error } = await createServiceClient().storage.from(BUCKET).download(`${DIR}${deal.id}.config.json?t=${Date.now()}`);
+    if (error || !data) return {};
+    try { return JSON.parse(await data.text()); } catch { return {}; }
 }
 
 export async function loadEul(deal: AdDeal): Promise<EulRecord | null> {
@@ -102,8 +112,9 @@ export async function signAdContract(deal: AdDeal, input: { party: AdParty; sign
     if (await loadAdContract(deal)) return "signed";
     const eul = await loadEul(deal);
     if (!eul) return "not-ready";
+    const { account } = await loadDealConfig(deal);
     const rec: AdContractRecord = {
-        id: randomUUID(), dealId: deal.id, party: input.party, eul, signature: input.signature,
+        id: randomUUID(), dealId: deal.id, party: input.party, eul, ...(account ? { account } : {}), signature: input.signature,
         signedAt: new Date().toISOString(), ip: input.ip, userAgent: input.userAgent.slice(0, 300),
     };
     const pdf = await renderAdContractPdf(deal, rec);
@@ -149,7 +160,7 @@ function wrap(text: string, font: PDFFont, size: number, width: number): string[
 }
 
 export async function renderAdContractPdf(deal: AdDeal, rec: AdContractRecord): Promise<Uint8Array> {
-    const paper = buildAdContract(deal, rec.party, new Date(rec.signedAt), { party: rec.eul.party, signedAt: new Date(rec.eul.signedAt) });
+    const paper = buildAdContract(deal, rec.party, new Date(rec.signedAt), { party: rec.eul.party, signedAt: new Date(rec.eul.signedAt) }, { account: rec.account });
     const doc = await PDFDocument.create();
     doc.registerFontkit(fontkit);
     doc.setTitle(`${paper.title} - ${rec.party.company}`);

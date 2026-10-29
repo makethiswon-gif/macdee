@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { resolveCode } from "@/lib/deepmakai/ad-contract-codes";
-import { loadAdContract, loadEul } from "@/lib/deepmakai/ad-contract-server";
+import { loadAdContract, loadDealConfig, loadEul } from "@/lib/deepmakai/ad-contract-server";
 import ContractSign from "./ContractSign";
 
 export const dynamic = "force-dynamic";
@@ -10,12 +10,13 @@ export default async function AdContractPage({ params }: { params: Promise<{ cod
     const code = (await params).code;
     const hit = resolveCode(code);
     if (!hit) notFound();
-    const [rec, eul] = await Promise.all([loadAdContract(hit.deal).catch(() => null), loadEul(hit.deal).catch(() => null)]);
+    const [rec, eul, config] = await Promise.all([loadAdContract(hit.deal).catch(() => null), loadEul(hit.deal).catch(() => null), loadDealConfig(hit.deal).catch(() => ({} as { account?: string }))]);
     return (
         <ContractSign
             deal={hit.deal}
             code={code}
             role={hit.role}
+            account={config.account || ""}
             signed={rec ? { at: rec.signedAt, company: rec.party.company } : null}
             eul={eul ? { party: eul.party, signedAt: eul.signedAt, signature: eul.signature } : null}
         />
