@@ -3,7 +3,7 @@ import { dealCode } from "@/lib/deepmakai/ad-contract-codes";
 import { loadAdContract, loadEul } from "@/lib/deepmakai/ad-contract-server";
 import { kstDateTime, won } from "@/lib/makethisone/contract";
 
-// 계약 건마다 을 서명 링크와 광고주 서명 링크, 서명 상태. 관리자 화면과 비밀 주소 링크 모음(/deepmakai/board/<토큰>)이 같이 쓴다.
+// 계약 건마다 을 서명 링크와 광고주 서명 링크, 서명 상태. 관리자 화면과 비밀번호로 여는 링크 모음(/deepmakai/board)이 같이 쓴다.
 export default async function AdContractLinks() {
     const base = "https://www.makethis1.com/deepmakai/contract/";
     const rows = await Promise.all(listDeals().map(async (deal) => {

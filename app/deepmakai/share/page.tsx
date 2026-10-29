@@ -5,7 +5,7 @@ import RevenueShareLinks from "./RevenueShareLinks";
 
 export const dynamic = "force-dynamic";
 
-// 관리자 전용: 광고 수익 배분 약정 링크와 서명 상태. 로그인 없이 보려면 /deepmakai/board/<토큰>.
+// 관리자 전용: 광고 수익 배분 약정 링크와 서명 상태. 로그인 없이 보려면 비밀번호로 여는 /deepmakai/board.
 export default async function RevenueShareAdmin() {
     if (!verifyAdminTokenValue((await cookies()).get("admin_token")?.value || "")) notFound();
     return (

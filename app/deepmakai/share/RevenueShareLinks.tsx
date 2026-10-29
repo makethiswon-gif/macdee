@@ -4,7 +4,7 @@ import { loadShareFinal, loadShareSigns } from "@/lib/deepmakai/revenue-share-se
 import { kstDateTime } from "@/lib/makethisone/contract";
 
 // 광고 수익 배분 약정의 다섯 당사자 링크와 서명 상태, 출연자 정산 계좌(약정서에는 넣지 않는다).
-// 관리자 화면과 비밀 주소 링크 모음(/deepmakai/board/<토큰>)이 같이 쓴다.
+// 관리자 화면과 비밀번호로 여는 링크 모음(/deepmakai/board)이 같이 쓴다.
 export default async function RevenueShareLinks() {
     const base = "https://www.makethis1.com/deepmakai/share/";
     const [fin, live] = await Promise.all([loadShareFinal(), loadShareSigns()]);

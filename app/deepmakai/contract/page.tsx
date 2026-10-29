@@ -7,7 +7,7 @@ import AdContractLinks from "./AdContractLinks";
 export const dynamic = "force-dynamic";
 
 // 관리자 전용: 계약 건마다 을 서명 링크와 광고주 서명 링크, 서명 상태. 링크 코드는 서버 비밀값으로 만들어 저장소에 없다.
-// 로그인 없이 보려면 비밀 주소 링크 모음 /deepmakai/board/<토큰>(토큰은 비공개 보관함 board-token.json).
+// 로그인 없이 보려면 비밀번호로 여는 링크 모음 /deepmakai/board(lib/deepmakai/board-auth.ts).
 export default async function AdContractAdmin() {
     if (!verifyAdminTokenValue((await cookies()).get("admin_token")?.value || "")) notFound();
     return (
