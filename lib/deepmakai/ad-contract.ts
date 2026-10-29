@@ -1,19 +1,18 @@
 // 딥마카이 유튜브 광고(PPL) 전자계약서(2026-10-29 대표 지시: 헤임타 강경호 회차 170만 원 계약을 makethis1.com 에서 전자서명으로).
-// 계약 건(deal)은 코드에 둔다 — 광고주마다 조건이 달라 결제 상품처럼 고를 수 있게 하지 않는다. 주소의 code 를 아는 사람만 서명할 수 있다.
+// 계약 건(deal)은 코드에 둔다 — 광고주마다 조건이 달라 결제 상품처럼 고를 수 있게 하지 않는다.
+// 서명 주소의 코드는 저장소(공개)에 적지 않고 서버 비밀값으로 만든다(lib/deepmakai/ad-contract-codes.ts). 관리자 화면 /deepmakai/contract 에서 링크를 본다.
 // 계약 화면(미리보기)과 서버(PDF·메일)가 같은 문구를 쓴다. 서버 코드를 import 하지 않는다(브라우저에서도 쓴다).
-// 을은 딥마카이 사업자(대표 지시 2026-10-29). 을이 관리자 로그인 상태로 먼저 사업자 정보를 넣고 서명해야 광고주(갑)가 서명할 수 있다.
-import { kstDate, kstDateTime, won } from "@/lib/makethisone/contract";
+// 을은 계약 건마다 정한다(헤임타 건은 메이크디스원 — 대표 결정 2026-10-29, 이후 딥마카이 사업자 예정). 을 전용 링크에서 먼저 서명해야 광고주(갑)가 서명할 수 있다.
+import { COMPANY, kstDate, kstDateTime, won } from "@/lib/makethisone/contract";
 
 export interface AdDeal {
-    /** 주소 토큰: /deepmakai/contract/<code> */
-    code: string;
-    /** 보관 파일 이름 */
+    /** 보관 파일 이름이자 서명 주소 코드의 재료 */
     id: string;
     brand: string;
     /** 서명 화면에 미리 채우는 광고주 정보(서명자가 고칠 수 있다) */
     prefill: { company?: string; ceo?: string; address?: string; manager?: string; email?: string };
     /** 을 서명 화면에 미리 채우는 값 */
-    eulPrefill: { company?: string; ceo?: string; address?: string; email?: string };
+    eulPrefill: { company?: string; ceo?: string; bizNo?: string; address?: string; email?: string };
     episode: string;
     adFormat: string;
     product: string;
@@ -25,11 +24,10 @@ export interface AdDeal {
 
 const DEALS: AdDeal[] = [
     {
-        code: "feceog3x6fe1",
         id: "2026-10-heimta-kangkyungho",
         brand: "헤임타",
         prefill: { company: "주식회사 보딩패스", address: "서울특별시 동대문구 장한로 53, 제이빌딩 401호", manager: "권혜지", email: "khj@boardingpass.kr" },
-        eulPrefill: { company: "딥마카이", email: "ceo@lawnald.com" },
+        eulPrefill: { company: COMPANY.name, ceo: COMPANY.ceo, bizNo: COMPANY.bizNo, address: COMPANY.address, email: "ceo@lawnald.com" },
         episode: "‘딥캐스트’ UFC 출신 강경호 선수 출연 회차 1편",
         adFormat: "본편 중간 60~90초 미드롤 PPL — 진행자가 헤임타 제품을 직접 사용하며 소개하는 ‘근육통 상담’ 코너, 영상 설명란 구매 링크와 고정 댓글",
         product: "갑이 지정하는 헤임타 마사지기(진행자 4인분 현물 제공)",
@@ -40,8 +38,8 @@ const DEALS: AdDeal[] = [
     },
 ];
 
-export function findDeal(code: string): AdDeal | null {
-    return DEALS.find((d) => d.code === code) || null;
+export function listDeals(): AdDeal[] {
+    return DEALS;
 }
 
 export interface AdParty {
@@ -131,7 +129,7 @@ export function buildAdContract(deal: AdDeal, party: Partial<AdParty>, signedAt:
 
     return {
         title: "유튜브 광고(PPL) 계약서",
-        preamble: `광고주 ${company}(이하 ${갑}이라 한다)과 ${eul.company?.trim() || "딥마카이"}(이하 ${을}이라 한다)은 ${갑}의 브랜드 ‘${deal.brand}’ 광고를 유튜브 채널 ‘딥마카이’에 게재하는 일에 관하여 다음과 같이 계약을 체결한다.`,
+        preamble: `광고주 ${company}(이하 ${갑}이라 한다)과 ${eul.company?.trim() || deal.eulPrefill.company || "○○○"}(이하 ${을}이라 한다)은 ${갑}의 브랜드 ‘${deal.brand}’ 광고를 유튜브 채널 ‘딥마카이’에 게재하는 일에 관하여 다음과 같이 계약을 체결한다.`,
         articles,
         dateLine: `계약 체결일: ${kstDate(signedAt || new Date())}`,
         gap: [

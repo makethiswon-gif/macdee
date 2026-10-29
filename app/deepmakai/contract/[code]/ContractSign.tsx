@@ -7,16 +7,16 @@ import { isValidEmail, kstDateTime, won } from "@/lib/makethisone/contract";
 type Done = { id: string; email: string; mailed: boolean; signedAt: string };
 export type EulView = { party: EulParty; signedAt: string; signature: string };
 
-// 화면 네 가지: 을 서명(관리자) → 광고주 서명 → 완료. 을 서명 전 광고주에게는 '준비 중'.
-export default function ContractSign({ deal, signed, eul, isAdmin }: { deal: AdDeal; signed: { at: string; company: string } | null; eul: EulView | null; isAdmin: boolean }) {
+// 을 링크: 을 서명 → (서명 뒤) 을 서명 완료. 광고주 링크: 을 서명 전 '준비 중' → 광고주 서명 → 완료.
+export default function ContractSign({ deal, code, role, signed, eul }: { deal: AdDeal; code: string; role: "gap" | "eul"; signed: { at: string; company: string } | null; eul: EulView | null }) {
     const [done, setDone] = useState<Done | null>(null);
-    const mode: "done" | "eul" | "pending" | "gap" = signed || done ? "done" : !eul ? (isAdmin ? "eul" : "pending") : "gap";
+    const mode: "done" | "eul" | "eulDone" | "pending" | "gap" = signed || done ? "done" : role === "eul" ? (eul ? "eulDone" : "eul") : eul ? "gap" : "pending";
 
     const [g, setG] = useState({
         company: deal.prefill.company || "", ceo: deal.prefill.ceo || "", bizNo: "", address: deal.prefill.address || "",
         manager: deal.prefill.manager || "", email: deal.prefill.email || "", phone: "", signer: "",
     });
-    const [e, setE] = useState({ company: deal.eulPrefill.company || "", ceo: deal.eulPrefill.ceo || "", bizNo: "", address: deal.eulPrefill.address || "", email: deal.eulPrefill.email || "", signer: "" });
+    const [e, setE] = useState({ company: deal.eulPrefill.company || "", ceo: deal.eulPrefill.ceo || "", bizNo: deal.eulPrefill.bizNo || "", address: deal.eulPrefill.address || "", email: deal.eulPrefill.email || "", signer: "" });
     const [agree, setAgree] = useState(false);
     const [hasInk, setHasInk] = useState(false);
     const [busy, setBusy] = useState(false);
@@ -79,7 +79,7 @@ export default function ContractSign({ deal, signed, eul, isAdmin }: { deal: AdD
         setBusy(true); setErr("");
         try {
             const signature = canvas.current!.toDataURL("image/png");
-            const res = await fetch(`/api/deepmakai/contract/${deal.code}${mode === "eul" ? "/eul" : ""}`, {
+            const res = await fetch(`/api/deepmakai/contract/${code}${mode === "eul" ? "/eul" : ""}`, {
                 method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(mode === "eul" ? { ...e, signature } : { ...g, signature, agree }),
             });
@@ -97,7 +97,7 @@ export default function ContractSign({ deal, signed, eul, isAdmin }: { deal: AdD
 
     const resetEul = async () => {
         if (!window.confirm("을 서명을 지우고 다시 서명할까요? 광고주에게는 다시 서명할 때까지 '준비 중'으로 보입니다.")) return;
-        const res = await fetch(`/api/deepmakai/contract/${deal.code}/eul`, { method: "DELETE" });
+        const res = await fetch(`/api/deepmakai/contract/${code}/eul`, { method: "DELETE" });
         if (res.ok) window.location.reload();
         else setErr((await res.json()).error || "지우지 못했습니다.");
     };
@@ -111,15 +111,16 @@ export default function ContractSign({ deal, signed, eul, isAdmin }: { deal: AdD
                 <p className="text-[12px] font-semibold tracking-[0.18em] text-black/50">DEEP MAKAI × {deal.brand}</p>
                 <h1 className="mt-1 text-[26px] font-bold leading-tight sm:text-[30px]">유튜브 광고(PPL) 전자계약서</h1>
                 {mode === "gap" && <p className="mt-2 text-[14px] text-black/60">아래 계약 내용을 확인하고 광고주 정보를 입력한 뒤 서명해 주세요. 서명하면 계약서 PDF가 입력한 이메일로 발송됩니다.</p>}
-                {mode === "eul" && <p className="mt-2 text-[14px] text-black/60">관리자 화면입니다. 딥마카이 사업자 정보를 넣고 을로서 먼저 서명하면, 이 주소에서 광고주가 서명할 수 있습니다.</p>}
+                {mode === "eul" && <p className="mt-2 text-[14px] text-black/60">을 서명 화면입니다. 계약 내용을 확인하고 사업자 정보를 넣은 뒤 서명해 주세요. 을이 서명해야 광고주가 서명할 수 있습니다.</p>}
             </header>
 
-            {isAdmin && mode === "gap" && (
+            {mode === "eulDone" && (
                 <section className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-600/30 bg-emerald-50 px-5 py-4 text-[14px]">
-                    <span>을 서명 완료({kstDateTime(new Date(eul!.signedAt))}). 이 주소를 광고주에게 보내 주세요.</span>
+                    <span>을 서명 완료({eul!.party.signer} · {kstDateTime(new Date(eul!.signedAt))}). 이제 광고주가 서명할 수 있습니다.</span>
                     <button type="button" onClick={resetEul} className="text-[13px] text-black/60 underline">을 서명 다시 하기</button>
                 </section>
             )}
+            {mode === "eulDone" && err && <p className="mb-6 rounded-lg bg-red-50 px-3 py-2 text-[14px] text-red-700">{err}</p>}
 
             {mode === "done" ? (
                 <section className="rounded-2xl border border-black/10 bg-white p-6">
@@ -130,7 +131,7 @@ export default function ContractSign({ deal, signed, eul, isAdmin }: { deal: AdD
                             ? <>{kstDateTime(new Date(done.signedAt))}에 서명했습니다. {done.mailed ? <>양측이 서명한 계약서 PDF를 <b>{done.email}</b>로 보냈습니다.</> : <>계약서 PDF는 아래에서 내려받을 수 있습니다.</>}</>
                             : <>{signed!.company} · {kstDateTime(new Date(signed!.at))} 서명. 계약서는 서명 때 입력한 이메일로 발송되었습니다.</>}
                     </p>
-                    {done && <a href={`/api/deepmakai/contract/${deal.code}/pdf?id=${done.id}`} className="mt-4 inline-flex rounded-lg bg-[#16171A] px-4 py-2.5 text-[14px] font-semibold text-white">계약서 PDF 내려받기</a>}
+                    {done && <a href={`/api/deepmakai/contract/${code}/pdf?id=${done.id}`} className="mt-4 inline-flex rounded-lg bg-[#16171A] px-4 py-2.5 text-[14px] font-semibold text-white">계약서 PDF 내려받기</a>}
                     <p className="mt-4 text-[13px] text-black/50">{contact}</p>
                 </section>
             ) : mode === "pending" ? (
@@ -171,10 +172,10 @@ export default function ContractSign({ deal, signed, eul, isAdmin }: { deal: AdD
                         </div>
                     </section>
 
-                    <section className="rounded-2xl border border-black/10 bg-white p-5 sm:p-6">
+                    {mode !== "eulDone" && <section className="rounded-2xl border border-black/10 bg-white p-5 sm:p-6">
                         {mode === "eul" ? (
                             <>
-                                <h2 className="text-[17px] font-bold">을(딥마카이) 사업자 정보</h2>
+                                <h2 className="text-[17px] font-bold">을 사업자 정보</h2>
                                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                                     <L label="상호 *"><input className={field} value={e.company} onChange={setEul("company")} /></L>
                                     <L label="대표자 *"><input className={field} value={e.ceo} onChange={setEul("ceo")} /></L>
@@ -201,7 +202,7 @@ export default function ContractSign({ deal, signed, eul, isAdmin }: { deal: AdD
                         <h2 className="mt-7 text-[17px] font-bold">서명</h2>
                         <div className="mt-3 grid gap-3 sm:grid-cols-2">
                             {mode === "eul"
-                                ? <L label="서명하는 분 성명 *"><input className={field} value={e.signer} onChange={setEul("signer")} placeholder="대표자" /></L>
+                                ? <L label="서명하는 분 성명 *"><input className={field} value={e.signer} onChange={setEul("signer")} placeholder="대표자 또는 위임받은 사람" /></L>
                                 : <L label="서명하는 분 성명 *"><input className={field} value={g.signer} onChange={setGap("signer")} placeholder="대표자 또는 위임받은 담당자" /></L>}
                         </div>
                         <div className="mt-3">
@@ -225,7 +226,7 @@ export default function ContractSign({ deal, signed, eul, isAdmin }: { deal: AdD
                             {busy ? "서명 저장 중…" : mode === "eul" ? "을로 서명하기" : "동의하고 서명하기"}
                         </button>
                         <p className="mt-3 text-[12px] leading-relaxed text-black/45">서명 시각, 접속 IP와 입력한 정보가 계약 기록으로 보관됩니다. {contact}</p>
-                    </section>
+                    </section>}
                 </>
             )}
         </main>

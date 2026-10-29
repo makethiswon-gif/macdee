@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { getClientIp, rateLimitOk, tooManyRequests } from "@/lib/ratelimit";
 import { isValidEmail } from "@/lib/makethisone/contract";
-import { BIZNO_RE, findDeal } from "@/lib/deepmakai/ad-contract";
+import { BIZNO_RE } from "@/lib/deepmakai/ad-contract";
+import { resolveCode } from "@/lib/deepmakai/ad-contract-codes";
 import { loadAdContract, signAdContract } from "@/lib/deepmakai/ad-contract-server";
 
 export const dynamic = "force-dynamic";
@@ -10,16 +11,18 @@ const clean = (v: unknown, max: number) => String(v ?? "").replace(/\s+/g, " ").
 
 // GET: 서명 여부(서명 화면이 이미 끝난 건인지 알기 위해). 상호와 서명 시각만 돌려준다.
 export async function GET(_req: Request, { params }: { params: Promise<{ code: string }> }) {
-    const deal = findDeal((await params).code);
-    if (!deal) return NextResponse.json({ error: "계약을 찾지 못했습니다." }, { status: 404 });
+    const hit = resolveCode((await params).code);
+    if (!hit || hit.role !== "gap") return NextResponse.json({ error: "계약을 찾지 못했습니다." }, { status: 404 });
+    const deal = hit.deal;
     const rec = await loadAdContract(deal);
     return NextResponse.json(rec ? { signed: true, signedAt: rec.signedAt, company: rec.party.company } : { signed: false });
 }
 
 // POST: 광고주 전자서명(2026-10-29). body: { company, ceo, bizNo, address, manager?, email, phone?, signer, signature(dataURL png), agree }
 export async function POST(request: Request, { params }: { params: Promise<{ code: string }> }) {
-    const deal = findDeal((await params).code);
-    if (!deal) return NextResponse.json({ error: "계약을 찾지 못했습니다." }, { status: 404 });
+    const hit = resolveCode((await params).code);
+    if (!hit || hit.role !== "gap") return NextResponse.json({ error: "계약을 찾지 못했습니다." }, { status: 404 });
+    const deal = hit.deal;
     const ip = getClientIp(request);
     if (!(await rateLimitOk("dm-ad-contract", ip, 10, "1 m"))) return tooManyRequests();
     let b: Record<string, unknown>;

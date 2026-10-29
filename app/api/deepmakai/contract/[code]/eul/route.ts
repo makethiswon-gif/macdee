@@ -1,20 +1,20 @@
 import { NextResponse } from "next/server";
-import { verifyAdminToken } from "@/lib/admin-auth";
 import { getClientIp } from "@/lib/ratelimit";
 import { isValidEmail } from "@/lib/makethisone/contract";
-import { BIZNO_RE, findDeal } from "@/lib/deepmakai/ad-contract";
+import { BIZNO_RE } from "@/lib/deepmakai/ad-contract";
+import { resolveCode } from "@/lib/deepmakai/ad-contract-codes";
 import { deleteEul, saveEul } from "@/lib/deepmakai/ad-contract-server";
 
 export const dynamic = "force-dynamic";
 
 const clean = (v: unknown, max: number) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, max);
 
-// POST: 을(딥마카이 사업자) 서명 — makethis1.com 관리자 로그인(admin_token) 필요. 광고주가 서명하기 전까지는 다시 서명할 수 있다.
+// POST: 을(딥마카이 사업자) 서명 — 을 전용 링크의 코드로만(김승연 서명, 2026-10-29). 광고주가 서명하기 전까지는 다시 서명할 수 있다.
 //   body: { company, ceo, bizNo, address, email?, signer, signature(dataURL png) }
 export async function POST(request: Request, { params }: { params: Promise<{ code: string }> }) {
-    if (!verifyAdminToken(request)) return NextResponse.json({ error: "관리자 로그인이 필요합니다." }, { status: 401 });
-    const deal = findDeal((await params).code);
-    if (!deal) return NextResponse.json({ error: "계약을 찾지 못했습니다." }, { status: 404 });
+    const hit = resolveCode((await params).code);
+    if (!hit || hit.role !== "eul") return NextResponse.json({ error: "계약을 찾지 못했습니다." }, { status: 404 });
+    const deal = hit.deal;
     let b: Record<string, unknown>;
     try { b = await request.json(); } catch { return NextResponse.json({ error: "요청 형식을 확인해 주세요." }, { status: 400 }); }
 
@@ -43,9 +43,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
 
 // DELETE: 을 서명 지우기(정보를 고쳐 다시 서명하려고). 광고주가 서명한 뒤에는 막는다.
 export async function DELETE(request: Request, { params }: { params: Promise<{ code: string }> }) {
-    if (!verifyAdminToken(request)) return NextResponse.json({ error: "관리자 로그인이 필요합니다." }, { status: 401 });
-    const deal = findDeal((await params).code);
-    if (!deal) return NextResponse.json({ error: "계약을 찾지 못했습니다." }, { status: 404 });
+    const hit = resolveCode((await params).code);
+    if (!hit || hit.role !== "eul") return NextResponse.json({ error: "계약을 찾지 못했습니다." }, { status: 404 });
+    const deal = hit.deal;
     if (!(await deleteEul(deal))) return NextResponse.json({ error: "광고주가 이미 서명한 계약이라 바꿀 수 없습니다." }, { status: 409 });
     return NextResponse.json({ ok: true });
 }
