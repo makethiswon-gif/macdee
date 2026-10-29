@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { verifyAdminTokenValue } from "@/lib/admin-auth";
 import { listDeals } from "@/lib/deepmakai/ad-contract";
@@ -20,6 +21,7 @@ export default async function AdContractAdmin() {
         <main className="mx-auto max-w-3xl px-4 py-10">
             <h1 className="text-[24px] font-bold">딥마카이 광고 계약</h1>
             <p className="mt-1 text-[14px] text-black/60">을이 먼저 을 링크에서 서명한 뒤, 광고주 링크를 광고주에게 보냅니다.</p>
+            <Link href="/deepmakai/share" className="mt-2 inline-block text-[14px] underline">광고 수익 배분 약정(5인) 링크 보기 →</Link>
             {rows.map(({ deal, eulUrl, gapUrl, rec, eul }) => (
                 <section key={deal.id} className="mt-6 rounded-2xl border border-black/10 bg-white p-5 text-[14px]">
                     <p className="text-[16px] font-bold">{deal.brand} · {won(deal.supplyPrice)} <span className="font-normal text-black/50">(부가세 별도)</span></p>

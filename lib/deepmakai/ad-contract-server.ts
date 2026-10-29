@@ -13,8 +13,8 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { kstDate, won } from "@/lib/makethisone/contract";
 import { buildAdContract, vatOf, type AdDeal, type AdParty, type EulParty } from "@/lib/deepmakai/ad-contract";
 
-const BUCKET = "deepmakai-ad-contracts";
-const DIR = process.env.NODE_ENV === "production" ? "" : "dev/";
+export const BUCKET = "deepmakai-ad-contracts";
+export const DIR = process.env.NODE_ENV === "production" ? "" : "dev/";
 const OWNER_EMAIL = "ceo@lawnald.com";
 
 export interface EulRecord {
@@ -45,7 +45,7 @@ export interface AdContractRecord {
 }
 
 let bucketReady = false;
-async function ensureBucket() {
+export async function ensureBucket() {
     if (bucketReady) return;
     const db = createServiceClient();
     const { data } = await db.storage.getBucket(BUCKET);
@@ -138,7 +138,7 @@ export async function signAdContract(deal: AdDeal, input: { party: AdParty; sign
 const FONT_DIR = path.join(process.cwd(), "lib/makethisone/fonts");
 const A4 = { w: 595.28, h: 841.89 }, MARGIN = 56;
 
-function wrap(text: string, font: PDFFont, size: number, width: number): string[] {
+export function wrap(text: string, font: PDFFont, size: number, width: number): string[] {
     const out: string[] = [];
     for (const para of text.split("\n")) {
         let line = "";
