@@ -51,12 +51,12 @@ const DEALS: AdDeal[] = [
     },
     {
         // 2026-11-09 대표: 300만 원 구두 합의, 선금 없이 진행했고 영상은 이미 공개 — 계약서만 뒤늦게 만든다.
-        id: "2026-11-puradak-ep14",
+        id: "2026-11-puradak-ep13",
         brand: "푸라닭",
         prefill: { company: "주식회사 아이더스에프앤비" },
         eulPrefill: { company: COMPANY.name, ceo: COMPANY.ceo, bizNo: COMPANY.bizNo, address: COMPANY.address, email: "ceo@lawnald.com" },
-        episode: "‘딥캐스트’ EP.14 코리안 하스불라 초대석(2026년 11월 8일 공개)",
-        episodeShort: "딥캐스트 EP.14 코리안 하스불라 초대석",
+        episode: "‘딥캐스트’ EP.13 The Crippler 크리스 리벤 초대석(2026년 11월 8일 공개)",
+        episodeShort: "딥캐스트 EP.13 크리스 리벤 초대석",
         adFormat: "본편 안의 간접광고(PPL) — 진행자가 푸라닭 제품을 직접 소개",
         product: "푸라닭 치킨",
         shootDate: "공개 전 촬영 완료",
