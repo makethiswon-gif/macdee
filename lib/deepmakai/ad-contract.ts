@@ -20,6 +20,10 @@ export interface AdDeal {
     product: string;
     shootDate: string;
     release: string;
+    /** 서명 화면 요약 칸의 일정 한 줄 */
+    scheduleShort: string;
+    /** 구두 합의로 이미 촬영·공개까지 마친 광고를 뒤늦게 문서로 남기는 건: 선금 없이 한 번에 받고, 촬영 전 절차·해지 조항을 공개 뒤 기준으로 바꾼다. */
+    published?: boolean;
     /** 광고비(부가세 별도) */
     supplyPrice: number;
     listPrice?: number;
@@ -39,10 +43,27 @@ const DEALS: AdDeal[] = [
         product: "헤임타 EMS 이지샷 스팟 마사지기, 헤임타 리커버리 마사지스틱(진행자 4인분 현물 제공)",
         shootDate: "2026년 10월 30일",
         release: "2026년 11월 첫째 주 공개 예정이며, 정확한 공개일은 을이 갑에게 미리 알린다.",
+        scheduleShort: "10월 30일 촬영 · 11월 첫째 주 공개",
         supplyPrice: 1_700_000,
         listPrice: 2_000_000,
         // 2026-10-29 헤임타와 카톡 합의: 170만 원에 2차 활용 3개월 포함, 이후 연장 시 50만 원
         secondUse: { months: 3, scope: "자사 상품 상세페이지와 SNS 광고(주 채널: 메타 — 페이스북·인스타그램)", extensionPrice: 500_000 },
+    },
+    {
+        // 2026-11-09 대표: 300만 원 구두 합의, 선금 없이 진행했고 영상은 이미 공개 — 계약서만 뒤늦게 만든다.
+        id: "2026-11-puradak-ep14",
+        brand: "푸라닭",
+        prefill: { company: "주식회사 아이더스에프앤비" },
+        eulPrefill: { company: COMPANY.name, ceo: COMPANY.ceo, bizNo: COMPANY.bizNo, address: COMPANY.address, email: "ceo@lawnald.com" },
+        episode: "‘딥캐스트’ EP.14 코리안 하스불라 초대석(2026년 11월 8일 공개)",
+        episodeShort: "딥캐스트 EP.14 코리안 하스불라 초대석",
+        adFormat: "본편 안의 간접광고(PPL) — 진행자가 푸라닭 제품을 직접 소개",
+        product: "푸라닭 치킨",
+        shootDate: "공개 전 촬영 완료",
+        release: "2026년 11월 8일 공개 완료",
+        scheduleShort: "11월 8일 공개 완료",
+        supplyPrice: 3_000_000,
+        published: true,
     },
 ];
 
@@ -95,17 +116,24 @@ export function buildAdContract(deal: AdDeal, party: Partial<AdParty>, signedAt:
             `광고 형태: ${deal.adFormat}`,
             `광고 제품: ${deal.product}`,
         ] },
-        { heading: "제3조 (일정과 자료 제공)", lines: [
+        { heading: deal.published ? "제3조 (일정)" : "제3조 (일정과 자료 제공)", lines: [
             `촬영: ${deal.shootDate}`,
             `공개: ${deal.release}`,
-            `${갑}은 촬영 전까지 광고 제품과 광고 문구(제품 특징, 쓰면 안 되는 표현 등)를 ${을}에게 제공한다.`,
+            deal.published
+                ? `${갑}과 ${을}은 사전에 구두로 합의한 조건에 따라 ${을}이 광고를 제작하여 위 일정에 공개하였음을 확인한다.`
+                : `${갑}은 촬영 전까지 광고 제품과 광고 문구(제품 특징, 쓰면 안 되는 표현 등)를 ${을}에게 제공한다.`,
         ] },
         { heading: "제4조 (광고비와 지급)", lines: [
             `광고비는 ${won(deal.supplyPrice)}(부가가치세 별도)${deal.listPrice ? `으로 한다(정가 ${won(deal.listPrice)}에서 할인한 금액)` : "으로 한다"}.${deal.secondUse ? ` 이 금액에는 제9조의 2차 활용(${deal.secondUse.months}개월)이 포함된다.` : ""} 부가가치세 ${won(vat)}을 더한 합계는 ${won(total)}이다.`,
-            `${갑}은 계약 체결일부터 7일 안에 선금 ${won(half)}(합계의 50%)을, 영상 공개일부터 7일 안에 잔금 ${won(total - half)}을 ${account ? `아래 계좌(${account})` : `${을}이 지정한 계좌`}로 지급한다.`,
-            `${을}은 각 금액에 대한 세금계산서를 발행한다.`,
+            deal.published
+                ? `${갑}은 계약 체결일부터 7일 안에 합계 ${won(total)}을 한 번에 ${account ? `아래 계좌(${account})` : `${을}이 지정한 계좌`}로 지급한다.`
+                : `${갑}은 계약 체결일부터 7일 안에 선금 ${won(half)}(합계의 50%)을, 영상 공개일부터 7일 안에 잔금 ${won(total - half)}을 ${account ? `아래 계좌(${account})` : `${을}이 지정한 계좌`}로 지급한다.`,
+            deal.published ? `${을}은 이 금액에 대한 세금계산서를 발행한다.` : `${을}은 각 금액에 대한 세금계산서를 발행한다.`,
         ] },
-        { heading: "제5조 (기획과 검수)", lines: [
+        { heading: deal.published ? "제5조 (공개된 광고의 확인)" : "제5조 (기획과 검수)", lines: deal.published ? [
+            `광고 부분은 이미 공개되었으며, ${갑}은 공개된 내용을 확인하였다.`,
+            `공개 뒤 사실과 다르거나 ${갑}이 바로잡기를 원하는 표현이 있으면, ${을}은 고칠 수 있는 범위(설명란, 고정 댓글 등)에서 협의하여 반영한다.`,
+        ] : [
             `${을}은 촬영 전에 광고 부분 기획안을, 공개 전에 광고 부분 편집본을 ${갑}에게 공유한다.`,
             "수정 요청은 기획안 1회, 최종 편집본 1회로 한다. 자막 오탈자 같은 가벼운 수정은 횟수와 관계없이 반영한다.",
             `진행자의 말투와 유머 등 채널 고유의 진행 방식은 ${을}이 정하되, ${갑}이 제공한 문구와 사실에 어긋나지 않게 한다.`,
@@ -129,7 +157,10 @@ export function buildAdContract(deal: AdDeal, party: Partial<AdParty>, signedAt:
                 `위 범위를 벗어나 활용하려면(다른 매체, 광고 부분 외의 영상 등) ${갑}은 ${을}과 미리 협의한다.`,
             ]
             : [`${갑}이 광고 영상을 자사 채널·SNS·광고에 다시 쓰려면 ${을}과 미리 협의하며, 3개월 기준 ${won(500_000)}(부가가치세 별도)을 따로 정한다.`] },
-        { heading: "제10조 (계약 해지와 회차 변경)", lines: [
+        { heading: deal.published ? "제10조 (게재 중단)" : "제10조 (계약 해지와 회차 변경)", lines: deal.published ? [
+            `${을}이 정당한 사유 없이 제6조의 게재 유지 기간 안에 영상을 삭제하거나 비공개로 바꾸면, ${을}은 남은 기간에 해당하는 광고비를 날짜 비율로 계산하여 돌려준다.`,
+            `${갑}의 요청으로 광고 부분을 삭제하거나 영상을 비공개로 바꾸는 경우에는 받은 광고비를 돌려주지 않는다.`,
+        ] : [
             `촬영 전에 ${갑}이 계약을 해지하면 ${을}은 받은 금액을 모두 돌려준다.`,
             `촬영 뒤 ${갑}의 사정으로 해지하면 선금은 돌려주지 않는다.`,
             `${을}의 사정으로 영상을 공개하지 못하면 ${을}은 받은 금액을 모두 돌려준다.`,
@@ -137,6 +168,7 @@ export function buildAdContract(deal: AdDeal, party: Partial<AdParty>, signedAt:
         ] },
         { heading: "제11조 (비밀유지)", lines: [`${갑}과 ${을}은 본 계약으로 알게 된 상대방의 업무상 비밀과 공개 전 영상 내용을 제3자에게 누설하지 않으며, 계약이 끝난 뒤에도 같다.`] },
         { heading: "제12조 (기타)", lines: [
+            ...(deal.published ? ["본 계약은 양측이 사전에 구두로 합의하여 이미 진행한 광고의 조건을 문서로 확인하기 위한 것이며, 구두 합의와 다른 부분은 본 계약이 우선한다."] : []),
             "본 계약에 없는 사항이나 해석이 다른 부분은 양측이 협의하여 정한다.",
             `본 계약은 ${갑}이 전자적 방법으로 계약 내용에 동의하고 서명한 때 성립한다. ${을}은 계약서를 PDF로 만들어 ${갑}이 입력한 이메일로 보내며, ${갑}과 ${을}은 이를 각자 보관한다.`,
             "본 계약에 관한 분쟁은 민사소송법에 따른 관할 법원에서 해결한다.",
@@ -173,8 +205,9 @@ export function buildAdContract(deal: AdDeal, party: Partial<AdParty>, signedAt:
             ...(deal.secondUse ? [["2차 활용", `공개일부터 ${deal.secondUse.months}개월 포함, 이후 연장 시 ${won(deal.secondUse.extensionPrice)}(부가가치세 별도)`] as [string, string]] : []),
             ["부가가치세", won(vat)],
             ["합계", won(total)],
-            ["선금", `${won(half)} — 계약 체결일부터 7일 안`],
-            ["잔금", `${won(total - half)} — 영상 공개일부터 7일 안`],
+            ...(deal.published
+                ? [["지급", `${won(total)} — 계약 체결일부터 7일 안에 한 번에`] as [string, string]]
+                : [["선금", `${won(half)} — 계약 체결일부터 7일 안`], ["잔금", `${won(total - half)} — 영상 공개일부터 7일 안`]] as [string, string][]),
             ...(account ? [["입금 계좌", account] as [string, string]] : []),
         ],
     };
