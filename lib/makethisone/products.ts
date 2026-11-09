@@ -15,6 +15,10 @@ export interface MtoPlan {
     vat: number;
     features: string[];
     popular: boolean;
+    /** 기간이 정해진 정기결제(예: 3개월 동안 매월 결제 후 자동 종료). 없으면 해지할 때까지 매월. */
+    months?: number;
+    /** 특정 고객 전용 조건(lib/makethisone/offers.ts 의 id). 전용 결제 페이지에서만 판다. */
+    offer?: string;
 }
 
 export const PRICING_PLANS: MtoPlan[] = [
@@ -74,6 +78,31 @@ export const PRICING_PLANS: MtoPlan[] = [
     },
 ];
 
+// 특정 고객 전용 정기결제(공개 요금표에는 보이지 않음). 전용 결제 페이지(/pay/<코드>)에서만 판다.
+export const OFFER_PLANS: MtoPlan[] = [
+    {
+        // 2026-11-09 법률사무소 준일: 첫 3개월만 월 40회 스탠다드 250만 원(부가세 별도). 매월 결제를 고르면 3회 결제 후 자동 종료.
+        id: "junil-monthly",
+        name: "준일 3개월 (매월 결제)",
+        desc: "월 40회 · 3개월",
+        perMonth: 40,
+        supplyPrice: 2500000,
+        vat: 250000,
+        price: 2750000,
+        features: [],
+        popular: false,
+        months: 3,
+        offer: "junil",
+    },
+];
+
 export function getPlan(id: string): MtoPlan | null {
-    return PRICING_PLANS.find((p) => p.id === id) || null;
+    return PRICING_PLANS.find((p) => p.id === id) || OFFER_PLANS.find((p) => p.id === id) || null;
+}
+
+/** 정기결제 기록(recurring_billing.plan = "메이크디스원 " + 요금제 이름)으로 기간 약정 개월 수를 찾는다. 기간 없는 요금제는 null. */
+export function fixedTermMonthsByLabel(label: string | null | undefined): number | null {
+    const all = [...PRICING_PLANS, ...OFFER_PLANS];
+    const plan = all.find((p) => `메이크디스원 ${p.name}` === (label || "").trim());
+    return plan?.months || null;
 }

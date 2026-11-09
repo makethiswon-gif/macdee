@@ -145,7 +145,7 @@ export default function AdminBillingPage() {
                                     <td className="px-4 py-3 text-[#9CA3B0]">{it.next_charge_date}</td>
                                     <td className="px-4 py-3">
                                         <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${it.status === "active" ? "bg-emerald-500/15 text-emerald-400" : "bg-red-500/15 text-red-400"}`}>
-                                            {it.status === "active" ? "정상" : it.status === "past_due" ? "청구실패" : it.status}
+                                            {it.status === "active" ? "정상" : it.status === "past_due" ? "청구실패" : it.status === "completed" ? "약정 종료" : it.status}
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 text-[#6B7280]">{it.last_charged_at ? new Date(it.last_charged_at).toLocaleDateString("ko-KR") : "-"}</td>

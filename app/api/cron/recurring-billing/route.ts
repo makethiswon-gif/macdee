@@ -1,6 +1,15 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { chargeBilling, addOneMonth } from "@/lib/billing/charge";
+import { fixedTermMonthsByLabel } from "@/lib/makethisone/products";
+
+/** 기간 약정 정기결제의 끝(가입일 + n개월, YYYY-MM-DD). 이 날짜부터는 청구하지 않는다. */
+function termEnd(createdAt: string | null | undefined, months: number): string | null {
+    if (!createdAt) return null;
+    let d = String(createdAt).slice(0, 10);
+    for (let i = 0; i < months; i++) d = addOneMonth(d);
+    return d;
+}
 
 export const maxDuration = 120;
 export const dynamic = "force-dynamic";
@@ -29,6 +38,15 @@ export async function GET(request: Request) {
     const results: Array<{ id: string; ok: boolean; amount?: number; error?: string }> = [];
 
     for (const row of due || []) {
+        // 기간 약정(예: 준일 3개월 매월 결제)은 정해진 횟수를 다 받았으면 더 청구하지 않고 끝낸다
+        const termMonths = fixedTermMonthsByLabel(row.plan);
+        const end = termMonths ? termEnd(row.created_at, termMonths) : null;
+        if (end && row.next_charge_date >= end) {
+            await markCompleted(supabase, row.id);
+            results.push({ id: row.id, ok: true, amount: 0, error: "기간 약정 종료 — 청구 안 함" });
+            continue;
+        }
+
         const result = await chargeBilling({
             billingKey: row.billing_key,
             customerKey: row.customer_key,
@@ -46,6 +64,7 @@ export async function GET(request: Request) {
                     next_charge_date: addOneMonth(row.next_charge_date),
                 })
                 .eq("id", row.id);
+            if (end && addOneMonth(row.next_charge_date) >= end) await markCompleted(supabase, row.id);
             // 영수증 기록 (관리자 영수증 조회용)
             const { error: payErr } = await supabase.from("payments").insert({
                 order_id: result.orderId,
@@ -68,4 +87,10 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json({ charged: results.filter((r) => r.ok).length, failed: results.filter((r) => !r.ok).length, results });
+}
+
+// 상태만 따로 바꾼다(실패해도 청구일 갱신은 이미 끝났고, 위의 기간 확인이 다음 청구를 막는다)
+async function markCompleted(supabase: ReturnType<typeof createServiceClient>, id: string) {
+    const { error } = await supabase.from("recurring_billing").update({ status: "completed" }).eq("id", id);
+    if (error) console.error("[RecurringBilling] 기간 약정 종료 표시 실패:", error.message);
 }

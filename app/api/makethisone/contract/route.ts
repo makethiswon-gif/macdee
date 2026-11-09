@@ -2,17 +2,20 @@ import { NextResponse } from "next/server";
 import { getClientIp, rateLimitOk, tooManyRequests } from "@/lib/ratelimit";
 import { isValidEmail, resolveProduct } from "@/lib/makethisone/contract";
 import { createContract } from "@/lib/makethisone/contract-server";
+import { offerIdByCode } from "@/lib/makethisone/offer-codes";
 
 // POST: 결제 전 전자계약 동의 기록(2026-10-21). 결제 승인 뒤 이 계약 번호로 PDF 를 만들어 결제자 이메일로 보낸다.
 //   body: { kind: "plan" | "pack", productId, name, email, phone? }
 export async function POST(request: Request) {
     const ip = getClientIp(request);
     if (!(await rateLimitOk("mto-contract", ip, 10, "1 m"))) return tooManyRequests();
-    let body: { kind?: unknown; productId?: unknown; name?: unknown; email?: unknown; phone?: unknown };
+    let body: { kind?: unknown; productId?: unknown; name?: unknown; email?: unknown; phone?: unknown; offerCode?: unknown };
     try { body = await request.json(); } catch { return NextResponse.json({ error: "요청 형식을 확인해 주세요." }, { status: 400 }); }
 
     const product = resolveProduct(String(body.kind || ""), String(body.productId || ""));
     if (!product) return NextResponse.json({ error: "선택한 상품을 찾지 못했습니다." }, { status: 400 });
+    // 전용 조건 상품은 그 고객에게 보낸 결제 페이지 주소 코드가 있어야 한다(/pay/<코드>)
+    if (product.offer && offerIdByCode(String(body.offerCode || "")) !== product.offer) return NextResponse.json({ error: "선택한 상품을 찾지 못했습니다." }, { status: 400 });
     const name = String(body.name || "").replace(/\s+/g, " ").trim().slice(0, 80);
     const email = String(body.email || "").trim().slice(0, 120);
     const phone = String(body.phone || "").replace(/[^\d\-+ ]/g, "").trim().slice(0, 20);

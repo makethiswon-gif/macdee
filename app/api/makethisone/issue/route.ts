@@ -19,6 +19,13 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "유효하지 않은 요금제입니다." }, { status: 400 });
         }
 
+        // 결제 전 전자계약에 적은 광고주 정보(이름·이메일)
+        const contract = contractId ? await loadContract(String(contractId)).catch(() => null) : null;
+        // 전용 조건(전용 결제 페이지 /pay/<코드>)은 그 페이지에서 맺은 계약이 있어야 결제한다
+        if (found?.offer && (!contract || contract.product.kind !== "plan" || contract.product.id !== found.id)) {
+            return NextResponse.json({ error: "계약 정보를 찾지 못했습니다. 결제 페이지에서 다시 진행해 주세요." }, { status: 400 });
+        }
+
         // 1. 빌링키 발급 요청
         const issueRes = await fetch(`${TOSS_API_URL}/billing/authorizations/issue`, {
             method: "POST",
@@ -36,8 +43,6 @@ export async function POST(request: Request) {
         }
 
         const billingKey = issueData.billingKey;
-        // 결제 전 전자계약에 적은 광고주 정보(이름·이메일)
-        const contract = contractId ? await loadContract(String(contractId)).catch(() => null) : null;
 
         // 2. 첫 결제 바로 승인
         const orderId = `mto_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;

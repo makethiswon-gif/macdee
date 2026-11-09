@@ -10,6 +10,7 @@ const PRIVATE_PREFIXES = [
     "/billing", "/profile", "/settings", "/migrate",
     "/consulting", "/tone", "/blog-write", "/site-builder", "/guide",
     "/makethisone/subscribe",
+    "/pay", // 고객 전용 결제 페이지(/pay/<코드>) — 주소를 받은 고객만, 색인 금지
     "/deepmakai", // 딥마카이 크루룸 — 주소를 아는 사람만(토큰 경로), 색인 금지
     "/idea", // OYK 아이디어 창고 — 대표 개인용(관리자 로그인), 색인 금지
     // ⚠️ /renewal 을 여기 넣지 말 것.

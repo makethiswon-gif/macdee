@@ -3,6 +3,7 @@
 // 상품(정기 요금제 / 횟수권 / 기간 일시결제)에 따라 제4~7조가 달라진다. 서버 코드를 import 하지 않는다(브라우저에서도 쓴다).
 import { getCreditPack } from "@/lib/billing/one-time";
 import { getPlan } from "@/lib/makethisone/products";
+import { getOffer } from "@/lib/makethisone/offers";
 
 export const COMPANY = {
     name: "메이크디스원",
@@ -25,6 +26,12 @@ export interface ContractProduct {
     /** 부가세 별도 상품: 공급가와 부가세(price = supplyPrice + vat) */
     supplyPrice?: number;
     vat?: number;
+    /** 특정 고객 전용 조건 id(lib/makethisone/offers.ts) — 전용 결제 페이지 주소 코드가 있어야 계약할 수 있다 */
+    offer?: string;
+    /** 제4조(광고 상세 품목)를 이 문구로 쓴다(전용 조건) */
+    items?: string[];
+    /** 제6조(계약 기간) 끝에 붙는 문장(전용 조건) */
+    termNote?: string;
 }
 export interface ContractParty { name: string; email: string; phone?: string }
 export interface ContractArticle { heading: string; lines: string[] }
@@ -42,12 +49,22 @@ export interface ContractPaper {
 export function resolveProduct(kind: string, id: string): ContractProduct | null {
     if (kind === "plan") {
         const p = getPlan(id);
-        return p ? { kind: "plan", id: p.id, name: `메이크디스원 ${p.name}`, price: p.price, perMonth: p.perMonth, supplyPrice: p.supplyPrice, vat: p.vat } : null;
+        if (!p) return null;
+        const offer = getOffer(p.offer);
+        return {
+            kind: "plan", id: p.id, name: `메이크디스원 ${p.name}`, price: p.price, perMonth: p.perMonth, supplyPrice: p.supplyPrice, vat: p.vat,
+            ...(p.months ? { months: p.months } : {}),
+            ...(offer ? { offer: offer.id, items: offer.items, ...(offer.termNote ? { termNote: offer.termNote } : {}) } : {}),
+        };
     }
     if (kind === "pack") {
         const p = getCreditPack(id);
         if (!p || p.hidden) return null;
-        return { kind: "pack", id: p.id, name: p.name, price: p.price, credits: p.credits, months: p.months, monthlyPrice: p.monthlyPrice, supplyPrice: p.supplyPrice, vat: p.vat };
+        const offer = getOffer(p.offer);
+        return {
+            kind: "pack", id: p.id, name: p.name, price: p.price, credits: p.credits, months: p.months, monthlyPrice: p.monthlyPrice, supplyPrice: p.supplyPrice, vat: p.vat,
+            ...(offer ? { offer: offer.id, items: offer.items, ...(offer.termNote ? { termNote: offer.termNote } : {}) } : {}),
+        };
     }
     return null;
 }
@@ -86,15 +103,24 @@ export function buildContract(args: {
     const 갑 = "“갑”", 을 = "“을”";
     const isTerm = p.kind === "pack" && !!p.months;
     const isPlan = p.kind === "plan";
+    /** 기간을 정한 정기결제(예: 3개월 동안 매월 결제 후 자동 종료) */
+    const isFixedPlan = isPlan && !!p.months;
 
-    const items: string[] = isPlan
+    const items: string[] = p.items?.length ? p.items : isPlan
         ? [`월 ${p.perMonth}회 법률 콘텐츠 기획·작성 및 블로그 포스팅`, "브랜드 블로그 활성화와 최적화 관리", "월간 성과 리포트 제공"]
         : isTerm
             ? [`월 ${Math.round((p.credits || 0) / (p.months || 1))}회 법률 콘텐츠 기획·작성 및 블로그 포스팅 (${p.months}개월 총 ${p.credits}회)`, "브랜드 블로그 활성화와 최적화 관리"]
             : [`법률 콘텐츠 ${p.credits}회 기획·작성 및 블로그 포스팅`];
 
     const vatNote = p.vat ? "(부가세 별도)" : "";
-    const cost: string[] = isPlan
+    const cost: string[] = isFixedPlan
+        ? [
+            p.vat
+                ? `광고비는 월 ${won(p.supplyPrice || 0)}${vatNote}으로 하며, 부가가치세 ${won(p.vat)}을 더한 월 ${won(p.price)}을 결제한다.`
+                : `광고비는 월 ${won(p.price)}으로 한다.`,
+            `광고비는 계약 체결일에 첫 달분을 결제하고, 이후 매월 같은 날 ${갑}이 등록한 카드로 자동 결제하며, ${p.months}회 결제로 끝난다(${p.months}개월 합계 ${won(p.price * (p.months || 0))}).`,
+        ]
+        : isPlan
         ? (p.vat
             ? [`광고비는 월 ${won(p.supplyPrice || 0)}${vatNote}으로 하며, 부가가치세 ${won(p.vat)}을 더한 월 ${won(p.price)}을 결제한다.`, `광고비는 계약 체결일에 첫 달분을 결제하고, 이후 매월 같은 날 ${갑}이 등록한 카드로 자동 결제한다.`]
             : [`광고비는 월 ${won(p.price)}으로 한다.`, `광고비는 계약 체결일에 첫 달분을 결제하고, 이후 매월 같은 날 ${갑}이 등록한 카드로 자동 결제한다.`])
@@ -109,11 +135,15 @@ export function buildContract(args: {
                 ? [`광고비는 ${won(p.supplyPrice || 0)}${vatNote}으로 하며, 부가가치세 ${won(p.vat)}을 더한 ${won(p.price)}을 계약 체결일에 선불로 한 번에 결제한다.`]
                 : [`광고비는 ${won(p.price)}으로 하며, 계약 체결일에 선불로 한 번에 결제한다.`];
 
-    const term: string[] = isPlan
+    const term: string[] = isFixedPlan
+        ? [`계약 기간은 결제일부터 ${p.months}개월(${kstDate(agreedAt)}부터 ${kstEndAfterMonths(agreedAt, p.months || 0)}까지)로 하며, 자동 연장되지 않는다. ${p.months}회째 결제 뒤에는 자동 결제가 더 이루어지지 않는다.`]
+        : isPlan
         ? ["계약 기간은 결제일부터 1개월로 하며, 어느 한쪽이 해지하지 않으면 1개월 단위로 자동 연장된다.", `${갑}은 다음 결제일 7일 전까지 해지를 통보할 수 있다.`]
         : isTerm
             ? [`계약 기간은 결제일부터 ${p.months}개월(${kstDate(agreedAt)}부터 ${kstEndAfterMonths(agreedAt, p.months || 0)}까지)로 하며, 자동 갱신되지 않는다.`]
             : ["본 계약은 결제일부터 결제한 콘텐츠 횟수를 모두 제공할 때까지 유효하며, 자동 갱신되지 않는다."];
+
+    if (p.termNote) term.push(p.termNote);
 
     const refund = isPlan
         ? "서비스 착수 후 해지하는 경우 실제 서비스를 진행한 일수에 비례하여 차감한 금액을 환불한다."

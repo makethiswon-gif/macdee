@@ -16,6 +16,8 @@ export interface CreditPack {
     hidden?: boolean;
     months?: number;
     monthlyPrice?: number;
+    /** 특정 고객 전용 상품(lib/makethisone/offers.ts 의 id). 공개 결제 화면에는 안 보이고 전용 결제 페이지에서만 판다. */
+    offer?: string;
 }
 
 export const CREDIT_PACKS: Record<string, CreditPack> = {
@@ -24,6 +26,8 @@ export const CREDIT_PACKS: Record<string, CreditPack> = {
     pack45: { id: "pack45", name: "콘텐츠 45회", credits: 45, price: 4950000, supplyPrice: 4500000, vat: 450000 },
     // 6개월 계약, 콘텐츠 120회, 1,200만 원(부가세 별도) → 카드 결제 1,320만 원
     halfyear120: { id: "halfyear120", name: "콘텐츠 120회", credits: 120, price: 13200000, supplyPrice: 12000000, vat: 1200000, months: 6, monthlyPrice: 2000000 },
+    // 2026-11-09 법률사무소 준일 전용: 3개월 월 40회(총 120회), 월 250만 원 × 3 = 750만 원(부가세 별도) → 카드 825만 원 한 번에
+    junil3m: { id: "junil3m", name: "준일 3개월 (한 번에 결제)", credits: 120, price: 8250000, supplyPrice: 7500000, vat: 750000, months: 3, monthlyPrice: 2500000, offer: "junil" },
 };
 
 export type CreditPackId = keyof typeof CREDIT_PACKS;
@@ -34,5 +38,5 @@ export function getCreditPack(id: string): CreditPack | null {
 
 /** 결제 화면에 보일 상품 — 숨긴 상품을 빼고 싼 것부터. */
 export function visibleCreditPacks(): CreditPack[] {
-    return Object.values(CREDIT_PACKS).filter((p) => !p.hidden).sort((a, b) => a.price - b.price);
+    return Object.values(CREDIT_PACKS).filter((p) => !p.hidden && !p.offer).sort((a, b) => a.price - b.price);
 }

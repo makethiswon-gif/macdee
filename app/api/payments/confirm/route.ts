@@ -42,6 +42,13 @@ export async function POST(request: Request) {
             lawyer = data;
         }
 
+        // 전자계약(결제 전 동의)에 적은 광고주 정보 — 로그인하지 않은 결제자의 이름·이메일로 쓴다
+        const contract = contractId ? await loadContract(String(contractId)).catch(() => null) : null;
+        // 전용 조건(전용 결제 페이지 /pay/<코드>)은 그 페이지에서 맺은 계약이 있어야 승인한다
+        if (pack.offer && (!contract || contract.product.kind !== "pack" || contract.product.id !== pack.id)) {
+            return NextResponse.json({ error: "계약 정보를 찾지 못했습니다. 결제 페이지에서 다시 진행해 주세요." }, { status: 400 });
+        }
+
         // 토스 결제 승인
         const tossRes = await fetch(`${TOSS_API_URL}/payments/confirm`, {
             method: "POST",
@@ -56,9 +63,6 @@ export async function POST(request: Request) {
             console.error("[Payments] Toss confirm error:", tossData);
             return NextResponse.json({ error: tossData.message || "결제 승인 실패" }, { status: 400 });
         }
-
-        // 전자계약(결제 전 동의)에 적은 광고주 정보 — 로그인하지 않은 결제자의 이름·이메일로 쓴다
-        const contract = contractId ? await loadContract(String(contractId)).catch(() => null) : null;
 
         // 기록 (수동 처리 → fulfilled=false)
         const admin = await createAdminClient();
