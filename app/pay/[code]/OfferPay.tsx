@@ -139,7 +139,7 @@ export default function OfferPay({ code, offer, prices }: { code: string; offer:
                         <span className="text-5xl sm:text-7xl font-extrabold tracking-tight leading-none">{supplyMan}</span>
                         <span className="text-xl sm:text-2xl font-bold mb-1">만원 / 월</span>
                     </div>
-                    <p className="mt-3 text-sm text-[#E1EBFA]">부가세 별도 · 랜딩페이지 제작비와 유튜브 편집비는 받지 않습니다</p>
+                    <p className="mt-3 text-sm text-[#E1EBFA]">부가세 별도 · 랜딩페이지 제작, 홈페이지 개편, 유튜브 편집 비용은 따로 받지 않습니다</p>
                 </div>
             </header>
 
