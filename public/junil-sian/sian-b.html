@@ -87,7 +87,8 @@
 .sheet button{margin-top:24px;width:100%;background:var(--black);color:#fff;padding:18px;font-weight:700;font-size:16px;letter-spacing:.3em;position:relative;overflow:hidden}
 .sheet button::before{content:"";position:absolute;inset:0;background:var(--teal);transform:translateX(-101%);transition:transform .6s cubic-bezier(.2,.8,.2,1)}
 .sheet button:hover::before{transform:none}.sheet button span{position:relative}
-@media(max-width:900px){.doc{padding:34px 24px 150px 44px}.jm{letter-spacing:1em;margin-right:-1em}.lr{grid-template-columns:1fr;gap:8px}.lr.h{display:none}.lr .o{text-align:left}.cards{grid-template-columns:1fr 1fr;gap:14px}.cd ul{opacity:1;transform:none}.oath .wrap,.form{grid-template-columns:1fr;gap:40px}}
+.form>*{min-width:0}.sheet input,.sheet textarea{min-width:0;width:100%}
+@media(max-width:900px){.sheet{padding:26px 20px}.sheet h3{letter-spacing:.3em;margin-right:-.3em}.sheet label{grid-template-columns:78px 1fr}.info dl{grid-template-columns:78px 1fr}.info .tel{font-size:34px}.doc{padding:34px 24px 150px 44px}.jm{letter-spacing:1em;margin-right:-1em}.lr{grid-template-columns:1fr;gap:8px}.lr.h{display:none}.lr .o{text-align:left}.cards{grid-template-columns:1fr 1fr;gap:14px}.cd ul{opacity:1;transform:none}.oath .wrap,.form{grid-template-columns:1fr;gap:40px}}
 
 /* 첫 화면: 판결문 용지가 올라오고 주문이 한 글자씩 찍힘 */
 .hb .shade{background:linear-gradient(90deg,rgba(246,243,236,.92),rgba(246,243,236,.6) 40%,rgba(246,243,236,.08) 72%)}
@@ -106,6 +107,7 @@
 .hb .dots{justify-content:flex-start;margin-top:26px}
 .hb .doc .stamp2{right:44px;bottom:auto;top:38%}
 .caret{display:inline-block;width:3px;height:.84em;background:var(--teal);margin-left:.08em;vertical-align:-.04em;animation:bl 1s steps(1) infinite}
+@media(min-width:901px) and (max-width:1280px){.hb-l{max-width:34vw}.hb .hs{font-size:15px}.hb .sheetw{width:40vw;right:calc(92px + 3vw)}.hb .paper{padding:34px 34px}}
 @media(max-width:900px){.hb-l{left:7vw;top:92px;transform:none;max-width:86vw}.hb .hs{display:none}.hbtn{margin-top:18px}.bt{padding:11px 16px;font-size:13px}
  .hb .sheetw{left:6vw;right:6vw;width:auto;top:auto;height:44vh;bottom:-4vh}.hb .paper{padding:26px 22px 26px 40px}.hb .paper dl{display:none}.hb .jm{margin:18px 0 8px}.hb .vd{font-size:11vw}.hb .doc .stamp2{width:84px;height:84px;font-size:12px;right:18px;top:34%}}
 </style>
