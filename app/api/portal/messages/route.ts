@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getPortalSession } from "@/lib/portal-auth";
+import { clip, notifyPortalInput } from "@/lib/portal-notify";
 
 // 로펌 ↔ 대표 메시지 스레드 (로펌당 하나의 타임라인).
 
@@ -39,5 +40,6 @@ export async function POST(request: Request) {
         .select("id, author, body, created_at")
         .single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    notifyPortalInput(session.role, { firmId, kind: "메시지", title: body.body.trim().replace(/\s+/g, " ").slice(0, 40), lines: [clip(body.body)] });
     return NextResponse.json({ message: data });
 }

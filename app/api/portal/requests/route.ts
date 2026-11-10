@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getPortalSession } from "@/lib/portal-auth";
+import { clip, notifyPortalInput } from "@/lib/portal-notify";
 import {
     REQUEST_ADMIN_COLUMNS, REQUEST_PUBLIC_COLUMNS, REQUEST_STATUSES, emptyRequestCounts,
     isPortalUuid, isRequestSameOrigin, isRequestSetupMissing, presentRequest,
@@ -75,6 +76,8 @@ export async function POST(request: Request) {
             return dbError(error, admin);
         }
         if (!data) return json({ error: "요청사항을 저장하지 못했습니다." }, 500);
+        notifyPortalInput(session.role, { firmId, kind: "요청사항", title: fields.title, lines: [
+            `제목: ${fields.title}`, `분야: ${fields.category}`, `우선순위: ${fields.priority}`, ...(fields.due_date ? [`희망일: ${fields.due_date}`] : []), "", clip(fields.body)] });
         return json({ request: presentRequest(data as unknown as Record<string, unknown>, admin) }, 201);
     } catch {
         return json({ error: "요청사항을 저장하지 못했습니다. 작성 내용은 유지됩니다." }, 500);

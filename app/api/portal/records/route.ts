@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getPortalSession } from "@/lib/portal-auth";
 import { digestRecord } from "@/lib/portal-ai";
+import { clip, notifyPortalInput } from "@/lib/portal-notify";
 
 // 로펌 자료(상담기록·수임내역·판결문) — 업로드 즉시 AI 가 구조화(DB화)한다.
 // firm 은 자기 로펌 것만, admin 은 ?firm= 으로 모든 로펌.
@@ -65,6 +66,7 @@ export async function POST(request: Request) {
         if (error || !record) {
             return NextResponse.json({ error: error?.message ?? "저장 실패" }, { status: 500 });
         }
+        notifyPortalInput(session.role, { firmId, kind: "자료 등록", title: `${type} · ${title.trim()}`, lines: [`유형: ${type}`, `제목: ${title.trim()}`, "", clip(content)] });
 
         // AI 구조화 — 실패해도 자료는 '대기' 로 남는다(재시도 가능)
         let structured = null;

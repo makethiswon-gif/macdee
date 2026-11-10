@@ -3,11 +3,12 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { getPortalSession } from "@/lib/portal-auth";
 import { decryptPortalCredentials, encryptPortalCredentials, PortalCredentialsConfigurationError } from "@/lib/portal-credentials";
 import {
-    MARKETING_SECRET_KEYS, emptySecretPresence, marketingProfileSameOrigin, marketingProfileSetupMissing,
+    MARKETING_CREDENTIAL_SECTIONS, MARKETING_PROFILE_SECTIONS, MARKETING_SECRET_KEYS, emptySecretPresence, marketingProfileSameOrigin, marketingProfileSetupMissing,
     validateClearSecrets, validateMarketingProfile, validateMarketingSecrets,
     type MarketingSecrets,
 } from "@/lib/portal-marketing-profile";
 import { isPortalUuid } from "@/lib/portal-requests";
+import { clip, notifyPortalInput } from "@/lib/portal-notify";
 
 export const dynamic = "force-dynamic";
 const headers = { "Cache-Control": "private, no-store, max-age=0" };
@@ -91,6 +92,14 @@ export async function PATCH(request: Request) {
             if (error.code === "23503") return json({ error: "로펌을 찾을 수 없습니다." }, 400);
             return json({ error: "마케팅 정보를 저장하지 못했습니다. 입력 내용은 유지됩니다." }, 500);
         }
+        const before = (current?.profile as Record<string, string> | null) ?? {};
+        const fieldLabel = Object.fromEntries(MARKETING_PROFILE_SECTIONS.flatMap((section) => section.fields.map((field) => [field[0], `${section.title} ${field[1]}`])));
+        const secretLabel = Object.fromEntries(MARKETING_CREDENTIAL_SECTIONS.flatMap((section) => section.fields.map((field) => [field[0], field[1]])));
+        const changedFields = Object.entries(profile).filter(([key, value]) => (value || "") !== (before[key] || ""));
+        const changedSecrets = [...new Set([...Object.entries(incomingSecrets).filter(([, value]) => value).map(([key]) => key), ...clearSecrets])];
+        if (changedFields.length || changedSecrets.length) notifyPortalInput(session.role, { firmId, kind: "마케팅 정보", title: `${changedFields.length + changedSecrets.length}개 항목 변경`, lines: [
+            ...changedFields.map(([key, value]) => `${fieldLabel[key] ?? key}: ${value || "(지움)"}`),
+            ...(changedSecrets.length ? ["", `아이디·비밀번호 변경(값은 메일에 넣지 않음): ${changedSecrets.map((key) => secretLabel[key] ?? key).join(", ")}`] : [])] });
         const secretPresence = emptySecretPresence();
         for (const key of MARKETING_SECRET_KEYS) secretPresence[key] = typeof credentials[key] === "string" && !!credentials[key];
         return json({ profile: data.profile, secretPresence, updatedBy: data.updated_by, updatedAt: data.updated_at });
