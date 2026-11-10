@@ -47,18 +47,17 @@ section{position:relative}
 @keyframes bl{50%{opacity:0}}
 
 /* 오른쪽 고정 빠른 상담 */
-.quick{position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:55;width:138px;background:#fff;color:#111;box-shadow:0 10px 40px rgba(0,0,0,.25);text-align:center;font-size:18px;font-weight:600}
-.quick p{background:var(--teal);color:#fff;padding:13px 0;font-size:16.5px;letter-spacing:.04em}
-.quick a{display:block;padding:27px 0 22px;border-bottom:1px solid #e8e8e8;transition:.3s}
+.quick{position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:55;width:115px;background:#fff;color:#111;box-shadow:0 10px 40px rgba(0,0,0,.25);text-align:center;font-size:15px;font-weight:600}
+.quick p{background:var(--teal);color:#fff;padding:11px 0;font-size:13.75px;letter-spacing:.04em}
+.quick a{display:block;padding:22px 0 19px;border-bottom:1px solid #e8e8e8;transition:.3s}
 .quick a:hover{background:var(--pale);color:var(--teal)}
-.quick svg{width:36px;height:36px;display:block;margin:0 auto 10px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
-.quick a b{display:block;color:var(--teal);font-size:17px;margin-top:3px}
-.quick div{background:var(--black);color:#fff;padding:21px 0;font-size:16.5px;line-height:1.6}
-.quick div b{display:block;color:var(--teal-l);font-size:19.5px}
+.quick svg{width:30px;height:30px;display:block;margin:0 auto 9px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.quick a b{display:block;color:var(--teal);font-size:14.4px;margin-top:2.5px}
+.quick div{background:var(--black);color:#fff;padding:17.5px 0;font-size:13.75px;line-height:1.6}
+.quick div b{display:block;color:var(--teal-l);font-size:16.25px}
 /* 창이 낮으면 머리 띠(전화번호·메뉴 버튼)를 가리지 않도록 단계적으로 줄임 */
-@media(min-width:901px) and (max-height:860px){.quick{zoom:.85}}
-@media(min-width:901px) and (max-height:760px){.quick{zoom:.75}}
-@media(min-width:901px) and (max-height:680px){.quick{zoom:.667}}
+@media(min-width:901px) and (max-height:750px){.quick{zoom:.9}}
+@media(min-width:901px) and (max-height:690px){.quick{zoom:.8}}
 
 /* 고정 가로 이동 구간 */
 .hpin{height:100vh;min-height:680px;overflow:hidden}
