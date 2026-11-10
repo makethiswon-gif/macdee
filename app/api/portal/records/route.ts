@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getPortalSession } from "@/lib/portal-auth";
 import { digestRecord } from "@/lib/portal-ai";
 import { clip, notifyPortalInput } from "@/lib/portal-notify";
+import { createUploadTargets, validateFileMetas, type PortalFileMeta } from "@/lib/portal-files";
 
 // 로펌 자료(상담기록·수임내역·판결문) — 업로드 즉시 AI 가 구조화(DB화)한다.
 // firm 은 자기 로펌 것만, admin 은 ?firm= 으로 모든 로펌.
@@ -41,14 +42,20 @@ export async function POST(request: Request) {
         const body = await request.json();
         const url = new URL(request.url);
         const firmId = session.role === "firm" ? session.firmId : body.firmId || url.searchParams.get("firm");
-        const { type, title, content } = body;
+        const { type, title } = body;
+        const content = typeof body.content === "string" ? body.content : "";
 
         if (!firmId) return NextResponse.json({ error: "로펌이 지정되지 않았습니다." }, { status: 400 });
         if (!["상담기록", "수임내역", "판결문", "승소사례", "기타"].includes(type)) {
             return NextResponse.json({ error: "자료 유형이 올바르지 않습니다." }, { status: 400 });
         }
-        if (!title?.trim() || !content?.trim()) {
-            return NextResponse.json({ error: "제목과 내용을 입력해 주세요." }, { status: 400 });
+        // 2026-11-10: 판결문·수사결과통지서 등 원문 파일(PDF·사진)을 그대로 올릴 수 있다. 파일이 있으면 내용(메모)은 비워도 된다.
+        let files: PortalFileMeta[];
+        try { files = validateFileMetas(body.files); } catch (e) {
+            return NextResponse.json({ error: e instanceof Error ? e.message : "파일 정보가 올바르지 않습니다." }, { status: 400 });
+        }
+        if (!title?.trim() || (!content.trim() && !files.length)) {
+            return NextResponse.json({ error: "제목과 내용(또는 원문 파일)을 입력해 주세요." }, { status: 400 });
         }
 
         const supabase = createServiceClient();
@@ -58,13 +65,33 @@ export async function POST(request: Request) {
                 firm_id: firmId,
                 type,
                 title: title.trim(),
-                content: content.trim(),
+                content: content.trim() || `[원문 파일] ${files.map((f) => f.name).join(", ")}`,
                 created_by: session.role,
             })
             .select("id")
             .single();
         if (error || !record) {
             return NextResponse.json({ error: error?.message ?? "저장 실패" }, { status: 500 });
+        }
+
+        if (files.length) {
+            // 파일은 브라우저가 서명된 주소로 직접 올리고, 다 올린 뒤 PATCH {action:"uploaded"} 로 알린다(알림 메일도 그때).
+            let uploads;
+            try {
+                uploads = await createUploadTargets(firmId, record.id, files);
+            } catch (e) {
+                await supabase.from("portal_records").delete().eq("id", record.id);
+                console.error("[portal] upload targets failed:", e);
+                return NextResponse.json({ error: "파일 보관함을 준비하지 못했습니다. 잠시 후 다시 시도해 주세요." }, { status: 500 });
+            }
+            const memo = content.trim();
+            if (memo) after(async () => {
+                try {
+                    const structured = await digestRecord({ type, title, content: memo });
+                    await supabase.from("portal_records").update({ structured, status: "정리됨", updated_at: new Date().toISOString() }).eq("id", record.id);
+                } catch (e) { console.error("[portal] digest failed:", e); }
+            });
+            return NextResponse.json({ id: record.id, uploads, structured: null, status: "대기" });
         }
         notifyPortalInput(session.role, { firmId, kind: "자료 등록", title: `${type} · ${title.trim()}`, lines: [`유형: ${type}`, `제목: ${title.trim()}`, "", clip(content)] });
 

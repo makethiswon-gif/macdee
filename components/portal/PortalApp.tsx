@@ -10,6 +10,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { createClient as createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { filesToImagesZip, filesToPdf, saveBlob } from "@/components/portal/file-convert";
 import Logo from "../renewal/Logo";
 import RequestsTab from "./RequestsTab";
 import MarketingProfileTab from "./MarketingProfileTab";
@@ -652,6 +654,18 @@ function RecordsTab({
     const [title, setTitle] = useState("");
     const [content, setContent] = useState("");
     const [uploading, setUploading] = useState(false);
+    // 2026-11-10: 판결문·수사결과통지서 등 원문 파일(PDF·사진)을 그대로 올린다. 브라우저가 서명된 주소로 저장소에 직접 올린다.
+    const [files, setFiles] = useState<File[]>([]);
+    const [progress, setProgress] = useState("");
+    const fileInput = useRef<HTMLInputElement>(null);
+    const addFiles = (list: FileList | null) => {
+        if (!list) return;
+        const picked = Array.from(list);
+        const tooBig = picked.find((f) => f.size > PORTAL_MAX_FILE_BYTES);
+        if (tooBig) notify(`파일 하나는 50MB까지 올릴 수 있습니다: ${tooBig.name}`);
+        setFiles((cur) => [...cur, ...picked.filter((f) => f.size > 0 && f.size <= PORTAL_MAX_FILE_BYTES)].slice(0, 10));
+        if (fileInput.current) fileInput.current.value = "";
+    };
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -670,21 +684,33 @@ function RecordsTab({
     }, [load]);
 
     const upload = async () => {
-        if (!title.trim() || !content.trim() || uploading) return;
+        if (!title.trim() || (!content.trim() && !files.length) || uploading) return;
         setUploading(true);
         try {
-            await api(`/api/portal/records${firmQuery}`, {
+            const created = await api<{ id: string; uploads?: { name: string; path: string; token: string }[] }>(`/api/portal/records${firmQuery}`, {
                 method: "POST",
-                body: JSON.stringify({ type, title, content, firmId: activeFirmId }),
+                body: JSON.stringify({ type, title, content, firmId: activeFirmId, ...(files.length ? { files: files.map((f) => ({ name: f.name, size: f.size, type: f.type })) } : {}) }),
             });
+            if (files.length && created.uploads) {
+                const store = createSupabaseBrowserClient().storage.from(PORTAL_FILE_BUCKET);
+                for (let i = 0; i < created.uploads.length; i++) {
+                    const target = created.uploads[i];
+                    setProgress(`파일 올리는 중 ${i + 1}/${created.uploads.length}`);
+                    const { error } = await store.uploadToSignedUrl(target.path, target.token, files[i], { contentType: files[i].type || "application/octet-stream" });
+                    if (error) throw new Error(`${files[i].name} 을(를) 올리지 못했습니다: ${error.message}`);
+                }
+                await api(`/api/portal/records/${created.id}`, { method: "PATCH", body: JSON.stringify({ action: "uploaded" }) });
+            }
             setTitle("");
             setContent("");
-            notify("업로드 완료 — AI가 정리해 두었습니다.");
+            setFiles([]);
+            notify(files.length ? `원문 파일 ${files.length}개를 올렸습니다.` : "업로드 완료 — AI가 정리해 두었습니다.");
             load();
         } catch (e) {
             notify(e instanceof Error ? e.message : "업로드 실패");
         } finally {
             setUploading(false);
+            setProgress("");
         }
     };
 
@@ -705,7 +731,7 @@ function RecordsTab({
                 <p className="mt-en mt-label" style={{ color: "var(--mt-accent)" }}>New Record</p>
                 <h2 className="mt-serif text-[19px] font-semibold mt-3">자료를 올리면 AI가 바로 정리합니다.</h2>
                 <p className="mt-body mt-2 text-[12.5px]">
-                    상담기록, 수임내역, 판결문, 승소사례를 붙여넣으세요. 개인정보는 정리 과정에서 제외됩니다.
+                    상담기록, 수임내역, 판결문, 승소사례를 붙여넣거나, 판결문·수사결과통지서 같은 원문 파일(PDF·사진)을 그대로 올리세요. 개인정보는 정리 과정에서 제외됩니다.
                 </p>
 
                 <div className="mt-6 flex flex-col gap-3">
@@ -723,18 +749,44 @@ function RecordsTab({
                     <textarea
                         className="pt-textarea"
                         placeholder={
-                            type === "승소사례"
-                                ? "판결문 없이 편하게 적어주세요 — 어떤 사건이었고, 어떻게 진행했고, 결과가 어땠는지. AI가 정리합니다."
-                                : "내용을 붙여넣으세요"
+                            files.length
+                                ? "메모(선택) — 파일만 올려도 됩니다."
+                                : type === "승소사례"
+                                  ? "판결문 없이 편하게 적어주세요 — 어떤 사건이었고, 어떻게 진행했고, 결과가 어땠는지. AI가 정리합니다."
+                                  : "내용을 붙여넣으세요"
                         }
                         value={content}
                         onChange={(e) => setContent(e.target.value)}
                     />
-                    <button className="pt-btn" onClick={upload} disabled={uploading || !title.trim() || !content.trim()}>
+                    <div
+                        className="rounded-md border border-dashed px-4 py-4 text-center text-[12.5px]"
+                        style={{ borderColor: "var(--mt-line)", color: "var(--mt-gray)" }}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => { e.preventDefault(); addFiles(e.dataTransfer.files); }}
+                    >
+                        <input ref={fileInput} type="file" multiple className="hidden" onChange={(e) => addFiles(e.target.files)} />
+                        <button type="button" className="pt-btn pt-btn-ghost" style={{ height: 36, fontSize: 12.5 }} onClick={() => fileInput.current?.click()} disabled={uploading}>
+                            원문 파일 첨부
+                        </button>
+                        <p className="mt-2 text-[11.5px]">PDF·사진(JPG·PNG·HEIC)·한글·워드 등 원본 그대로 · 파일당 50MB · 최대 10개 · 여기로 끌어다 놓아도 됩니다</p>
+                        {files.length > 0 && (
+                            <ul className="mt-3 flex flex-col gap-1.5 text-left">
+                                {files.map((f, i) => (
+                                    <li key={`${f.name}-${i}`} className="flex items-center justify-between gap-3 text-[12.5px]" style={{ color: "var(--mt-ink)" }}>
+                                        <span className="truncate">{f.name} <span style={{ color: "var(--mt-gray-light)" }}>· {sizeLabel(f.size)}</span></span>
+                                        {!uploading && <button type="button" className="shrink-0 text-[11px] underline" onClick={() => setFiles((cur) => cur.filter((_, j) => j !== i))}>빼기</button>}
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+                    <button className="pt-btn" onClick={upload} disabled={uploading || !title.trim() || (!content.trim() && !files.length)}>
                         {uploading ? (
                             <>
-                                <Dots /> AI 정리 중…
+                                <Dots /> {progress || (files.length ? "올리는 중…" : "AI 정리 중…")}
                             </>
+                        ) : files.length ? (
+                            `파일 ${files.length}개 올리기 →`
                         ) : (
                             "업로드 + AI 정리 →"
                         )}
@@ -774,6 +826,7 @@ function RecordsTab({
 
                                 {open === r.id && (
                                     <div className="px-5 pb-5 pt-1" style={{ borderTop: "1px solid var(--mt-line)" }}>
+                                        <RecordFiles recordId={r.id} title={r.title} role={role} notify={notify} />
                                         {r.structured ? (
                                             <div className="pt-4">
                                                 <StructuredView s={r.structured} />
@@ -798,6 +851,71 @@ function RecordsTab({
                     </ul>
                 )}
             </section>
+        </div>
+    );
+}
+
+/* ═══════════════ 원문 파일 ═══════════════ */
+
+// lib/portal-files.ts 와 같은 값(그 파일은 서버 전용이라 여기서 따로 둔다)
+const PORTAL_FILE_BUCKET = "portal-record-files";
+const PORTAL_MAX_FILE_BYTES = 50 * 1024 * 1024;
+const sizeLabel = (bytes: number) => (bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)}MB` : `${Math.max(1, Math.round(bytes / 1024))}KB`);
+
+interface RecordFile { name: string; size: number; type: string; url: string; downloadUrl: string }
+
+function RecordFiles({ recordId, title, role, notify }: { recordId: string; title: string; role: "admin" | "firm"; notify: (m: string) => void }) {
+    const [files, setFiles] = useState<RecordFile[] | null>(null);
+    const [busy, setBusy] = useState<"" | "pdf" | "images">("");
+    const fetchFiles = useCallback(async () => (await api<{ files: RecordFile[] }>(`/api/portal/records/${recordId}/files`)).files, [recordId]);
+
+    useEffect(() => {
+        let alive = true;
+        fetchFiles().then((f) => { if (alive) setFiles(f); }).catch(() => { if (alive) setFiles([]); });
+        return () => { alive = false; };
+    }, [fetchFiles]);
+
+    if (!files || !files.length) return null;
+
+    const convert = async (kind: "pdf" | "images") => {
+        if (busy) return;
+        setBusy(kind);
+        try {
+            const fresh = await fetchFiles(); // 주소가 10분이라 변환 직전에 새로 받는다
+            const result = kind === "pdf" ? await filesToPdf(fresh) : await filesToImagesZip(fresh);
+            saveBlob(result.blob, kind === "pdf" ? `${title}-원문.pdf` : `${title}-이미지.zip`);
+            notify(`${kind === "pdf" ? `PDF ${result.count}쪽` : `이미지 ${result.count}장`}으로 받았습니다.${result.skipped.length ? ` 제외: ${result.skipped.join(" / ")}` : ""}`);
+        } catch (e) {
+            notify(e instanceof Error ? e.message : "변환하지 못했습니다.");
+        } finally {
+            setBusy("");
+        }
+    };
+
+    return (
+        <div className="pt-4">
+            <p className="text-[12px] font-semibold mb-2" style={{ color: "var(--mt-ink)" }}>원문 파일 {files.length}개</p>
+            <ul className="flex flex-col gap-1.5">
+                {files.map((f) => (
+                    <li key={f.url} className="flex items-center justify-between gap-3 text-[12.5px]">
+                        <a href={f.url} target="_blank" rel="noopener noreferrer" className="truncate underline underline-offset-2" style={{ color: "var(--mt-accent)" }}>{f.name}</a>
+                        <span className="shrink-0 flex items-center gap-3" style={{ color: "var(--mt-gray-light)" }}>
+                            {sizeLabel(f.size)}
+                            <a href={f.downloadUrl} className="underline" style={{ color: "var(--mt-gray)" }}>받기</a>
+                        </span>
+                    </li>
+                ))}
+            </ul>
+            {role === "admin" && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                    <button className="pt-btn pt-btn-ghost" style={{ height: 34, fontSize: 12 }} onClick={() => convert("pdf")} disabled={!!busy}>
+                        {busy === "pdf" ? <><Dots /> PDF 만드는 중…</> : "PDF로 받기"}
+                    </button>
+                    <button className="pt-btn pt-btn-ghost" style={{ height: 34, fontSize: 12 }} onClick={() => convert("images")} disabled={!!busy}>
+                        {busy === "images" ? <><Dots /> 이미지 만드는 중…</> : "이미지로 받기(ZIP)"}
+                    </button>
+                </div>
+            )}
         </div>
     );
 }
