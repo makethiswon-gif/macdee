@@ -1,0 +1,149 @@
+/* 법률사무소 준일 홈페이지 관리자 모드 — 색·글꼴은 준일 홈페이지와 한 벌(청록 #255E70 · 검정 #060303 · Pretendard) */
+@font-face { font-family: "Pretendard JA"; src: url("/junil-site/PretendardVariable.woff2") format("woff2-variations"); font-weight: 45 920; font-display: swap; }
+
+.ja {
+    --teal: #255e70; --teal-d: #0c2a33; --teal-l: #9fcbd6; --pale: #e9f1f3; --ink: #060303; --mut: rgba(6, 3, 3, .58); --line: rgba(6, 3, 3, .13);
+    --bg: #f4f6f6; --warn: #b4541a; --danger: #b3261e;
+    font-family: "Pretendard JA", Pretendard, -apple-system, "Segoe UI", sans-serif; color: var(--ink); background: var(--bg);
+    min-height: 100vh; font-size: 15px; line-height: 1.6; letter-spacing: -.01em; -webkit-font-smoothing: antialiased;
+}
+.ja *, .ja *::before, .ja *::after { box-sizing: border-box; }
+.ja button, .ja input, .ja select, .ja textarea { font: inherit; color: inherit; letter-spacing: inherit; }
+.ja button { cursor: pointer; }
+.ja h1, .ja h2, .ja p { margin: 0; }
+.ja-eb { font-size: 11px; letter-spacing: .32em; font-weight: 700; color: var(--teal); }
+
+/* 버튼 */
+.ja-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 40px; padding: 0 18px; border: 1px solid var(--ink); background: #fff; font-weight: 700; font-size: 14px; white-space: nowrap; transition: background .2s, color .2s, border-color .2s, opacity .2s; }
+.ja-btn:hover { background: var(--ink); color: #fff; }
+.ja-btn--primary { background: var(--teal); border-color: var(--teal); color: #fff; }
+.ja-btn--primary:hover { background: var(--teal-d); border-color: var(--teal-d); }
+.ja-btn--ghost { border-color: transparent; background: transparent; font-weight: 600; }
+.ja-btn--ghost:hover { background: rgba(6, 3, 3, .07); color: var(--ink); }
+.ja-btn--danger { color: var(--danger); }
+.ja-btn--danger:hover { background: rgba(179, 38, 30, .09); color: var(--danger); }
+.ja-btn:disabled { opacity: .5; cursor: default; pointer-events: none; }
+.ja :focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+
+/* 로그인 */
+.ja-login { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: var(--teal-d); }
+.ja-login-card { width: min(420px, 100%); background: #fff; padding: 44px 40px 40px; display: flex; flex-direction: column; gap: 14px; }
+.ja-login-logo { width: 44px; height: 44px; margin-bottom: 6px; }
+.ja-login-card h1 { font-size: 26px; font-weight: 800; letter-spacing: -.03em; }
+.ja-login-note { color: var(--mut); font-size: 14px; margin-bottom: 8px; }
+.ja-login-card label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700; }
+.ja-login-card input { height: 46px; border: 1px solid var(--line); padding: 0 14px; font-size: 16px; outline: none; }
+.ja-login-card input:focus { border-color: var(--teal); }
+.ja-login-card .ja-btn { height: 48px; margin-top: 8px; font-size: 15px; }
+.ja-error { color: var(--danger); font-size: 14px; font-weight: 600; }
+
+/* 뼈대 */
+.ja-app { display: grid; grid-template-columns: 380px minmax(0, 1fr); grid-template-rows: 60px minmax(0, 1fr); height: 100vh; }
+.ja-top { grid-column: 1 / -1; background: var(--ink); color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; gap: 16px; }
+.ja-brand { display: flex; align-items: center; gap: 10px; color: #fff; text-decoration: none; min-width: 0; }
+.ja-brand img { width: 24px; height: 24px; filter: brightness(0) invert(1); }
+.ja-brand b { font-size: 16px; font-weight: 800; white-space: nowrap; }
+.ja-brand span { font-size: 12px; font-weight: 700; color: var(--teal-l); border: 1px solid rgba(159, 203, 214, .5); padding: 2px 9px; white-space: nowrap; }
+.ja-top nav { display: flex; align-items: center; gap: 4px; }
+.ja-top nav a, .ja-top nav button { color: rgba(255, 255, 255, .78); font-size: 13.5px; font-weight: 600; text-decoration: none; background: none; border: 0; padding: 8px 12px; white-space: nowrap; }
+.ja-top nav a:hover, .ja-top nav button:hover { color: #fff; background: rgba(255, 255, 255, .1); }
+
+/* 왼쪽: 글 목록 */
+.ja-side { background: #fff; border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+.ja-side-h { display: flex; align-items: flex-end; justify-content: space-between; padding: 24px 22px 18px; gap: 12px; }
+.ja-side-h h1 { font-size: 26px; font-weight: 800; letter-spacing: -.03em; line-height: 1.2; margin-top: 4px; }
+.ja-tabs { display: flex; padding: 0 22px; border-bottom: 1px solid var(--line); gap: 20px; }
+.ja-tabs button { background: none; border: 0; padding: 10px 0 12px; font-weight: 700; font-size: 14px; color: var(--mut); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.ja-tabs button b { font-weight: 600; margin-left: 5px; font-size: 12.5px; }
+.ja-tabs button.on { color: var(--ink); border-bottom-color: var(--teal); }
+.ja-search { margin: 14px 22px 6px; height: 40px; border: 1px solid var(--line); padding: 0 14px; outline: none; background: var(--bg); }
+.ja-search:focus { border-color: var(--teal); background: #fff; }
+.ja-list { overflow-y: auto; flex: 1; padding: 6px 12px 24px; }
+.ja-hint { color: var(--mut); font-size: 14px; padding: 26px 12px; }
+.ja-item { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 10px; row-gap: 2px; width: 100%; text-align: left; background: none; border: 0; border-left: 3px solid transparent; padding: 13px 12px 13px 9px; border-bottom: 1px solid var(--line); align-items: start; }
+.ja-item:hover { background: var(--bg); }
+.ja-item.on { background: var(--pale); border-left-color: var(--teal); }
+.ja-item b { font-size: 15px; font-weight: 700; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.ja-item small { grid-column: 2; color: var(--mut); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ja-badge { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 2px 8px; white-space: nowrap; margin-top: 1px; }
+.ja-badge--published { background: var(--teal); color: #fff; }
+.ja-badge--draft { background: #fff; color: var(--warn); box-shadow: inset 0 0 0 1px var(--warn); }
+.ja-badge--new { background: var(--ink); color: #fff; }
+
+/* 오른쪽: 편집 */
+.ja-main { overflow-y: auto; min-height: 0; }
+.ja-blank { max-width: 460px; margin: 16vh auto 0; padding: 0 24px; display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
+.ja-blank h2 { font-size: 28px; font-weight: 800; letter-spacing: -.03em; }
+.ja-blank p:not(.ja-eb) { color: var(--mut); }
+.ja-blank .ja-btn { margin-top: 10px; }
+.ja-edit.is-loading { opacity: .5; pointer-events: none; }
+.ja-bar { position: sticky; top: 0; z-index: 5; background: rgba(244, 246, 246, .94); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 14px; padding: 10px 28px; min-height: 62px; flex-wrap: wrap; }
+.ja-back { display: none; width: 38px; height: 38px; border: 1px solid var(--line); background: #fff; font-size: 18px; }
+.ja-state { display: flex; align-items: center; gap: 10px; font-size: 13.5px; min-width: 0; flex: 1; }
+.ja-state em { font-style: normal; color: var(--warn); font-weight: 700; }
+.ja-state i { font-style: normal; color: var(--mut); }
+.ja-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.ja-fields { max-width: 900px; margin: 0 auto; padding: 30px 28px 90px; display: flex; flex-direction: column; gap: 24px; }
+.ja-f { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.ja-f > span { font-size: 13px; font-weight: 800; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.ja-f > span small { font-weight: 500; color: var(--mut); font-size: 12.5px; }
+.ja-f input:not([type="file"]), .ja-f select, .ja-f textarea { border: 1px solid var(--line); background: #fff; padding: 0 14px; height: 46px; outline: none; width: 100%; min-width: 0; border-radius: 0; }
+.ja-f textarea { height: auto; padding: 12px 14px; resize: vertical; line-height: 1.7; }
+.ja-f input:focus, .ja-f select:focus, .ja-f textarea:focus { border-color: var(--teal); }
+.ja-f--title input { height: 60px; font-size: 22px; font-weight: 800; letter-spacing: -.02em; }
+.ja-f code { font-family: inherit; font-size: 12.5px; color: var(--teal); word-break: break-all; }
+.ja-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.ja-row--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+.ja-thumb { display: flex; gap: 14px; align-items: center; }
+.ja-thumb img, .ja-thumb-none { width: 160px; height: 100px; object-fit: cover; border: 1px solid var(--line); background: #fff; flex: none; }
+.ja-thumb-none { display: grid; place-items: center; color: var(--mut); font-size: 13px; }
+.ja-thumb > div:last-child { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+
+/* 본문 편집기 — 공개 페이지(.prose)와 같은 글 모양 */
+.ja-editor { border: 1px solid var(--line); background: #fff; }
+.ja-editor:focus-within { border-color: var(--teal); }
+.ja-tools { position: sticky; top: 62px; z-index: 4; display: flex; flex-wrap: wrap; gap: 2px; padding: 8px; border-bottom: 1px solid var(--line); background: #fafbfb; align-items: center; }
+.ja-tools button { height: 34px; padding: 0 11px; border: 1px solid transparent; background: none; font-size: 13.5px; font-weight: 600; white-space: nowrap; }
+.ja-tools button:hover { background: rgba(6, 3, 3, .07); }
+.ja-tools button.on { background: var(--pale); color: var(--teal); border-color: rgba(37, 94, 112, .35); }
+.ja-tools button.b { font-weight: 800; }
+.ja-tools button.u { text-decoration: underline; text-underline-offset: 3px; }
+.ja-tools i { width: 1px; height: 20px; background: var(--line); margin: 0 6px; }
+.ja-body { min-height: 460px; padding: 30px 34px 40px; outline: none; font-size: 17px; line-height: 1.95; color: #1c2224; overflow-wrap: anywhere; }
+.ja-body p { margin: 0 0 1.1em; }
+.ja-body h2 { font-size: 25px; font-weight: 800; letter-spacing: -.03em; margin: 2em 0 .9em; line-height: 1.45; padding-bottom: .5em; border-bottom: 1px solid var(--line); }
+.ja-body h3 { font-size: 21px; font-weight: 800; letter-spacing: -.02em; margin: 1.9em 0 .9em; padding-left: 16px; border-left: 3px solid var(--teal); line-height: 1.5; }
+.ja-body > :first-child { margin-top: 0; }
+.ja-body strong, .ja-body b { font-weight: 700; background: linear-gradient(transparent 62%, rgba(159, 203, 214, .45) 62%); }
+.ja-body ul, .ja-body ol { margin: 0 0 1.3em 1.2em; padding-left: 1em; }
+.ja-body ul { list-style: disc; } .ja-body ol { list-style: decimal; }
+.ja-body li { margin: .3em 0; }
+.ja-body blockquote { border-left: 3px solid var(--line); padding: 4px 0 4px 18px; color: var(--mut); margin: 1.4em 0; }
+.ja-body a { color: var(--teal); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.ja-body figure { margin: 2em 0; border: 1px solid var(--line); background: #fafafa; padding: 14px; }
+.ja-body img { display: block; max-width: 100%; height: auto; margin: 0 auto; max-height: 720px; }
+.ja-body hr { border: 0; border-top: 1px solid var(--line); margin: 2.4em 0; }
+.ja-body table { border-collapse: collapse; width: 100%; margin: 1.4em 0; font-size: 15px; }
+.ja-body td, .ja-body th { border: 1px solid var(--line); padding: 10px; }
+.ja-editor-hint { font-size: 12.5px; color: var(--mut); padding: 10px 14px; border-top: 1px solid var(--line); background: #fafbfb; }
+
+/* 좁은 화면: 목록과 편집 화면을 번갈아 */
+@media (max-width: 1000px) {
+    .ja-app { grid-template-columns: minmax(0, 1fr); height: auto; min-height: 100vh; grid-template-rows: 56px auto; }
+    .ja-side { border-right: 0; min-height: calc(100vh - 56px); }
+    .ja-main { display: none; overflow: visible; }
+    .ja-app--editing .ja-side { display: none; }
+    .ja-app--editing .ja-main { display: block; }
+    .ja-back { display: block; }
+    .ja-top { padding: 0 14px; }
+    .ja-top nav a { display: none; }
+    .ja-brand span { display: none; }
+    .ja-bar { padding: 10px 14px; top: 0; }
+    .ja-actions { width: 100%; }
+    .ja-actions .ja-btn { flex: 1; padding: 0 10px; }
+    .ja-fields { padding: 22px 14px 80px; }
+    .ja-row, .ja-row--2 { grid-template-columns: minmax(0, 1fr); }
+    .ja-tools { top: 0; position: static; }
+    .ja-body { padding: 22px 18px 30px; font-size: 16px; }
+    .ja-f--title input { font-size: 19px; height: 54px; }
+}
