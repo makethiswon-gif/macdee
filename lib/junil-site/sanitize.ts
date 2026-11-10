@@ -1,6 +1,6 @@
 import * as cheerio from "cheerio";
 import type { AnyNode, Element } from "domhandler";
-import { MEDIA_PREFIX } from "./shared";
+import { isSiteImage } from "./shared";
 
 // 관리자 편집기에서 온 본문 HTML 을 저장하기 전에 정리한다.
 // 허용한 태그·속성만 남기고 나머지는 벗겨 낸다(공개 페이지에 그대로 들어가므로 서버에서 한 번 더 거른다).
@@ -21,7 +21,8 @@ function safeHref(raw: string | undefined): string | null {
 
 function safeSrc(raw: string | undefined): string | null {
     const v = (raw || "").trim();
-    if (v.startsWith(MEDIA_PREFIX) && /^[\w./-]+$/.test(v) && !v.includes("..")) return v;
+    // 올린 이미지(/junil-site/media/…)와 사이트에 원래 있던 이미지(/junil-site/img/…)
+    if (isSiteImage(v)) return v;
     if (/^https:\/\/[^\s"'<>]+$/i.test(v)) return v.slice(0, 1000);
     return null;
 }

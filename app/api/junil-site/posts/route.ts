@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { isJunilAdmin, requestCookies } from "@/lib/junil-site/auth";
-import { BOARD_KEYS, type BoardKey } from "@/lib/junil-site/shared";
+import { isBoard, type BoardKey } from "@/lib/junil-site/shared";
 import { BadInput, cleanInput, createPost, listAllPosts } from "@/lib/junil-site/store";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
 const NO_STORE = { "Cache-Control": "no-store" };
-const boardOf = (value: unknown): BoardKey | null => (BOARD_KEYS.includes(value as BoardKey) ? (value as BoardKey) : null);
+const boardOf = (value: unknown): BoardKey | null => (isBoard(value) ? value : null);
 
 // GET ?board=column — 관리자용 글 목록(임시 저장 포함)
 export async function GET(req: Request) {
@@ -30,7 +30,7 @@ export async function POST(req: Request) {
     const board = boardOf(body.board ?? "column");
     if (!board) return NextResponse.json({ error: "없는 게시판입니다." }, { status: 400 });
     try {
-        const post = await createPost(board, cleanInput(body));
+        const post = await createPost(board, cleanInput(board, body));
         return NextResponse.json({ post }, { headers: NO_STORE });
     } catch (e) {
         if (e instanceof BadInput) return NextResponse.json({ error: e.message }, { status: 400 });

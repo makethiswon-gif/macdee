@@ -47,6 +47,11 @@ const nextConfig: NextConfig = {
       // 고객 홈페이지 시안(정적 파일 public/junil-sian) — 짧은 주소로 들어오게
       { source: "/junil-sian", destination: "/junil-sian/index.html", statusCode: 302 },
       { source: "/junil-site", destination: "/junil-site/index.html", statusCode: 302 },
+      // 준일 성공사례·준일소식을 게시판(관리자 모드)으로 옮기기 전 주소 → 새 주소
+      { source: "/junil-site/cases.html", destination: "/junil-site/cases", statusCode: 302 },
+      { source: "/junil-site/news.html", destination: "/junil-site/news", statusCode: 302 },
+      { source: "/junil-site/case-:id(\\d+).html", destination: "/junil-site/cases/case-:id", statusCode: 302 },
+      { source: "/junil-site/news-:id(\\d+).html", destination: "/junil-site/news/news-:id", statusCode: 302 },
       { source: "/makethisone", destination: "/", statusCode: 301 },
       { source: "/makethisone/index.html", destination: "/", statusCode: 301 },
       { source: "/insights", destination: "/magazine", statusCode: 301 },

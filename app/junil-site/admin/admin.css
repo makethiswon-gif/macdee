@@ -147,3 +147,29 @@
     .ja-body { padding: 22px 18px 30px; font-size: 16px; }
     .ja-f--title input { font-size: 19px; height: 54px; }
 }
+
+/* 게시판 고르기(법률칼럼 · 성공사례 · 준일소식) */
+.ja-boards { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--teal-d); }
+.ja-boards button { background: none; border: 0; border-bottom: 3px solid transparent; color: rgba(255, 255, 255, .62); font-weight: 700; font-size: 14.5px; padding: 14px 4px 11px; white-space: nowrap; }
+.ja-boards button:hover { color: #fff; }
+.ja-boards button.on { color: #fff; border-bottom-color: var(--teal-l); background: rgba(255, 255, 255, .06); }
+
+/* 변호사 여러 명 고르기 */
+.ja-checks { display: flex; flex-wrap: wrap; gap: 8px; }
+.ja-checks label { display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 16px 0 12px; border: 1px solid var(--line); background: #fff; font-weight: 600; font-size: 14.5px; cursor: pointer; user-select: none; }
+.ja-checks label.on { border-color: var(--teal); background: var(--pale); color: var(--teal); }
+.ja-f .ja-checks input[type="checkbox"] { width: 16px; height: 16px; padding: 0; flex: none; accent-color: var(--teal); margin: 0; border: 0; }
+.ja-checks label { white-space: nowrap; }
+
+/* 자료 이미지(판결문·사진) */
+.ja-gallery { display: flex; flex-wrap: wrap; gap: 12px; align-items: stretch; }
+.ja-gallery figure { margin: 0; width: 132px; border: 1px solid var(--line); background: #fff; display: flex; flex-direction: column; }
+.ja-gallery img { width: 100%; height: 150px; object-fit: cover; object-position: top; display: block; }
+.ja-gallery figcaption { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--line); }
+.ja-gallery figcaption button { background: none; border: 0; height: 32px; font-size: 14px; color: var(--mut); }
+.ja-gallery figcaption button + button { border-left: 1px solid var(--line); }
+.ja-gallery figcaption button:hover:not(:disabled) { background: var(--bg); color: var(--ink); }
+.ja-gallery figcaption button:disabled { opacity: .3; cursor: default; }
+.ja-gallery-add { width: 132px; min-height: 120px; border: 1px dashed rgba(6, 3, 3, .3); background: #fff; color: var(--teal); font-weight: 700; font-size: 14px; }
+.ja-gallery-add:hover:not(:disabled) { border-color: var(--teal); background: var(--pale); }
+@media (max-width: 1000px) { .ja-gallery figure, .ja-gallery-add { width: calc(50% - 6px); } }

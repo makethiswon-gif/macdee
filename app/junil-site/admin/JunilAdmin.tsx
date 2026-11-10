@@ -2,16 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { BOARDS, LIMITS, kdate, slugify, todayKst, type BoardKey, type Post, type PostMeta, type PostStatus } from "@/lib/junil-site/shared";
+import { BOARDS, BOARD_KEYS, LIMITS, kdate, slugify, todayKst, type BoardKey, type Post, type PostMeta, type PostStatus } from "@/lib/junil-site/shared";
 import Editor, { type EditorHandle } from "./Editor";
 
-type Props = { categories: string[]; lawyers: { id: number; name: string; role: string }[] };
-type Draft = Pick<Post, "title" | "category" | "lawyerId" | "date" | "summary" | "thumb" | "slug" | "body">;
+type Props = { categories: Record<BoardKey, string[]>; lawyers: { id: number; name: string; role: string }[] };
+type Draft = Pick<Post, "title" | "category" | "lawyerIds" | "date" | "summary" | "thumb" | "images" | "slug" | "body">;
 type Filter = "all" | PostStatus;
 
-const BOARD: BoardKey = "column";
-const EMPTY: Draft = { title: "", category: "", lawyerId: null, date: "", summary: "", thumb: "", slug: "", body: "" };
-const draftOf = (p: Post): Draft => ({ title: p.title, category: p.category, lawyerId: p.lawyerId, date: p.date, summary: p.summary, thumb: p.thumb, slug: p.slug, body: p.body });
+const EMPTY: Draft = { title: "", category: "", lawyerIds: [], date: "", summary: "", thumb: "", images: [], slug: "", body: "" };
+const draftOf = (p: Post): Draft => ({ title: p.title, category: p.category, lawyerIds: p.lawyerIds ?? [], date: p.date, summary: p.summary, thumb: p.thumb, images: p.images ?? [], slug: p.slug, body: p.body });
+const BOARD_STORE = "junil-admin-board";
 
 async function api<T>(url: string, init?: RequestInit): Promise<T> {
     const res = await fetch(url, { ...init, headers: init?.body && !(init.body instanceof FormData) ? { "Content-Type": "application/json" } : undefined });
@@ -23,6 +23,8 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
     if (!res.ok) throw new Error(data.error || "요청을 처리하지 못했습니다.");
     return data as T;
 }
+
+const fetchPosts = (board: BoardKey) => api<{ posts: PostMeta[] }>(`/api/junil-site/posts?board=${board}`).then((d) => d.posts);
 
 /** 큰 사진은 올리기 전에 긴 변 1800px 로 줄인다(휴대폰 원본 그대로 올리는 일 방지). */
 async function shrink(file: File): Promise<File> {
@@ -51,6 +53,7 @@ export async function uploadImage(file: File): Promise<string> {
 }
 
 export default function JunilAdmin({ categories, lawyers }: Props) {
+    const [board, setBoard] = useState<BoardKey>("column");
     const [posts, setPosts] = useState<PostMeta[] | null>(null);
     const [filter, setFilter] = useState<Filter>("all");
     const [query, setQuery] = useState("");
@@ -65,19 +68,27 @@ export default function JunilAdmin({ categories, lawyers }: Props) {
     const [docKey, setDocKey] = useState(0);
     const editor = useRef<EditorHandle>(null);
     const thumbInput = useRef<HTMLInputElement>(null);
+    const galleryInput = useRef<HTMLInputElement>(null);
+    const conf = BOARDS[board];
 
-    const reload = useCallback(async () => {
+    const reload = useCallback(async (b: BoardKey) => {
         try {
-            setPosts((await api<{ posts: PostMeta[] }>(`/api/junil-site/posts?board=${BOARD}`)).posts);
+            setPosts(await fetchPosts(b));
         } catch (e) {
             toast.error((e as Error).message);
         }
     }, []);
-    // 처음 한 번 목록을 불러온다.
+
+    // 처음 한 번: 지난번에 보던 게시판과 그 목록을 불러온다.
     useEffect(() => {
         let alive = true;
-        api<{ posts: PostMeta[] }>(`/api/junil-site/posts?board=${BOARD}`)
-            .then((data) => { if (alive) setPosts(data.posts); })
+        let first: BoardKey = "column";
+        try {
+            const kept = window.localStorage.getItem(BOARD_STORE) as BoardKey | null;
+            if (kept && BOARD_KEYS.includes(kept)) first = kept;
+        } catch { /* 저장소를 못 쓰는 브라우저 */ }
+        fetchPosts(first)
+            .then((list) => { if (alive) { setBoard(first); setPosts(list); } })
             .catch((e: Error) => toast.error(e.message));
         return () => { alive = false; };
     }, []);
@@ -99,6 +110,7 @@ export default function JunilAdmin({ categories, lawyers }: Props) {
         const q = query.trim().toLowerCase();
         return (posts ?? []).filter((p) => (filter === "all" || p.status === filter) && (!q || p.title.toLowerCase().includes(q) || p.category.toLowerCase().includes(q)));
     }, [posts, filter, query]);
+    const nameOf = (ids: number[] | undefined) => (ids?.length ? ids.map((id) => lawyers.find((l) => l.id === id)?.name).filter(Boolean).join("·") : board === "column" ? "법률사무소 준일" : "");
 
     const leaveOk = () => !dirty || window.confirm("저장하지 않은 내용이 있습니다. 버리고 이동할까요?");
 
@@ -107,6 +119,19 @@ export default function JunilAdmin({ categories, lawyers }: Props) {
         setDirty(false);
         // 편집기 본문은 React 상태로 두지 않는다(글자 입력마다 다시 그리지 않도록) — 글을 열 때 새로 만들며 채운다.
         setDocKey((k) => k + 1);
+    }
+
+    function switchBoard(next: BoardKey) {
+        if (next === board || !leaveOk()) return;
+        setBoard(next);
+        setPosts(null);
+        setOpenId(null);
+        setSaved(null);
+        setDirty(false);
+        setFilter("all");
+        setQuery("");
+        try { window.localStorage.setItem(BOARD_STORE, next); } catch { /* 넘어감 */ }
+        reload(next);
     }
 
     function startNew() {
@@ -147,17 +172,17 @@ export default function JunilAdmin({ categories, lawyers }: Props) {
         const body = editor.current?.getHtml() ?? draft.body;
         const title = draft.title.trim();
         if (!title) return toast.error("제목을 적어 주세요.");
-        if (status === "published" && !body.replace(/<[^>]+>/g, "").trim() && !/<img/i.test(body)) return toast.error("본문이 비어 있습니다.");
+        if (status === "published" && !body.replace(/<[^>]+>/g, "").trim() && !/<img/i.test(body) && !draft.images.length) return toast.error("본문이 비어 있습니다.");
         setBusy(status);
         try {
-            const payload = { ...draft, title, body, status, board: BOARD };
+            const payload = { ...draft, title, body, status, board };
             const { post } = openId === "new" || !openId
                 ? await api<{ post: Post }>("/api/junil-site/posts", { method: "POST", body: JSON.stringify(payload) })
                 : await api<{ post: Post }>(`/api/junil-site/posts/${openId}`, { method: "PATCH", body: JSON.stringify(payload) });
             setOpenId(post.id);
             setSaved(post);
             load(draftOf(post));
-            await reload();
+            await reload(board);
             toast.success(status === "published" ? (saved?.status === "published" ? "수정한 내용을 반영했습니다." : "발행했습니다.") : (saved?.status === "published" ? "발행을 내리고 임시 저장했습니다." : "임시 저장했습니다."));
         } catch (e) {
             toast.error((e as Error).message);
@@ -174,7 +199,7 @@ export default function JunilAdmin({ categories, lawyers }: Props) {
             setOpenId(null);
             setSaved(null);
             setDirty(false);
-            await reload();
+            await reload(board);
             toast.success("글을 지웠습니다.");
         } catch (e) {
             toast.error((e as Error).message);
@@ -192,6 +217,35 @@ export default function JunilAdmin({ categories, lawyers }: Props) {
         }
         setBusy("");
         if (thumbInput.current) thumbInput.current.value = "";
+    }
+
+    async function addGallery(files: File[]) {
+        if (!files.length) return;
+        const room = LIMITS.images - draft.images.length;
+        if (room <= 0) return toast.error(`이미지는 ${LIMITS.images}장까지 넣을 수 있습니다.`);
+        setBusy("gallery");
+        try {
+            const urls: string[] = [];
+            for (const file of files.slice(0, room)) urls.push(await uploadImage(file));
+            setDraft((d) => ({ ...d, images: [...d.images, ...urls] }));
+            setDirty(true);
+        } catch (e) {
+            toast.error((e as Error).message);
+        }
+        setBusy("");
+        if (galleryInput.current) galleryInput.current.value = "";
+    }
+
+    function moveGallery(index: number, by: number) {
+        const next = [...draft.images];
+        const to = index + by;
+        if (to < 0 || to >= next.length) return;
+        [next[index], next[to]] = [next[to], next[index]];
+        set("images", next);
+    }
+
+    function toggleLawyer(id: number) {
+        set("lawyerIds", draft.lawyerIds.includes(id) ? draft.lawyerIds.filter((x) => x !== id) : [...draft.lawyerIds, id]);
     }
 
     function preview() {
@@ -235,28 +289,33 @@ export default function JunilAdmin({ categories, lawyers }: Props) {
                     <span>관리자 모드</span>
                 </a>
                 <nav>
-                    <a href="/junil-site/column" target="_blank" rel="noopener">법률칼럼 보기 ↗</a>
+                    <a href={`/junil-site/${conf.path}`} target="_blank" rel="noopener">{conf.label} 보기 ↗</a>
                     <a href="/junil-site" target="_blank" rel="noopener">홈페이지 ↗</a>
                     <button type="button" onClick={logout}>로그아웃</button>
                 </nav>
             </header>
 
             <aside className="ja-side">
+                <div className="ja-boards" role="tablist" aria-label="게시판">
+                    {BOARD_KEYS.map((key) => (
+                        <button key={key} type="button" role="tab" aria-selected={board === key} className={board === key ? "on" : ""} onClick={() => switchBoard(key)}>{BOARDS[key].label}</button>
+                    ))}
+                </div>
                 <div className="ja-side-h">
                     <div>
                         <p className="ja-eb">BOARD</p>
-                        <h1>{BOARDS[BOARD].label}</h1>
+                        <h1>{conf.label}</h1>
                     </div>
                     <button type="button" className="ja-btn ja-btn--primary" onClick={startNew}>+ 새 글</button>
                 </div>
-                <div className="ja-tabs" role="tablist">
+                <div className="ja-tabs" role="tablist" aria-label="상태">
                     {([["all", "전체"], ["published", "발행"], ["draft", "임시 저장"]] as [Filter, string][]).map(([key, label]) => (
                         <button key={key} type="button" role="tab" aria-selected={filter === key} className={filter === key ? "on" : ""} onClick={() => setFilter(key)}>
                             {label}<b>{counts[key]}</b>
                         </button>
                     ))}
                 </div>
-                <input className="ja-search" type="search" placeholder="제목·분야로 찾기" value={query} onChange={(e) => setQuery(e.target.value)} />
+                <input className="ja-search" type="search" placeholder="제목·분류로 찾기" value={query} onChange={(e) => setQuery(e.target.value)} />
                 <div className="ja-list">
                     {posts === null && <p className="ja-hint">불러오는 중…</p>}
                     {posts !== null && shown.length === 0 && <p className="ja-hint">{posts.length ? "조건에 맞는 글이 없습니다." : "아직 글이 없습니다. ‘새 글’을 눌러 첫 글을 써 보세요."}</p>}
@@ -264,7 +323,7 @@ export default function JunilAdmin({ categories, lawyers }: Props) {
                         <button key={p.id} type="button" className={`ja-item${p.id === openId ? " on" : ""}`} onClick={() => open(p.id)}>
                             <span className={`ja-badge ja-badge--${p.status}`}>{p.status === "published" ? "발행" : "임시"}</span>
                             <b>{p.title}</b>
-                            <small>{[p.category, kdate(p.date), p.lawyerId ? lawyers.find((l) => l.id === p.lawyerId)?.name : "법률사무소 준일"].filter(Boolean).join(" · ")}</small>
+                            <small>{[p.category, kdate(p.date), nameOf(p.lawyerIds)].filter(Boolean).join(" · ")}</small>
                         </button>
                     ))}
                 </div>
@@ -275,8 +334,8 @@ export default function JunilAdmin({ categories, lawyers }: Props) {
                     <div className="ja-blank">
                         <p className="ja-eb">JUNIL ADMIN</p>
                         <h2>글을 고르거나 새 글을 쓰세요</h2>
-                        <p>왼쪽 목록에서 글을 누르면 고칠 수 있습니다. 임시 저장한 글은 홈페이지에 보이지 않고, 발행하면 바로 법률칼럼에 올라갑니다.</p>
-                        <button type="button" className="ja-btn ja-btn--primary" onClick={startNew}>+ 새 글 쓰기</button>
+                        <p>왼쪽 위에서 게시판을 고르고, 목록에서 글을 누르면 고칠 수 있습니다. 임시 저장한 글은 홈페이지에 보이지 않고, 발행하면 바로 {conf.label}에 올라갑니다.</p>
+                        <button type="button" className="ja-btn ja-btn--primary" onClick={startNew}>+ {conf.label} 새 글 쓰기</button>
                     </div>
                 )}
                 {openId && (
@@ -304,26 +363,62 @@ export default function JunilAdmin({ categories, lawyers }: Props) {
                                 <span>제목</span>
                                 <input value={draft.title} maxLength={LIMITS.title} placeholder="제목을 적어 주세요" onChange={(e) => set("title", e.target.value)} />
                             </label>
-                            <div className="ja-row">
+                            <div className={`ja-row${conf.multiLawyer ? " ja-row--2" : ""}`}>
                                 <label className="ja-f">
-                                    <span>분야</span>
+                                    <span>{board === "column" ? "분야" : "분류"}</span>
                                     <select value={draft.category} onChange={(e) => set("category", e.target.value)}>
                                         <option value="">선택 안 함</option>
-                                        {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+                                        {categories[board].map((c) => <option key={c} value={c}>{c}</option>)}
                                     </select>
                                 </label>
-                                <label className="ja-f">
-                                    <span>글쓴이</span>
-                                    <select value={draft.lawyerId ?? ""} onChange={(e) => set("lawyerId", e.target.value ? Number(e.target.value) : null)}>
-                                        <option value="">법률사무소 준일</option>
-                                        {lawyers.map((l) => <option key={l.id} value={l.id}>{l.name} {l.role}</option>)}
-                                    </select>
-                                </label>
+                                {!conf.multiLawyer && (
+                                    <label className="ja-f">
+                                        <span>{conf.lawyerLabel}</span>
+                                        <select value={draft.lawyerIds[0] ?? ""} onChange={(e) => set("lawyerIds", e.target.value ? [Number(e.target.value)] : [])}>
+                                            <option value="">법률사무소 준일</option>
+                                            {lawyers.map((l) => <option key={l.id} value={l.id}>{l.name} {l.role}</option>)}
+                                        </select>
+                                    </label>
+                                )}
                                 <label className="ja-f">
                                     <span>게시일</span>
                                     <input type="date" value={draft.date} onChange={(e) => set("date", e.target.value)} />
                                 </label>
                             </div>
+                            {conf.multiLawyer && (
+                                <div className="ja-f">
+                                    <span>{conf.lawyerLabel} <small>여러 명을 고를 수 있습니다. 먼저 고른 변호사가 대표로 나옵니다.</small></span>
+                                    <div className="ja-checks">
+                                        {lawyers.map((l) => (
+                                            <label key={l.id} className={draft.lawyerIds.includes(l.id) ? "on" : ""}>
+                                                <input type="checkbox" checked={draft.lawyerIds.includes(l.id)} onChange={() => toggleLawyer(l.id)} />
+                                                {l.name}{draft.lawyerIds[0] === l.id && draft.lawyerIds.length > 1 ? " (대표)" : ""}
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {conf.gallery && (
+                                <div className="ja-f">
+                                    <span>{conf.gallery} <small>{board === "case" ? "판결문·결정문 등. 글 위쪽에 따로 나오고 누르면 크게 보입니다." : "글 위쪽에 크게 나옵니다."} {LIMITS.images}장까지.</small></span>
+                                    <div className="ja-gallery">
+                                        {draft.images.map((src, i) => (
+                                            <figure key={src}>
+                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                <img src={src} alt="" />
+                                                <figcaption>
+                                                    <button type="button" title="앞으로" aria-label="앞으로" onClick={() => moveGallery(i, -1)} disabled={i === 0}>←</button>
+                                                    <button type="button" title="뒤로" aria-label="뒤로" onClick={() => moveGallery(i, 1)} disabled={i === draft.images.length - 1}>→</button>
+                                                    <button type="button" title="빼기" aria-label="빼기" onClick={() => set("images", draft.images.filter((_, k) => k !== i))}>✕</button>
+                                                </figcaption>
+                                            </figure>
+                                        ))}
+                                        <input ref={galleryInput} type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple hidden onChange={(e) => addGallery(Array.from(e.target.files ?? []))} />
+                                        <button type="button" className="ja-gallery-add" onClick={() => galleryInput.current?.click()} disabled={busy === "gallery"}>{busy === "gallery" ? "올리는 중…" : "+ 이미지 추가"}</button>
+                                    </div>
+                                </div>
+                            )}
 
                             <div className="ja-f">
                                 <span>본문</span>
@@ -331,13 +426,13 @@ export default function JunilAdmin({ categories, lawyers }: Props) {
                             </div>
 
                             <label className="ja-f">
-                                <span>요약 <small>목록과 검색 결과에 보이는 두세 줄. 비워 두면 본문 앞부분을 씁니다.</small></span>
+                                <span>{board === "case" ? "사건 개요" : "요약"} <small>{conf.summaryHint}</small></span>
                                 <textarea rows={3} value={draft.summary} maxLength={LIMITS.summary} onChange={(e) => set("summary", e.target.value)} />
                             </label>
 
                             <div className="ja-row ja-row--2">
                                 <div className="ja-f">
-                                    <span>대표 이미지 <small>목록 카드와 글 맨 위에 나옵니다. 없어도 됩니다.</small></span>
+                                    <span>대표 이미지 <small>{conf.thumbHint}</small></span>
                                     <div className="ja-thumb">
                                         {/* eslint-disable-next-line @next/next/no-img-element */}
                                         {draft.thumb ? <img src={draft.thumb} alt="" /> : <div className="ja-thumb-none">이미지 없음</div>}
@@ -351,7 +446,7 @@ export default function JunilAdmin({ categories, lawyers }: Props) {
                                 <label className="ja-f">
                                     <span>글 주소 <small>비워 두면 제목으로 정해집니다. 발행 뒤에는 되도록 바꾸지 마세요.</small></span>
                                     <input value={draft.slug} maxLength={LIMITS.slug} placeholder="제목에서 자동" onChange={(e) => set("slug", e.target.value)} onBlur={(e) => { const v = slugify(e.target.value); if (v !== draft.slug) set("slug", v); }} />
-                                    <code>/junil-site/column/{slugShown}</code>
+                                    <code>/junil-site/{conf.path}/{slugShown}</code>
                                 </label>
                             </div>
                         </div>

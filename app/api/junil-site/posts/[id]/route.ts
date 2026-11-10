@@ -31,7 +31,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
     try {
         const current = await getPost(id);
         if (!current) return NextResponse.json({ error: "없는 글입니다." }, { status: 404 });
-        const post = await updatePost(current.board, id, cleanInput(body));
+        const post = await updatePost(current.board, id, cleanInput(current.board, body));
         return NextResponse.json({ post }, { headers: NO_STORE });
     } catch (e) {
         if (e instanceof PostNotFound) return NextResponse.json({ error: "없는 글입니다." }, { status: 404 });

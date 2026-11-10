@@ -4,21 +4,22 @@ import { createServiceClient } from "@/lib/supabase/server";
 import seedPosts from "./seed.json";
 import shell from "./shell.json";
 import { bodyText, sanitizeBody } from "./sanitize";
-import { BOARD_KEYS, LIMITS, MEDIA_PREFIX, slugify, todayKst, type BoardKey, type Post, type PostMeta, type PostStatus } from "./shared";
+import { BOARDS, LIMITS, MEDIA_PREFIX, isBoard, isSiteImage, slugify, todayKst, type BoardKey, type Post, type PostMeta, type PostStatus } from "./shared";
 
 // ---------- 저장 ----------
 // DB 테이블을 새로 만들지 않도록 Supabase Storage 비공개 버킷 하나에 둔다(아이디어 창고와 같은 방식).
 //   boards/{게시판}.json   목록(본문 제외)
 //   posts/{id}.json        글 한 편(본문 포함)
 //   media/YYYY/MM/{이름}   올린 이미지 — /junil-site/media/… 라우트가 내려 준다
-// 목록 파일이 아직 없으면 seed.json(공식 FAQ 를 묶은 첫 글)으로 시작하고, 처음 쓸 때 그 글들도 저장한다.
+// 목록 파일이 아직 없으면 seed.json 으로 시작하고(법률칼럼: 공식 FAQ 10편, 성공사례 62편·준일소식 5편: junil.kr 원문),
+// 그 게시판에 처음 쓰는 순간 그 글들도 저장소에 옮겨 적는다.
 
 const BUCKET = "junil-site";
 // 개발 서버도 같은 Supabase 를 보므로, 시험 데이터는 dev/ 아래에 따로 둔다.
 const DIR = process.env.NODE_ENV === "production" ? "" : "dev/";
 const SEED = seedPosts as Post[];
-const CATEGORIES: string[] = shell.categories;
 const LAWYER_IDS = Object.keys(shell.lawyers).map(Number);
+const categoriesOf = (board: BoardKey): string[] => shell.boards[board].categories;
 
 type Index = { version: number; posts: PostMeta[] };
 type Loaded = Index & { fresh: boolean };
@@ -53,6 +54,7 @@ async function retry<T extends { error: unknown }>(run: () => Promise<T>, tries 
 function metaOf(post: Post): PostMeta {
     const meta: Partial<Post> = { ...post };
     delete meta.body;
+    delete meta.images;
     return meta as PostMeta;
 }
 
@@ -90,8 +92,9 @@ function mutate<T>(board: BoardKey, fn: (index: Loaded) => T | Promise<T>): Prom
     const run = queue.then(async () => {
         const index = await loadIndex(board);
         if (index.fresh) {
-            // 처음 쓰는 순간: 첫 글들도 파일로 남겨 관리자 화면에서 고치고 지울 수 있게 한다.
-            for (const post of SEED.filter((p) => p.board === board)) await writeJson(postFile(post.id), post);
+            // 그 게시판에 처음 쓰는 순간: 첫 글들도 파일로 남겨 관리자 화면에서 고치고 지울 수 있게 한다(8편씩 나눠 올림).
+            const seeds = SEED.filter((p) => p.board === board);
+            for (let i = 0; i < seeds.length; i += 8) await Promise.all(seeds.slice(i, i + 8).map((post) => writeJson(postFile(post.id), post)));
         }
         const result = await fn(index);
         await writeJson(indexFile(board), { version: index.version + 1, posts: index.posts });
@@ -124,8 +127,8 @@ export async function listAllPosts(board: BoardKey): Promise<PostMeta[]> {
 
 export async function getPost(id: string): Promise<Post | null> {
     if (!/^[\w-]{1,64}$/.test(id)) return null;
-    const post = await readJson<Post>(postFile(id));
-    return post ?? SEED.find((p) => p.id === id) ?? null;
+    const post = (await readJson<Post>(postFile(id))) ?? SEED.find((p) => p.id === id) ?? null;
+    return post ? { ...post, images: post.images ?? [], lawyerIds: post.lawyerIds ?? [] } : null;
 }
 
 /** 공개 페이지용: 발행된 글만, 1시간 캐시(글을 쓰면 바로 비워진다) */
@@ -137,16 +140,18 @@ export function listPublished(board: BoardKey): Promise<PostMeta[]> {
     )();
 }
 
-export function getPublishedBySlug(board: BoardKey, slug: string): Promise<Post | null> {
+/** 주소(slug) 또는 글 번호(id)로 발행된 글을 찾는다 — 다른 페이지는 번호로 걸어 두므로 주소를 바꿔도 끊기지 않는다. */
+export function getPublished(board: BoardKey, key: string): Promise<Post | null> {
     return unstable_cache(
         async () => {
-            const meta = (await loadIndex(board)).posts.find((p) => p.slug === slug && p.status === "published");
+            const posts = (await loadIndex(board)).posts.filter((p) => p.status === "published");
+            const meta = posts.find((p) => p.slug === key) ?? posts.find((p) => p.id === key);
             if (!meta) return null;
             const post = await getPost(meta.id);
             // 목록의 값이 기준(발행 상태·주소가 어긋나지 않게)
             return post ? { ...post, ...meta } : null;
         },
-        ["junil-site-post", DIR, board, slug],
+        ["junil-site-post", DIR, board, key],
         { tags: [boardTag(board)], revalidate: 3600 },
     )();
 }
@@ -156,18 +161,21 @@ export function getPublishedBySlug(board: BoardKey, slug: string): Promise<Post 
 export class PostNotFound extends Error {}
 export class BadInput extends Error {}
 
-export type PostInput = Partial<Pick<Post, "title" | "category" | "lawyerId" | "date" | "summary" | "thumb" | "slug" | "status" | "body">>;
+export type PostInput = Partial<Pick<Post, "title" | "category" | "lawyerIds" | "date" | "summary" | "thumb" | "images" | "slug" | "status" | "body">>;
 
 /** 들어온 값을 검사해 고칠 필드만 돌려준다. 잘못된 값은 버린다. */
-export function cleanInput(body: Record<string, unknown>): PostInput {
+export function cleanInput(board: BoardKey, body: Record<string, unknown>): PostInput {
     const out: PostInput = {};
     if (typeof body.title === "string") out.title = body.title.replace(/\s+/g, " ").trim().slice(0, LIMITS.title);
-    if (typeof body.category === "string") out.category = CATEGORIES.includes(body.category) ? body.category : "";
-    if (body.lawyerId === null || body.lawyerId === "") out.lawyerId = null;
-    else if (body.lawyerId !== undefined && LAWYER_IDS.includes(Number(body.lawyerId))) out.lawyerId = Number(body.lawyerId);
+    if (typeof body.category === "string") out.category = categoriesOf(board).includes(body.category) ? body.category : "";
+    if (Array.isArray(body.lawyerIds)) {
+        const ids = [...new Set(body.lawyerIds.map(Number))].filter((id) => LAWYER_IDS.includes(id));
+        out.lawyerIds = BOARDS[board].multiLawyer ? ids : ids.slice(0, 1);
+    }
     if (typeof body.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.date)) out.date = body.date;
     if (typeof body.summary === "string") out.summary = body.summary.replace(/\s+/g, " ").trim().slice(0, LIMITS.summary);
-    if (typeof body.thumb === "string") out.thumb = body.thumb.startsWith(MEDIA_PREFIX) && /^[\w./-]+$/.test(body.thumb) && !body.thumb.includes("..") ? body.thumb : "";
+    if (typeof body.thumb === "string") out.thumb = isSiteImage(body.thumb) ? body.thumb : "";
+    if (Array.isArray(body.images)) out.images = BOARDS[board].gallery ? [...new Set(body.images.filter((u): u is string => isSiteImage(u)))].slice(0, LIMITS.images) : [];
     if (typeof body.slug === "string") out.slug = slugify(body.slug);
     if (body.status === "draft" || body.status === "published") out.status = body.status as PostStatus;
     if (typeof body.body === "string") {
@@ -180,8 +188,17 @@ export function cleanInput(body: Record<string, unknown>): PostInput {
 function uniqueSlug(posts: PostMeta[], wanted: string, selfId: string): string {
     const base = wanted || selfId;
     let slug = base;
-    for (let n = 2; posts.some((p) => p.slug === slug && p.id !== selfId); n++) slug = `${base}-${n}`;
+    // 다른 글의 번호와 같은 주소도 피한다(번호로도 글을 찾기 때문).
+    for (let n = 2; posts.some((p) => p.id !== selfId && (p.slug === slug || p.id === slug)); n++) slug = `${base}-${n}`;
     return slug;
+}
+
+/** 목록에 쓸 이미지: 대표 이미지 → 자료 이미지 첫 장 → 본문 첫 이미지 */
+function coverOf(post: Pick<Post, "thumb" | "images" | "body">): string {
+    if (post.thumb) return post.thumb;
+    if (post.images[0]) return post.images[0];
+    const first = /<img[^>]+src="([^"]+)"/.exec(post.body)?.[1];
+    return first && isSiteImage(first) ? first : "";
 }
 
 function newId(): string {
@@ -189,7 +206,7 @@ function newId(): string {
 }
 
 export async function createPost(board: BoardKey, input: PostInput): Promise<Post> {
-    if (!BOARD_KEYS.includes(board)) throw new BadInput("없는 게시판입니다.");
+    if (!isBoard(board)) throw new BadInput("없는 게시판입니다.");
     if (!input.title) throw new BadInput("제목을 적어 주세요.");
     const now = new Date().toISOString();
     const id = newId();
@@ -201,15 +218,18 @@ export async function createPost(board: BoardKey, input: PostInput): Promise<Pos
             slug: uniqueSlug(index.posts, input.slug || slugify(input.title!), id),
             title: input.title!,
             category: input.category ?? "",
-            lawyerId: input.lawyerId ?? null,
+            lawyerIds: input.lawyerIds ?? [],
             date: input.date || todayKst(),
             summary: input.summary || bodyText(body).slice(0, 140),
             thumb: input.thumb ?? "",
+            cover: "",
+            images: input.images ?? [],
             status: input.status ?? "draft",
             createdAt: now,
             updatedAt: now,
             body,
         };
+        post.cover = coverOf(post);
         await writeJson(postFile(id), post);
         index.posts.push(metaOf(post));
         return post;
@@ -225,6 +245,7 @@ export async function updatePost(board: BoardKey, id: string, input: PostInput):
         if (!next.title) throw new BadInput("제목을 적어 주세요.");
         if (input.slug !== undefined || !next.slug) next.slug = uniqueSlug(index.posts, input.slug || slugify(next.title), id);
         if (!next.summary) next.summary = bodyText(next.body).slice(0, 140);
+        next.cover = coverOf(next);
         await writeJson(postFile(id), next);
         index.posts[at] = metaOf(next);
         return next;
