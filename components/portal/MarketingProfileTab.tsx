@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-    MARKETING_CREDENTIAL_SECTIONS, MARKETING_PROFILE_SECTIONS, MARKETING_SECRET_KEYS,
+    MARKETING_CREDENTIAL_SECTIONS, MARKETING_PROFILE_SECTIONS, MARKETING_SECRET_KEYS, NAVER_ACCOUNT_SLOTS,
     emptySecretPresence, type MarketingFieldKey, type MarketingProfile,
     type MarketingSecretKey, type MarketingSecretPresence, type MarketingSecrets,
 } from "@/lib/portal-marketing-profile";
@@ -42,11 +42,13 @@ export default function MarketingProfileTab({ role, firmQuery, activeFirmId, not
     const [error, setError] = useState("");
     const [setupRequired, setSetupRequired] = useState(false);
     const revealTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // 화면에 펼쳐 둔 네이버 계정 칸 수(값이 있는 칸은 늘 보인다)
+    const [naverAdded, setNaverAdded] = useState(1);
 
     useEffect(() => () => { if (revealTimer.current) clearTimeout(revealTimer.current); }, []);
     useEffect(() => {
         const controller = new AbortController();
-        setLoading(true); setError(""); setSetupRequired(false); setRevealed({}); setSecretDraft({}); setClearSecrets([]);
+        setLoading(true); setError(""); setSetupRequired(false); setRevealed({}); setSecretDraft({}); setClearSecrets([]); setNaverAdded(1);
         void (async () => {
             try {
                 const response = await fetch(`/api/portal/marketing-profile${firmQuery}`, { cache: "no-store", signal: controller.signal });
@@ -115,6 +117,34 @@ export default function MarketingProfileTab({ role, firmQuery, activeFirmId, not
         setSecretDraft((current) => ({ ...current, [key]: "" }));
     };
 
+    let naverUsed = 0;
+    NAVER_ACCOUNT_SLOTS.forEach((slot, index) => {
+        if (profile[slot.owner] || profile[slot.blog] || presence[slot.id] || presence[slot.password] || secretDraft[slot.id] || secretDraft[slot.password]) naverUsed = index + 1;
+    });
+    const naverVisible = Math.min(NAVER_ACCOUNT_SLOTS.length, Math.max(naverUsed, naverAdded, 1));
+    const clearNaverSlot = (index: number) => {
+        const slot = NAVER_ACCOUNT_SLOTS[index];
+        setProfile((current) => ({ ...current, [slot.owner]: "", [slot.blog]: "" }));
+        setSecretDraft((current) => ({ ...current, [slot.id]: "", [slot.password]: "" }));
+        setClearSecrets((current) => [...new Set([...current, ...[slot.id, slot.password].filter((key) => presence[key])])]);
+    };
+
+    const renderField = (key: MarketingFieldKey, label: string, type: string, placeholder?: string) => (
+        <div key={key}>
+            <label htmlFor={`marketing-${key}`} className="block text-[12.5px] font-medium mb-2">{label}</label>
+            <input id={`marketing-${key}`} className="pt-input w-full" type={type} maxLength={2000} placeholder={placeholder} value={profile[key] ?? ""} onChange={(event) => setProfileValue(key, event.target.value)} />
+        </div>
+    );
+    const renderSecret = (key: MarketingSecretKey, label: string) => {
+        const hasStored = presence[key];
+        const stored = hasStored && !clearSecrets.includes(key);
+        return <div key={key}>
+            <div className="flex items-center justify-between gap-2 mb-2"><label htmlFor={`secret-${key}`} className="text-[12.5px] font-medium">{label}</label>{hasStored && <button type="button" className="text-[10.5px] underline underline-offset-2" onClick={() => toggleClear(key)}>{clearSecrets.includes(key) ? "삭제 취소" : "저장값 삭제"}</button>}</div>
+            {role === "admin" && revealed[key] ? <div className="pt-input flex items-center justify-between gap-2"><code className="min-w-0 break-all text-[12px]">{revealed[key]}</code><button type="button" className="shrink-0 text-[11px] underline" onClick={() => { void navigator.clipboard.writeText(revealed[key]!); notify("계정 정보를 복사했습니다."); }}>복사</button></div> : <input id={`secret-${key}`} className="pt-input w-full" type="password" autoComplete="new-password" maxLength={1000} placeholder={stored ? "저장됨 · 새 값 입력 시 교체" : "입력"} value={secretDraft[key] ?? ""} onChange={(event) => setSecretValue(key, event.target.value)} />}
+            {clearSecrets.includes(key) && <p className="text-[11px] mt-1" style={{ color: "var(--mt-stamp)" }}>저장하면 이 값이 삭제됩니다.</p>}
+        </div>;
+    };
+
     if (loading) return <p role="status" className="mt-body py-16 text-center text-[13px]">마케팅 정보를 불러오는 중…</p>;
 
     return (
@@ -149,28 +179,35 @@ export default function MarketingProfileTab({ role, firmQuery, activeFirmId, not
                             <span className={`pt-pill shrink-0 ${sectionHasValue(section.id, profile, presence) ? "pt-pill-blue" : ""}`}>{sectionHasValue(section.id, profile, presence) ? "입력됨" : "펼치기"}</span>
                         </summary>
                         <div className="px-5 pb-6 sm:px-6 border-t" style={{ borderColor: "var(--mt-line)" }}>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-5">
-                                {section.fields.map(([key, label, type]) => (
-                                    <div key={key}>
-                                        <label htmlFor={`marketing-${key}`} className="block text-[12.5px] font-medium mb-2">{label}</label>
-                                        <input id={`marketing-${key}`} className="pt-input w-full" type={type} maxLength={2000} value={profile[key] ?? ""} onChange={(event) => setProfileValue(key, event.target.value)} />
+                            {section.id === "naver" ? <>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-5">{renderField("naver_place_url", "네이버 플레이스 주소", "url")}</div>
+                                <p className="mt-body text-[11.5px] mt-6">{credentialSection.note}</p>
+                                {NAVER_ACCOUNT_SLOTS.slice(0, naverVisible).map((slot, index) => (
+                                    <div key={slot.id} className="mt-5 pt-5 border-t" style={{ borderColor: "var(--mt-line)" }}>
+                                        <div className="flex items-center justify-between gap-2 mb-4">
+                                            <span className="text-[13px] font-semibold">네이버 계정 {index + 1}</span>
+                                            {index > 0 && <button type="button" className="text-[10.5px] underline underline-offset-2" onClick={() => clearNaverSlot(index)}>이 계정 비우기</button>}
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            {renderField(slot.owner, "누구 블로그인지", "text", "예: 사무소 대표 블로그, 홍길동 변호사")}
+                                            {renderField(slot.blog, "네이버 블로그 주소", "url")}
+                                            {renderSecret(slot.id, "네이버 아이디")}
+                                            {renderSecret(slot.password, "네이버 비밀번호")}
+                                        </div>
                                     </div>
                                 ))}
-                            </div>
-                            <div className="mt-6 pt-5 border-t" style={{ borderColor: "var(--mt-line)" }}>
-                                <p className="mt-body text-[11.5px] mb-4">{credentialSection.note}</p>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    {credentialSection.fields.map(([key, label]) => {
-                                        const hasStored = presence[key];
-                                        const stored = hasStored && !clearSecrets.includes(key);
-                                        return <div key={key}>
-                                            <div className="flex items-center justify-between gap-2 mb-2"><label htmlFor={`secret-${key}`} className="text-[12.5px] font-medium">{label}</label>{hasStored && <button type="button" className="text-[10.5px] underline underline-offset-2" onClick={() => toggleClear(key)}>{clearSecrets.includes(key) ? "삭제 취소" : "저장값 삭제"}</button>}</div>
-                                            {role === "admin" && revealed[key] ? <div className="pt-input flex items-center justify-between gap-2"><code className="min-w-0 break-all text-[12px]">{revealed[key]}</code><button type="button" className="shrink-0 text-[11px] underline" onClick={() => { void navigator.clipboard.writeText(revealed[key]!); notify("계정 정보를 복사했습니다."); }}>복사</button></div> : <input id={`secret-${key}`} className="pt-input w-full" type="password" autoComplete="new-password" maxLength={1000} placeholder={stored ? "저장됨 · 새 값 입력 시 교체" : "입력"} value={secretDraft[key] ?? ""} onChange={(event) => setSecretValue(key, event.target.value)} />}
-                                            {clearSecrets.includes(key) && <p className="text-[11px] mt-1" style={{ color: "var(--mt-stamp)" }}>저장하면 이 값이 삭제됩니다.</p>}
-                                        </div>;
-                                    })}
+                                {naverVisible < NAVER_ACCOUNT_SLOTS.length && <button type="button" className="pt-btn pt-btn-ghost mt-5" onClick={() => setNaverAdded(naverVisible + 1)}>+ 네이버 계정 추가</button>}
+                            </> : <>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-5">
+                                    {section.fields.map(([key, label, type]) => renderField(key, label, type))}
                                 </div>
-                            </div>
+                                <div className="mt-6 pt-5 border-t" style={{ borderColor: "var(--mt-line)" }}>
+                                    <p className="mt-body text-[11.5px] mb-4">{credentialSection.note}</p>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        {credentialSection.fields.map(([key, label]) => renderSecret(key, label))}
+                                    </div>
+                                </div>
+                            </>}
                         </div>
                     </details>;
                 })}

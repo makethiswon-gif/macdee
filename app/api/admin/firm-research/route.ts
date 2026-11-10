@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { verifyAdminToken } from "@/lib/admin-auth";
 import { isStrategyFirmId, isStrategySameOrigin } from "@/lib/portal-strategy";
 import { createServiceClient } from "@/lib/supabase/server";
+import { NAVER_ACCOUNT_SLOTS } from "@/lib/portal-marketing-profile";
 import {
     extractHomepageColor, FirmResearchError,
     researchFirmWithAI, researchSetupMissing, type FirmResearchReport,
@@ -49,7 +50,7 @@ export async function POST(request: Request) {
         const { data: marketing } = await db.from("portal_marketing_profiles").select("profile").eq("firm_id", firmId).abortSignal(AbortSignal.timeout(8_000)).maybeSingle();
         const profile = (marketing?.profile ?? {}) as Record<string, string>;
         if (profile.website_url) hints.push(`공식 홈페이지: ${profile.website_url}`);
-        if (profile.naver_blog_url) hints.push(`네이버 블로그: ${profile.naver_blog_url}`);
+        for (const slot of NAVER_ACCOUNT_SLOTS) if (profile[slot.blog]) hints.push(`네이버 블로그${profile[slot.owner] ? `(${profile[slot.owner]})` : ""}: ${profile[slot.blog]}`);
         if (profile.naver_place_url) hints.push(`네이버 플레이스: ${profile.naver_place_url}`);
         if (profile.instagram_url) hints.push(`인스타그램: ${profile.instagram_url}`);
 

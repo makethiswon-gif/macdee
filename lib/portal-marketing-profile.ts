@@ -7,8 +7,15 @@ export const MARKETING_PROFILE_SECTIONS = [
         ],
     },
     {
-        id: "naver", title: "네이버", description: "블로그와 플레이스 운영 계정",
-        fields: [["naver_blog_url", "네이버 블로그 주소", "url"], ["naver_place_url", "네이버 플레이스 주소", "url"]],
+        id: "naver", title: "네이버", description: "블로그와 플레이스 운영 계정 · 블로그가 여러 개면 계정을 추가해 주세요",
+        fields: [
+            ["naver_place_url", "네이버 플레이스 주소", "url"],
+            ["naver_owner", "누구 블로그인지", "text"], ["naver_blog_url", "네이버 블로그 주소", "url"],
+            ["naver2_owner", "누구 블로그인지 (2)", "text"], ["naver2_blog_url", "네이버 블로그 주소 (2)", "url"],
+            ["naver3_owner", "누구 블로그인지 (3)", "text"], ["naver3_blog_url", "네이버 블로그 주소 (3)", "url"],
+            ["naver4_owner", "누구 블로그인지 (4)", "text"], ["naver4_blog_url", "네이버 블로그 주소 (4)", "url"],
+            ["naver5_owner", "누구 블로그인지 (5)", "text"], ["naver5_blog_url", "네이버 블로그 주소 (5)", "url"],
+        ],
     },
     {
         id: "instagram", title: "Instagram", description: "인스타그램 운영 계정",
@@ -22,7 +29,16 @@ export const MARKETING_PROFILE_SECTIONS = [
 
 export const MARKETING_CREDENTIAL_SECTIONS = [
     { id: "website", note: "가능하면 작업용 계정을 별도로 만들어 주세요.", fields: [["cms_admin_id", "홈페이지 관리자 아이디"], ["cms_admin_password", "홈페이지 관리자 비밀번호"], ["ftp_username", "FTP·SFTP 아이디"], ["ftp_password", "FTP·SFTP 비밀번호"]] },
-    { id: "naver", note: "블로그·플레이스에 사용하는 네이버 계정을 입력해 주세요.", fields: [["naver_id", "네이버 아이디"], ["naver_password", "네이버 비밀번호"]] },
+    {
+        id: "naver", note: "블로그·플레이스에 사용하는 네이버 계정을 입력해 주세요. 블로그마다 계정이 다르면 '네이버 계정 추가'로 따로 넣어 주세요.",
+        fields: [
+            ["naver_id", "네이버 아이디"], ["naver_password", "네이버 비밀번호"],
+            ["naver2_id", "네이버 아이디 (2)"], ["naver2_password", "네이버 비밀번호 (2)"],
+            ["naver3_id", "네이버 아이디 (3)"], ["naver3_password", "네이버 비밀번호 (3)"],
+            ["naver4_id", "네이버 아이디 (4)"], ["naver4_password", "네이버 비밀번호 (4)"],
+            ["naver5_id", "네이버 아이디 (5)"], ["naver5_password", "네이버 비밀번호 (5)"],
+        ],
+    },
     { id: "instagram", note: "Meta 관리자 초대가 가능하면 계정 공유보다 초대를 권장합니다.", fields: [["instagram_id", "Instagram 아이디"], ["instagram_password", "Instagram 비밀번호"]] },
     { id: "threads", note: "Instagram과 같은 계정이면 입력하지 않아도 됩니다.", fields: [["threads_id", "Threads 아이디"], ["threads_password", "Threads 비밀번호"]] },
 ] as const;
@@ -32,6 +48,15 @@ export type MarketingSecretKey = (typeof MARKETING_CREDENTIAL_SECTIONS)[number][
 export type MarketingProfile = Partial<Record<MarketingFieldKey, string>>;
 export type MarketingSecrets = Partial<Record<MarketingSecretKey, string>>;
 export type MarketingSecretPresence = Record<MarketingSecretKey, boolean>;
+
+// 네이버 계정 칸(2026-11-10 대표 지시: 블로그가 여러 개인 고객 — 준일 등). 1번 칸은 예전 키 그대로라 이미 저장된 계정이 그대로 1번에 보인다.
+export const NAVER_ACCOUNT_SLOTS = [
+    { owner: "naver_owner", blog: "naver_blog_url", id: "naver_id", password: "naver_password" },
+    { owner: "naver2_owner", blog: "naver2_blog_url", id: "naver2_id", password: "naver2_password" },
+    { owner: "naver3_owner", blog: "naver3_blog_url", id: "naver3_id", password: "naver3_password" },
+    { owner: "naver4_owner", blog: "naver4_blog_url", id: "naver4_id", password: "naver4_password" },
+    { owner: "naver5_owner", blog: "naver5_blog_url", id: "naver5_id", password: "naver5_password" },
+] as const satisfies readonly { owner: MarketingFieldKey; blog: MarketingFieldKey; id: MarketingSecretKey; password: MarketingSecretKey }[];
 
 export const MARKETING_FIELD_KEYS = MARKETING_PROFILE_SECTIONS.flatMap((section) => section.fields.map((field) => field[0])) as MarketingFieldKey[];
 export const MARKETING_SECRET_KEYS = MARKETING_CREDENTIAL_SECTIONS.flatMap((section) => section.fields.map((field) => field[0])) as MarketingSecretKey[];
