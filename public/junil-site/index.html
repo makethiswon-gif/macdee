@@ -5,6 +5,10 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>법률사무소 준일 | 송파 문정동 형사·민사·재개발·재건축·행정 변호사</title>
+<meta property="og:type" content="website">
+<meta property="og:title" content="법률사무소 준일">
+<meta property="og:description" content="상담만 하고 사건을 넘기지 않습니다. 상담 변호사가 끝까지 수행합니다.">
+<meta property="og:image" content="https://www.makethis1.com/junil-site/img/og.jpg">
 <link rel="icon" href="img/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Serif+KR:wght@400;600;700;900&display=swap" rel="stylesheet">
@@ -93,22 +97,34 @@
 .loc dt{font-size:12px;letter-spacing:.08em;color:#9fcbd6;font-weight:700;padding-top:4px}
 @media(max-width:900px){.tri,.ans,.loc .wrap{grid-template-columns:1fr}.opts{border-right:0;border-bottom:1px solid var(--fg)}.ans{padding:28px 22px}.lw{grid-template-columns:1fr 1fr;gap:26px 16px}.cs{grid-template-columns:1fr}.same{display:none}}
 
-/* 첫 화면: 실시간 큰 시계 + 하루 24시간 띠 */
-.hc .shade{background:linear-gradient(180deg,rgba(6,3,3,.66),rgba(12,38,46,.42) 45%,rgba(6,3,3,.9))}
+/* 첫 화면: 하루가 지나가다 지금 시각에 멈춤 → 스크롤하면 불 켜진 창 안으로 */
+.hero.hc{height:210vh;min-height:0;overflow:visible;background:#fff}
+.hc .stage{position:sticky;top:0;height:100vh;height:100svh;min-height:620px;overflow:hidden;background:#060303}
+.hc .sky,.hc .skyin{position:absolute;inset:0;will-change:transform}
+.hc .ph{position:absolute;inset:-3%;background:center/cover no-repeat}
+.hc .p-dawn,.hc .p-day,.hc .p-dusk{opacity:0}
+.hc .glow{position:absolute;left:var(--lx,52%);top:var(--ly,25%);width:46vw;height:20vw;transform:translate(-50%,-50%);background:radial-gradient(ellipse at center,rgba(255,196,120,.5),rgba(255,196,120,0) 68%);mix-blend-mode:screen;animation:breathe 5s ease-in-out infinite;pointer-events:none}
+@keyframes breathe{0%,100%{opacity:.35}50%{opacity:.8}}
+.hc .dim{position:absolute;inset:0;background:#061a20;opacity:0;pointer-events:none}
+.hc .shade{background:linear-gradient(180deg,rgba(6,3,3,.62),rgba(12,38,46,.34) 45%,rgba(6,3,3,.9))}
+.hc .veil{position:absolute;inset:0;background:#060303;z-index:5;pointer-events:none}
+.hc .flash{position:absolute;inset:0;background:#fff;opacity:0;z-index:6;pointer-events:none}
 .hc .eb{color:var(--teal-l)}
-.hc-in{position:absolute;left:7vw;right:calc(92px + 5vw);top:16vh;z-index:2}
-.clock{font-family:var(--disp);font-weight:400;font-size:clamp(100px,min(21vw,37vh),380px);line-height:1;display:flex;align-items:flex-start;margin:1.2vh 0 0 -.03em;font-variant-numeric:tabular-nums lining-nums}
+.hc-in{position:absolute;left:7vw;right:calc(92px + 5vw);top:15vh;z-index:2}
+.clock{font-family:var(--disp);font-weight:400;font-size:clamp(100px,min(22vw,38vh),400px);line-height:1;display:flex;align-items:flex-start;margin:1vh 0 0 -.03em;font-variant-numeric:tabular-nums lining-nums;text-shadow:0 0 90px rgba(255,205,140,.28),0 6px 40px rgba(0,0,0,.35)}
 .dg{display:inline-block;position:relative;overflow:hidden;height:1.02em;width:.6em}
 .dg b{position:absolute;left:0;right:0;top:0;text-align:center;font-weight:inherit;line-height:1.02}
 .clock .col{font-style:normal;margin:0 .01em;transform:translateY(-.07em);animation:bl 2s steps(1) infinite}
-.clock sub{font-family:var(--body);font-size:.13em;font-weight:500;letter-spacing:.12em;color:var(--teal-l);align-self:flex-end;margin:0 0 1.5em 1em;font-variant-numeric:tabular-nums}
-.hh2{font-family:var(--disp);font-weight:400;font-size:clamp(20px,min(2.5vw,4.6vh),40px);line-height:1.5;margin-top:1.4vh}
+.clock sub{font-family:var(--body);font-size:.13em;font-weight:500;letter-spacing:.12em;color:var(--teal-l);align-self:flex-end;margin:0 0 1.5em 1em;font-variant-numeric:tabular-nums;text-shadow:none}
+.secbar{height:2px;background:rgba(255,255,255,.18);margin:.6vh 0 0;width:min(58vw,1040px);position:relative}
+.secbar i{position:absolute;inset:0;background:var(--teal-l);transform-origin:left;transform:scaleX(0);transition:transform 1s linear}
+.hh2{font-family:var(--disp);font-weight:400;font-size:clamp(20px,min(2.5vw,4.6vh),40px);line-height:1.5;margin-top:2.2vh;text-shadow:0 2px 24px rgba(0,0,0,.45)}
 .hh2 em{font-style:normal;font-weight:700;color:var(--teal-l)}
 .day{position:absolute;left:7vw;right:calc(92px + 5vw);bottom:46px;z-index:2;font-size:13px}
-.day .row{display:grid;grid-template-columns:140px 1fr 84px;gap:22px;align-items:center;padding:8px 0;color:rgba(255,255,255,.58)}
+.day .row{display:grid;grid-template-columns:140px 1fr 84px;gap:22px;align-items:center;padding:8px 0;color:rgba(255,255,255,.62)}
 .day .row.us{color:#fff;font-weight:600}
 .day .row span:last-child{text-align:right;font-variant-numeric:tabular-nums}
-.tk{position:relative;height:4px;background:rgba(255,255,255,.14)}
+.tk{position:relative;height:4px;background:rgba(255,255,255,.16)}
 .row.us .tk{height:10px}
 .seg{position:absolute;top:0;bottom:0;background:rgba(255,255,255,.5);transform-origin:left}
 .seg.full{left:0;width:100%;background:var(--teal-l)}
@@ -116,8 +132,9 @@
 .nowm::after{content:"";position:absolute;inset:-5px;border-radius:50%;animation:pl 1.8s infinite}
 .nowm::before{content:attr(data-t);position:absolute;left:50%;bottom:22px;transform:translateX(-50%);font-size:12px;font-weight:700;background:#fff;color:var(--black);padding:3px 9px;white-space:nowrap;font-variant-numeric:tabular-nums}
 @keyframes pl{0%{box-shadow:0 0 0 0 rgba(159,203,214,.85)}100%{box-shadow:0 0 0 18px rgba(159,203,214,0)}}
-.hrs{display:flex;justify-content:space-between;margin:4px 106px 0 162px;font-size:11px;color:rgba(255,255,255,.5);letter-spacing:.08em}.hrs i{font-style:normal}
-@media(max-width:900px){.hc-in{left:6vw;right:6vw;top:15vh}.clock{font-size:29vw}.day{left:6vw;right:6vw;bottom:84px}.day .row{grid-template-columns:96px 1fr;gap:12px;font-size:11px}.day .row span:last-child{display:none}.hrs{margin:4px 0 0 108px}}
+.hrs{display:flex;justify-content:space-between;margin:4px 106px 0 162px;font-size:11px;color:rgba(255,255,255,.55);letter-spacing:.08em}.hrs i{font-style:normal}
+.hc .cue{left:50%;right:auto;bottom:150px;transform:translateX(-50%)}
+@media(max-width:900px){.hero.hc{height:180vh}.hc-in{left:6vw;right:6vw;top:14vh}.clock{font-size:29vw}.secbar{width:100%}.day{left:6vw;right:6vw;bottom:84px}.day .row{grid-template-columns:96px 1fr;gap:12px;font-size:11px}.day .row span:last-child{display:none}.hrs{margin:4px 0 0 108px}.hc .glow{width:120vw;height:50vw}}
 </style>
 </head>
 <body>
@@ -139,10 +156,19 @@
 </aside>
 
 <section class="hero hc" id="top">
-  <div class="bg" style="background-image:url(img/c_hero.jpg)"></div><div class="shade"></div>
+ <div class="stage">
+  <div class="sky"><div class="skyin">
+    <div class="ph p-night" style="background-image:url(img/c_hero.jpg)"></div>
+    <div class="ph p-dawn" style="background-image:url(img/c_dawn.jpg)"></div>
+    <div class="ph p-day" style="background-image:url(img/c_day.jpg)"></div>
+    <div class="ph p-dusk" style="background-image:url(img/c_dusk.jpg)"></div>
+    <div class="glow"></div>
+  </div></div>
+  <div class="dim"></div><div class="shade"></div>
   <div class="hc-in">
     <p class="eb hx">SEOUL · 업무시간 — <span id="msg">24시간 영업</span></p>
     <div class="clock"><span class="dg" id="d0"></span><span class="dg" id="d1"></span><i class="col">:</i><span class="dg" id="d2"></span><span class="dg" id="d3"></span><sub id="ss">00</sub></div>
+    <div class="secbar"><i id="secf"></i></div>
     <h1 class="hh2"><span class="ln"><span class="li">상담만 하고 사건을 넘기지 않습니다.</span></span><span class="ln"><span class="li">상담 변호사가 <em>끝까지</em> 수행합니다.</span></span></h1>
   </div>
   <div class="day">
@@ -150,6 +176,8 @@
     <div class="row us"><span>법률사무소 준일</span><div class="tk"><i class="seg full"></i><b class="nowm" id="nowm"></b></div><span>00 – 24시</span></div>
     <div class="hrs"><i>0</i><i>6</i><i>12</i><i>18</i><i>24</i></div>
   </div>
+  <div class="veil"></div><div class="flash"></div>
+ </div>
 </section>
 
 <section class="pad" id="situation">
@@ -277,28 +305,56 @@
 <script src="site.js"></script>
 <script>
 K.heroBase();
-const pad=n=>String(n).padStart(2,'0');
-/* 실시간 시계: 숫자가 바뀔 때 아래에서 밀려 올라옴 */
+const pad=n=>String(n).padStart(2,'0'),q=x=>document.querySelector(x);
 const DG=['d0','d1','d2','d3'].map(i=>document.getElementById(i));
-function setD(el,v,delay){if(el.dataset.v===v)return;el.dataset.v=v;const old=el.firstElementChild,n=document.createElement('b');n.textContent=v;el.appendChild(n);
-  if(K.calm){old&&old.remove();return}
-  gsap.fromTo(n,{yPercent:105},{yPercent:0,duration:1,ease:'power4.out',delay});
-  if(old)gsap.to(old,{yPercent:-105,duration:1,ease:'power4.out',delay,onComplete:()=>old.remove()})}
-let first=true;
-(function tick(){const d=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Seoul'})),h=d.getHours(),m=d.getMinutes(),s=pad(h)+pad(m);
-  DG.forEach((el,i)=>setD(el,s[i],first?.5+i*.13:0));first=false;
-  ss.textContent=pad(d.getSeconds());
-  nowm.style.left=((h*60+m)/1440*100)+'%';nowm.dataset.t='지금 '+pad(h)+':'+pad(m);
-  setTimeout(tick,1000)})();
-if(!K.calm){gsap.timeline()
-  .fromTo('.hc .hx,.clock sub,.clock .col',{opacity:0},{opacity:1,duration:1.2,stagger:.1},.5)
-  .from('.hc .hh2 .li',{yPercent:112,duration:1.2,ease:'power4.out',stagger:.14},1.3)
-  .fromTo('.day .row,.hrs',{opacity:0,y:16},{opacity:1,y:0,duration:.9,stagger:.12,ease:'power3.out'},1.6)
-  .fromTo('.day .seg:not(.full)',{scaleX:0},{scaleX:1,duration:.7,ease:'power2.out'},1.9)
-  .fromTo('.day .seg.full',{scaleX:0},{scaleX:1,duration:1.8,ease:'power3.inOut'},2.3)
-  .fromTo('#nowm',{scale:0,opacity:0},{scale:1,opacity:1,duration:.7,ease:'back.out(2.4)'},3.6);
-  gsap.to('.hc-in',{yPercent:-18,opacity:0,ease:'none',scrollTrigger:{trigger:'.hc',start:'8% top',end:'75% top',scrub:true}});
-  gsap.to('.day',{opacity:0,ease:'none',scrollTrigger:{trigger:'.hc',start:'5% top',end:'40% top',scrub:true}})}
+const kst=()=>new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Seoul'}));
+/* 시각에 맞는 하늘: 밤 사진 위에 새벽·낮·저녁 사진을 겹쳐 섞음 */
+const sm=(a,b,x)=>{const t=Math.min(1,Math.max(0,(x-a)/(b-a)));return t*t*(3-2*t)};
+const PH={dawn:q('.p-dawn'),day:q('.p-day'),dusk:q('.p-dusk')},dim=q('.hc .dim');
+function sky(h){const dawn=sm(4.5,6,h)*(1-sm(7.5,9,h)),day=sm(7.5,9,h)*(1-sm(16.5,18,h)),dusk=sm(16.5,18,h)*(1-sm(19.5,21,h));
+  PH.dawn.style.opacity=dawn;PH.day.style.opacity=day;PH.dusk.style.opacity=dusk;dim.style.opacity=.52*day+.22*dawn+.16*dusk}
+/* 숫자: 평소에는 아래에서 밀려 올라오고, 등장 때는 바로 바뀜 */
+function setD(el,v){if(el.dataset.v===v)return;el.dataset.v=v;const old=el.firstElementChild,n=document.createElement('b');n.textContent=v;el.appendChild(n);
+  if(K.calm||!old){old&&old.remove();return}
+  gsap.fromTo(n,{yPercent:105},{yPercent:0,duration:1,ease:'power4.out'});
+  gsap.to(old,{yPercent:-105,duration:1,ease:'power4.out',onComplete:()=>old.remove()})}
+function setNow(el,v){if(el.dataset.v===v)return;el.dataset.v=v;el.innerHTML='<b>'+v+'</b>'}
+function paint(min,roll){const h=Math.floor(min/60),m=Math.floor(min%60),t=pad(h)+pad(m);
+  DG.forEach((el,i)=>roll?setD(el,t[i]):setNow(el,t[i]));
+  nowm.style.left=(min/1440*100)+'%';nowm.dataset.t=(roll?'지금 ':'')+pad(h)+':'+pad(m);sky(min/60)}
+function live(){const d=kst();paint(d.getHours()*60+d.getMinutes(),true);ss.textContent=pad(d.getSeconds());secf.style.transform='scaleX('+(d.getSeconds()/59)+')';setTimeout(live,1000)}
+/* 불 켜진 층의 화면 위치(사진이 화면을 덮는 방식에 맞춰 계산) */
+function litPoint(){const st=q('.hc .stage'),W=st.clientWidth,H=st.clientHeight,r=Math.max(W/2000,H/1131)*1.06,x=(W-2000*r)/2+2000*r*.52,y=(H-1131*r)/2+1131*r*.25;
+  const lx=Math.min(92,Math.max(8,x/W*100)),ly=y/H*100;st.style.setProperty('--lx',lx+'%');st.style.setProperty('--ly',ly+'%');q('.hc .sky').style.transformOrigin=lx+'% '+ly+'%'}
+litPoint();addEventListener('resize',litPoint);
+if(K.calm){q('.hc .veil').style.display='none';live()}else{
+  const d0=kst(),now=d0.getHours()*60+d0.getMinutes(),o={v:now-1440},wrap=v=>((Math.round(v)%1440)+1440)%1440;
+  paint(wrap(o.v),false);
+  gsap.set('.hc .hx,.clock sub,.secbar,.day .row,.hrs,.clock',{opacity:0});
+  const load=['img/c_hero.jpg','img/c_dawn.jpg','img/c_day.jpg','img/c_dusk.jpg'].map(u=>new Promise(r=>{const i=new Image;i.onload=i.onerror=r;i.src=u}));
+  Promise.race([Promise.all(load),new Promise(r=>setTimeout(r,2500))]).then(()=>{
+    /* 하루(24시간)가 빠르게 지나가다 지금 시각에 멈춤 */
+    gsap.timeline()
+      .to('.hc .veil',{opacity:0,duration:1.1,ease:'power2.out'},0)
+      .fromTo('.hc .skyin',{scale:1.14},{scale:1,duration:5,ease:'power2.out'},0)
+      .fromTo('.clock',{opacity:0,y:34},{opacity:1,y:0,duration:1,ease:'power3.out'},.15)
+      .fromTo('.day .row,.hrs',{opacity:0,y:16},{opacity:1,y:0,duration:.8,stagger:.1,ease:'power3.out'},.3)
+      .fromTo('.day .seg:not(.full)',{scaleX:0},{scaleX:1,duration:.7,ease:'power2.out'},.5)
+      .to(o,{v:now,duration:3.6,ease:'power2.inOut',onUpdate(){paint(wrap(o.v),false)}},.5)
+      .fromTo('.day .seg.full',{scaleX:0},{scaleX:1,duration:3.6,ease:'power2.inOut'},.5)
+      .add(()=>live(),4.15)
+      .fromTo('#nowm',{scale:1},{scale:1.5,duration:.25,yoyo:true,repeat:1,ease:'power2.out'},4.1)
+      .from('.hc .hh2 .li',{yPercent:112,duration:1.2,ease:'power4.out',stagger:.14},3.7)
+      .fromTo('.hc .hx,.clock sub,.secbar',{opacity:0},{opacity:1,duration:1,stagger:.1},3.9);
+  });
+  /* 스크롤: 글자가 물러나고 불 켜진 창으로 다가가 환해진 뒤 다음 구역으로 */
+  gsap.timeline({scrollTrigger:{trigger:'.hc',start:'top top',end:'bottom bottom',scrub:.5}})
+    .to('.hc-in',{yPercent:-10,opacity:0,ease:'none',duration:.3},0)
+    .to('.day',{opacity:0,ease:'none',duration:.22},0)
+    .to('.hc .shade,.hc .dim',{opacity:0,ease:'none',duration:.5},.1)
+    .to('.hc .sky',{scale:6.5,ease:'power2.in',duration:1},0)
+    .to('.hc .flash',{opacity:1,ease:'power2.in',duration:.42},.58);
+}
 
 const T=[
 {q:'형사',h:'수사단계부터 재판까지 체계적인 형사변호를 제공합니다.',s:['압수수색·체포·구속과 영장실질심사 대응','경찰·검찰 수사 대응(피의자·참고인 조사 등)과 형사공판 변론','고소·합의 대리, 사기·횡령·배임 등 경제범죄 대응'],fq:'경찰 조사를 받을 때 변호인이 함께 참여할 수 있나요?',fa:'피의자 또는 그 변호인·법정대리인·배우자·직계친족·형제자매가 신청하면 사법경찰관은 정당한 사유가 없는 한 변호인을 피의자에 대한 신문에 참여하게 해야 합니다.',fr:'형사소송법 제243조의2 제1항·제3항',w:['moon'],n:'문호준 대표변호사'},
