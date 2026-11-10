@@ -141,6 +141,14 @@
 .hrs{display:flex;justify-content:space-between;margin:4px 106px 0 162px;font-size:11px;color:rgba(255,255,255,.55);letter-spacing:.08em}.hrs i{font-style:normal}
 .hc .cue{left:50%;right:auto;bottom:150px;transform:translateX(-50%)}
 @media(max-width:900px){.hero.hc{height:180vh}.hc-in{left:6vw;right:6vw;top:14vh}.clock{font-size:29vw}.secbar{width:100%}.day{left:6vw;right:6vw;bottom:84px}.day .row{grid-template-columns:96px 1fr;gap:12px;font-size:11px}.day .row span:last-child{display:none}.hrs{margin:4px 0 0 108px}.hc .glow{width:120vw;height:50vw}}
+
+/* 등장: 검은 화면에 뚫린 '24' 안으로 건물이 보이고, 그 글자를 통과해 들어감 */
+.gate{position:fixed;inset:0;z-index:90;background:#000;color:#fff;mix-blend-mode:multiply;display:grid;place-items:center;pointer-events:none;overflow:hidden}
+.gate b{display:block;font:900 62vw/1 Pretendard,sans-serif;letter-spacing:-.045em;will-change:transform;white-space:nowrap}
+.gate b span{display:inline-block}
+.gate small{position:absolute;left:0;right:0;bottom:9vh;text-align:center;font-size:clamp(12px,1.1vw,16px);letter-spacing:.5em;font-weight:600}
+body.gating .hc-in,body.gating .day,body.gating .hd,body.gating .quick{visibility:hidden}
+@media(max-width:900px){.gate b{font-size:68vw}}
 </style>
 </head>
 <body>
@@ -389,6 +397,27 @@ document.getElementById('chips').onclick=e=>{const f=e.target.dataset.f;if(!f)re
   const all=[...document.querySelectorAll('#cs .cz')];all.forEach(c=>c.style.display=(f=='all'||c.dataset.c==f)?'':'none');
   gsap.fromTo(all.filter(c=>c.style.display!='none'),{opacity:0,y:30},{opacity:1,y:0,duration:.6,stagger:.06,ease:'power3.out'});ScrollTrigger.refresh()};
 gsap.from('#cs .cz',{opacity:0,y:50,duration:.9,stagger:.08,ease:'power3.out',scrollTrigger:{trigger:'#cs',start:'top 82%'}});
+</script>
+<div class="gate" aria-hidden="true"><b><span>2</span><span>4</span></b><small>24시간 All-in · 법률사무소 준일</small></div>
+<script>
+/* 등장: 검은 화면의 24 속으로 들어가 첫 화면에 도착 */
+(()=>{const g=document.querySelector('.gate');if(!g)return;if(K.calm){g.remove();return}
+  document.body.classList.add('gating');
+  const b=g.querySelector('b'),four=b.lastElementChild;
+  const start=()=>{
+    /* '4'의 세로 기둥 안쪽을 중심으로 키워야 글자 속으로 들어가는 것처럼 보임 */
+    b.style.transformOrigin=(four.offsetLeft+four.offsetWidth*.67)+'px 46%';
+    gsap.timeline()
+      .fromTo(b,{scale:1.16,opacity:0},{scale:1,opacity:1,duration:.9,ease:'power3.out'},0)
+      .fromTo('.gate small',{opacity:0},{opacity:1,duration:.6},.5)
+      .add(()=>document.body.classList.remove('gating'),1.45)
+      .to('.gate small',{opacity:0,duration:.2},1.4)
+      .to(b,{scale:80,duration:1.2,ease:'power3.in'},1.45)
+      .to(g,{opacity:0,duration:.3,ease:'none'},2.4)
+      .add(()=>g.remove());
+  };
+  (document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(start);
+})();
 </script>
 </body>
 </html>
