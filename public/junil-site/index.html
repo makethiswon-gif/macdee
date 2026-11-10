@@ -323,7 +323,7 @@ const kst=()=>new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Seoul'}
 /* 시각에 맞는 하늘: 밤 사진 위에 새벽·낮·저녁 사진을 겹쳐 섞음 */
 const sm=(a,b,x)=>{const t=Math.min(1,Math.max(0,(x-a)/(b-a)));return t*t*(3-2*t)};
 const PH={dawn:q('.p-dawn'),day:q('.p-day'),dusk:q('.p-dusk')},dim=q('.hc .dim');
-function sky(h){const dawn=sm(4.5,6,h)*(1-sm(7.5,9,h)),day=sm(7.5,9,h)*(1-sm(16.5,18,h)),dusk=sm(16.5,18,h)*(1-sm(19.5,21,h));
+function sky(h,w=0){const dawn=sm(4.5-w,6+w,h)*(1-sm(7.5-w,9+w,h)),day=sm(7.5-w,9+w,h)*(1-sm(16.5-w,18+w,h)),dusk=sm(16.5-w,18+w,h)*(1-sm(19.5-w,21+w,h));
   PH.dawn.style.opacity=dawn;PH.day.style.opacity=day;PH.dusk.style.opacity=dusk;dim.style.opacity=.52*day+.22*dawn+.16*dusk}
 /* 숫자: 평소에는 아래에서 밀려 올라오고, 등장 때는 바로 바뀜 */
 function setD(el,v){if(el.dataset.v===v)return;el.dataset.v=v;const old=el.firstElementChild,n=document.createElement('b');n.textContent=v;el.appendChild(n);
@@ -334,6 +334,9 @@ function setNow(el,v){if(el.dataset.v===v)return;el.dataset.v=v;el.innerHTML='<b
 function paint(min,roll){const h=Math.floor(min/60),m=Math.floor(min%60),t=pad(h)+pad(m);
   DG.forEach((el,i)=>roll?setD(el,t[i]):setNow(el,t[i]));
   nowm.style.left=(min/1440*100)+'%';nowm.dataset.t=(roll?'지금 ':'')+pad(h)+':'+pad(m);sky(min/60)}
+/* 등장: 분은 지금 그대로 두고 시만 한 시간씩 넘어감(숫자 네 개가 한꺼번에 깜빡이지 않게). 하늘은 넓게 겹쳐 부드럽게 */
+function sweep(v,mm,w){const c=((v%1440)+1440)%1440,hm=(((Math.floor((v-mm)/60+1e-6)*60+mm)%1440)+1440)%1440,t=pad(Math.floor(hm/60))+pad(hm%60);
+  DG.forEach((el,i)=>setNow(el,t[i]));nowm.style.left=(c/1440*100)+'%';nowm.dataset.t=t.slice(0,2)+':'+t.slice(2);sky(c/60,w)}
 function live(){const d=kst();paint(d.getHours()*60+d.getMinutes(),true);ss.textContent=pad(d.getSeconds());secf.style.transform='scaleX('+(d.getSeconds()/59)+')';setTimeout(live,1000)}
 /* 불 켜진 층의 화면 위치(사진이 화면을 덮는 방식에 맞춰 계산) */
 function litPoint(){const st=q('.hc .stage'),W=st.clientWidth,H=st.clientHeight,r=Math.max(W/2000,H/1131)*1.06,x=(W-2000*r)/2+2000*r*.52,y=(H-1131*r)/2+1131*r*.25;
@@ -341,23 +344,23 @@ function litPoint(){const st=q('.hc .stage'),W=st.clientWidth,H=st.clientHeight,
 litPoint();addEventListener('resize',litPoint);
 if(K.calm){q('.hc .veil').style.display='none';live()}else{
   const d0=kst(),now=d0.getHours()*60+d0.getMinutes(),o={v:now-1440},wrap=v=>((Math.round(v)%1440)+1440)%1440;
-  paint(wrap(o.v),false);
+  sweep(o.v,now%60,1);
   gsap.set('.hc .hx,.clock sub,.secbar,.day .row,.hrs,.clock',{opacity:0});
   const load=['img/c_hero.jpg','img/c_dawn.jpg','img/c_day.jpg','img/c_dusk.jpg'].map(u=>new Promise(r=>{const i=new Image;i.onload=i.onerror=r;i.src=u}));
   Promise.race([Promise.all(load),new Promise(r=>setTimeout(r,2500))]).then(()=>{
-    /* 하루(24시간)가 빠르게 지나가다 지금 시각에 멈춤 */
+    /* 하루(24시간)가 2초에 지나가다 지금 시각에 멈춤 */
     gsap.timeline()
       .to('.hc .veil',{opacity:0,duration:1.1,ease:'power2.out'},0)
-      .fromTo('.hc .skyin',{scale:1.14},{scale:1,duration:5,ease:'power2.out'},0)
-      .fromTo('.clock',{opacity:0,y:34},{opacity:1,y:0,duration:1,ease:'power3.out'},.15)
-      .fromTo('.day .row,.hrs',{opacity:0,y:16},{opacity:1,y:0,duration:.8,stagger:.1,ease:'power3.out'},.3)
-      .fromTo('.day .seg:not(.full)',{scaleX:0},{scaleX:1,duration:.7,ease:'power2.out'},.5)
-      .to(o,{v:now,duration:3.6,ease:'power2.inOut',onUpdate(){paint(wrap(o.v),false)}},.5)
-      .fromTo('.day .seg.full',{scaleX:0},{scaleX:1,duration:3.6,ease:'power2.inOut'},.5)
-      .add(()=>live(),4.15)
-      .fromTo('#nowm',{scale:1},{scale:1.5,duration:.25,yoyo:true,repeat:1,ease:'power2.out'},4.1)
-      .from('.hc .hh2 .li',{yPercent:112,duration:1.2,ease:'power4.out',stagger:.14},3.7)
-      .fromTo('.hc .hx,.clock sub,.secbar',{opacity:0},{opacity:1,duration:1,stagger:.1},3.9);
+      .fromTo('.hc .skyin',{scale:1.14},{scale:1,duration:4,ease:'power2.out'},0)
+      .fromTo('.clock',{opacity:0,y:34},{opacity:1,y:0,duration:.8,ease:'power3.out'},.1)
+      .fromTo('.day .row,.hrs',{opacity:0,y:16},{opacity:1,y:0,duration:.7,stagger:.08,ease:'power3.out'},.2)
+      .fromTo('.day .seg:not(.full)',{scaleX:0},{scaleX:1,duration:.6,ease:'power2.out'},.35)
+      .to(o,{v:now,duration:2,ease:'sine.inOut',onUpdate(){sweep(o.v,now%60,1-this.progress())}},.35)
+      .fromTo('.day .seg.full',{scaleX:0},{scaleX:1,duration:2,ease:'sine.inOut'},.35)
+      .add(()=>live(),2.4)
+      .fromTo('#nowm',{scale:1},{scale:1.5,duration:.25,yoyo:true,repeat:1,ease:'power2.out'},2.35)
+      .from('.hc .hh2 .li',{yPercent:112,duration:1.1,ease:'power4.out',stagger:.12},1.9)
+      .fromTo('.hc .hx,.clock sub,.secbar',{opacity:0},{opacity:1,duration:.9,stagger:.08},2.1);
   });
   /* 스크롤: 글자가 물러나고 불 켜진 창으로 다가가 환해진 뒤 다음 구역으로 */
   gsap.timeline({scrollTrigger:{trigger:'.hc',start:'top top',end:'bottom bottom',scrub:.5}})
