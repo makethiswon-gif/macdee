@@ -44,6 +44,8 @@ const nextConfig: NextConfig = {
     return [
       // 공개 마케팅 URL만 승격한다. /makethisone/subscribe와 팀 이미지 등
       // 실제 제품·정적 자산을 삼키는 /makethisone/* 와일드카드는 금지한다.
+      // 고객 홈페이지 시안(정적 파일 public/junil-sian) — 짧은 주소로 들어오게
+      { source: "/junil-sian", destination: "/junil-sian/index.html", statusCode: 302 },
       { source: "/makethisone", destination: "/", statusCode: 301 },
       { source: "/makethisone/index.html", destination: "/", statusCode: 301 },
       { source: "/insights", destination: "/magazine", statusCode: 301 },

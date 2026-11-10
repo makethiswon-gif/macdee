@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="ko" class="js">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>시안 B · 주문 — 법률사무소 준일</title>
+<link rel="icon" href="img/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Serif+KR:wght@400;600;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="kit.css">
+<style>
+:root{--bg:#f6f3ec;--fg:#060303;--mut:rgba(6,3,3,.62);--line:rgba(6,3,3,.16);--acc:#255e70;--card:#fffdf8}
+.hd{color:#060303}.hd.fix{background:rgba(246,243,236,.9);box-shadow:0 1px 0 rgba(6,3,3,.1)}
+.hd nav a:hover{color:var(--teal)}.hd nav a::after,.bar{background:var(--teal)}
+.hero{color:#060303}
+.hero .shade{background:linear-gradient(180deg,rgba(246,243,236,.5),rgba(246,243,236,0) 30%,rgba(246,243,236,.35))}
+
+/* 주문 문서 */
+.doc{background:var(--card);border:1px solid rgba(6,3,3,.5);box-shadow:0 30px 80px rgba(6,3,3,.14);max-width:1040px;margin:70px auto 0;padding:54px 68px 62px;position:relative}
+.doc::before{content:"";position:absolute;left:30px;top:0;bottom:0;width:1px;background:rgba(37,94,112,.4)}
+.doc .top{display:flex;justify-content:space-between;font-size:12px;letter-spacing:.3em;color:var(--mut);border-bottom:1px solid var(--fg);padding-bottom:14px}
+.doc dl{display:grid;grid-template-columns:110px 1fr;gap:6px 0;margin:26px 0 0;font-size:15.5px}
+.doc dt{color:var(--mut);letter-spacing:.6em}
+.jm{text-align:center;font-family:var(--disp);font-weight:700;font-size:22px;letter-spacing:1.8em;margin:46px -1.8em 14px 0}
+.vd{font-family:var(--disp);font-weight:700;font-size:clamp(44px,6.8vw,104px);line-height:1.25;text-align:center;letter-spacing:-.03em;min-height:1.4em}
+.vd em{font-style:normal;color:var(--teal);position:relative;display:inline-block}
+.vd em::after{content:"";position:absolute;left:-.06em;right:-.06em;bottom:.1em;height:.3em;background:rgba(37,94,112,.16);z-index:-1;transform-origin:left;transform:scaleX(var(--u,1));transition:transform .7s cubic-bezier(.2,.8,.2,1) .25s}
+.vs2{text-align:center;color:var(--mut);margin-top:16px;min-height:1.7em}
+.doc .stamp2{position:absolute;right:56px;bottom:40px;width:112px;height:112px;border:3px solid var(--teal);border-radius:50%;display:grid;place-items:center;text-align:center;color:var(--teal);font-family:var(--disp);font-weight:700;font-size:16px;line-height:1.3;transform:rotate(-12deg);mix-blend-mode:multiply}
+.doc .stamp2::before{content:"";position:absolute;inset:6px;border:1px solid var(--teal);border-radius:50%}
+.dots{display:flex;gap:8px;justify-content:center;margin-top:34px}
+.dots i{width:28px;height:2px;background:var(--line);transition:.4s}.dots i.on{background:var(--teal);width:54px}
+
+.hpin{background:#060303;color:#fff;--mut:rgba(255,255,255,.66);--line:rgba(255,255,255,.15);--acc:#9fcbd6}
+
+/* 사건 기록부 */
+.led{margin-top:70px;border-top:2px solid var(--fg)}
+.lr{display:grid;grid-template-columns:130px 1.3fr 1.6fr 220px;gap:30px;padding:30px 18px;border-bottom:1px solid var(--line);align-items:center;position:relative;overflow:hidden;transition:color .5s}
+.lr::before{content:"";position:absolute;inset:0;background:var(--teal);transform:scaleY(0);transform-origin:bottom;transition:transform .6s cubic-bezier(.2,.8,.2,1);z-index:0}
+.lr>*{position:relative;z-index:1}
+.lr:hover{color:#fff}.lr:hover::before{transform:scaleY(1)}
+.lr .c{font-size:13px;font-weight:700;letter-spacing:.06em}.lr .c small{display:block;font-weight:400;opacity:.6;letter-spacing:.1em}
+.lr h3{font-family:var(--disp);font-size:21px;font-weight:700;line-height:1.5}
+.lr p{font-size:15px;opacity:.75}
+.lr .o{font-family:var(--disp);font-weight:700;font-size:28px;text-align:right;color:var(--teal);line-height:1.25;transition:color .5s}
+.lr:hover .o{color:#fff}
+.lr .o small{display:block;font-family:Pretendard;font-weight:400;font-size:12px;color:inherit;opacity:.7}
+.lr.h{font-size:11.5px;letter-spacing:.3em;color:var(--mut);padding:12px 18px}.lr.h::before{display:none}.lr.h:hover{color:var(--mut)}
+.fine{font-size:13px;color:var(--mut);margin-top:18px}
+
+/* 변호사 카드: 흑백 → 색, 테두리 (레퍼런스 마지막 카드 방식) */
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:34px;margin-top:70px}
+.cd{position:relative;aspect-ratio:260/430;overflow:hidden;filter:grayscale(1);transition:filter .6s}
+.cd img{width:100%;height:100%;object-fit:cover;object-position:50% 14%;transition:transform 1.4s cubic-bezier(.2,.8,.2,1)}
+.cd::after{content:"";position:absolute;inset:0;border:5px solid transparent;transition:.6s}
+.cd:hover{filter:none}.cd:hover::after{border-color:var(--teal)}.cd:hover img{transform:scale(1.05)}
+.cd .tb{position:absolute;left:0;bottom:0;background:var(--card);padding:16px 18px 14px;min-width:56%;height:96px;z-index:2}
+.cd .tb::before{content:"";display:block;width:44px;height:1px;background:var(--teal);margin-bottom:12px}
+.cd .tb b{font-family:var(--disp);font-size:clamp(20px,1.8vw,28px);display:block;line-height:1.2}
+.cd .tb span{font-size:12px;color:var(--mut)}
+.cd ul{position:absolute;left:0;right:0;bottom:0;padding:44px 18px 110px;background:linear-gradient(transparent,rgba(6,3,3,.88) 34%);color:#fff;font-size:13.5px;transform:translateY(20%);opacity:0;transition:.6s;z-index:1}
+.cd:hover ul{transform:none;opacity:1}
+.cd li{padding:5px 0;border-top:1px solid rgba(255,255,255,.2)}.cd li:first-child{border:0;color:#9fcbd6;font-weight:600}
+
+/* 약속 */
+.oath{color:#fff;overflow:hidden;padding:170px 0}
+.oath .bg{position:absolute;inset:-14% 0;background:url(img/b_pen.jpg) center/cover}
+.oath::after{content:"";position:absolute;inset:0;background:rgba(6,3,3,.74)}
+.oath .wrap{position:relative;z-index:2;display:grid;grid-template-columns:1.1fr 1fr;gap:80px;align-items:center}
+.oath blockquote{font-family:var(--disp);font-weight:700;font-size:clamp(30px,3.5vw,52px);line-height:1.5}
+.oath blockquote em{font-style:normal;color:#9fcbd6}
+.oath cite{display:block;font-style:normal;font-family:Pretendard;font-weight:400;font-size:14px;opacity:.7;margin-top:26px}
+.oath .tx p{font-size:15.5px;line-height:1.95;opacity:.86;margin-bottom:16px}
+
+/* 상담 신청서 */
+.form{display:grid;grid-template-columns:1fr 1.1fr;gap:70px;margin-top:70px;align-items:start}
+.info .tel{font-family:var(--disp);font-weight:700;font-size:clamp(40px,4.4vw,64px);display:block;line-height:1.1}
+.info dl{display:grid;grid-template-columns:96px 1fr;gap:14px 16px;margin-top:30px;padding-top:26px;border-top:1px solid var(--fg);font-size:16px}
+.info dt{font-size:12px;letter-spacing:.08em;color:var(--teal);font-weight:700;padding-top:4px}
+.sheet{background:var(--card);border:1px solid rgba(6,3,3,.5);padding:38px 40px;box-shadow:0 24px 60px rgba(6,3,3,.1)}
+.sheet h3{font-family:var(--disp);text-align:center;font-size:24px;letter-spacing:.8em;margin-right:-.8em;padding-bottom:18px;border-bottom:2px solid var(--fg)}
+.sheet label{display:grid;grid-template-columns:96px 1fr;border-bottom:1px solid var(--line);font-size:14px}
+.sheet label span{padding:16px 0;color:var(--mut);border-right:1px solid var(--line)}
+.sheet input,.sheet textarea{border:0;background:transparent;font:inherit;font-size:16px;padding:16px;outline:none;resize:none;color:var(--fg);transition:background .3s}
+.sheet input:focus,.sheet textarea:focus{background:rgba(37,94,112,.08)}
+.sheet button{margin-top:24px;width:100%;background:var(--black);color:#fff;padding:18px;font-weight:700;font-size:16px;letter-spacing:.3em;position:relative;overflow:hidden}
+.sheet button::before{content:"";position:absolute;inset:0;background:var(--teal);transform:translateX(-101%);transition:transform .6s cubic-bezier(.2,.8,.2,1)}
+.sheet button:hover::before{transform:none}.sheet button span{position:relative}
+@media(max-width:900px){.doc{padding:34px 24px 150px 44px}.jm{letter-spacing:1em;margin-right:-1em}.lr{grid-template-columns:1fr;gap:8px}.lr.h{display:none}.lr .o{text-align:left}.cards{grid-template-columns:1fr 1fr;gap:14px}.cd ul{opacity:1;transform:none}.oath .wrap,.form{grid-template-columns:1fr;gap:40px}}
+
+/* 첫 화면: 판결문 용지가 올라오고 주문이 한 글자씩 찍힘 */
+.hb .shade{background:linear-gradient(90deg,rgba(246,243,236,.92),rgba(246,243,236,.6) 40%,rgba(246,243,236,.08) 72%)}
+.hb-l{position:absolute;left:7vw;top:50%;transform:translateY(-44%);z-index:2;max-width:40vw}
+.hb .hh{font-size:clamp(32px,min(3.9vw,9.4vh),76px)}
+.hbtn{display:flex;gap:10px;margin-top:34px;flex-wrap:wrap}
+.bt{border:1px solid var(--fg);padding:15px 24px;font-weight:700;font-size:15px;position:relative;overflow:hidden;transition:color .45s;background:rgba(255,253,248,.7)}
+.bt.k{background:var(--black);color:#fff}
+.bt::before{content:"";position:absolute;inset:0;background:var(--teal);transform:translateY(101%);transition:transform .55s cubic-bezier(.2,.8,.2,1)}
+.bt:hover{color:#fff}.bt:hover::before{transform:none}.bt span{position:relative}
+.hb .sheetw{position:absolute;right:calc(92px + 5vw);top:14vh;bottom:-9vh;width:min(44vw,700px);z-index:2}
+.hb .paper{margin:0;max-width:none;height:100%;padding:44px 52px;transform-origin:50% 100%;box-shadow:0 40px 100px rgba(6,3,3,.22)}
+.hb .jm{text-align:left;letter-spacing:1.4em;margin:5vh 0 12px}
+.hb .vd{text-align:left;font-size:clamp(38px,min(5vw,10vh),86px);line-height:1.2;min-height:2.5em}
+.hb .vs2{text-align:left;margin-top:14px}
+.hb .dots{justify-content:flex-start;margin-top:26px}
+.hb .doc .stamp2{right:44px;bottom:auto;top:38%}
+.caret{display:inline-block;width:3px;height:.84em;background:var(--teal);margin-left:.08em;vertical-align:-.04em;animation:bl 1s steps(1) infinite}
+@media(max-width:900px){.hb-l{left:7vw;top:92px;transform:none;max-width:86vw}.hb .hs{display:none}.hbtn{margin-top:18px}.bt{padding:11px 16px;font-size:13px}
+ .hb .sheetw{left:6vw;right:6vw;width:auto;top:auto;height:44vh;bottom:-4vh}.hb .paper{padding:26px 22px 26px 40px}.hb .paper dl{display:none}.hb .jm{margin:18px 0 8px}.hb .vd{font-size:11vw}.hb .doc .stamp2{width:84px;height:84px;font-size:12px;right:18px;top:34%}}
+</style>
+</head>
+<body>
+<div class="bar"></div>
+<header class="hd">
+  <a class="logo" href="#top" data-logo="k"></a>
+  <nav><a href="#case">CASE</a><a href="#record">CASES</a><a href="#lawyer">LAWYER</a><a href="#contact">CONTACT</a></nav>
+  <a class="tel" href="tel:02-6951-1355">02-6951-1355</a>
+</header>
+<aside class="quick">
+  <p>24시 법률상담</p>
+  <a href="#contact"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg>상담접수</a>
+  <a href="https://pf.kakao.com/_CPYuX/chat"><svg viewBox="0 0 24 24"><path d="M12 4c5 0 9 3 9 7s-4 7-9 7c-.8 0-1.500-.1-2.200-.2L6 20l.8-3.400C4.500 15.300 3 13.300 3 11c0-4 4-7 9-7z"/></svg>카톡접수</a>
+  <a href="#contact"><svg viewBox="0 0 24 24"><path d="M12 21s7-6.200 7-11.500A7 7 0 0 0 5 9.500C5 14.800 12 21 12 21z"/><circle cx="12" cy="9.500" r="2.500"/></svg>오시는 길</a>
+  <a href="tel:02-6951-1355"><svg viewBox="0 0 24 24"><path d="M6 3h4l1.500 5-2.500 1.500a12 12 0 0 0 5.500 5.500L16 12.500l5 1.500v4a2 2 0 0 1-2 2A16 16 0 0 1 4 5a2 2 0 0 1 2-2z"/></svg>대표전화<b>02-6951-1355</b></a>
+  <div>업무시간<b>24시간</b></div>
+</aside>
+
+<section class="hero hb" id="top">
+  <div class="bg" style="background-image:url(img/b_hero.jpg)"></div><div class="shade"></div>
+  <div class="hb-l">
+    <p class="eb hx">SUCCESS CASES</p>
+    <h1 class="hh"><span class="ln"><span class="li">사건의 본질을 꿰뚫는</span></span><span class="ln"><span class="li">입체적인 전략</span></span></h1>
+    <p class="hs hx">단편적인 법리를 넘어 사건의 본질을 꿰뚫는 입체적인 전략,<br>준일이기에 가능합니다.<br>법률사무소 준일의 성공 사례를 확인하세요.</p>
+    <div class="hbtn hx"><a class="bt k" href="tel:02-6951-1355"><span>전화 상담 02-6951-1355</span></a><a class="bt" href="#record"><span>성공사례</span></a></div>
+  </div>
+  <div class="sheetw"><div class="doc paper">
+    <div class="top"><span>판결 · 결정 · 처분</span><span>법률사무소 준일 수행 사건</span></div>
+    <dl><dt>사건</dt><dd id="vc">도로교통법위반(음주운전)</dd><dt>변호인</dt><dd>법률사무소 준일 · 담당변호사 김준우, 문호준, 차현준, 한석일</dd></dl>
+    <div class="jm">주문</div>
+    <div class="vd" id="vt"><span>피고인은</span><br><em>무죄.</em></div>
+    <p class="vs2" id="vn">&nbsp;</p>
+    <div class="dots" id="dots"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+    <div class="stamp2">법률사무소<br>준일</div>
+  </div></div>
+</section>
+
+<section class="hpin" id="case">
+  <div class="tit"><p class="eb">[음주운전 무죄] 담당 변호사 한석일 대표변호사</p><h2>국선변호인도 놓친 '30분의 비밀'</h2></div>
+  <div class="ghost">主文&nbsp;&nbsp;JUDGMENT&nbsp;&nbsp;主文&nbsp;&nbsp;JUDGMENT</div>
+  <ul class="track">
+    <li class="pn"><div class="im"><img src="img/p_road.jpg" alt=""><div class="lb"><b>사건</b>핵심 요약</div></div><div class="tx"><small>사건 상황</small><h3>검사 구형<br>징역 1년 6개월</h3><p>국선변호인 조력하에 변론 종결. 적발 수치: 혈중알코올농도 0.032% (처벌 기준치 0.03%를 미세하게 초과).</p></div></li>
+    <li class="pn"><div class="im"><img src="img/p_review.jpg" alt=""><div class="lb"><b>01</b>기록</div></div><div class="tx"><small>1. 국선변호인도 놓쳤던 기록 속</small><h3>'30분의 공백'</h3><p>의뢰인을 처음 단속한 경찰 RV 순찰차에는 '음주측정기'가 없었습니다. 음주측정기를 실은 다른 순찰차가 도착할 때까지, 최초 적발 경찰관이 의뢰인을 현장에서 붙잡고 대기했던 시간이 무려 약 30분이나 되었던 것입니다.</p></div></li>
+    <li class="pn"><div class="im"><img src="img/b_pen.jpg" alt=""><div class="lb"><b>02</b>증언</div></div><div class="tx"><small>2. 발로 뛰어 확보한 핵심 증언</small><h3>"위드마크 공식을<br>적용하라"</h3><p>측정기가 도착할 때까지 의뢰인을 붙잡고 있었던 바로 그 '담당 경찰관'과 통화하여, "현장에서 다른 차량을 기다리느라 실제 측정이 30분가량 늦게 이루어졌다"는 핵심 진술을 직접 확보해 냈습니다.</p></div></li>
+    <li class="pn"><div class="im"><img src="img/p_court.jpg" alt=""><div class="lb"><b>03</b>판결</div></div><div class="tx"><small>3. 선고 직전의 극적인 '변론재개'</small><h3>그리고<br><em>무죄 판결</em></h3><p>재판부 역시 이례적으로 변론재개결정을 내렸습니다. 재판부는 "운전 당시 혈중알코올농도가 0.03% 미만일 가능성을 배제할 수 없다"며 최종 무죄를 선고했습니다.</p></div></li>
+  </ul>
+  <div class="hprog"><i></i></div>
+</section>
+
+<section class="pad" id="record">
+  <div class="wrap">
+    <div class="tit"><p class="eb" data-rv>SUCCESS CASES</p><h2 data-split>성공사례</h2><p data-rv>법률사무소 준일의 성공 사례를 확인하세요.</p></div>
+    <div class="led">
+      <div class="lr h"><span>분류</span><span>사건</span><span>내용</span><span style="text-align:right">결과</span></div>
+      <a class="lr" href="#" data-rv><div class="c">형사<small>2026. 6. 10.</small></div><h3>[음주운전 0.086%] 위드마크 공식으로 '면허취소'를 '면허정지(0.073%)'로 구제</h3><p>음주운전 0.086% 면허취소 위기, 치밀한 위드마크 공식 분석으로 '0.073% 면허정지' 및 벌금 400만 원 선처를 이끌어낸 성공 사례입니다.</p><div class="o">면허정지<small>벌금 400만 원</small></div></a>
+      <a class="lr" href="#" data-rv><div class="c">형사<small>2026. 5. 22.</small></div><h3>직장동료로부터 명예훼손으로 고소당한 사건 1심, 2심 모두 무죄</h3><p>겹지인에게 직장동료에 대한 뒷담화를 하였는데, 명예훼손으로 고소당하여 검찰에서 기소한 사건. 1심 무죄 / 검사 항소 / 2심 무죄</p><div class="o">무죄 · 무죄<small>1심 · 2심</small></div></a>
+      <a class="lr" href="#" data-rv><div class="c">형사<small>2026. 6. 23.</small></div><h3>[층간소음방화] 구치소 수감 중이던 남편, 항소심 집행유예 선처 사례</h3><p>1심 징역 2년 실형 사안에서, '일반물건방화' 주장을 통한 예비적 공소사실 추가 유도 및 다각도의 양형 자료 수집으로 항소심에서 집행유예 선처를 받아냈습니다.</p><div class="o">집행유예<small>항소심</small></div></a>
+      <a class="lr" href="#" data-rv><div class="c">형사<small>2026. 6. 8.</small></div><h3>[주거침입 방어 성공사례] 월세 미납 임차인 도어락 변경했다가 주거침입 송치된 임대인</h3><p>의뢰인은 정당한 권리행사라 억울함을 호소했음에도 불구하고, 경찰은 해당 사건을 유죄로 판단하여 검찰에 송치하였습니다. 검찰 보완수사 이끌어내 최종 '무혐의(불송치)' 방어.</p><div class="o">무혐의<small>불송치</small></div></a>
+      <a class="lr" href="#" data-rv><div class="c">이혼/상속/가사<small>2026. 6. 17.</small></div><h3>[이혼 조정 성공사례] 재산분할 3억 7천만 원 및 친권·양육권 방어 성공</h3><p>상대방의 위자료 3,000만 원 청구를 방어하고, 재산분할금 3억 7,000만 원 및 두 자녀의 친권·양육권을 성공적으로 확보한 이혼 조정 성립 사례입니다.</p><div class="o">3억 7천만 원<small>재산분할 · 조정 성립</small></div></a>
+      <a class="lr" href="#" data-rv><div class="c">행정<small>2026. 5. 26.</small></div><h3>[재개발재건축/행정] 관리처분계획 무효확인 소송 전부 승소</h3><p>분양신청 통지 하자 주장 방어, 관리처분계획 무효확인 소송 전부 승소</p><div class="o">전부 승소<small>행정소송</small></div></a>
+    </div>
+    <p class="fine">※ 구체적인 사건은 사실관계에 따라 달라질 수 있습니다.</p>
+  </div>
+</section>
+
+<section class="pad" id="lawyer" style="padding-top:30px">
+  <div class="wrap">
+    <div class="tit"><p class="eb" data-rv>JUNIL LAWYER</p><h2 data-split>구성원 소개</h2><p data-rv>전문성과 열정을 갖춘 변호사들이 함께합니다</p></div>
+    <div class="cards">
+      <div class="cd" data-rv><img src="img/kim.webp" alt="김준우"><div class="tb"><b>김준우</b><span>대표변호사</span></div><ul><li>재건축 · 재개발 · 부동산</li><li>대한변협 등록 재개발·재건축 전문</li><li>미국 공인회계사 시험 전 과목 합격</li><li>서울 중구청 고문변호사</li></ul></div>
+      <div class="cd" data-rv data-d=".1"><img src="img/moon.webp" alt="문호준"><div class="tb"><b>문호준</b><span>대표변호사</span></div><ul><li>형사법 · 민사법</li><li>대한변협 등록 형사법 전문</li><li>대한변협 등록 민사법 전문</li></ul></div>
+      <div class="cd" data-rv data-d=".2"><img src="img/cha.webp" alt="차현준"><div class="tb"><b>차현준</b><span>대표변호사</span></div><ul><li>명예훼손 · 스토킹 · 형사</li><li>명예훼손 1심·2심 무죄</li><li>서울 강서구청 고문변호사</li></ul></div>
+      <div class="cd" data-rv data-d=".3"><img src="img/han.webp" alt="한석일"><div class="tb"><b>한석일</b><span>대표변호사</span></div><ul><li>학교폭력 · 형사법</li><li>음주운전 무죄 · 집행유예 방어</li><li>서울특별시교육청 변호사명예교사</li></ul></div>
+    </div>
+    <p class="fine" style="text-align:center">자문위원 — 문창환(산부인과 전문의) · 이윤국(공인회계사)</p>
+  </div>
+</section>
+
+<section class="oath">
+  <div class="bg" data-par="9"></div>
+  <div class="wrap">
+    <blockquote data-rv="blur">상담만 하고 사건을<br>넘기지 않습니다.<br><em>상담 변호사가 끝까지</em><br>수행합니다.<cite>대표변호사 김준우, 문호준, 차현준, 한석일</cite></blockquote>
+    <div class="tx">
+      <p data-rv>작금의 법률시장에서는 다수의 법무법인이 오로지 매출 증진을 위해 상담, 수행 변호사를 분리해 운영하거나, 대형 법인으로 보이기 위해 사실은 내부적으로 각자 분리된 사업을 운영하고 사건에 관해 일절 검토하지 않으면서도 다수의 담당 변호사들을 형식적으로 지정해 놓는 경우가 부지기수입니다.</p>
+      <p data-rv data-d=".1">그러나, 성공적인 결과를 위해서는 1차 단계에서부터 수행 변호사가 직접 의뢰인과 상담을 진행하고, 이후 사건에 관해 모든 변호사가 면밀한 논의와 법률 검토를 통해 소송전략을 수립하고 이를 바탕으로 수행하는 것이 중요합니다.</p>
+      <p data-rv data-d=".2">의뢰인 한분, 한분의 고민에 귀 기울이고, 성실함과 정직함, 다양한 분야의 로펌에서 쌓은 전문성을 바탕으로, 모든 능력, 시간 그리고 가진 전부를 '올-인'하여 높은 법률서비스 그리고 성공적인 결과로 이끄는 것이 저희의 목표이자, 이러한 가치를 위해 법률사무소 준일을 설립하게 되었습니다.</p>
+    </div>
+  </div>
+</section>
+
+<section class="pad" id="contact">
+  <div class="wrap">
+    <div class="tit"><p class="eb" data-rv>CONTACT</p><h2 data-split>상담신청</h2><p data-rv>준일은 상담 단계부터 변호사가 직접 검토하여 사건의 쟁점과 대응 방향을 안내합니다.</p></div>
+    <div class="form">
+      <div class="info" data-rv="left">
+        <a class="tel" href="tel:02-6951-1355">02-6951-1355</a>
+        <dl><dt>업무시간</dt><dd>24시간 영업</dd><dt>ADDRESS</dt><dd>서울 송파구 법원로96 문정법조프라자 6층 603호</dd><dt>대중교통</dt><dd>문정역 3번출구 도보 5분</dd><dt>주차</dt><dd>문정법조프라자 지하 주차장 이용 가능(1시간 무료, 만차시 전화문의)</dd><dt>E-MAIL</dt><dd>junil@junil.kr</dd><dt>FAX</dt><dd>070-7507-1008</dd></dl>
+      </div>
+      <form class="sheet" onsubmit="return false" data-rv>
+        <h3>상담신청</h3>
+        <label><span>성함 *</span><input></label>
+        <label><span>연락처 *</span><input></label>
+        <label><span>이메일</span><input></label>
+        <label><span>문의내용 *</span><textarea rows="4"></textarea></label>
+        <button><span>온라인 상담 신청하기</span></button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<section class="closing">
+  <div class="bg" data-par="8" style="background-image:url(img/c_close.jpg)"></div>
+  <div class="in">
+    <p class="eb" data-rv style="color:#fff">법률사무소 준일 올림</p>
+    <h2 data-split style="margin-top:22px">모든 것을 쏟아붓는 든든한 조력자로서<br><b>언제나 의뢰인님 옆에서 함께 하겠습니다.</b></h2>
+    <a class="tel" href="tel:02-6951-1355" data-rv="blur">02-6951-1355</a>
+  </div>
+</section>
+
+<footer class="ft"><div class="wrap">
+  <div><div data-logo="w"></div><p><b>법률사무소 준일</b> · 대표변호사 김준우 문호준 차현준 한석일<br>서울 송파구 법원로 96 문정법조프라자 6층 603호 · TEL 02-6951-1355 · FAX 070-7507-1008 · junil@junil.kr</p></div>
+  <p>© JUNIL LAW OFFICE. ALL RIGHTS RESERVED</p>
+</div></footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
+<script src="kit.js"></script>
+<script>
+K.heroBase();
+/* 주문: 실제 수행 사건 5건이 차례로 타이핑됨 */
+const V=[
+["도로교통법위반(음주운전)","피고인은","무죄.","[음주운전 무죄] 국선변호인도 놓친 '30분의 비밀', 선고 직전 판결을 뒤집다"],
+["명예훼손","검사의 항소를","기각한다.","직장동료로부터 명예훼손으로 고소당한 사건 1심, 2심 모두 무죄"],
+["구속영장 청구 사건","이 사건 청구를","기각한다.","의뢰인 마약류 구매 재판 중 마약 구매 및 투약 사실로 구속영장 청구, 영장 기각 방어"],
+["현주건조물방화미수","형의 집행을","유예한다.","[층간소음방화 1심 징역 2년 실형, 항소심 집행유예]"],
+["관리처분계획 무효확인","원고의 청구를","기각한다.","[재개발재건축/행정] 분양신청 통지 하자 주장 방어, 관리처분계획 무효확인 소송 전부 승소"]];
+const $=id=>document.getElementById(id),dots=[...$('dots').children],wait=ms=>new Promise(r=>setTimeout(r,ms));
+function meta(i){$('vc').textContent=V[i][0];$('vn').textContent=V[i][3];dots.forEach((d,k)=>d.classList.toggle('on',k==i))}
+async function typeV(i){const[c,p,v]=V[i],t=$('vt');meta(i);gsap.fromTo('#vc,#vn',{opacity:0,y:8},{opacity:1,y:0,duration:.6});
+  t.innerHTML='<span></span><i class="caret"></i><br><em></em>';const a=t.firstChild,car=t.children[1],b=t.lastChild;b.style.setProperty('--u',0);
+  for(const ch of p){a.textContent+=ch;await wait(75)}
+  await wait(280);t.appendChild(car);
+  for(const ch of v){b.textContent+=ch;await wait(120)}
+  b.style.setProperty('--u',1);car.remove();
+  gsap.fromTo('.hb .stamp2',{opacity:0,scale:2.3,rotate:-34},{opacity:1,scale:1,rotate:-12,duration:.42,ease:'power4.in',delay:.4});
+  await wait(3600);
+  gsap.to('.hb .stamp2',{opacity:0,duration:.35});b.style.setProperty('--u',0);
+  for(let k=v.length;k>0;k--){b.textContent=v.slice(0,k-1);await wait(30)}
+  for(let k=p.length;k>0;k--){a.textContent=p.slice(0,k-1);await wait(24)}
+  typeV((i+1)%V.length)}
+if(K.calm){meta(0)}else{
+  gsap.set('.hb .stamp2',{opacity:0});$('vt').innerHTML='&nbsp;';
+  gsap.timeline()
+    .fromTo('.hb .paper',{yPercent:108,rotate:-7},{yPercent:0,rotate:-2,duration:1.9,ease:'power4.out'},.35)
+    .from('.hb .hh .li',{yPercent:112,duration:1.3,ease:'power4.out',stagger:.14},.9)
+    .fromTo('.hb .hx',{opacity:0,y:20,filter:'blur(10px)'},{opacity:1,y:0,filter:'blur(0px)',duration:1.2,ease:'power3.out',stagger:.1},1.3)
+    .add(()=>typeV(0),1.9);
+  gsap.to('.hb .sheetw',{yPercent:-16,ease:'none',scrollTrigger:{trigger:'.hb',start:'top top',end:'bottom top',scrub:true}});
+  gsap.to('.hb-l',{opacity:0,ease:'none',scrollTrigger:{trigger:'.hb',start:'25% top',end:'70% top',scrub:true}});
+}
+</script>
+</body>
+</html>

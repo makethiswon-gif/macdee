@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>법률사무소 준일 홈페이지 시안</title>
+<link rel="icon" href="img/favicon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Serif+KR:wght@600;700&display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:Pretendard;src:url(PretendardVariable.woff2);font-weight:100 900}
+*{box-sizing:border-box;margin:0}
+body{font-family:Pretendard,sans-serif;background:#060303;color:#fff;min-height:100vh;display:flex;flex-direction:column}
+header{padding:34px 5vw 26px;display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap}
+header svg{height:60px;width:auto;display:block}
+header p{font-size:14px;color:rgba(255,255,255,.6);line-height:1.7;text-align:right}
+main{flex:1;display:flex;min-height:72vh}
+a{flex:1;position:relative;overflow:hidden;color:#fff;text-decoration:none;display:flex;align-items:flex-end;padding:44px 3vw;transition:flex .9s cubic-bezier(.2,.8,.2,1);border-left:1px solid rgba(255,255,255,.2)}
+a:first-child{border:0}
+a:hover{flex:1.6}
+a img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform 1.6s cubic-bezier(.2,.8,.2,1)}
+a:hover img{transform:scale(1.07)}
+a::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(6,3,3,.25),rgba(6,3,3,.88));z-index:1}
+a.k{color:#060303}a.k::before{background:linear-gradient(180deg,rgba(246,243,236,0),rgba(246,243,236,.92) 70%)}
+a div{position:relative;z-index:2}
+small{font-size:12px;letter-spacing:.4em;color:#9fcbd6;font-weight:600}a.k small{color:#255e70}
+b{display:block;font-family:Pretendard,sans-serif;font-weight:800;letter-spacing:-.04em;letter-spacing:-.03em;font-size:clamp(34px,4vw,64px);line-height:1.2;margin:12px 0 16px}
+span{font-size:15.5px;line-height:1.7;opacity:.85;display:block;max-width:26em}
+@media(max-width:800px){main{flex-direction:column}a{min-height:60vh;border-left:0;border-top:1px solid rgba(255,255,255,.2)}header p{text-align:left}}
+</style>
+</head>
+<body>
+<header><div id="lg"></div><p>공식 홈페이지 시안 3종<br>시안을 눌러 확인해 주세요</p></header>
+<main>
+  <a href="sian-a.html"><img src="img/a_hero.jpg" alt=""><div><small>시안 A</small><b>올인</b><span>네 조각으로 갈라진 밤의 사무실이 하나로 맞춰집니다. "모든 능력, 시간 그리고 가진 전부를 쏟아붓는 것"</span></div></a>
+  <a class="k" href="sian-b.html"><img src="img/b_hero.jpg" alt=""><div><small>시안 B</small><b>주문</b><span>판결문 용지가 올라오고, 실제 수행 사건의 주문이 한 글자씩 찍힌 뒤 도장이 눌립니다.</span></div></a>
+  <a href="sian-c.html"><img src="img/c_hero.jpg" alt=""><div><small>시안 C</small><b>24시간</b><span>지금 시각이 화면 가득 뜨고, 하루 24시간 띠가 채워집니다. 상황을 고르면 대응과 담당 변호사가 나옵니다.</span></div></a>
+</main>
+<script>
+document.getElementById('lg').innerHTML=`<svg viewBox="225 100 2230 650" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="법률사무소 준일"><g fill="#fff" font-family="'Gowun Batang',serif"><text font-size="300" transform="translate(1811.75 531.7)">준일</text><text font-size="170" transform="translate(981.16 428.41)">법률사무소</text><text font-size="90" transform="translate(1048.11 556.29)">JUN IL Law Firm</text></g><polygon fill="#255e70" points="843.03 728.16 715.16 664.76 715.16 585.52 770.14 614.26 770.14 236.15 450.29 397.35 449.25 620.68 376.36 655.94 376.36 351.81 376.22 351.72 843.03 122.23 843.03 728.16"/><polygon fill="#fff" points="230.44 122.23 230.44 728.16 358.31 664.76 358.31 585.52 303.33 614.26 303.33 236.15 436.49 303.26 517.17 263.19 230.44 122.23"/><polygon fill="#fff" points="638.4 322.78 556.22 363.6 623.18 397.35 624.22 620.68 697.1 655.94 697.1 351.81 697.25 351.72 638.4 322.78"/></svg>`;
+</script>
+</body>
+</html>

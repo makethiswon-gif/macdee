@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="ko" class="js">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>시안 A · 올인 — 법률사무소 준일</title>
+<link rel="icon" href="img/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Serif+KR:wght@400;600;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="kit.css">
+<style>
+:root{--bg:#060303;--fg:#fff;--mut:rgba(255,255,255,.62);--line:rgba(255,255,255,.14);--acc:#9fcbd6}
+.hero .shade{background:linear-gradient(180deg,rgba(6,3,3,.6),rgba(10,32,39,.3) 42%,rgba(6,3,3,.82))}
+.hero .tint{position:absolute;inset:0;background:#255e70;mix-blend-mode:color;opacity:.42}
+
+/* 약속 */
+.vow{font-family:var(--disp);font-size:clamp(24px,2.75vw,42px);line-height:1.75;max-width:23em;margin:90px auto 0;text-align:center;letter-spacing:-.01em}
+.lanes{margin-top:120px;border-top:1px solid var(--line)}
+.lane{display:grid;grid-template-columns:220px 1fr;gap:40px;align-items:center;padding:46px 0;border-bottom:1px solid var(--line)}
+.lane h3{font-size:14px;font-weight:500;color:var(--mut);letter-spacing:.1em}
+.lane.us h3{font-family:var(--disp);font-size:26px;color:#fff;letter-spacing:0}
+.st{display:flex;align-items:center}
+.st div{flex:1;border:1px dashed rgba(255,255,255,.28);padding:18px 20px;color:var(--mut);font-size:15px}
+.st div small{display:block;font-size:10.5px;letter-spacing:.2em;opacity:.7}
+.st div small{margin-bottom:3px}
+.st span{flex:0 0 74px;text-align:center;font-size:11px;color:rgba(255,255,255,.4);letter-spacing:.1em}
+.st span::before{content:"";display:block;width:1px;height:20px;background:rgba(255,255,255,.3);margin:0 auto 6px;transform:rotate(35deg)}
+.one{position:relative;height:74px;display:flex;align-items:center;justify-content:space-between}
+.one svg{position:absolute;left:0;top:0;width:100%;height:100%;overflow:visible}
+.one b{position:relative;background:var(--bg);font-family:var(--disp);font-size:19px;padding-right:18px}
+.one b:last-of-type{padding:0 0 0 18px}
+.one em{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:var(--teal);color:#fff;font-style:normal;font-size:14px;font-weight:600;padding:9px 22px;border-radius:99px;white-space:nowrap}
+.nums{display:grid;grid-template-columns:repeat(3,1fr);margin-top:110px}
+.nums div{text-align:center;padding:0 20px;border-left:1px solid var(--line)}
+.nums div:first-child{border:0}
+.nums strong{display:block;font-family:var(--disp);font-weight:700;font-size:clamp(70px,8.6vw,150px);line-height:1;color:var(--acc)}
+.nums strong sup{font-size:.22em;vertical-align:top;margin-left:6px;color:#fff;font-family:Pretendard;font-weight:500;letter-spacing:.1em}
+.nums p{margin-top:16px;color:var(--mut);font-size:16px}
+
+/* 변호사: 벌어지는 네 칸 */
+.acc{display:flex;height:min(78vh,760px);margin-top:70px;gap:2px}
+.ac{flex:1;position:relative;overflow:hidden;transition:flex .9s cubic-bezier(.2,.8,.2,1);background:#111}
+.ac img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 16%;filter:grayscale(1) brightness(.62) contrast(1.1);transition:filter .9s,transform 1.6s cubic-bezier(.2,.8,.2,1)}
+.ac::after{content:"";position:absolute;inset:0;border:4px solid transparent;transition:.6s;pointer-events:none}
+.acc:hover .ac{flex:.72}
+.acc .ac:hover{flex:2.3}
+.ac:hover img{filter:none;transform:scale(1.04)}
+.ac:hover::after{border-color:var(--teal)}
+.ac .cap{position:absolute;left:0;right:0;bottom:0;padding:120px 30px 30px;background:linear-gradient(transparent,rgba(6,3,3,.94))}
+.ac .no{position:absolute;top:24px;left:30px;font-family:var(--disp);font-size:15px;color:var(--acc);letter-spacing:.2em}
+.ac h3{font-family:var(--disp);font-size:34px;font-weight:700;white-space:nowrap}
+.ac h3 small{font-family:Pretendard;font-size:13px;font-weight:400;opacity:.7;margin-left:10px}
+.ac .f{font-size:13.5px;color:var(--acc);margin-top:4px;white-space:nowrap}
+.ac ul{margin-top:16px;max-height:0;opacity:0;overflow:hidden;transition:max-height .8s,opacity .6s;width:420px;max-width:100%}
+.ac:hover ul{max-height:170px;opacity:1;transition-delay:.25s}
+.ac li{font-size:14.5px;padding:7px 0;border-top:1px solid rgba(255,255,255,.18);color:rgba(255,255,255,.86)}
+.note{margin-top:22px;font-size:13px;color:var(--mut);text-align:center}
+
+.hpin{background:#0b0e0f}
+.hpin .cnt{position:absolute;right:9vw;top:112px;z-index:3;font-family:var(--disp);font-size:15px;letter-spacing:.2em;color:var(--mut)}
+.hpin .cnt b{color:#fff;font-size:26px;font-weight:400}
+
+/* 업무분야 목록 + 따라다니는 사진 */
+.biz{display:grid;grid-template-columns:340px 1fr;gap:80px;align-items:start}
+.biz .tit{position:sticky;top:130px}
+.bl a{display:flex;align-items:baseline;gap:22px;padding:26px 0;border-bottom:1px solid var(--line);transition:padding .5s cubic-bezier(.2,.8,.2,1),color .3s}
+.bl a i{font-style:normal;font-family:var(--disp);font-size:13px;color:var(--acc);letter-spacing:.15em}
+.bl a b{font-family:var(--disp);font-weight:700;font-size:clamp(22px,2.4vw,36px);letter-spacing:-.02em}
+.bl a span{margin-left:auto;font-size:13.5px;color:var(--mut);text-align:right;max-width:19em;line-height:1.55}
+.bl a:hover{padding-left:26px;color:var(--acc)}
+.bl:hover a:not(:hover){opacity:.4}
+.peek{position:fixed;left:0;top:0;width:320px;height:212px;overflow:hidden;pointer-events:none;z-index:80;opacity:0;transform:scale(.9);box-shadow:0 20px 60px rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.2)}
+.peek img{width:100%;height:100%;object-fit:cover}
+@media(max-width:900px){.lane,.biz{grid-template-columns:1fr;gap:18px}.st{flex-direction:column;align-items:stretch}.st span{flex:none;padding:8px}.st span::before{display:none}.nums{grid-template-columns:1fr;gap:44px}.nums div{border:0}.acc{flex-direction:column;height:auto}.ac{min-height:420px}.ac ul{max-height:170px;opacity:1}.biz .tit{position:static}.bl a span{display:none}.one em{font-size:11px;padding:6px 10px}}
+
+/* 첫 화면: 네 조각으로 갈라진 사진이 하나로 맞춰짐 (한 사건에 네 명) */
+.ha .sls{position:absolute;inset:0;display:flex}
+.ha .sl{flex:1;position:relative;overflow:hidden}
+.ha .sl+.sl{border-left:1px solid rgba(255,255,255,.2)}
+.ha .in{position:absolute;top:-15%;bottom:-15%;left:calc(var(--i)*-100% - 40px);width:calc(400% + 80px);background:url(img/a_hero.jpg) center/cover;will-change:transform}
+.ha .tint{z-index:1;pointer-events:none}
+.ha .shade{z-index:1;background:linear-gradient(180deg,rgba(6,3,3,.62),rgba(10,32,39,.2) 38%,rgba(6,3,3,.93))}
+.ha .ht{position:absolute;left:6vw;bottom:168px;z-index:3;max-width:74vw}
+.ha .cps{position:absolute;left:0;right:0;bottom:0;z-index:3;display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid rgba(255,255,255,.2)}
+.ha .cps p{padding:20px 26px 26px;font-size:13px;color:rgba(255,255,255,.7);line-height:1.5}
+.ha .cps p+p{border-left:1px solid rgba(255,255,255,.2)}
+.ha .cps i{font-style:normal;font-size:11px;letter-spacing:.24em;color:var(--teal-l);margin-right:12px}
+.ha .cps b{font-family:var(--disp);font-size:21px;color:#fff;margin-right:12px;font-weight:700}
+@media(max-width:900px){.ha .ht{left:6vw;bottom:210px;max-width:88vw}.ha .cps{grid-template-columns:1fr 1fr}.ha .cps p{padding:12px 14px;font-size:11px}.ha .cps p:nth-child(3){border-left:0}.ha .cps p:nth-child(n+3){border-top:1px solid rgba(255,255,255,.2)}.ha .cps b{display:block;font-size:17px}}
+</style>
+</head>
+<body>
+<div class="bar"></div>
+<header class="hd">
+  <a class="logo" href="#top" data-logo="w"></a>
+  <nav><a href="#promise">GREETING</a><a href="#lawyer">LAWYER</a><a href="#record">CASES</a><a href="#business">BUSINESS</a><a href="#contact">CONTACT</a></nav>
+  <a class="tel" href="tel:02-6951-1355">02-6951-1355</a>
+</header>
+<aside class="quick">
+  <p>24시 법률상담</p>
+  <a href="#contact"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg>상담접수</a>
+  <a href="https://pf.kakao.com/_CPYuX/chat"><svg viewBox="0 0 24 24"><path d="M12 4c5 0 9 3 9 7s-4 7-9 7c-.8 0-1.500-.1-2.200-.2L6 20l.8-3.400C4.500 15.300 3 13.300 3 11c0-4 4-7 9-7z"/></svg>카톡접수</a>
+  <a href="#contact"><svg viewBox="0 0 24 24"><path d="M12 21s7-6.200 7-11.500A7 7 0 0 0 5 9.500C5 14.800 12 21 12 21z"/><circle cx="12" cy="9.500" r="2.500"/></svg>오시는 길</a>
+  <a href="tel:02-6951-1355"><svg viewBox="0 0 24 24"><path d="M6 3h4l1.500 5-2.500 1.500a12 12 0 0 0 5.500 5.500L16 12.500l5 1.500v4a2 2 0 0 1-2 2A16 16 0 0 1 4 5a2 2 0 0 1 2-2z"/></svg>대표전화<b>02-6951-1355</b></a>
+  <div>업무시간<b>24시간</b></div>
+</aside>
+
+<section class="hero ha" id="top">
+  <div class="sls">
+    <div class="sl"><div class="in" style="--i:0"></div></div>
+    <div class="sl"><div class="in" style="--i:1"></div></div>
+    <div class="sl"><div class="in" style="--i:2"></div></div>
+    <div class="sl"><div class="in" style="--i:3"></div></div>
+  </div>
+  <div class="tint"></div><div class="shade"></div>
+  <div class="ht">
+    <p class="eb hx">ALL-IN, 법률사무소 준일</p>
+    <h1 class="hh"><span class="ln"><span class="li">모든 능력, 시간 그리고</span></span><span class="ln"><span class="li"><em>가진 전부</em>를 쏟아붓는 것</span></span></h1>
+    <p class="hs hx">오로지 의뢰인의 이익을 위하여<br>모든 능력, 시간, 가진 전부를 쏟아 붓겠습니다.</p>
+  </div>
+  <div class="cps">
+    <p><i>01</i><b>김준우</b>재건축 · 재개발 · 부동산</p>
+    <p><i>02</i><b>문호준</b>형사법 · 민사법</p>
+    <p><i>03</i><b>차현준</b>명예훼손 · 스토킹 · 형사</p>
+    <p><i>04</i><b>한석일</b>학교폭력 · 형사법</p>
+  </div>
+</section>
+
+<section class="pad" id="promise">
+  <div class="wrap">
+    <div class="tit"><p class="eb" data-rv>GREETING</p><h2 data-split>대표 인사말</h2></div>
+    <p class="vow" data-words>성공적인 결과를 위해서는 1차 단계에서부터<br>수행 변호사가 직접 의뢰인과 상담을 진행하고,<br>이후 사건에 관해 모든 변호사가<br>면밀한 논의와 법률 검토를 통해 소송전략을 수립하고<br>이를 바탕으로 수행하는 것이 중요합니다.</p>
+    <div class="lanes">
+      <div class="lane" data-rv><h3>다수의 법무법인</h3><div class="st"><div><small>상담</small>상담 변호사</div><span>분리</span><div><small>수행</small>수행 변호사</div><span>분리</span><div><small>담당</small>형식적으로 지정된 담당 변호사</div></div></div>
+      <div class="lane us" data-rv><h3>법률사무소 준일</h3><div class="one"><svg preserveAspectRatio="none" viewBox="0 0 1000 74"><path data-draw d="M0 37H1000" stroke="#9fcbd6" stroke-width="2" fill="none" vector-effect="non-scaling-stroke"/></svg><b>상담</b><em>수행 변호사가 직접 상담 · 모든 변호사가 논의·검토</em><b>수행</b></div></div>
+    </div>
+    <div class="vals">
+      <div data-rv><small>CORE VALUE 01</small><b>전문성</b><p>준일은 음주운전, 마약, 사이버모욕·명예훼손, 부동산 재건축·재개발 전문 대형·부띠끄 로펌 출신 변호사들의 풍부한 실전 경험과 전문성을 바탕으로 최적의 법률서비스를 제공합니다.</p></div>
+      <div data-rv data-d=".1"><small>CORE VALUE 02</small><b>협업</b><p>준일은 각 분야에서 전문성을 갖춘 변호사들이 초기 상담단계부터 재판단계까지 모든 절차를 협업하여 복잡한 법률 사안에 있어 의뢰인을 위한 구체적이고도 현실적인 해결책을 제시합니다.</p></div>
+      <div data-rv data-d=".2"><small>CORE VALUE 03</small><b>신뢰</b><p>준일은 소통 중심의 사건 처리 방식을 지향하며 의뢰인의 사소한 고민 역시 파악하고 정직한 소통으로 신뢰 관계를 구축하여 최선의 결과를 도출합니다.</p></div>
+      <div data-rv data-d=".3"><small>CORE VALUE 04</small><b>결과</b><p>준일은 결과 중심 회사로 언제나 철저한 사전 분석과 전략적 대응으로 의뢰인에게 최선의 결과를 이끌어냅니다.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="pad" id="lawyer" style="padding-top:40px">
+  <div class="wrap">
+    <div class="tit"><p class="eb" data-rv>JUNIL LAWYER</p><h2 data-split>변호사 소개</h2><p data-rv>실력으로 증명해 온 4인의 파트너.<br>관행적인 변론이 아닌, 한발 더 뛰는 젊은 집요함으로 승부합니다.</p></div>
+  </div>
+  <div class="acc" data-rv="blur">
+    <div class="ac"><img src="img/kim.webp" alt="김준우 대표변호사"><span class="no">01</span><div class="cap"><h3>김준우<small>대표변호사</small></h3><p class="f">재건축 · 재개발 · 부동산</p><ul><li>대한변협 등록 재개발·재건축 전문</li><li>미국 공인회계사 시험 전 과목 합격</li><li>군법무관, 5,000억원대 국가소송 수행</li><li>서울 중구청 고문변호사</li></ul></div></div>
+    <div class="ac"><img src="img/moon.webp" alt="문호준 대표변호사"><span class="no">02</span><div class="cap"><h3>문호준<small>대표변호사</small></h3><p class="f">형사법 · 민사법</p><ul><li>대한변협 등록 형사법 전문</li><li>대한변협 등록 민사법 전문</li><li>수백 건의 형사사건 수행</li></ul></div></div>
+    <div class="ac"><img src="img/cha.webp" alt="차현준 대표변호사"><span class="no">03</span><div class="cap"><h3>차현준<small>대표변호사</small></h3><p class="f">명예훼손 · 스토킹 · 형사</p><ul><li>명예훼손 사건 1심·2심 무죄</li><li>서울 강서구청 고문변호사</li><li>서울특별시교육청 변호사명예교사</li></ul></div></div>
+    <div class="ac"><img src="img/han.webp" alt="한석일 대표변호사"><span class="no">04</span><div class="cap"><h3>한석일<small>대표변호사</small></h3><p class="f">학교폭력 · 형사법</p><ul><li>음주운전 무죄, 5회 음주운전 집행유예 방어</li><li>서울특별시교육청 변호사명예교사</li><li>법학전문대학원 학생선발 면접위원</li></ul></div></div>
+  </div>
+  <p class="note">자문위원 — 문창환(산부인과 전문의) · 이윤국(공인회계사)</p>
+</section>
+
+<section class="hpin" id="record">
+  <div class="tit"><p class="eb">SUCCESS CASES</p><h2>성공사례</h2></div>
+  <div class="cnt"><b data-idx>01</b> / 05</div>
+  <div class="ghost">ALL-IN&nbsp;&nbsp;JUNIL&nbsp;&nbsp;ALL-IN&nbsp;&nbsp;JUNIL</div>
+  <ul class="track">
+    <li class="pn"><div class="im"><img src="img/p_road.jpg" alt=""><div class="lb"><b>01</b>형사</div></div><div class="tx"><small>[음주운전 0.086%]</small><h3><s>0.086%</s> → <em>0.073%</em></h3><p>음주운전 0.086% 면허취소 위기, 치밀한 위드마크 공식 분석으로 '0.073% 면허정지' 및 벌금 400만 원 선처를 이끌어낸 성공 사례입니다.</p></div></li>
+    <li class="pn"><div class="im"><img src="img/p_court.jpg" alt=""><div class="lb"><b>02</b>형사</div></div><div class="tx"><small>[음주운전 무죄] 국선변호인도 놓친 '30분의 비밀'</small><h3>선고 직전<br>판결을 <em>뒤집다</em></h3><p>선고 직전의 사건을 수임하여, 수사 기록에 누락되어 있던 '혈중알코올농도 상승기'를 집요하게 입증해 징역 구형을 180도 뒤집고 완벽한 '무죄' 판결을 받아낸 성공 사례입니다.</p></div></li>
+    <li class="pn"><div class="im"><img src="img/p_review.jpg" alt=""><div class="lb"><b>03</b>형사</div></div><div class="tx"><small>직장동료로부터 명예훼손으로 고소당한 사건</small><h3>1심, 2심<br>모두 <em>무죄</em></h3><p>겹지인에게 직장동료에 대한 뒷담화를 하였는데, 명예훼손으로 고소당하여 검찰에서 기소한 사건. 1심 무죄 / 검사 항소 / 2심 무죄</p></div></li>
+    <li class="pn"><div class="im"><img src="img/p_door.jpg" alt=""><div class="lb"><b>04</b>형사</div></div><div class="tx"><small>[층간소음방화] 구치소 수감 중이던 남편</small><h3><s>징역 2년 실형</s><br>항소심 <em>집행유예</em></h3><p>1심 징역 2년 실형 사안에서, '일반물건방화' 주장을 통한 예비적 공소사실 추가 유도 및 다각도의 양형 자료 수집으로 항소심에서 집행유예 선처를 받아냈습니다.</p></div></li>
+    <li class="pn"><div class="im"><img src="img/p_redev.jpg" alt=""><div class="lb"><b>05</b>행정</div></div><div class="tx"><small>[재개발재건축/행정]</small><h3>관리처분계획 무효확인<br>소송 <em>전부 승소</em></h3><p>분양신청 통지 하자 주장 방어, 관리처분계획 무효확인 소송 전부 승소</p></div></li>
+  </ul>
+  <div class="hprog"><i></i></div>
+</section>
+
+<section class="pad" id="business">
+  <div class="wrap biz">
+    <div class="tit l"><p class="eb" data-rv>MAIN BUSINESS</p><h2 data-split>업무분야</h2><p data-rv>수천 건의 사건을 수행하며 쌓은 전문성을 바탕으로, 최상의 법률서비스를 제공합니다.</p></div>
+    <div class="bl" data-peek>
+      <a href="#" data-img="img/p_door.jpg" data-rv><i>01</i><b>형사</b><span>수사단계부터 재판까지 체계적인 형사변호를 제공합니다.</span></a>
+      <a href="#" data-img="img/p_consult.jpg" data-rv><i>02</i><b>민사·행정</b><span>계약분쟁, 손해배상, 행정소송 등 민사·행정 사건 전문입니다.</span></a>
+      <a href="#" data-img="img/b_pen.jpg" data-rv><i>03</i><b>이혼·상속·가사</b><span>가사분쟁의 원만한 해결과 상속 문제를 조력합니다.</span></a>
+      <a href="#" data-img="img/p_redev.jpg" data-rv><i>04</i><b>건설·부동산·재개발·재건축</b><span>건설분쟁, 부동산 거래 및 개발 관련 법률서비스를 제공합니다.</span></a>
+      <a href="#" data-img="img/p_review.jpg" data-rv><i>05</i><b>기업법무</b><span>경영권 분쟁, 주주 간 분쟁 등 회사 관련 소송을 전문으로 합니다.</span></a>
+      <a href="#" data-img="img/p_road.jpg" data-rv><i>06</i><b>음주운전·사이버모욕·학교폭력</b><span>음주운전, 사이버모욕, 학교폭력 등 사건에 대한 전문 법률서비스를 제공합니다.</span></a>
+      <a href="#" data-img="img/c_close.jpg" data-rv><i>07</i><b>이민·출입국 관리</b><span>이민, 비자, 출입국 관련 법률서비스를 제공합니다.</span></a>
+      <a href="#" data-img="img/a_close.jpg" data-rv><i>08</i><b>인사노무</b><span>중대재해처벌법 대응, 산업안전 자문 및 노동법, 인사관리 자문을 제공합니다.</span></a>
+      <a href="#" data-img="img/c_hero.jpg" data-rv><i>09</i><b>공정거래</b><span>공정거래법 자문, 공정위 조사 대응을 전문으로 합니다.</span></a>
+      <a href="#" data-img="img/p_court.jpg" data-rv><i>10</i><b>조세</b><span>세무조사 대응, 조세소송 및 절세 자문을 제공합니다.</span></a>
+    </div>
+  </div>
+</section>
+
+<section class="pad" id="news" style="padding-top:20px">
+  <div class="wrap">
+    <div class="tit"><p class="eb" data-rv>JUNIL NEWS</p><h2 data-split>준일소식</h2><p data-rv>법률사무소 준일의 새로운 소식을 전해드립니다</p></div>
+    <div class="news">
+      <a href="#" data-rv><time>2026. 9. 4.</time><b>차현준 대표변호사 서울 강서구청 고문변호사 위촉 (2026. 9. 1. - 2029. 8. 31.)</b><i>→</i></a>
+      <a href="#" data-rv><time>2026. 9. 1.</time><b>김준우 대표변호사 서울중구청 고문변호사 위촉 (2026. 9. 1. - 2028. 8. 31.)</b><i>→</i></a>
+      <a href="#" data-rv><time>2026. 8. 5.</time><b>한석일 대표 변호사 서울항동초등학교 명예교사 위촉</b><i>→</i></a>
+      <a href="#" data-rv><time>2026. 6. 26.</time><b>법률사무소 준일, 수백억대 개발사업 관련 관할 행정청 상대 형사 고소·고발 / 민사소송 / 국가배상청구 대리</b><i>→</i></a>
+      <a href="#" data-rv><time>2026. 4. 1.</time><b>법률사무소 준일 개소</b><i>→</i></a>
+    </div>
+  </div>
+</section>
+
+
+
+<section class="closing" id="contact">
+  <div class="bg" data-par="8" style="background-image:url(img/a_close.jpg)"></div>
+  <div class="in">
+    <p class="eb" data-rv style="color:#fff">ALL-IN, JUNIL</p>
+    <h2 data-split style="margin-top:22px">상담만 하고 사건을 넘기지 않습니다.<br><b>상담 변호사가 끝까지 수행합니다.</b></h2>
+    <a class="tel" href="tel:02-6951-1355" data-rv="blur">02-6951-1355</a>
+    <p class="sub" data-rv>24시간 영업 · 서울 송파구 법원로96 문정법조프라자 6층 603호 · 문정역 3번출구 도보 5분</p>
+  </div>
+</section>
+
+<footer class="ft"><div class="wrap">
+  <div><div data-logo="w"></div><p><b>법률사무소 준일</b> · 대표변호사 김준우 문호준 차현준 한석일<br>서울 송파구 법원로 96 문정법조프라자 6층 603호 · TEL 02-6951-1355 · FAX 070-7507-1008 · junil@junil.kr</p></div>
+  <p>© JUNIL LAW OFFICE. ALL RIGHTS RESERVED</p>
+</div></footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
+<script src="kit.js"></script>
+<script>
+K.heroBase();
+(()=>{const ins=gsap.utils.toArray('.ha .in'),sl=gsap.utils.toArray('.ha .sl'),hero=document.querySelector('.ha');
+  if(K.calm)return;
+  const off=[-26,20,-16,28];
+  gsap.timeline({defaults:{ease:'power4.inOut'}})
+    .fromTo(sl,{clipPath:i=>i%2?'inset(100% 0% 0% 0%)':'inset(0% 0% 100% 0%)'},{clipPath:'inset(0% 0% 0% 0%)',duration:1.5,stagger:.13},.1)
+    .fromTo(ins,{yPercent:i=>off[i],scale:1.22},{yPercent:0,scale:1,duration:2.7,ease:'power3.out',stagger:.1},.2)
+    .from('.ha .hh .li',{yPercent:112,duration:1.3,ease:'power4.out',stagger:.14},1.5)
+    .fromTo('.ha .hx,.ha .cps p',{opacity:0,y:22,filter:'blur(10px)'},{opacity:1,y:0,filter:'blur(0px)',duration:1.2,ease:'power3.out',stagger:.08},1.9);
+  /* 스크롤하면 네 조각이 다시 어긋남 */
+  ins.forEach((el,i)=>gsap.to(el,{y:[-90,70,-50,110][i],ease:'none',scrollTrigger:{trigger:hero,start:'top top',end:'bottom top',scrub:true}}));
+  gsap.to('.ha .ht,.ha .cps',{opacity:0,ease:'none',scrollTrigger:{trigger:hero,start:'25% top',end:'70% top',scrub:true}});
+  /* 마우스를 움직이면 조각이 살짝 어긋났다가 돌아옴 */
+  if(matchMedia('(min-width:901px)').matches){const q=ins.map(el=>gsap.quickTo(el,'x',{duration:1,ease:'power3'})),k=[-26,14,-14,26];
+    hero.addEventListener('mousemove',e=>{const r=e.clientX/innerWidth-.5;q.forEach((f,i)=>f(r*k[i]))});
+    hero.addEventListener('mouseleave',()=>q.forEach(f=>f(0)))}
+})();
+</script>
+</body>
+</html>
