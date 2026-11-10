@@ -2,7 +2,8 @@
 // Claude가 뽑은 초안을 다른 모델에 한 번 더 통과시켜 AI 문체의 지문을 흐린다.
 // 원칙: 사실·구조·분량을 건드리면 실패다. 의심스러우면 초안을 그대로 쓴다.
 
-const POLISH_MODEL = "gpt-5.6-sol";
+// 2026-11-10 대표 지시로 블로그 발행 원고에 다시 붙임. 그날 OpenAI 목록의 최신 sol 모델.
+const POLISH_MODEL = "gpt-6.1-sol";
 
 const POLISH_SYSTEM = `
 당신은 20년차 한국어 교열자입니다. AI가 쓴 티가 남아 있는 변호사 블로그 원고를, 사람이 직접 쓴 글로 다듬습니다. 새로 쓰는 게 아니라 결을 바꾸는 작업입니다.
@@ -13,7 +14,7 @@ const POLISH_SYSTEM = `
 - ## / ### 제목 단계와 목록 순서를 유지합니다. 문단·소제목 사이 빈 줄은 한 줄, 목록 항목 사이는 개행 한 번으로 통일합니다. 글자 수에 맞춰 문장 중간을 줄바꿈하지 않습니다. 확인된 강점 문구와 전화 링크 안에는 개행을 넣지 않습니다.
 - 맨 끝 --- 아래의 기준일·작성 블록은 그대로 두세요.
 - 판례 사건번호를 새로 지어 넣지 마세요.
-- 분량을 유지하세요(공백 포함 3,000~3,500자). 문단을 통째로 지워 줄이지 마세요.
+- 분량을 원문과 비슷하게 유지하세요(±10%). 문단을 통째로 지워 줄이지 마세요.
 
 [지울 것 — AI 티가 나는 지점]
 - "~에 대해 알아보겠습니다", "~을 살펴보겠습니다"
@@ -41,6 +42,9 @@ const POLISH_SYSTEM = `
 - 추상적인 설명이 있으면 원문에 이미 있는 사실을 끌어와 구체적으로 바꾸세요. 없는 사실을 만들지는 마세요.
 
 [새로 만들어 넣지 말 것 — 흔한 실패]
+- 원문 문장을 지우고 다른 내용으로 바꿔 쓰지 마세요. 특히 마지막 문단은 원문의 문장을 그대로 살린 채 표현만 다듬습니다.
+- 원문에 없는 조언·당부·판단을 새로 보태지 마세요. "~해야 합니다", "~두어야 합니다", "~확인해야 합니다" 같은 당위형 문장을 새로 만들지 마세요.
+- 고친 문장의 주어와 서술어가 맞는지 다시 읽어 보세요. 단어만 바꿔 호응이 깨지면("~과정에서 ~문서라면") 원문 그대로 두는 편이 낫습니다.
 - 위 [지울 것] 목록의 표현을 결과물에 새로 넣지 마세요.
 - 격식만 높인 표현으로 바꾸는 것은 개악입니다. "말씀드립니다"를 "적어보겠습니다"로, "이렇습니다"를 "다음과 같습니다"로, "짚어드립니다"를 "짚어보겠습니다"로 바꾸지 마세요. "~보겠습니다" 계열은 대표적인 AI 문체입니다.
 - 따옴표는 원문 그대로 직선 따옴표(")를 쓰세요. 곡선 따옴표로 바꾸지 마세요.
@@ -72,6 +76,9 @@ export function validate(draft: string, out: string, protectedText: string[] = [
     if (/\d{4}도\d+|\d{4}\s?[가-힣]{1,3}\s?\d{3,}/.test(out)) return "판례 사건번호 생성";
     if (/기준일/.test(draft) && !/기준일/.test(out)) return "기준일 블록 유실";
     if (/보겠습니다|다음과 같습니다/.test(out)) return "AI 문체 재유입";
+    // 2026-11-10 시험 원고에서 윤문이 마지막 문단을 "~해야 합니다" 당부로 바꿔 썼다 — 당위형 문장이 늘면 초안을 쓴다.
+    const must = /(해야|두어야|봐야|챙겨야)\s?(합니다|한다|해요)/g;
+    if (count(out, must) > count(draft, must)) return "당위형 문장 추가";
 
     // 강조 표시가 유실되거나 짝이 깨지면 네이버 변환이 무너진다
     for (const [name, re] of [["형광펜", /==/g], ["밑줄", /__/g], ["굵게", /\*\*/g]] as const) {
@@ -96,12 +103,14 @@ export function validate(draft: string, out: string, protectedText: string[] = [
     return null;
 }
 
-export async function polishBlogBody(draft: string, protectedText: string[] = []): Promise<PolishResult> {
+export async function polishBlogBody(draft: string, protectedText: string[] = [], timeoutMs = 240_000): Promise<PolishResult> {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) return { text: draft, polished: false, model: "", reason: "OPENAI_API_KEY 없음" };
+    // 함수 한도 안에 남은 시간이 너무 적으면 윤문을 건너뛰고 Claude 원고를 그대로 쓴다
+    if (timeoutMs < 30_000) return { text: draft, polished: false, model: POLISH_MODEL, reason: "남은 처리 시간이 부족해 윤문 생략" };
 
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 60000);
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
         const res = await fetch("https://api.openai.com/v1/chat/completions", {

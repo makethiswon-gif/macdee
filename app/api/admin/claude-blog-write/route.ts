@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { verifyAdminToken as verifyAdmin } from "@/lib/admin-auth";
+import { polishBlogBody } from "@/lib/ai/blog-polish";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getWritingDNA, dnaDirective, HEADING_PLAIN_RULE } from "@/lib/blog-writing-dna";
 import { appendBlogPhoneContact, blogPhoneContact } from "@/lib/blog-contact";
@@ -43,6 +44,7 @@ function getKstDateLabel(): string {
 
 // POST: 관리자가 입력한 정보를 받아 변호사 블로그용 법률 콘텐츠 생성
 export async function POST(request: Request) {
+    const requestStarted = Date.now();
     if (!verifyAdmin(request)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     let responseUsage: ReturnType<typeof usageFromProvider> | undefined;
     let retryUsage: ReturnType<typeof usageFromProvider>[] = [];
@@ -322,9 +324,12 @@ ${trustBlock}
         const manuscript = rawDraftBody.replace(/\n---+[ \t]*\r?\n[ \t]*\*\*기준일\*\*[\s\S]*$/, "").trimEnd();
         // 2026-10-12 대표 지시: "원고 마지막의 정보를 갱신한다는 문구는 빼 줘" — 기준일(작성일)·작성 줄만 남긴다.
         const footer = `---\n**기준일** ${todayLabel} 작성${authorLine ? `\n${authorLine}` : ""}`;
-        // Keep Claude's final wording and append only the registered contact details.
-        const body = appendBlogPhoneContact(`${manuscript}\n\n${footer}`, phoneContact);
-        const draftBody = body;
+        // 2026-11-10 대표 지시: Claude 원고를 OpenAI(lib/ai/blog-polish.ts)가 한 번 더 윤문해 AI 티를 지운다.
+        // 기준일·전화 줄은 윤문 뒤에 붙여 바뀌지 않게 하고, 윤문이 실패하거나 검사(사실·구조·분량·어미)에 걸리면 Claude 원고를 그대로 쓴다.
+        // 함수 한도(800초) 안에 남은 시간만큼만 기다린다.
+        const polish = await polishBlogBody(manuscript, [], Math.min(240_000, 780_000 - (Date.now() - requestStarted)));
+        const body = appendBlogPhoneContact(`${polish.text}\n\n${footer}`, phoneContact);
+        const draftBody = appendBlogPhoneContact(`${manuscript}\n\n${footer}`, phoneContact);
         const charCount = body.replace(/\s/g, "").length; // 공백 제외 글자 수
         // 표지 브리프는 원고와 독립으로 검증한다. 깨져도 원고는 그대로 쓰고, 이미지 단계가 예전 기획(유료)으로 대신한다.
         let coverBrief: CoverBrief | null = null, coverWarning = parsed.warning;
@@ -354,9 +359,9 @@ ${trustBlock}
             body,
             charCount,
             draftBody,                       // 원문 비교용
-            polished: false,
-            polishModel: null,
-            polishReason: null,
+            polished: polish.polished,
+            polishModel: polish.model || null,
+            polishReason: polish.reason ?? null,
             dna: dnaInfo,
             contactWarning: profileId && !phoneContact
                 ? "대표번호를 확인하지 못해 전화 링크를 넣지 않았습니다. 변호사 프로필의 대표 전화번호 1(메인)을 확인해주세요."
