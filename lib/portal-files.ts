@@ -57,7 +57,8 @@ export function validateFileMetas(value: unknown): PortalFileMeta[] {
 const folder = (firmId: string, recordId: string) => `${firmId}/${recordId}`;
 const encodeName = (name: string) => Buffer.from(name, "utf8").toString("base64url");
 function decodeName(key: string): string {
-    const part = key.replace(/^\d+_/, "");
+    // 자료 파일은 "01_", 브랜드 자료는 "<시각36진>_" 앞머리. 앞머리에는 '_'가 없으므로 첫 '_'까지 떼면 된다.
+    const part = key.replace(/^[0-9a-z]+_/, "");
     try { return Buffer.from(part, "base64url").toString("utf8") || key; } catch { return key; }
 }
 
@@ -103,3 +104,58 @@ export async function removeRecordFiles(firmId: string, recordId: string) {
 }
 
 export const fileSizeLabel = (bytes: number) => bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)}MB` : `${Math.max(1, Math.round(bytes / 1024))}KB`;
+
+/* ── 브랜드 자료(2026-11-10 대표 지시: 프로필 사진·사무실 사진·로고 파일) ── */
+// <firmId>/brand/<kind>/<시각36진><순번>_<이름b64> — 자료 파일과 같은 비공개 버킷, 계속 쌓이므로 시각을 앞머리에 둔다.
+export const BRAND_KINDS = { profile: "프로필 사진", office: "사무실 사진", logo: "로고" } as const;
+export type BrandKind = keyof typeof BRAND_KINDS;
+export const isBrandKind = (v: unknown): v is BrandKind => typeof v === "string" && v in BRAND_KINDS;
+
+const IMAGE_EXT = /\.(jpe?g|png|webp|gif|bmp|heic|heif|tiff?|avif)$/i;
+const LOGO_EXT = /\.(svg|ai|eps|pdf|psd|png|jpe?g|webp|gif|tiff?|heic|heif|avif)$/i;
+export function checkBrandFiles(kind: BrandKind, metas: PortalFileMeta[]) {
+    const bad = metas.find((m) => !(kind === "logo" ? LOGO_EXT.test(m.name) : IMAGE_EXT.test(m.name) || m.type.startsWith("image/")));
+    if (bad) throw new Error(kind === "logo" ? `로고는 이미지·SVG·AI·EPS·PDF·PSD 파일만 올릴 수 있습니다: ${bad.name}` : `${BRAND_KINDS[kind]}은 이미지 파일만 올릴 수 있습니다: ${bad.name}`);
+}
+
+const brandFolder = (firmId: string, kind: BrandKind) => `${firmId}/brand/${kind}`;
+
+export async function createBrandUploadTargets(firmId: string, kind: BrandKind, metas: PortalFileMeta[]) {
+    await ensurePortalFileBucket();
+    const store = createServiceClient().storage.from(PORTAL_FILE_BUCKET);
+    const stamp = Date.now().toString(36);
+    return Promise.all(metas.map(async (meta, index) => {
+        const path = `${brandFolder(firmId, kind)}/${stamp}${index.toString(36)}_${encodeName(meta.name)}`;
+        const { data, error } = await store.createSignedUploadUrl(path);
+        if (error || !data) throw new Error(`업로드 주소를 만들지 못했습니다: ${error?.message ?? "알 수 없는 오류"}`);
+        return { name: meta.name, path: data.path, token: data.token };
+    }));
+}
+
+async function listFolder(path: string): Promise<PortalFile[]> {
+    const { data, error } = await createServiceClient().storage.from(PORTAL_FILE_BUCKET).list(path, { limit: 200, sortBy: { column: "name", order: "asc" } });
+    if (error) {
+        if (/not found/i.test(error.message)) return [];
+        throw new Error(`파일 목록을 읽지 못했습니다: ${error.message}`);
+    }
+    return (data ?? []).filter((item) => item.id).map((item) => {
+        const meta = (item.metadata ?? {}) as { size?: number; mimetype?: string };
+        return { path: `${path}/${item.name}`, name: decodeName(item.name), size: meta.size ?? 0, type: meta.mimetype ?? "" };
+    });
+}
+
+export async function listBrandFiles(firmId: string) {
+    const out = {} as Record<BrandKind, Awaited<ReturnType<typeof withSignedUrls>>>;
+    for (const kind of Object.keys(BRAND_KINDS) as BrandKind[]) {
+        const files = await listFolder(brandFolder(firmId, kind));
+        out[kind] = (await withSignedUrls(files)).map((f, i) => ({ ...f, path: files[i].path }));
+    }
+    return out;
+}
+
+/** 브랜드 자료 한 개 삭제 — 그 로펌의 brand 폴더 안 경로만 허용 */
+export async function removeBrandFile(firmId: string, path: string) {
+    if (typeof path !== "string" || !path.startsWith(`${firmId}/brand/`) || path.includes("..")) throw new Error("삭제할 파일이 올바르지 않습니다.");
+    const { error } = await createServiceClient().storage.from(PORTAL_FILE_BUCKET).remove([path]);
+    if (error) throw new Error(`삭제하지 못했습니다: ${error.message}`);
+}
