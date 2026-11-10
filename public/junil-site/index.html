@@ -57,18 +57,26 @@
 .strip span{margin:0 26px;opacity:.85}.strip span::after{content:"·";margin-left:52px;color:#9fcbd6}
 @keyframes mq{to{transform:translateX(-50%)}}
 
-/* 변호사: 원형 → 사각 */
-.lw{display:grid;grid-template-columns:repeat(4,1fr);gap:40px;margin-top:80px}
-.l{text-align:center}
-.l .ph{aspect-ratio:1;border-radius:50%;overflow:hidden;position:relative;transition:border-radius .8s cubic-bezier(.2,.8,.2,1);background:#2a2c3a}
-.l .ph::after{content:"";position:absolute;inset:0;border:5px solid transparent;border-radius:inherit;transition:border-color .6s}
-.l img{width:100%;height:100%;object-fit:cover;object-position:50% 12%;filter:grayscale(1);transition:filter .7s,transform 1.4s cubic-bezier(.2,.8,.2,1)}
-.l:hover .ph{border-radius:0}.l:hover .ph::after{border-color:var(--teal)}.l:hover img{filter:none;transform:scale(1.06)}
-.l h3{font-family:var(--disp);font-size:28px;margin-top:26px}
-.l .f{color:var(--teal);font-weight:600;font-size:14px;margin-top:2px}
-.l ul{margin-top:16px;font-size:14.5px;color:var(--mut)}
-.l li{padding:7px 0;border-top:1px solid var(--line)}
 .fine{font-size:13px;color:var(--mut);margin-top:26px;text-align:center}
+/* 변호사: 벌어지는 네 칸 (A 시안) */
+.acc{display:flex;height:min(78vh,760px);margin-top:70px;gap:2px;color:#fff;--acc:#9fcbd6}
+.ac{flex:1;min-width:0;position:relative;overflow:hidden;transition:flex .9s cubic-bezier(.2,.8,.2,1);background:#111;display:block;color:#fff}
+.ac img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 16%;filter:grayscale(1) brightness(.62) contrast(1.1);transition:filter .9s,transform 1.6s cubic-bezier(.2,.8,.2,1)}
+.ac::after{content:"";position:absolute;inset:0;border:4px solid transparent;transition:.6s;pointer-events:none}
+.acc:hover .ac{flex:.72}
+.acc .ac:hover,.acc .ac:focus-visible{flex:2.3}
+.ac:hover img,.ac:focus-visible img{filter:none;transform:scale(1.04)}
+.ac:hover::after,.ac:focus-visible::after{border-color:var(--teal)}
+.ac .cap{position:absolute;left:0;right:0;bottom:0;padding:120px 30px 30px;background:linear-gradient(transparent,rgba(6,3,3,.94))}
+.ac .no{position:absolute;top:24px;left:30px;font-family:var(--disp);font-size:15px;color:var(--acc);letter-spacing:.2em}
+.ac h3{font-family:var(--disp);font-size:34px;font-weight:700;white-space:nowrap}
+.ac h3 small{font-family:Pretendard;font-size:13px;font-weight:400;opacity:.7;margin-left:10px}
+.ac .f{font-size:13.5px;color:var(--acc);margin-top:4px;white-space:nowrap}
+.ac ul{margin-top:16px;max-height:0;opacity:0;overflow:hidden;transition:max-height .8s,opacity .6s;width:420px;max-width:100%}
+.ac:hover ul,.ac:focus-visible ul{max-height:170px;opacity:1;transition-delay:.25s}
+.ac li{font-size:14.5px;padding:7px 0;border-top:1px solid rgba(255,255,255,.18);color:rgba(255,255,255,.86)}
+@media(hover:none){.ac ul{max-height:170px;opacity:1}.ac img{filter:grayscale(.35) brightness(.8)}}
+@media(max-width:900px){.acc{flex-direction:column;height:auto;margin-top:44px}.ac{min-height:420px}.ac ul{max-height:170px;opacity:1}.ac img{filter:grayscale(.35) brightness(.8)}.ac .cap{padding:90px 22px 24px}.ac .no{left:22px}}
 
 /* 사례 */
 .chips{display:flex;gap:8px;justify-content:center;margin-top:34px;flex-wrap:wrap}
@@ -95,7 +103,7 @@
 @keyframes ping{from{transform:scale(.5);opacity:.9}to{transform:scale(3);opacity:0}}
 .loc dl{display:grid;grid-template-columns:96px 1fr;gap:16px;margin-top:36px;padding-top:30px;border-top:1px solid rgba(255,255,255,.3);font-size:16.5px}
 .loc dt{font-size:12px;letter-spacing:.08em;color:#9fcbd6;font-weight:700;padding-top:4px}
-@media(max-width:900px){.tri,.ans,.loc .wrap{grid-template-columns:1fr}.opts{border-right:0;border-bottom:1px solid var(--fg)}.ans{padding:28px 22px}.lw{grid-template-columns:1fr 1fr;gap:26px 16px}.cs{grid-template-columns:1fr}.same{display:none}}
+@media(max-width:900px){.tri,.ans,.loc .wrap{grid-template-columns:1fr}.opts{border-right:0;border-bottom:1px solid var(--fg)}.ans{padding:28px 22px}.cs{grid-template-columns:1fr}.same{display:none}}
 
 /* 첫 화면: 하루가 지나가다 지금 시각에 멈춤 → 스크롤하면 불 켜진 창 안으로 */
 .hero.hc{height:210vh;min-height:0;overflow:visible;background:#fff}
@@ -211,12 +219,14 @@
 <section class="pad" id="lawyer">
   <div class="wrap">
     <div class="tit"><p class="eb" data-rv>JUNIL LAWYER</p><h2 data-split>변호사 소개</h2><p data-rv>실력으로 증명해 온 4인의 파트너.<br>관행적인 변론이 아닌, 한발 더 뛰는 젊은 집요함으로 승부합니다.</p></div>
-    <div class="lw">
-      <a class="l" href="lawyer-1.html" data-rv><div class="ph"><img src="img/kim.webp" alt="김준우"></div><h3>김준우</h3><p class="f">재건축 · 재개발 · 부동산</p><ul><li>대한변협 등록 재개발·재건축 전문</li><li>미국 공인회계사 시험 전 과목 합격</li><li>서울 중구청 고문변호사</li></ul></a>
-      <a class="l" href="lawyer-2.html" data-rv data-d=".1"><div class="ph"><img src="img/moon.webp" alt="문호준"></div><h3>문호준</h3><p class="f">형사법 · 민사법</p><ul><li>대한변협 등록 형사법 전문</li><li>대한변협 등록 민사법 전문</li><li>수백 건의 형사사건 수행</li></ul></a>
-      <a class="l" href="lawyer-6.html" data-rv data-d=".2"><div class="ph"><img src="img/cha.webp" alt="차현준"></div><h3>차현준</h3><p class="f">명예훼손 · 스토킹 · 형사</p><ul><li>명예훼손 1심·2심 무죄</li><li>서울 강서구청 고문변호사</li><li>교육청 변호사명예교사</li></ul></a>
-      <a class="l" href="lawyer-10.html" data-rv data-d=".3"><div class="ph"><img src="img/han.webp" alt="한석일"></div><h3>한석일</h3><p class="f">학교폭력 · 형사법</p><ul><li>음주운전 무죄 · 집행유예 방어</li><li>교육청 변호사명예교사</li><li>로스쿨 학생선발 면접위원</li></ul></a>
-    </div>
+  </div>
+  <div class="acc" data-rv="blur">
+    <a class="ac" href="lawyer-1.html"><img src="img/kim.webp" alt="김준우 대표변호사"><span class="no">01</span><div class="cap"><h3>김준우<small>대표변호사</small></h3><p class="f">재건축 · 재개발 · 부동산</p><ul><li>대한변협 등록 재개발·재건축 전문</li><li>미국 공인회계사 시험 전 과목 합격</li><li>군법무관, 5,000억원대 국가소송 수행</li><li>서울 중구청 고문변호사</li></ul></div></a>
+    <a class="ac" href="lawyer-2.html"><img src="img/moon.webp" alt="문호준 대표변호사"><span class="no">02</span><div class="cap"><h3>문호준<small>대표변호사</small></h3><p class="f">형사법 · 민사법</p><ul><li>대한변협 등록 형사법 전문</li><li>대한변협 등록 민사법 전문</li><li>수백 건의 형사사건 수행</li></ul></div></a>
+    <a class="ac" href="lawyer-6.html"><img src="img/cha.webp" alt="차현준 대표변호사"><span class="no">03</span><div class="cap"><h3>차현준<small>대표변호사</small></h3><p class="f">명예훼손 · 스토킹 · 형사</p><ul><li>명예훼손 사건 1심·2심 무죄</li><li>서울 강서구청 고문변호사</li><li>서울특별시교육청 변호사명예교사</li></ul></div></a>
+    <a class="ac" href="lawyer-10.html"><img src="img/han.webp" alt="한석일 대표변호사"><span class="no">04</span><div class="cap"><h3>한석일<small>대표변호사</small></h3><p class="f">학교폭력 · 형사법</p><ul><li>음주운전 무죄, 5회 음주운전 집행유예 방어</li><li>서울특별시교육청 변호사명예교사</li><li>법학전문대학원 학생선발 면접위원</li></ul></div></a>
+  </div>
+  <div class="wrap">
     <p class="fine">자문위원 — 문창환(산부인과 전문의) · 이윤국(공인회계사)</p>
     <p style="text-align:center;margin-top:30px"><a class="more" href="lawyers.html">구성원 전체 보기 →</a></p>
   </div>
