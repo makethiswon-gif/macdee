@@ -27,6 +27,8 @@ export interface AdDeal {
     /** 광고비(부가세 별도) */
     supplyPrice: number;
     listPrice?: number;
+    /** 제7조 광고 심의 근거 법령의 예시(기본: 의료기기) */
+    adLaw?: string;
     /** 광고비에 포함한 2차 활용: 기간·범위, 기간 뒤 연장 대가 */
     secondUse?: { months: number; scope: string; extensionPrice: number };
 }
@@ -64,6 +66,23 @@ const DEALS: AdDeal[] = [
         scheduleShort: "11월 8일 공개 완료",
         supplyPrice: 3_000_000,
         published: true,
+    },
+    {
+        // 2026-11-12 대표: 미드롤 PPL 200만 원(부가세 별도). 담당 박민수(10-31 메일: 진행자들이 마스크팩을 붙이고 녹화, 성분·효능 나열 없이 솔직한 후기).
+        // 그 메일의 매출 50% 수익 셰어 제안은 이 계약에 넣지 않는다.
+        id: "2026-11-daybfor-maskpack",
+        brand: "데이비포",
+        prefill: { company: "차르미모", ceo: "김현수", address: "경기도 성남시 분당구 운중로 124(운중동)", manager: "박민수", email: "soo_line@naver.com" },
+        eulPrefill: { company: COMPANY.name, ceo: COMPANY.ceo, bizNo: COMPANY.bizNo, address: COMPANY.address, email: "ceo@lawnald.com" },
+        episode: "‘딥캐스트’ 회차 중 1편(회차와 촬영일은 양측이 협의하여 정하며, 두 편 이상으로 나누어 공개하면 그중 1편에 광고를 노출한다)",
+        episodeShort: "딥캐스트 1편(회차 협의)",
+        adFormat: "본편 중간 미드롤 PPL(60~90초) — 진행자들이 데이비포 마스크팩을 직접 붙이고 사용한 뒤 솔직한 후기를 전하는 방식, 설명란 구매 링크와 고정 댓글",
+        product: "데이비포 마스크팩(진행자 4인분 현물 제공)",
+        shootDate: "2026년 11월 중(정확한 날짜는 양측이 협의하여 정한다)",
+        release: "촬영일부터 2주 안에 공개하며, 정확한 공개일은 을이 갑에게 미리 알린다.",
+        scheduleShort: "11월 중 촬영 · 촬영 후 2주 안 공개",
+        supplyPrice: 2_000_000,
+        adLaw: "화장품법",
     },
 ];
 
@@ -143,7 +162,7 @@ export function buildAdContract(deal: AdDeal, party: Partial<AdParty>, signedAt:
             `${을}은 영상을 공개일부터 12개월 동안 유지하며, 정당한 사유 없이 삭제하거나 비공개로 바꾸지 않는다.`,
         ] },
         { heading: "제7조 (광고 문구의 책임)", lines: [
-            `제품의 효능·성능에 관한 문구는 ${갑}이 제공하며, 의료기기 등 관계 법령에 따른 광고 심의와 표시 책임은 ${갑}에게 있다.`,
+            `제품의 효능·성능에 관한 문구는 ${갑}이 제공하며, ${deal.adLaw || "의료기기"} 등 관계 법령에 따른 광고 심의와 표시 책임은 ${갑}에게 있다.`,
             `${을}은 ${갑}이 제공하거나 승인한 범위를 넘는 효능 표현을 하지 않는다.`,
         ] },
         { heading: "제8조 (성과와 결과 보고)", lines: [
