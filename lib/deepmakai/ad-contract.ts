@@ -88,6 +88,25 @@ const DEALS: AdDeal[] = [
         planFromAdvertiser: true,
         adLaw: "화장품법",
     },
+    {
+        // 2026-11-12 대표: 모두닥이 보낸 4편 묶음 초안 대신, 헤임타 건과 같은 조건에 금액만 220만 원(부가세 별도)으로 블랙컴뱃 박평화 대표 편 1건.
+        // 같은 편에 데이비포도 들어가므로 1부·2부 중 서로 다른 편에 넣는다. 담당 김정우(contact@modoodoc.com), 회사 정보는 modoodoc.com 하단.
+        id: "2026-11-modoodoc-parkpyunghwa",
+        brand: "모두닥",
+        prefill: { company: "모두닥 주식회사", ceo: "안무혁", address: "서울특별시 강남구 테헤란로10길 6, 9층", manager: "김정우", email: "contact@modoodoc.com" },
+        eulPrefill: { company: COMPANY.name, ceo: COMPANY.ceo, bizNo: COMPANY.bizNo, address: COMPANY.address, email: "ceo@lawnald.com" },
+        episode: "‘딥캐스트’ 블랙컴뱃 박평화 대표 초대석(두 편 이상으로 나누어 공개하면 그중 1편에 광고를 노출한다)",
+        episodeShort: "딥캐스트 블랙컴뱃 박평화 대표 초대석",
+        adFormat: "본편 중간 미드롤 PPL(60~90초) — 진행자가 모두닥 앱 화면을 보여 주며 모발이식 병원 정보 찾기를 직접 소개하는 방식, 설명란 앱 설치 링크와 고정 댓글",
+        product: "모두닥 앱(모발이식 캠페인)",
+        shootDate: "2026년 11월 17일 전후(출연진 일정에 따라 하루 정도 당겨지거나 늦춰질 수 있으며, 확정되면 을이 갑에게 알린다)",
+        release: "촬영일부터 2주 안에 공개하며, 정확한 공개일은 을이 갑에게 미리 알린다.",
+        scheduleShort: "11월 17일 전후 촬영 · 촬영 후 2주 안 공개",
+        supplyPrice: 2_200_000,
+        adLaw: "의료법",
+        // 헤임타와 같은 조건: 2차 활용 3개월 포함, 이후 연장 50만 원
+        secondUse: { months: 3, scope: "자사 앱·웹의 서비스 소개 페이지와 SNS 광고(주 채널: 메타 — 페이스북·인스타그램)", extensionPrice: 500_000 },
+    },
 ];
 
 export function listDeals(): AdDeal[] {
