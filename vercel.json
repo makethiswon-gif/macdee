@@ -1,4 +1,7 @@
 {
+  "regions": [
+    "sin1"
+  ],
   "crons": [
     {
       "path": "/api/cron/daily-magazine",
@@ -15,6 +18,10 @@
     {
       "path": "/api/cron/macdee-autopost",
       "schedule": "*/10 0-12,23 * * *"
+    },
+    {
+      "path": "/api/cron/warm-blog",
+      "schedule": "*/15 * * * *"
     }
   ]
 }

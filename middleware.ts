@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 import { lawyerBlogPaging } from "@/lib/lawyer-blog-paging";
+import { isRemovedBlogPath, REMOVED_BLOG_HTML } from "@/lib/removed-blogs";
 
 // 비공개 앱 경로 — noindex, nofollow (X-Robots-Tag). 크롤은 허용해 봇이 noindex를 읽고 색인에서 제외.
 // /makethisone(공개 대행사 페이지)는 제외하고 /makethisone/subscribe만 매칭되도록 정확 prefix 검사.
@@ -31,6 +32,18 @@ export async function middleware(request: NextRequest) {
         url.host = "www.makethis1.com";
         url.protocol = "https";
         return NextResponse.redirect(url, 301);
+    }
+
+    // 계정까지 지운 변호사 블로그는 410(영구 삭제) — 구글이 404보다 빨리 색인에서 뺀다(lib/removed-blogs.ts).
+    if (isRemovedBlogPath(path)) {
+        return new NextResponse(REMOVED_BLOG_HTML, {
+            status: 410,
+            headers: {
+                "Content-Type": "text/html; charset=utf-8",
+                "X-Robots-Tag": "noindex",
+                "Cache-Control": "public, max-age=3600, s-maxage=86400",
+            },
+        });
     }
 
     // 변호사 블로그 ?page=N(2쪽부터)은 캐시되는 내부 경로로 넘긴다(lib/lawyer-blog-paging.ts).

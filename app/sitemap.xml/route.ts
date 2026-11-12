@@ -1,81 +1,14 @@
 import { NextResponse } from "next/server";
-import { createServiceClient } from "@/lib/supabase/server";
-import { isPublicLawyerSlug, PUBLIC_BLOG_CHANNELS } from "@/lib/public-content";
-import { escapeXml, latestDate, readAllFeedRows, validDate } from "@/lib/seo-feeds";
-import { DEMO_BASE, SITE_BASE, absUrl } from "@/data/renewal/site";
+import { loadSitemapGroups, SITEMAP_HEADERS, sitemapIndexXml } from "@/lib/sitemap-groups";
 
+// 사이트맵 묶음 목록(sitemap index). 실제 주소는 /sitemaps/<묶음>.xml — 변호사 블로그는 변호사마다 한 묶음(lib/sitemap-groups.ts).
+// 서치콘솔에 제출된 주소(/sitemap.xml)가 그대로라 다시 제출할 필요 없이 구글이 묶음들을 읽는다.
 // New publications enter the sitemap without another deployment.
 export const revalidate = 3600;
 
 export async function GET() {
     try {
-        const supabase = createServiceClient();
-        const [blogPosts, magazines] = await Promise.all([
-            readAllFeedRows((from, to) => supabase.from("contents")
-                .select("id, slug, updated_at, created_at, lawyer_id, lawyers!inner(slug)")
-                .eq("status", "published").in("channel", [...PUBLIC_BLOG_CHANNELS])
-                .order("id").range(from, to)),
-            readAllFeedRows((from, to) => supabase.from("magazines")
-                .select("slug, published_at")
-                .eq("status", "published").not("slug", "is", null)
-                .order("id").range(from, to)),
-        ]);
-
-        const entries = new Map<string, string | undefined>();
-        const add = (url: string, modified?: string | null) => {
-            entries.set(url, latestDate([entries.get(url), modified]));
-        };
-
-        // Static pages have no maintained publication date. Omit lastmod rather than
-        // claiming that a client blog update or sitemap request changed every service.
-        add(SITE_BASE);
-        add(`${SITE_BASE}/about`);
-        // Magazine reads increment view_count, whose trigger also touches updated_at.
-        // Only published_at is a trustworthy public content date in the current schema.
-        add(`${SITE_BASE}/magazine`, latestDate(magazines.map(m => m.published_at)));
-
-        if (DEMO_BASE === "") {
-            for (const page of [
-                "/lawfirm-marketing", "/naver-ads", "/lawfirm-seo", "/geo",
-                "/lawfirm-blog", "/lawfirm-website", "/conversion", "/work",
-                "/contact", "/consult", "/upgrade",
-            ]) add(absUrl(page));
-        } else {
-            add(`${SITE_BASE}/makethisone`);
-        }
-
-        const publicBlogPosts = blogPosts.filter((post) => isPublicLawyerSlug((post.lawyers as unknown as { slug: string } | null)?.slug));
-        // 변호사 블로그 목록(/blog, 2026-10-08) — 공개 블로그 글이 있을 때만. 날짜는 가장 최근 블로그 글.
-        if (publicBlogPosts.length) add(`${SITE_BASE}/blog`, latestDate(publicBlogPosts.flatMap((post) => [post.updated_at, post.created_at])));
-        for (const post of publicBlogPosts) {
-            const lawyer = post.lawyers as unknown as { slug: string };
-            const blogUrl = `${SITE_BASE}/blog/${encodeURIComponent(lawyer.slug)}`;
-            const modified = latestDate([post.updated_at, post.created_at]);
-            add(blogUrl, modified);
-            add(`${blogUrl}/${encodeURIComponent(post.slug || post.id)}`, modified);
-        }
-
-        for (const article of magazines) {
-            if (!article.slug) continue;
-            add(`${SITE_BASE}/magazine/${encodeURIComponent(article.slug)}`, article.published_at);
-        }
-
-        // Fail visibly instead of returning an invalid/truncated discovery document.
-        // Split into a sitemap index before this site's URL set reaches the protocol limit.
-        if (entries.size > 50_000) throw new Error("Sitemap index required");
-        const urls = [...entries].map(([url, modified]) => {
-            const date = validDate(modified);
-            return `  <url><loc>${escapeXml(url)}</loc>${date ? `<lastmod>${date}</lastmod>` : ""}</url>`;
-        }).join("\n");
-        const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>`;
-        if (Buffer.byteLength(xml, "utf8") > 50 * 1024 * 1024) throw new Error("Sitemap index required");
-
-        return new NextResponse(xml, {
-            headers: {
-                "Content-Type": "application/xml; charset=utf-8",
-                "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
-            },
-        });
+        return new NextResponse(sitemapIndexXml(await loadSitemapGroups()), { headers: SITEMAP_HEADERS });
     } catch {
         return new NextResponse("Error generating sitemap", { status: 503, headers: { "Retry-After": "300" } });
     }
