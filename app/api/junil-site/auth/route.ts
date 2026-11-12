@@ -4,7 +4,7 @@ import { JUNIL_COOKIE, JUNIL_COOKIE_MAX_AGE, checkPassword, issueJunilToken } fr
 
 export const dynamic = "force-dynamic";
 
-// POST: 관리자 계정으로 로그인 — 이 브라우저에 30일짜리 준일 관리자 쿠키를 준다.
+// POST: 관리자 계정(맥디 관리자 또는 준일 직원용)으로 로그인 — 이 브라우저에 30일짜리 준일 관리자 쿠키를 준다.
 export async function POST(req: Request) {
     if (!(await rateLimitOk("junil-site-login", getClientIp(req), 5, "1 m"))) {
         return tooManyRequests("로그인 시도가 너무 많습니다. 1분 후 다시 시도해주세요.");
@@ -12,12 +12,13 @@ export async function POST(req: Request) {
     let body: { username?: unknown; password?: unknown };
     try { body = await req.json(); } catch { return NextResponse.json({ error: "bad_json" }, { status: 400 }); }
 
-    if (!checkPassword(String(body.username ?? ""), String(body.password ?? ""))) {
+    const who = checkPassword(String(body.username ?? ""), String(body.password ?? ""));
+    if (!who) {
         await new Promise((r) => setTimeout(r, 800)); // 대입 공격 늦추기
         return NextResponse.json({ error: "아이디 또는 비밀번호가 올바르지 않습니다." }, { status: 401 });
     }
     const res = NextResponse.json({ ok: true });
-    res.cookies.set(JUNIL_COOKIE, issueJunilToken(), {
+    res.cookies.set(JUNIL_COOKIE, issueJunilToken(who), {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
