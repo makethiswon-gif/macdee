@@ -637,7 +637,7 @@ export const FOUNDER = {
     photo: "/makethisone/ceo.webp",
     lead: "법률사무소 안에서 사건이 어떻게 들어오는지 보고, 대기업에서 마케팅을 배웠습니다.",
     career: {
-        legal: ["법무법인 혜안", "법무법인 고구려", "JY법률사무소"],
+        legal: ["법무법인 혜안", "법무법인 고구려", "JY법률사무소", "법무법인 산하"],
         marketing: ["삼성메디슨 영업 · 마케팅", "KT 유통 · 영업 · 마케팅"],
     },
 };

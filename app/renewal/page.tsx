@@ -1,16 +1,8 @@
 import type { Metadata } from "next";
 import { getInsightCatalogue } from "@/lib/renewal/magazine";
 
-import HomeEditionHero from "@/components/renewal/home/edition/HomeEditionHero";
-import ServiceSpread from "@/components/renewal/home/edition/ServiceSpread";
-import JourneySpread from "@/components/renewal/home/edition/JourneySpread";
-import OperationsSpread from "@/components/renewal/home/edition/OperationsSpread";
-import { PartnerEdition, CaseEdition, TeamEdition } from "@/components/renewal/home/edition/EvidenceSpreads";
-import { ChannelEdition, InsightEdition, PlanEdition, ContactEdition } from "@/components/renewal/home/edition/ClosingSpreads";
-import EditionMotionController from "@/components/renewal/home/edition/EditionMotionController";
-import editionStyles from "@/components/renewal/home/edition/edition-home.module.css";
+import HomeScroll from "@/components/renewal/home/scroll/HomeScroll";
 
-import { CASES } from "@/data/renewal/cases";
 import { COMPANY, FOUNDER, absUrl, ogImage } from "@/data/renewal/site";
 import { renewalRobots } from "./flags";
 
@@ -129,28 +121,11 @@ export default async function RenewalHome() {
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
             />
 
-            {/* "필요한 전부, 한 팀" 구조 (대표 지시 2026-08-29 — 계약서 은유 폐기).
-                Hero(선언 + 맡는 일 카드 + 검증 수치) → 서비스 범위 01~06
-                → 의뢰인 여정 3단계 → 맡기기 전/후 → 증거(파트너) → 사례
-                → 새 채널 대응(축소) → 팀 → Insights → 세 가지 운영안(#plans) → CTA
-
-                핵심 원칙: 첫 화면 5초 안에 "필요한 마케팅 전부를 한 팀이 운영해
-                간단해진다"가 읽혀야 한다. 효과 없이 읽어도 구조가 이해된다. */}
-            <div data-edition-root className={editionStyles.root}>
-            <EditionMotionController />
-            <HomeEditionHero />
-            <ServiceSpread />
-            <JourneySpread />
-            <OperationsSpread />
-            <PartnerEdition />
-            {/* 홈은 첫 사례만 Growth Path 를 펼친다 — 전체는 /work */}
-            <CaseEdition cases={CASES} growthLimit={1} />
-            <ChannelEdition />
-            <TeamEdition />
-            <InsightEdition items={insights} total={catalogue.length} />
-            <PlanEdition />
-            <ContactEdition />
-            </div>
+            {/* 스크롤 홈(2026-11-15 대표 선택): 3D '1' 이 화면에 붙어 스크롤에 따라 돌고,
+                판 색이 파랑↔흰색으로 뒤집힌다. 구역: 첫 화면 → 하나로 → 워크플로우 → 기록 → 구조(#system)
+                → 함께한 이름 → 사람 → 비용(#plans)·FAQ → 매거진 → 문의.
+                이전 홈(edition/*)은 지우지 않았다 — 되돌릴 때는 이 자리에 다시 끼우면 된다. */}
+            <HomeScroll insights={insights} total={catalogue.length} />
         </>
     );
 }

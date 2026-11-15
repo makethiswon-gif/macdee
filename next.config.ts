@@ -29,6 +29,13 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        // 홈의 3D 라이브러리(파일 이름에 버전이 들어 있어 바뀌지 않는다) — 오래 기억시킨다
+        source: "/vendor/:path*",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+        ],
+      },
+      {
         // API는 검색엔진 색인에서 제외
         source: "/api/:path*",
         headers: [
