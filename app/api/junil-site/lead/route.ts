@@ -6,7 +6,7 @@ import { rateLimitOk, getClientIp } from "@/lib/ratelimit";
 // 법률사무소 준일 랜딩(junilcriminal.com · junilcivil.com · junildui.com)의 상담 신청 접수.
 // 랜딩 사이트는 따로 떨어진 Vercel 프로젝트(junil-landing)이고, 접수만 이곳에서 받는다(메일 계정·저장소가 여기 있음).
 // 1) 비공개 저장소(junil-leads 버킷)에 한 건씩 JSON 으로 남기고 2) 메일로 알린다. 메일이 실패해도 저장은 남는다.
-// 받는 사람: 환경변수 JUNIL_LEAD_TO(쉼표로 여러 명), 없으면 대표 메일.
+// 받는 사람: 환경변수 JUNIL_LEAD_TO(쉼표로 여러 명), 없으면 대표 메일 + 준일 공식 메일(2026-11-19 대표 지시 "준일에도 보내").
 
 const ALLOWED = new Set([
     "https://junilcriminal.com",
@@ -16,7 +16,7 @@ const ALLOWED = new Set([
     "http://localhost:8791", // 로컬 시안 미리보기
 ]);
 const BUCKET = "junil-leads";
-const TO = (process.env.JUNIL_LEAD_TO || "ceo@lawnald.com").split(",").map((s) => s.trim()).filter(Boolean);
+const TO = (process.env.JUNIL_LEAD_TO || "ceo@lawnald.com,junil@junil.kr").split(",").map((s) => s.trim()).filter(Boolean);
 
 function cors(origin: string | null) {
     const h: Record<string, string> = { Vary: "Origin" };
