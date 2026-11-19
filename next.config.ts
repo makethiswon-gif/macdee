@@ -1,5 +1,15 @@
 import type { NextConfig } from "next";
 
+// 법률사무소 준일 랜딩 전용 도메인 → 그 도메인 첫 화면에 해당 랜딩을 띄우고,
+// 나머지 주소(img/…, about.html, cases/…)는 /junil-site/ 아래 같은 파일로 넘긴다(랜딩 안 상대 링크가 그대로 동작).
+// www.* 는 www 없는 주소로 보낸다(아래 redirects).
+const JUNIL_LANDING_DOMAINS: [string, string][] = [
+  ["junilcriminal.com", "landing-criminal.html"],
+  ["junilcivil.com", "landing-civil-realestate.html"],
+  ["junildui.com", "landing-dui-cyber-school.html"],
+];
+const hostIs = (host: string) => [{ type: "host" as const, value: host.replace(/\./g, "\\.") }];
+
 const nextConfig: NextConfig = {
   serverExternalPackages: ["@napi-rs/canvas", "@techstark/opencv-js"],
   outputFileTracingIncludes: {
@@ -45,10 +55,25 @@ const nextConfig: NextConfig = {
     ];
   },
   async rewrites() {
-    return [];
+    return {
+      // 앱 페이지·public 파일보다 먼저 봐야 '/'(맥디 홈)와 '/img/…'를 준일 쪽으로 돌릴 수 있다.
+      beforeFiles: JUNIL_LANDING_DOMAINS.flatMap(([host, landing]) => [
+        { source: "/", has: hostIs(host), destination: `/junil-site/${landing}` },
+        // 게시판이 내보내는 /junil-site/… 절대 주소와 /_next·/api 는 그대로 둔다.
+        { source: "/:path((?!junil-site(?:/|$)|_next/|api/).+)", has: hostIs(host), destination: "/junil-site/:path" },
+      ]),
+      afterFiles: [],
+      fallback: [],
+    };
   },
   async redirects() {
     return [
+      ...JUNIL_LANDING_DOMAINS.map(([host]) => ({
+        source: "/:path*",
+        has: hostIs(`www.${host}`),
+        destination: `https://${host}/:path*`,
+        permanent: true,
+      })),
       // 공개 마케팅 URL만 승격한다. /makethisone/subscribe와 팀 이미지 등
       // 실제 제품·정적 자산을 삼키는 /makethisone/* 와일드카드는 금지한다.
       // 고객 홈페이지 시안(정적 파일 public/junil-sian) — 짧은 주소로 들어오게
