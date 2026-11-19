@@ -199,6 +199,7 @@ body.lc{--a1:#86622f;--a1r:134 98 47;--a2:#e2c38d;--a2r:226 195 141;--a3:#f3e6cc
 .lf .ag input{margin-top:4px}
 .lf button{width:100%;margin-top:20px;background:var(--ink);color:#fff;padding:18px;font-size:16.5px;font-weight:700;transition:.3s}.lf button:hover{background:var(--a1)}
 .lf .msg{display:none;margin-top:16px;background:var(--tint);padding:14px 16px;font-size:14.5px;line-height:1.7}
+.lf .msg.err{background:#fbeaea;color:#8a1c1c}.lf .hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}.lf button[disabled]{opacity:.6;cursor:wait}
 @media(max-width:900px){.lct{padding:90px 0 120px}.lct .wrap{grid-template-columns:1fr;gap:44px}.lf{padding:26px 20px}.lf .two{grid-template-columns:1fr}.lvow{padding:100px 0}}
 
 /* 들어올 때: 실제 사례가 화면을 메운 벽 → 갈라지며 첫 화면 */
@@ -350,9 +351,9 @@ html[data-intro="2"] .i2,html[data-intro="3"] .i3,html[data-intro="4"] .i4{displ
       <div class="two"><label>성함<input type="text" name="name" required></label><label>연락처<input type="tel" name="tel" required></label></div>
       <label>사건 분야<select name="field"><option>손해배상 청구</option><option>손해배상 방어(청구를 당함)</option><option>화재 · 제조물 책임</option><option>국가배상 · 산재 · 의료</option><option>재개발 · 재건축 · 조합</option><option>부동산 매매 · 임대차</option><option>공사대금 · 하자</option><option>기타</option></select></label>
       <label>문의 내용<textarea name="body"></textarea></label>
-      <label class="ag"><input type="checkbox" required><span>개인정보 수집 및 이용에 동의합니다.</span></label>
-      <button type="submit">상담 신청</button>
-      <p class="msg">미리보기 단계라 신청서가 아직 전송되지 않습니다. 전화 02-6951-1355 로 연락해 주세요.</p>
+      <label class="ag"><input type="checkbox" name="agree" required><span>개인정보 수집 및 이용에 동의합니다.</span></label>
+      <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"><button type="submit">상담 신청</button>
+      <p class="msg" role="status" aria-live="polite"></p>
     </form>
   </div>
 </section>
@@ -504,8 +505,19 @@ document.documentElement.dataset.intro='3';</script>
     if(!calm)gsap.from('#rr .rc',{opacity:0,x:80,duration:.9,stagger:.06,ease:'power3.out',scrollTrigger:{trigger:rr,start:'top 85%'}});
   }
 
-  /* ── 상담 신청서 (미리보기: 전송하지 않음) ── */
-  qa('form.lf').forEach(fm=>fm.addEventListener('submit',e=>{e.preventDefault();fm.querySelector('.msg').style.display='block'}));
+  /* ── 상담 신청서: 메이크디스원 접수 주소로 보낸다(비공개 저장 + 메일 알림, app/api/junil-site/lead) ── */
+  qa('form.lf').forEach(fm=>fm.addEventListener('submit',async e=>{e.preventDefault();
+    const b=fm.querySelector('button[type=submit]'),m=fm.querySelector('.msg'),f=new FormData(fm);
+    const show=(t,err)=>{m.textContent=t;m.classList.toggle('err',!!err);m.style.display='block'};
+    b.disabled=true;
+    try{
+      const r=await fetch('https://www.makethis1.com/api/junil-site/lead',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({name:f.get('name'),tel:f.get('tel'),field:f.get('field'),body:f.get('body'),agree:!!f.get('agree'),website:f.get('website'),page:location.href})});
+      const j=await r.json().catch(()=>({}));
+      if(r.ok&&j.ok){fm.reset();show('상담 신청이 접수되었습니다. 확인 후 남겨 주신 연락처로 연락드리겠습니다.')}
+      else show((j.error||'접수에 실패했습니다.')+' 급하시면 전화 02-6951-1355 로 연락해 주세요.',true);
+    }catch(_){show('전송에 실패했습니다. 전화 02-6951-1355 로 연락해 주세요.',true)}
+    b.disabled=false}));
 
   /* ── 왼쪽 띠: 지금 구역 표시와 이동 ── */
   const dots=qa('.lrail a');
