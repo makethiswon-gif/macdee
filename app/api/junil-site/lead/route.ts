@@ -33,6 +33,33 @@ const reply = (origin: string | null, body: object, status = 200) =>
 
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
+/** 국내 번호면 010-1234-5678 꼴로, 아니면 null. +82·82 로 시작하면 0 으로 바꿔 본다. */
+function koreanPhone(raw: string): string | null {
+    let d = raw.replace(/[^\d+]/g, "");
+    if (d.startsWith("+")) {
+        if (!d.startsWith("+82")) return null;
+        d = "0" + d.slice(3).replace(/^0/, "");
+    } else if (d.startsWith("82") && d.length >= 11) {
+        d = "0" + d.slice(2).replace(/^0/, "");
+    }
+    d = d.replace(/\D/g, "");
+    const m =
+        d.match(/^(01[016789])(\d{3,4})(\d{4})$/) || // 휴대폰
+        d.match(/^(02)(\d{3,4})(\d{4})$/) || // 서울
+        d.match(/^(0[3-6][1-5])(\d{3,4})(\d{4})$/) || // 지역번호
+        d.match(/^(070|050\d?)(\d{3,4})(\d{4})$/) || // 인터넷·안심번호
+        d.match(/^(1[5-9]\d{2})(\d{4})$/); // 대표번호 1588-0000
+    return m ? m.slice(1).join("-") : null;
+}
+
+// 같은 번호가 10분 안에 또 신청하면 메일은 처음 한 번만(같은 서버 인스턴스 안에서 보는 최선 노력).
+const sentAt = new Map<string, number>();
+const recentlySent = (tel: string) => (sentAt.get(tel) ?? 0) > Date.now() - 10 * 60e3;
+const markSent = (tel: string) => {
+    sentAt.set(tel, Date.now());
+    if (sentAt.size > 500) for (const [k, t] of sentAt) if (t < Date.now() - 10 * 60e3) sentAt.delete(k);
+};
+
 let bucketReady = false;
 async function ensureBucket() {
     if (bucketReady) return;
@@ -76,16 +103,29 @@ export async function POST(req: NextRequest) {
         page: str(body.page, 200),
     };
     if (!lead.name || !lead.tel) return reply(origin, { error: "성함과 연락처를 적어 주세요." }, 400);
-    if (lead.tel.replace(/\D/g, "").length < 9) return reply(origin, { error: "연락처를 다시 확인해 주세요." }, 400);
+    // 2026-11-23 외국 번호(+44·+972)·가짜 이름 봇이 한꺼번에 들어와 막음: 국내 번호만 받는다(+82 는 0 으로 바꿔 본다).
+    const tel = koreanPhone(lead.tel);
+    if (!tel) return reply(origin, { error: "국내 휴대폰·전화번호로 적어 주세요(예: 010-1234-5678)." }, 400);
+    lead.tel = tel;
+    if (!/^[가-힣ㄱ-ㅎa-zA-Z][가-힣ㄱ-ㅎa-zA-Z\s.·()-]{0,39}$/.test(lead.name)) return reply(origin, { error: "성함을 다시 확인해 주세요." }, 400);
     if (!lead.agree) return reply(origin, { error: "개인정보 수집·이용에 동의해 주세요." }, 400);
     if (/(https?:\/\/|www\.)/i.test(`${lead.name} ${lead.body}`) || /[Ѐ-ӿ]/.test(`${lead.name} ${lead.body}`)) {
         return reply(origin, { error: "잘못된 요청입니다." }, 400);
     }
 
+    // 사람인지 보는 흔적: 페이지를 연 뒤 걸린 시간(el, ms)과 칸에 직접 입력한 횟수(ki). 랜딩의 신청서 스크립트가 보낸다.
+    // 수상하면 저장만 하고(지워지지 않게) 메일은 보내지 않는다. 봇이 눈치채지 않게 응답은 똑같이 '접수됨'.
+    const el = typeof body.el === "number" ? body.el : -1;
+    const ki = typeof body.ki === "number" ? body.ki : -1;
+    const suspect: string[] = [];
+    if (el < 3000) suspect.push(el < 0 ? "시간 없음" : `너무 빠름 ${el}ms`);
+    if (ki < 1) suspect.push(ki < 0 ? "입력 기록 없음" : "직접 입력 없음");
+    if (recentlySent(tel)) suspect.push("같은 번호 10분 안 재신청");
+
     const now = new Date();
     const kst = new Date(now.getTime() + 9 * 3600e3).toISOString(); // 2026-11-19T21:03:00.000Z 꼴(한국 시각)
     const id = `${kst.slice(0, 19).replace(/[-:T]/g, "")}-${Math.random().toString(36).slice(2, 8)}`;
-    const record = { id, receivedAt: now.toISOString(), origin, ...lead };
+    const record = { id, receivedAt: now.toISOString(), origin, ...lead, el, ki, ...(suspect.length ? { suspect } : {}) };
 
     let saved = false;
     try {
@@ -97,6 +137,12 @@ export async function POST(req: NextRequest) {
     } catch (e) {
         console.error("[junil-lead] 저장 실패:", e instanceof Error ? e.message : e);
     }
+
+    if (suspect.length) {
+        console.warn("[junil-lead] 수상한 신청(메일 안 보냄):", id, suspect.join(", "));
+        return reply(origin, { ok: true, id });
+    }
+    markSent(tel);
 
     let mailed = false;
     if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
