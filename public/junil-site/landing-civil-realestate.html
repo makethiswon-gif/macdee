@@ -506,13 +506,15 @@ document.documentElement.dataset.intro='3';</script>
   }
 
   /* ── 상담 신청서: 메이크디스원 접수 주소로 보낸다(비공개 저장 + 메일 알림, app/api/junil-site/lead) ── */
+  /* 사람인지 보는 흔적(접수 서버가 봇을 거르는 데 씀): 페이지를 연 뒤 시간, 칸에 직접 입력한 횟수 */
+  const T0=Date.now();qa('form.lf').forEach(fm=>{fm.__ki=0;fm.addEventListener('input',e=>{if(e.isTrusted)fm.__ki++},true)});
   qa('form.lf').forEach(fm=>fm.addEventListener('submit',async e=>{e.preventDefault();
     const b=fm.querySelector('button[type=submit]'),m=fm.querySelector('.msg'),f=new FormData(fm);
     const show=(t,err)=>{m.textContent=t;m.classList.toggle('err',!!err);m.style.display='block'};
     b.disabled=true;
     try{
       const r=await fetch('https://www.makethis1.com/api/junil-site/lead',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({name:f.get('name'),tel:f.get('tel'),field:f.get('field'),body:f.get('body'),agree:!!f.get('agree'),website:f.get('website'),page:location.href})});
+        body:JSON.stringify({name:f.get('name'),tel:f.get('tel'),field:f.get('field'),body:f.get('body'),agree:!!f.get('agree'),website:f.get('website'),page:location.href,el:Date.now()-T0,ki:fm.__ki||0})});
       const j=await r.json().catch(()=>({}));
       if(r.ok&&j.ok){fm.reset();show('상담 신청이 접수되었습니다. 확인 후 남겨 주신 연락처로 연락드리겠습니다.')}
       else show((j.error||'접수에 실패했습니다.')+' 급하시면 전화 02-6951-1355 로 연락해 주세요.',true);
