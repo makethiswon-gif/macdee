@@ -12,6 +12,7 @@ const ALLOWED = new Set([
     "https://junilcriminal.com",
     "https://junilcivil.com",
     "https://junildui.com",
+    "https://junil.kr", // 공식 홈 '오시는 길' 신청서(2026-11-26: 문자 계정이 막혀도 신청을 놓치지 않게 메일로도)
     "https://www.makethis1.com",
     "http://localhost:8791", // 로컬 시안 미리보기
 ]);
